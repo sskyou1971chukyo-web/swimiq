@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>SwimIQ</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SwimIQ">
+<meta name="theme-color" content="#0a2a48">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0a2a48;
+    --panel:rgba(16,44,74,.72);
+    --line:rgba(255,255,255,.5);
+    --white:#fff;
+    --accent:#22c55e;
+    --accent2:#0ea5e9;
+    --yellow:#fbbf24;
+    --shadow:0 2px 6px rgba(0,0,0,.55);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg); color:var(--white); user-select:none; -webkit-user-select:none; }
+
+  /* ===== 全体：動画を主役に。まわりに最小限の操作。===== */
+  #app{ position:fixed; inset:0; }
+
+  /* 動画（画面いっぱい） */
+  #videoWrap{ position:absolute; inset:0; overflow:hidden; background:#04263f; touch-action:none; }
+  #video{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:100%; height:100%; object-fit:contain; will-change:transform; }
+  /* 動画がまだ無いときの案内 */
+  #startHint{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; text-align:center; padding:24px; background:linear-gradient(160deg,#0a2a48,#0e3a5c); }
+  #startHint .logo{ font-size:clamp(28px,6vw,44px); font-weight:900; letter-spacing:.04em; }
+  #startHint .logo span{ color:var(--accent2); }
+  #startHint p{ font-size:15px; font-weight:600; opacity:.85; margin:0; line-height:1.6; }
+  #app.hasvideo #startHint{ display:none; }   /* 動画を開いたら案内を消す */
+
+  /* ===== 経過時間（動画の上・左上に常に・下の記録一覧と同じ幅） ===== */
+  #timeHud{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 10px); z-index:6;
+    width:150px; justify-content:center;
+    display:none; align-items:baseline; gap:6px;
+    background:rgba(6,24,42,.66); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border:1.5px solid var(--line); border-radius:12px; padding:4px 8px; }
+  #app.hasvideo #timeHud{ display:flex; }
+  #timeHud .lb{ font-size:9px; font-weight:800; color:#bfe3ff; }
+  #timeHud .tm{ font-size:clamp(20px,3.8vw,29px); font-weight:900; font-variant-numeric:tabular-nums; text-shadow:var(--shadow); }
+
+  /* ===== 左側：記録した通過タイムの一覧 ===== */
+  /* 注意: このパネルは中身(#recList)がスクロールするため、backdrop-filterを使うと
+     iOS Safariの不具合で黒い矩形が描画されることがある。ぼかしは使わず色を濃くして対応。 */
+  #recPanel{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 54px);
+    bottom:calc(env(safe-area-inset-bottom) + 72px); width:150px; z-index:6;
+    display:none; flex-direction:column;
+    background:rgba(6,24,42,.85); transform:translateZ(0);
+    border:1.5px solid var(--line); border-radius:16px; padding:8px 8px 6px; }
+  #app.hasvideo #recPanel{ display:flex; }
+  #recPanel .rec-head{ font-size:12px; font-weight:800; color:#bfe3ff; text-align:center;
+    padding-bottom:6px; margin-bottom:4px; border-bottom:1px solid rgba(255,255,255,.25); flex:none;
+    cursor:grab; touch-action:none; }  /* ここをつかんでパネルごと動かせる */
+  #recList{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px;
+    -webkit-overflow-scrolling:touch; touch-action:pan-y; }  /* 指でなめらかにスクロール */
+  #recList .rec{ background:rgba(255,255,255,.08); border-radius:10px; padding:5px 8px;
+    border-left:4px solid var(--accent); }
+  #recList .rec .top{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  #recList .rec .d{ font-size:13px; font-weight:900; color:#fff; }
+  #recList .rec .t{ font-size:16px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+  #recList .rec .lap{ font-size:11px; font-weight:700; color:#bfe3ff; text-align:right; }
+  #recList .rec.tempo{ border-left-color:#22d3ee; }
+  #recList .rec.stroke{ border-left-color:#a78bfa; }
+  #recList .empty{ font-size:11px; font-weight:600; opacity:.7; text-align:center; padding:14px 4px; line-height:1.5; }
+
+  /* ===== 左上：動画を開くボタン（1つだけ） ===== */
+  #openBtn{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
+    display:flex; align-items:center; gap:8px; padding:10px 16px; cursor:pointer;
+    background:linear-gradient(135deg,#f97316,#fbbf24); border:none; border-radius:16px;
+    color:#fff; font-size:15px; font-weight:800; text-shadow:var(--shadow);
+    box-shadow:0 4px 0 rgba(0,0,0,.2); }
+  #app.hasvideo #openBtn{ display:none; }  /* 動画を開いたら消える */
+  #openBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+
+  /* 右上の道具ボタン（歯車）。押すと下の2つのボタンが出たり隠れたりする */
+  #toolsBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
+    display:none; width:44px; height:44px; align-items:center; justify-content:center; cursor:pointer;
+    background:rgba(16,44,74,.7); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:20px; }
+  #app.hasvideo #toolsBtn{ display:flex; }
+  #toolsBtn:active{ transform:translateY(1px); }
+
+  /* 動画を替えるボタン（普段は隠れていて、歯車を押すと出る） */
+  #changeBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 62px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #app.hasvideo.showtools #changeBtn{ display:flex; }
+
+  /* 距離をかえるボタン（動画をかえるの下。こちらも普段は隠す） */
+  #distBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 102px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #app.hasvideo.showtools #distBtn{ display:flex; }
+  #distBtn:active{ transform:translateY(1px); }
+
+  /* ほぞん・よびだしボタン（歯車メニューの中・距離をかえるの下） */
+  #saveBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 142px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #app.hasvideo.showtools #saveBtn{ display:flex; }
+  #saveBtn:active{ transform:translateY(1px); }
+  #loadBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 182px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #app.hasvideo.showtools #loadBtn{ display:flex; }
+  #loadBtn:active{ transform:translateY(1px); }
+
+  /* ===== 右：きょり目盛り（均等） ===== */
+  #scale{ position:absolute; right:0; top:0; bottom:0; width:96px; z-index:5;
+    display:none; flex-direction:column; padding:calc(env(safe-area-inset-top) + 14px) 6px 14px;
+    background:linear-gradient(90deg,rgba(10,42,72,0),rgba(10,42,72,.55) 40%); }
+  #app.hasvideo #scale{ display:flex; }
+  #scale .stitle{ text-align:center; font-size:12px; font-weight:800; opacity:.9; margin-bottom:10px; text-shadow:var(--shadow); }
+  #rope{ position:relative; flex:1; width:26px; margin:0 auto; border-radius:14px; overflow:visible;
+    background:repeating-linear-gradient(180deg,var(--yellow) 0 14px,#2f6fb0 14px 28px);
+    border:2px solid rgba(255,255,255,.5); }
+  #ticks{ position:absolute; inset:0; }
+  /* 目盛りの点は絶対配置で、均等に置く */
+  .pt{ position:absolute; left:50%; transform:translate(-50%,-50%); z-index:4;
+    display:flex; align-items:center; gap:5px; cursor:pointer; white-space:nowrap;
+    padding:6px 0; }
+  .pt .dot{ width:16px; height:16px; border-radius:50%; background:#fff; border:2.5px solid var(--bg);
+    box-shadow:0 0 5px rgba(0,0,0,.4); }
+  .pt.big .dot{ width:22px; height:22px; }
+  .pt.small .dot{ width:12px; height:12px; background:#dfeefc; }
+  .pt .lb{ position:absolute; left:26px; font-size:14px; font-weight:900; text-shadow:var(--shadow); }
+  .pt.small .lb{ font-size:11px; font-weight:700; opacity:.9; }
+  .pt.sel .dot{ background:var(--yellow); border-color:#fff; transform:scale(1.15); }
+  .pt.sel .lb{ color:var(--yellow); }
+  .pt.done .dot{ background:var(--accent); border-color:#fff; }
+  /* 区間の帯（閉じた節目間・押すとテンポ＆展開） */
+  .segzone{ position:absolute; left:50%; transform:translateX(-50%); width:26px; z-index:1; cursor:pointer; }
+  .segzone .zhit{ position:absolute; inset:2px 0; border-radius:7px; background:rgba(255,138,61,0); transition:.15s; }
+  .segzone:active .zhit, .segzone.on .zhit{ background:rgba(255,138,61,.5); }
+  /* 細かい区間（開いた中）：押せると分かるよう、うっすら見せる */
+  .segzone.inner .zhit{ background:rgba(34,211,238,.18); border:1.5px dashed rgba(255,255,255,.45); }
+  .segzone.inner:active .zhit{ background:rgba(34,211,238,.55); }
+  /* いま選ばれている区間：はっきり色をつける */
+  .segzone.selseg .zhit{ background:rgba(34,211,238,.7); border:2px solid #fff; }
+
+  /* ===== 右下の操作ドック =====
+     テンポ状態→狙い→（確定・R.T・記録ボタン）の順に、下から自動で積み上がる。
+     位置の決め打ちをやめたので、画面の高さが違っても部品が重ならない */
+  #dock{ position:absolute; right:104px; bottom:calc(env(safe-area-inset-bottom) + 12px); z-index:6;
+    display:none; flex-direction:column; align-items:flex-end; gap:6px; }
+  #app.hasvideo #dock{ display:flex; }
+  #dock .dockrow{ display:flex; align-items:stretch; gap:8px; }
+
+  /* 記録ボタン：主役なのでオレンジで目立たせる（テンポ中は水色） */
+  #lapBtn{ display:flex; align-items:center; justify-content:center;
+    width:68px; min-height:54px; padding:6px 5px; cursor:pointer;
+    border:none; border-radius:13px;
+    color:#fff; font-size:12px; font-weight:900; text-shadow:var(--shadow);
+    text-align:center; line-height:1.3; white-space:normal;
+    box-shadow:0 3px 0 rgba(0,0,0,.22), 0 5px 14px rgba(0,0,0,.35); }
+  #lapBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.22); }
+  #lapBtn.time{ background:linear-gradient(135deg,#f97316,#ef4444); }
+  #lapBtn.tempo{ background:linear-gradient(135deg,#22d3ee,#0891b2); }
+
+  /* R.Tボタン・かき数ボタン：小さな補助ボタン。選択中は黄色、記録済みは緑チェック */
+  #rtChip, #strokeChip{ display:none; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    width:54px; padding:5px 4px; cursor:pointer;
+    background:rgba(16,44,74,.85); border:1.5px solid var(--line); border-radius:13px;
+    color:#fff; font-size:13px; font-weight:900; text-shadow:var(--shadow); }
+  #rtChip .rs, #strokeChip .rs{ font-size:7px; font-weight:700; opacity:.85; }
+  #rtChip.sel{ background:rgba(251,191,36,.9); border-color:#fff; color:#3a2600; text-shadow:none; }
+  #rtChip.done, #strokeChip.done{ border-color:var(--accent); }
+  #rtChip.done::after, #strokeChip.done::after{ content:'✔'; font-size:9px; color:var(--accent); }
+  #rtChip:active, #strokeChip:active{ transform:translateY(2px); }
+  /* R.T・かき数は記録モードのときだけ出す（テンポ中はしまう） */
+  #app.hasvideo:not(.tempomode) #rtChip{ display:flex; }
+  #app.hasvideo:not(.tempomode) #strokeChip{ display:flex; }
+
+  /* 記録／テンポ の切り替え（狙い表示のさらに上） */
+  #modeToggle{ position:absolute; left:50%; transform:translateX(-50%);
+    top:calc(env(safe-area-inset-top) + 10px); z-index:7;
+    display:none; gap:8px;
+    background:rgba(6,24,42,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border:1.5px solid var(--line); border-radius:18px; padding:5px; }
+  #app.hasvideo #modeToggle{ display:flex; }
+  .mt{ display:flex; flex-direction:column; align-items:center; gap:1px;
+    padding:6px 13px; border-radius:11px; cursor:pointer; border:none;
+    background:transparent; color:#fff; font-size:12px; font-weight:900; text-shadow:var(--shadow); }
+  .mt .ms{ font-size:8px; font-weight:700; opacity:.85; }
+  .mt.active.time{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
+  .mt.active.tempo{ background:linear-gradient(135deg,#22d3ee,#0891b2); }
+  .mt:not(.active){ opacity:.55; }
+
+  /* いま何を狙っているか（記録ボタンの真上） */
+  #aim{ display:flex; align-items:center; gap:5px; padding:3px 8px;
+    background:rgba(6,24,42,.7); border:1.5px solid var(--line); border-radius:14px;
+    font-size:10px; font-weight:800; text-shadow:var(--shadow); white-space:nowrap; }
+  #aim .big{ font-size:12px; color:var(--yellow); }
+
+  /* テンポの測り方（記録・テンポボタンのすぐ下・画面上部） */
+  #tempoMethod{ position:absolute; left:50%; transform:translateX(-50%);
+    top:calc(env(safe-area-inset-top) + 84px); z-index:7;
+    display:none; gap:6px;
+    background:rgba(6,24,42,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border:1.5px solid var(--line); border-radius:14px; padding:4px; }
+  #app.hasvideo.tempomode #tempoMethod{ display:flex; }
+  .tm-method{ padding:7px 14px; border-radius:10px; cursor:pointer; border:none;
+    background:transparent; color:#fff; font-size:14px; font-weight:800; text-shadow:var(--shadow); }
+  .tm-method.active{ background:linear-gradient(135deg,#22d3ee,#0891b2); }
+  .tm-method:not(.active){ opacity:.55; }
+
+  /* テンポ測定の状態表示（狙い表示のすぐ上・テンポ中だけ） */
+  #tempoStatus{ display:none; align-items:center; gap:5px; padding:3px 9px; max-width:60vw;
+    background:rgba(8,145,178,.85); border:1px solid #fff; border-radius:12px;
+    font-size:10px; font-weight:800; text-shadow:var(--shadow); white-space:nowrap;
+    text-align:center; }
+  #app.hasvideo.tempomode #tempoStatus{ display:flex; }
+
+  /* 1つずつ測定の確定ボタン（記録ボタンの左どなり・出るときだけ） */
+  #tempoFinish{ display:none; padding:7px 9px; cursor:pointer; border:none; border-radius:11px;
+    background:linear-gradient(135deg,#4ade80,#16a34a); color:#fff;
+    font-size:11px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  #tempoFinish.show{ display:block; }
+  #tempoFinish:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+
+  /* ===== 下：コマ送りバー（間隔を広げて押し間違いを防ぐ・全長は約1.5倍） ===== */
+  #frame{ position:absolute; left:50%; transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom) + 12px); z-index:6;
+    display:none; gap:16px; align-items:center;
+    background:rgba(6,24,42,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+    border:1.5px solid var(--line); border-radius:15px; padding:5px 12px; }
+  #app.hasvideo #frame{ display:flex; }
+  .fb{ width:60px; min-width:60px; height:44px; border-radius:10px; cursor:pointer; padding:0;
+    border:1.5px solid var(--line); background:rgba(20,52,86,.7);
+    color:#fff; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; gap:2px;
+    text-shadow:var(--shadow); }
+  .fb .n{ font-size:11px; }
+  .fb:active{ transform:translateY(2px); background:rgba(34,197,94,.6); }
+  .fb.play{ background:linear-gradient(135deg,#34d399,#0ea5e9); font-size:18px; }
+  /* 幅の狭い横画面：コマ送りバーを左寄せ・少し詰めて、右下のドックと重ねない */
+  @media (orientation: landscape) and (max-width: 1100px){
+    #frame{ left:calc(env(safe-area-inset-left) + 78px); transform:none; gap:10px; padding:5px 8px; }
+    .fb{ width:52px; min-width:52px; }
+  }
+
+  /* ===== 左下：小さなメニューボタン（ズーム・記録・設定をまとめる） ===== */
+  #menuBtn{ position:absolute; left:12px; bottom:calc(env(safe-area-inset-bottom) + 12px); z-index:6;
+    display:none; width:52px; height:52px; border-radius:16px; cursor:pointer;
+    background:rgba(16,44,74,.7); border:1.5px solid var(--line);
+    color:#fff; font-size:22px; align-items:center; justify-content:center; }
+  #app.hasvideo #menuBtn{ display:flex; }
+  #menuBtn:active{ transform:translateY(2px); }
+
+  /* ===== シャッチーくん（右下のマスコット） ===== */
+  #shacchi{ position:absolute; right:160px; top:calc(env(safe-area-inset-top) + 6px); z-index:8;
+    width:64px; height:64px; padding:0; border:none; background:transparent; cursor:pointer;
+    touch-action:none;  /* ドラッグで自由に動かせる */
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,.4)); animation:swim 3s ease-in-out infinite; }
+  #shacchi:active{ transform:scale(.92); }
+  @keyframes swim{ 0%,100%{ transform:translateY(0) rotate(-3deg); } 50%{ transform:translateY(-7px) rotate(3deg); } }
+
+  /* ===== チュートリアルの吹き出し ===== */
+  #tutorial{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.75); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  #tutorial.hide{ display:none; }
+  .tut-card{ width:100%; max-width:460px; display:flex; gap:14px; align-items:flex-start;
+    background:rgba(16,44,74,.95); border:1.5px solid var(--line); border-radius:22px; padding:20px;
+    box-shadow:0 20px 50px rgba(0,20,40,.6); }
+  .tut-orca{ flex:none; width:76px; height:76px; animation:swim 3s ease-in-out infinite; }
+  .tut-body{ flex:1; min-width:0; }
+  .tut-name{ font-size:14px; font-weight:900; color:#7dd3fc; margin-bottom:4px; }
+  .tut-text{ font-size:16px; font-weight:800; line-height:1.6; min-height:3.2em; }
+  .tut-dots{ display:flex; gap:6px; margin:12px 0; }
+  .tut-dots i{ width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.3); }
+  .tut-dots i.on{ background:var(--accent2); }
+  .tut-btns{ display:flex; gap:10px; justify-content:flex-end; }
+  .tut-skip{ padding:10px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
+    background:transparent; color:#fff; font-size:14px; font-weight:800; }
+  .tut-next{ padding:10px 20px; border-radius:12px; cursor:pointer; border:none;
+    background:linear-gradient(135deg,#34d399,#0ea5e9); color:#fff; font-size:15px; font-weight:900;
+    box-shadow:0 4px 0 rgba(0,0,0,.2); }
+  .tut-next:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+
+  /* ===== 距離選択モーダル ===== */
+  #distModal{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #distModal.hide{ display:none; }
+  .modal-card{ width:100%; max-width:560px; background:rgba(16,44,74,.85);
+    border:1.5px solid var(--line); border-radius:22px; padding:22px;
+    box-shadow:0 20px 50px rgba(0,20,40,.6); }
+  .modal-card h2{ margin:0 0 4px; font-size:clamp(18px,4vw,24px); font-weight:900; text-align:center; }
+  .modal-card .note{ margin:0 0 16px; font-size:13px; font-weight:600; opacity:.85; text-align:center; }
+  .dist-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .dist-grid button{ padding:16px 4px; border-radius:14px; cursor:pointer;
+    border:2px solid var(--line); color:#fff; background:linear-gradient(135deg,rgba(56,189,248,.5),rgba(14,165,233,.4));
+    font-size:clamp(16px,3.5vw,22px); font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 4px 0 rgba(0,0,0,.18); }
+  .dist-grid button:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.18); }
+  .dist-custom{ display:flex; align-items:center; gap:8px; margin-top:14px;
+    background:rgba(255,255,255,.1); border:1.5px solid var(--line); border-radius:14px; padding:10px 12px; }
+  .dist-custom input{ flex:1; min-width:0; background:rgba(255,255,255,.16); border:1.5px solid var(--line);
+    color:#fff; border-radius:10px; padding:10px; font-size:17px; font-weight:800; }
+  .dist-custom button{ flex:none; padding:10px 14px; border-radius:10px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,#4ade80,#16a34a); color:#06351c; font-weight:900; }
+
+  /* ===== たて画面：データえつらん専用 =====
+     画面を縦にすると操作の部品を全部かくして、記録データの一覧だけを見せる。
+     よこに戻すと元どおり測定できる。切り替えはCSSだけで行う。 */
+  #dataView{ position:absolute; inset:0; z-index:20; display:none; flex-direction:column;
+    background:linear-gradient(160deg,#0a2a48,#0e3a5c);
+    padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 16px); }
+  .dv-head{ font-size:22px; font-weight:900; text-align:center; }
+  .dv-note{ font-size:12px; font-weight:600; opacity:.75; text-align:center; margin:4px 0 12px; }
+  .dv-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+    display:flex; flex-direction:column; gap:6px; }
+  .dv-row{ display:grid; grid-template-columns:62px 1fr 1fr 1.4fr; align-items:center; gap:6px;
+    background:rgba(255,255,255,.08); border-radius:12px; padding:9px 10px;
+    font-variant-numeric:tabular-nums; }
+  .dv-row.dv-h{ background:transparent; padding:2px 10px; font-size:11px; font-weight:800; color:#bfe3ff; }
+  .dv-row .dv-d{ font-size:15px; font-weight:900; color:var(--yellow); }
+  .dv-row .dv-t{ font-size:17px; font-weight:900; }
+  .dv-row .dv-l{ font-size:13px; font-weight:700; color:#bfe3ff; }
+  .dv-row .dv-p{ font-size:13px; font-weight:800; color:#7dd3fc; display:flex; flex-direction:column; line-height:1.25; }
+  .dv-row .dv-p small{ font-size:10px; font-weight:700; opacity:.85; }
+  /* テンポの行：区間の値として、行と行のあいだに細く挟まる */
+  .dv-row.tempo{ background:rgba(34,211,238,.12); border-left:3px solid #22d3ee;
+    padding:5px 10px; margin:0 8px; }
+  .dv-row.tempo .dv-d{ font-size:11px; font-weight:800; color:#7dd3fc; }
+  .dv-row.tempo .dv-p{ font-size:12px; }
+  .dv-foot{ margin-top:10px; background:rgba(167,139,250,.14); border:1.5px solid rgba(167,139,250,.5);
+    border-radius:12px; padding:10px 12px; font-size:14px; font-weight:800; text-align:center; }
+  .dv-foot .dv-shead{ font-size:12px; font-weight:800; color:#d6c8ff; text-align:left; margin-bottom:5px; }
+  .dv-foot .dv-srow{ display:flex; justify-content:space-between; padding:2px 4px; font-size:13px; font-weight:700; }
+  .dv-foot .dv-srow.total{ border-top:1px solid rgba(255,255,255,.3); margin-top:5px; padding-top:6px; font-weight:900; font-size:15px; }
+  .dv-empty{ font-size:14px; font-weight:600; opacity:.75; text-align:center; padding:40px 10px; line-height:1.8; }
+  @media (orientation: portrait){
+    #app.hasvideo #timeHud, #app.hasvideo #recPanel, #app.hasvideo #toolsBtn,
+    #app.hasvideo #changeBtn, #app.hasvideo #distBtn, #app.hasvideo #scale,
+    #app.hasvideo #modeToggle, #app.hasvideo #tempoMethod, #app.hasvideo #dock,
+    #app.hasvideo #frame, #app.hasvideo #menuBtn, #app.hasvideo #shacchi{ display:none !important; }
+    #app.hasvideo #dataView{ display:flex; }
+  }
+
+  /* ===== R.T・正式タイムのモーダル ===== */
+  #rtModal, #padModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #rtModal.hide, #padModal.hide{ display:none; }
+  #rtMeasureBtn, #rtNumBtn{ display:flex; flex-direction:column; align-items:center; gap:3px; width:100%;
+    padding:16px 10px; margin-bottom:14px; cursor:pointer;
+    border:2px solid var(--line); border-radius:14px;
+    background:linear-gradient(135deg,rgba(56,189,248,.5),rgba(14,165,233,.4));
+    color:#fff; font-size:18px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 4px 0 rgba(0,0,0,.18); }
+  #rtMeasureBtn:active, #rtNumBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.18); }
+  #rtMeasureBtn .rt-sub, #rtNumBtn .rt-sub{ font-size:12px; font-weight:700; opacity:.9; }
+  /* 一覧のタイムは押せる（正式タイムの入力）。正式タイムは黄色で出す */
+  #recList .rec .t{ cursor:pointer; }
+  #recList .rec .t.toff{ color:var(--yellow); }
+  .dv-row .dv-t.toff{ color:var(--yellow); }
+
+  /* ===== 数字キーパッド ===== */
+  .pad-card{ max-width:420px; }
+  #padDisp{ text-align:center; font-size:40px; font-weight:900; font-variant-numeric:tabular-nums;
+    background:rgba(255,255,255,.1); border:1.5px solid var(--line); border-radius:14px;
+    padding:10px 6px; margin:6px 0 8px; letter-spacing:.02em; }
+  #padDisp.emp{ opacity:.45; }
+  #padKeys{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-top:10px; }
+  .pk{ height:60px; border-radius:13px; cursor:pointer;
+    border:2px solid var(--line); background:linear-gradient(135deg,rgba(56,189,248,.45),rgba(14,165,233,.35));
+    color:#fff; font-size:24px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 4px 0 rgba(0,0,0,.18); }
+  .pk:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.18); }
+  .pk.pk-del{ font-size:16px; background:rgba(120,53,15,.7); grid-column:span 2; }
+  .pk.pk-ok{ font-size:20px; background:linear-gradient(135deg,#4ade80,#16a34a); grid-column:span 3; }
+  #padDel{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid rgba(248,113,113,.8);
+    background:transparent; color:#fca5a5; font-size:14px; font-weight:800; }
+  #padCancel{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
+    background:transparent; color:#fff; font-size:14px; font-weight:800; }
+
+  /* ===== かき数の登録モーダル ===== */
+  #strokeModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #strokeModal.hide{ display:none; }
+  #strokeList{ max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; gap:8px; padding:2px; }
+  .sk-row{ display:flex; align-items:center; gap:10px;
+    background:rgba(255,255,255,.08); border-radius:12px; padding:7px 10px; }
+  .sk-row .sk-lb{ flex:1; font-size:14px; font-weight:800; }
+  .sk-row .sk-lb small{ font-size:11px; font-weight:700; opacity:.8; margin-left:6px; }
+  .sk-row button{ width:46px; height:44px; border-radius:10px; cursor:pointer;
+    border:1.5px solid var(--line); background:rgba(20,52,86,.8);
+    color:#fff; font-size:20px; font-weight:900; }
+  .sk-row button:active{ transform:translateY(2px); background:rgba(34,197,94,.6); }
+  .sk-row input{ width:64px; text-align:center; background:rgba(255,255,255,.16);
+    border:1.5px solid var(--line); color:#fff; border-radius:10px; padding:9px 4px;
+    font-size:18px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .stroke-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top:14px; }
+  #strokeClose{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
+    background:transparent; color:#fff; font-size:14px; font-weight:800; }
+  #strokeSave{ padding:11px 22px; border-radius:12px; cursor:pointer; border:none;
+    background:linear-gradient(135deg,#4ade80,#16a34a); color:#06351c; font-size:15px; font-weight:900;
+    box-shadow:0 4px 0 rgba(0,0,0,.2); }
+  #strokeSave:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+
+  /* ===== 保存・呼び出しモーダル ===== */
+  #saveModal, #loadModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:16px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #saveModal.hide, #loadModal.hide{ display:none; }
+  .sv-card{ max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .sv-row{ display:flex; align-items:center; gap:8px; margin:8px 0; }
+  .sv-row span{ font-size:12px; font-weight:800; white-space:nowrap; }
+  .sv-row input, .sv-row select{ flex:1; min-width:60px; background:rgba(255,255,255,.14);
+    border:1.5px solid var(--line); color:#fff; border-radius:10px; padding:10px 8px;
+    font-size:15px; font-weight:700; }
+  .sv-row select option{ color:#000; }
+  #svSave{ padding:11px 22px; border-radius:12px; cursor:pointer; border:none;
+    background:linear-gradient(135deg,#4ade80,#16a34a); color:#06351c; font-size:15px; font-weight:900;
+    box-shadow:0 4px 0 rgba(0,0,0,.2); }
+  #svSave:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  #svSave:disabled{ opacity:.55; }
+  #svClose, #ldClose{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
+    background:transparent; color:#fff; font-size:14px; font-weight:800; }
+  #ldList{ display:flex; flex-direction:column; gap:7px; margin-top:8px; max-height:46vh; overflow-y:auto;
+    -webkit-overflow-scrolling:touch; }
+  .ld-race{ display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%;
+    background:rgba(255,255,255,.1); border:1.5px solid var(--line); border-radius:12px;
+    padding:10px 12px; cursor:pointer; color:#fff; text-align:left; }
+  .ld-race .ln{ font-size:14px; font-weight:800; }
+  .ld-race .ls{ font-size:12px; font-weight:700; opacity:.85; }
+  .ld-race:active{ transform:translateY(1px); background:rgba(34,197,94,.3); }
+  .ld-empty{ font-size:13px; font-weight:700; opacity:.75; text-align:center; padding:18px 6px; }
+
+  /* ===== 通知トースト ===== */
+  #toast{ position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom) + 310px); transform:translateX(-50%);
+    z-index:40; padding:14px 26px; border-radius:18px; background:rgba(34,197,94,.95);
+    font-size:18px; font-weight:900; text-shadow:var(--shadow); box-shadow:0 8px 24px rgba(0,0,0,.4);
+    opacity:0; transition:.25s; pointer-events:none; white-space:nowrap; }
+  #toast.show{ opacity:1; }
+
+  input[type=file]{ display:none; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 動画 -->
+  <div id="videoWrap">
+    <video id="video" playsinline preload="auto"></video>
+    <div id="startHint">
+      <div class="logo">Swim<span>IQ</span></div>
+      <p>動画をひらいて、レースを分析しましょう。<br>下のボタンから動画をえらんでください。</p>
+      <label id="openBtnBig" for="videoFile" style="padding:16px 28px;background:linear-gradient(135deg,#f97316,#fbbf24);border-radius:18px;font-weight:900;font-size:18px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.2);">🎬 動画をひらく</label>
+    </div>
+  </div>
+
+  <!-- 経過時間 -->
+  <div id="timeHud"><span class="lb">けいか</span><span class="tm" id="bigTimeHud">0.00</span></div>
+
+  <!-- 左側：記録した通過タイムの一覧 -->
+  <div id="recPanel">
+    <div class="rec-head">きろく</div>
+    <div id="recList"></div>
+  </div>
+
+  <!-- 動画を開く（最初だけ／隅に小さくも） -->
+  <label id="openBtn" for="videoFile">🎬 動画をひらく</label>
+  <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
+  <label id="changeBtn" for="videoFile">🎬 動画をかえる</label>
+  <button id="distBtn">📏 距離をかえる</button>
+  <button id="saveBtn">💾 ほぞん</button>
+  <button id="loadBtn">📂 よびだし</button>
+  <input type="file" id="videoFile" accept="video/*">
+
+  <!-- 右：きょり目盛り -->
+  <div id="scale">
+    <div class="stitle">きょり</div>
+    <div id="rope"><div id="ticks"></div></div>
+  </div>
+
+  <!-- 記録／テンポ の切り替え -->
+  <div id="modeToggle">
+    <button class="mt time active" id="mtTime">🔢 記録<span class="ms">地点タイム</span></button>
+    <button class="mt tempo" id="mtTempo">📊 テンポ<span class="ms">区間テンポ</span></button>
+  </div>
+
+  <!-- テンポの測り方（テンポモードのときだけ表示） -->
+  <div id="tempoMethod">
+    <button class="tm-method active" id="tm3">3ストローク法</button>
+    <button class="tm-method" id="tmEach">1つずつ</button>
+  </div>
+  <!-- 右下の操作ドック：テンポ状態→狙い→（確定・R.T・記録ボタン）が縦に積み上がる。
+       決め打ちの位置指定をやめたので、どの画面サイズでも重ならない -->
+  <div id="dock">
+    <div id="tempoStatus"></div>
+    <div id="aim"><span id="aimText">50m を きろく</span></div>
+    <div class="dockrow">
+      <button id="tempoFinish">✔ このテンポで 確定</button>
+      <button id="strokeChip">かき数<span class="rs">とうろく</span></button>
+      <button id="rtChip">R.T<span class="rs">スタート反応</span></button>
+      <button id="lapBtn" class="time"><span id="lapBtnMain">ここを きろく</span></button>
+    </div>
+  </div>
+
+  <!-- コマ送りバー -->
+  <div id="frame">
+    <button class="fb" id="b100"><span>◀◀</span><span class="n">100</span></button>
+    <button class="fb" id="b10"><span>◀◀</span><span class="n">10</span></button>
+    <button class="fb" id="b1"><span>◀</span><span class="n">1</span></button>
+    <button class="fb play" id="bPlay">▶</button>
+    <button class="fb" id="f1"><span class="n">1</span><span>▶</span></button>
+    <button class="fb" id="f10"><span class="n">10</span><span>▶▶</span></button>
+    <button class="fb" id="f100"><span class="n">100</span><span>▶▶</span></button>
+  </div>
+
+  <!-- 左下メニュー -->
+  <button id="menuBtn">☰</button>
+
+  <!-- たて画面：データえつらん専用の画面 -->
+  <div id="dataView">
+    <div class="dv-head">きろく データ</div>
+    <div class="dv-note">よこ向きにすると 測定にもどります</div>
+    <div id="dvBody" class="dv-body"></div>
+  </div>
+
+  <!-- シャッチーくん（かわいいシャチのマスコット）。押すとチュートリアル -->
+  <button id="shacchi" aria-label="シャッチーくん">
+    <img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;">
+  </button>
+
+  <!-- チュートリアルの吹き出し -->
+  <div id="tutorial" class="hide">
+    <div class="tut-card">
+      <div class="tut-orca">
+        <img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;">
+      </div>
+      <div class="tut-body">
+        <div class="tut-name">シャッチーくん</div>
+        <div class="tut-text" id="tutText">やあ！ぼく シャッチーくん。つかい方を おしえるっチャ！</div>
+        <div class="tut-dots" id="tutDots"></div>
+        <div class="tut-btns">
+          <button class="tut-skip" id="tutSkip">とじる</button>
+          <button class="tut-next" id="tutNext">つぎへ ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 距離選択モーダル -->
+<div id="distModal" class="hide">
+  <div class="modal-card">
+    <h2>どの きょりを 分析しますか？</h2>
+    <p class="note">レースの距離を えらんでください。えらんだ距離に 合わせて 目もりを つくります。</p>
+    <div class="dist-grid" id="distGrid"></div>
+    <div class="dist-custom">
+      <span style="font-size:13px;font-weight:800;white-space:nowrap;">そのほか</span>
+      <input type="number" id="distCustom" inputmode="numeric" placeholder="例 300" min="1" max="5000">
+      <span style="font-weight:800;">m</span>
+      <button id="distCustomBtn">これで</button>
+    </div>
+  </div>
+</div>
+
+<!-- かき数の登録モーダル：50mごとに1行。＋−と数字入力の両方で入れられる -->
+<div id="strokeModal" class="hide">
+  <div class="modal-card">
+    <h2>かき数の とうろく</h2>
+    <p class="note">50mごとの かき数を 入れてください。＋−でも、数字を直接 打っても だいじょうぶです。</p>
+    <div id="strokeList"></div>
+    <div class="stroke-btns">
+      <button id="strokeClose">とじる</button>
+      <button id="strokeSave">とうろくする</button>
+    </div>
+  </div>
+</div>
+
+<!-- R.Tのやり方をえらぶモーダル -->
+<div id="rtModal" class="hide">
+  <div class="modal-card">
+    <h2>R.T（リアクションタイム）</h2>
+    <p class="note">合図から 足が台をはなれるまでの時間です。はかり方を えらんでください。</p>
+    <button id="rtMeasureBtn">🎬 動画で はかる<span class="rt-sub">①合図 → ②足ばなれ の 2回 ボタンをおす</span></button>
+    <button id="rtNumBtn">🔢 数字で 入れる<span class="rt-sub">タイムが わかっているとき（例 0.65）</span></button>
+    <div class="stroke-btns"><button id="rtClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- 数字キーパッドのモーダル（正式タイム・R.Tの打ち込みに使う） -->
+<div id="padModal" class="hide">
+  <div class="modal-card pad-card">
+    <h2 id="padTitle">タイムの 入力</h2>
+    <div id="padDisp">0.00</div>
+    <p class="note" id="padNote">右から 100分の1秒 → 秒 → 分 の順に 入ります。例 2,6,5,4 で 26.54</p>
+    <div id="padKeys">
+      <button class="pk" data-k="1">1</button>
+      <button class="pk" data-k="2">2</button>
+      <button class="pk" data-k="3">3</button>
+      <button class="pk" data-k="4">4</button>
+      <button class="pk" data-k="5">5</button>
+      <button class="pk" data-k="6">6</button>
+      <button class="pk" data-k="7">7</button>
+      <button class="pk" data-k="8">8</button>
+      <button class="pk" data-k="9">9</button>
+      <button class="pk" data-k="0">0</button>
+      <button class="pk pk-del" id="padBack">⌫ 消す</button>
+      <button class="pk pk-ok" id="padOk">決定</button>
+    </div>
+    <div class="stroke-btns">
+      <button id="padDel">記録を 消す</button>
+      <button id="padCancel">とじる</button>
+    </div>
+  </div>
+</div>
+
+<!-- きろくの保存モーダル -->
+<div id="saveModal" class="hide">
+  <div class="modal-card sv-card">
+    <h2>きろくの ほぞん</h2>
+    <div class="sv-row"><span>選手</span><select id="svAthlete"></select></div>
+    <div id="svNewBlock">
+      <div class="sv-row"><span>名前</span><input id="svName" type="text" placeholder="例 山田 太郎"></div>
+      <div class="sv-row"><span>生年月日</span><input id="svBirth" type="date"></div>
+      <div class="sv-row"><span>性別</span><select id="svSex"><option>男子</option><option>女子</option></select>
+        <span>学年</span><input id="svGroup" type="text" placeholder="例 2年"></div>
+    </div>
+    <div class="sv-row"><span>身長cm</span><input id="svHeight" type="number" inputmode="decimal" placeholder="任意">
+      <span>体重kg</span><input id="svWeight" type="number" inputmode="decimal" placeholder="任意"></div>
+    <div class="sv-row"><span>試合名</span><input id="svMeet" type="text" placeholder="例 学生選手権"></div>
+    <div class="sv-row"><span>試合日</span><input id="svDate" type="date"></div>
+    <div class="sv-row"><span>泳法</span><select id="svStroke"><option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option><option>バタフライ</option><option>個人メドレー</option></select>
+      <span>水路</span><select id="svCourse"><option>長水路</option><option>短水路</option></select></div>
+    <div class="sv-row"><span>ラウンド</span><select id="svRound"><option>予選</option><option>準決勝</option><option>決勝</option><option>タイムレース</option><option>記録会</option><option>練習</option></select></div>
+    <div class="stroke-btns"><button id="svClose">とじる</button><button id="svSave">ほぞんする</button></div>
+  </div>
+</div>
+
+<!-- きろくの呼び出しモーダル -->
+<div id="loadModal" class="hide">
+  <div class="modal-card sv-card">
+    <h2>きろくの よびだし</h2>
+    <div class="sv-row"><span>選手</span><select id="ldAthlete"></select></div>
+    <div id="ldList"></div>
+    <div class="stroke-btns"><button id="ldClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- 通知 -->
+<div id="toast"></div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var app = $('app');
+  var videoEl = $('video');
+  var videoWrap = $('videoWrap');
+
+  // ========== v69の計測エンジン（動画の時刻から正確に測る） ==========
+  var ready=false, startTime=null, lastFrameTime=0;
+  var hasRVFC=typeof videoEl.requestVideoFrameCallback==='function';
+  var FPS=60, fpsDetected=false;
+
+  function fmt(sec){
+    if(isNaN(sec)) sec=0;
+    var neg=sec<0; if(neg) sec=-sec;
+    var totalCs=Math.round(sec*100);
+    var m=Math.floor(totalCs/6000), s=Math.floor((totalCs%6000)/100), cs=totalCs%100;
+    function p2(n){return(n<10?'0':'')+n;}
+    var out=(m>0)?(m+':'+p2(s)+'.'+p2(cs)):(s+'.'+p2(cs));
+    return (neg?'-':'')+out;
+  }
+  function isVideoReady(){ return ready && videoEl.readyState>=1 && isFinite(videoEl.duration) && videoEl.duration>0; }
+  function getStampTime(){ return (hasRVFC && lastFrameTime>0) ? lastFrameTime : videoEl.currentTime; }
+  function elapsed(abs){ return (startTime===null) ? abs : (abs-startTime); }
+
+  function frameLoop(now, meta){
+    if(meta && typeof meta.mediaTime==='number') lastFrameTime=meta.mediaTime;
+    paintClock();
+    if(hasRVFC) videoEl.requestVideoFrameCallback(frameLoop);
+  }
+  function tickLoop(){ paintClock(); requestAnimationFrame(tickLoop); }
+  function paintClock(){
+    if(!isVideoReady()) return;
+    var val=fmt(elapsed(getStampTime()));
+    var hud=$('bigTimeHud'); if(hud) hud.textContent=val;
+  }
+  function step(frames){
+    if(!isVideoReady())return;
+    if(!videoEl.paused) videoEl.pause();
+    var t=videoEl.currentTime+frames*(1/FPS);
+    if(t<0)t=0; if(t>videoEl.duration)t=videoEl.duration;
+    videoEl.currentTime=t; lastFrameTime=t; paintClock();
+  }
+  function detectFrameRate(){
+    if(!hasRVFC || fpsDetected) return;
+    var samples=[], lastMt=null, count=0, finished=false;
+    var savedRate=videoEl.playbackRate, savedMuted=videoEl.muted;
+    function onFrame(now, meta){
+      if(finished) return;
+      if(typeof meta.mediaTime==='number'){
+        if(lastMt!==null){ var diff=meta.mediaTime-lastMt; if(diff>0.0005) samples.push(diff); }
+        lastMt=meta.mediaTime;
+      }
+      count++;
+      if(count<14 && !videoEl.paused){ videoEl.requestVideoFrameCallback(onFrame); } else { finish(); }
+    }
+    function finish(){
+      if(finished) return; finished=true;
+      videoEl.pause(); videoEl.currentTime=0;
+      videoEl.muted=savedMuted; videoEl.playbackRate=savedRate;
+      if(samples.length<4) return;
+      samples.sort(function(a,b){return a-b;});
+      var mid=samples[Math.floor(samples.length/2)];
+      if(mid<=0) return;
+      var est=Math.round(1/mid);
+      if(est>=10 && est<=240){ FPS=est; fpsDetected=true; }
+    }
+    videoEl.muted=true;
+    try{ videoEl.currentTime=0; }catch(e){}
+    var p=videoEl.play();
+    if(p&&p.then){ p.then(function(){ videoEl.requestVideoFrameCallback(onFrame); setTimeout(finish,1500); }).catch(function(){ videoEl.muted=savedMuted; }); }
+    else { videoEl.requestVideoFrameCallback(onFrame); setTimeout(finish,1500); }
+  }
+  videoEl.addEventListener('loadedmetadata', function(){
+    ready=true;
+    if(hasRVFC) videoEl.requestVideoFrameCallback(frameLoop); else requestAnimationFrame(tickLoop);
+    detectFrameRate(); paintClock();
+  });
+  videoEl.addEventListener('error', function(){ ready=false; });
+
+  // ========== 地点表（v69） ==========
+  var RACE_POINTS = {
+    25:[{d:15,official:false},{d:25,official:true}],
+    50:[{d:15,official:false},{d:25,official:false},{d:35,official:false},{d:45,official:false},{d:50,official:true}],
+    100:[{d:15,official:false},{d:25,official:false},{d:35,official:false},{d:45,official:false},{d:50,official:true},
+         {d:65,official:false},{d:75,official:false},{d:85,official:false},{d:95,official:false},{d:100,official:true}],
+    200:[{d:15,official:false},{d:25,official:false},{d:45,official:false},{d:50,official:true},
+         {d:65,official:false},{d:75,official:false},{d:95,official:false},{d:100,official:true},
+         {d:115,official:false},{d:125,official:false},{d:145,official:false},{d:150,official:true},
+         {d:165,official:false},{d:175,official:false},{d:195,official:false},{d:200,official:true}]
+  };
+  function buildLongPoints(race){
+    var pts=[];
+    for(var base=0; base<race; base+=50){
+      var a=[[base+15,false],[base+45,false],[base+50,true]];
+      a.forEach(function(x){ if(x[0]<=race) pts.push({d:x[0],official:x[1]}); });
+    }
+    if(pts.length && pts[pts.length-1].d!==race) pts.push({d:race,official:true});
+    return pts;
+  }
+  function pointsFor(race){
+    race=parseInt(race,10)||100;
+    var base=RACE_POINTS[race]?RACE_POINTS[race].slice():buildLongPoints(race);
+    return [{d:0,official:false}].concat(base);
+  }
+  function nodeStep(race){ return (race<=200)?50:100; }
+  function nodesFor(race){
+    race=parseInt(race,10)||100;
+    var step=nodeStep(race), arr=[0];
+    for(var d=step; d<race; d+=step) arr.push(d);
+    if(arr[arr.length-1]!==race) arr.push(race);
+    return arr;
+  }
+  function innerPointsOf(race, from, to){
+    return pointsFor(race).filter(function(p){ return p.d>from && p.d<to; });
+  }
+  // 節目を押すとズーム表示にするレースか（100m以上＝節目が3つ以上。帯が押しにくいため）
+  function zoomableScale(){
+    return nodesFor(raceDist).length>=3;
+  }
+
+  // ========== 状態 ==========
+  var raceDist=50;          // レース距離
+  var selDist=0;            // いま狙っている地点
+  var mode='time';          // 'time'（地点タイム） / 'tempo'（区間テンポ）
+  var selFrom=null, selTo=null;  // テンポの区間
+  var openSegKey=null;      // 開いている区間
+  var splitTimes={};        // { 距離: 動画時刻 }
+  var rtTime=null;          // リアクションタイム（秒）。合図→足が台をはなれるまでの時間
+  var rtStep=0;             // R.Tの動画測定の段階。0=なし 1=①合図まち 2=②足ばなれまち
+  var rtMark1=0;            // ①合図の動画時刻
+  var officialTimes={};     // { 距離: 正式タイム（秒） } 入力があれば表示と区間計算を置き換える
+  var strokeCounts=[];      // 50mごとのかき数。[1本目, 2本目, ...] 未入力はnull
+  // レース距離から、かき数の本数（50mごと）を求める。50m=1, 100m=2, ... 1500m=30
+  function strokeLaps(){ return Math.max(1, Math.round(raceDist/50)); }
+  var tempoValues={};       // { "from-to": {method, perStroke, spm, marks} } テンポ結果
+
+  // テンポ測定の途中状態
+  var tempoMethod='3stroke';  // '3stroke'（3ストローク法） / 'each'（1つずつ）
+  var tempoMarks=[];          // 記録した入水の動画時刻の列
+
+  // ========== きょり目盛りを均等に並べる ==========
+  var ticksBox=$('ticks');
+  function buildScale(){
+    ticksBox.innerHTML='';
+    // 表示する地点リストを作る（節目＋開いた区間の中身）。均等に並べるため一列にする。
+    var items=[];   // {type:'pt'|'seg', ...}
+    var nodeList=nodesFor(raceDist);
+    // 400m以上のレースで区間を開いているとき：その区間だけをズーム表示する。
+    // 節目が多いと点がぎゅうぎゅうになって押せないので、開いた区間以外はいったん消す。
+    // もう一度おなじ節目を押せば、元の一覧にもどる。
+    var zoom=(zoomableScale() && openSegKey!=null);
+    if(zoom){
+      var pp=openSegKey.split('-');
+      var zf=parseInt(pp[0],10), zt=parseInt(pp[1],10);
+      items.push({type:'pt', d:zf, official:true, big:true});
+      var innerZ=innerPointsOf(raceDist, zf, zt);
+      var seqZ=[zf].concat(innerZ.map(function(p){return p.d;})).concat([zt]);
+      for(var k=0; k<seqZ.length-1; k++){
+        if(k>0){
+          var ptz=innerZ[k-1];
+          items.push({type:'pt', d:ptz.d, official:ptz.official, big:false});
+        }
+        items.push({type:'seg', from:seqZ[k], to:seqZ[k+1], inner:true});
+      }
+      items.push({type:'pt', d:zt, official:true, big:true});
+    } else {
+    nodeList.forEach(function(d,i){
+      items.push({type:'pt', d:d, official:true, big:true});
+      if(i<nodeList.length-1){
+        var from=d, to=nodeList[i+1];
+        if(openSegKey===(from+'-'+to)){
+          // 開いている区間：中の地点と、その間の細かい区間帯を交互に並べる
+          var seq=[from].concat(innerPointsOf(raceDist, from, to).map(function(p){return p.d;})).concat([to]);
+          // seqは [from, ...中の点..., to]。両端のfrom/toは既に節目の点として置かれるので、
+          // ここでは中の点だけを追加しつつ、隣り合う全ペアに細かい帯を置く。
+          var inner=innerPointsOf(raceDist, from, to);
+          // from→最初の内点 の帯
+          for(var k=0; k<seq.length-1; k++){
+            var a=seq[k], bb=seq[k+1];
+            // 内点の点は、両端(from,to)以外を追加
+            if(k>0){ // seq[k] が内点なら点を置く（k=0はfromで既出）
+              var pt=inner[k-1];
+              items.push({type:'pt', d:pt.d, official:pt.official, big:false});
+            }
+            // a〜bb の細かい区間帯
+            items.push({type:'seg', from:a, to:bb, inner:true});
+          }
+        } else {
+          // 閉じている区間：節目の帯（押すと開く）
+          items.push({type:'seg', from:from, to:to, inner:false});
+        }
+      }
+    });
+    }
+    // 均等配置：items を 0%〜100% に等間隔で置く
+    var n=items.length;
+    items.forEach(function(it, idx){
+      var pct = (n<=1) ? 50 : (idx/(n-1))*100;
+      if(it.type==='pt'){
+        var el=document.createElement('div');
+        if(it.d==='RT'){
+          // リアクションタイムの点（0mのすぐ下・小さめ）
+          el.className='pt small'+(selDist==='RT'?' sel':'')+(rtTime!=null?' done':'');
+          el.style.top=pct+'%';
+          el.innerHTML='<span class="dot"></span><span class="lb">RT</span>';
+          el.onclick=function(){ pickDist('RT'); };
+          ticksBox.appendChild(el);
+          return;
+        }
+        var big=it.official||it.d===0;
+        el.className='pt '+(big?'big':'small')+(it.d===selDist?' sel':'')+(splitTimes[it.d]!=null?' done':'');
+        el.style.top=pct+'%';
+        el.dataset.d=it.d;
+        var lab=(big)?((it.d===0?'0m':it.d+'m')):(''+it.d);
+        el.innerHTML='<span class="dot"></span><span class="lb">'+lab+'</span>';
+        el.onclick=function(){
+          // 400m以上のレース：100m,200m…の節目を押したら、その手前の区間も開閉する
+          // （長いレースは帯が細くて押しにくいので、200mまでと同じ感覚で使えるように）
+          if(zoomableScale() && it.official && it.d>0){
+            var nl=nodesFor(raceDist);
+            var i=nl.indexOf(it.d);
+            if(i>0){ var from=nl[i-1];
+              openSegKey=(openSegKey===from+'-'+it.d)?null:(from+'-'+it.d);
+              if(openSegKey){ toast(from+'〜'+it.d+'m を ひらきました'); }
+            }
+          }
+          pickDist(it.d);
+        };
+        ticksBox.appendChild(el);
+      } else {
+        // 区間帯：前後の点の「間」だけに置く（点の上に重ねない）
+        var el=document.createElement('div');
+        var selNow = (mode==='tempo' && selFrom===it.from && selTo===it.to);
+        el.className='segzone'+(it.inner?' inner':'')+(selNow?' selseg':'');
+        var prevPct = ((idx-1)/(n-1))*100;
+        var nextPct = ((idx+1)/(n-1))*100;
+        var pad=(nextPct-prevPct)*0.28;
+        el.style.top=(prevPct+pad)+'%';
+        el.style.height=((nextPct-prevPct)-pad*2)+'%';
+        el.innerHTML='<div class="zhit"></div>';
+        var seg_from=it.from, seg_to=it.to, seg_inner=it.inner;
+        el.querySelector('.zhit').onclick=function(){
+          if(seg_inner){
+            // 細かい区間：その区間のテンポを選ぶ
+            selectTempoSeg(seg_from, seg_to);
+          } else {
+            // 節目の区間：開閉する
+            toggleSeg(seg_from, seg_to);
+          }
+        };
+        ticksBox.appendChild(el);
+      }
+    });
+    updateRtChip();
+    if(typeof updateStrokeChip==='function') updateStrokeChip();
+  }
+
+  // モードを切り替える（'time'＝地点タイム / 'tempo'＝区間テンポ）
+  function setMode(m){
+    mode=m;
+    $('mtTime').classList.toggle('active', m==='time');
+    $('mtTempo').classList.toggle('active', m==='tempo');
+    // テンポモードのときだけ、測り方ボタンと状態表示を出す
+    app.classList.toggle('tempomode', m==='tempo');
+    var lb=$('lapBtn');
+    if(m==='time'){ lb.className='time'; $('lapBtnMain').innerHTML='ここを<br>きろく'; }
+    else { lb.className='tempo'; }   // テンポの文字は updateTempoUI で決める
+    if(m==='tempo'){ tempoMarks=[]; updateTempoUI(); }
+    updateAim(); updateRtChip();
+  }
+  $('mtTime').onclick=function(){ setMode('time'); toast('記録モード（地点タイム）'); };
+  $('mtTempo').onclick=function(){ setMode('tempo'); toast('テンポモード（区間）'); };
+  // R.Tボタン：やり方の選択画面をひらく
+  function openRtModal(){
+    $('rtModal').classList.remove('hide');
+  }
+  $('rtChip').onclick=function(){ openRtModal(); };
+  $('rtClose').onclick=function(){ $('rtModal').classList.add('hide'); };
+  // やり方1：動画で はかる（①合図 → ②足ばなれ）
+  $('rtMeasureBtn').onclick=function(){
+    if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
+    if(rtTime!=null && !confirm('R.T は すでに記録があります。はかり直しますか？')) return;
+    $('rtModal').classList.add('hide');
+    if(mode!=='time') setMode('time');
+    selDist='RT'; rtStep=1;
+    updateAim(); buildScale();
+    toast('①合図の瞬間に 動画を合わせて「ここを きろく」');
+  };
+  // やり方2：数字で入れる（キーパッドで打ち込む）
+  $('rtNumBtn').onclick=function(){
+    $('rtModal').classList.add('hide');
+    openPad(
+      'R.T（リアクションタイム）',
+      '例 6,5 で 0.65秒。右から 100分の1秒の順に 入ります。',
+      'rt',
+      rtTime,
+      function(v){
+        if(v>=10){ toast('R.Tは 10秒みまんで 入れてね（例 0.65）'); return false; }
+        rtTime=v; rtStep=0;
+        buildScale(); renderRecords();
+        toast('R.T '+v.toFixed(2)+'秒 を とうろくしました');
+      },
+      (rtTime!=null)? function(){
+        rtTime=null; rtStep=0;
+        buildScale(); renderRecords();
+        toast('R.Tの記録を 消しました');
+      } : null
+    );
+  };
+
+  // ========== かき数の登録 ==========
+  function updateStrokeChip(){
+    var c=$('strokeChip'); if(!c) return;
+    var has=strokeCounts.some(function(v){ return v!=null; });
+    c.classList.toggle('done', has);
+  }
+  // 登録画面を開く：50mごとに1行（＋−と数字入力）
+  function openStrokeModal(){
+    var laps=strokeLaps();
+    if(strokeCounts.length!==laps){
+      var a=[]; for(var i=0;i<laps;i++) a.push(strokeCounts[i]!=null?strokeCounts[i]:null);
+      strokeCounts=a;
+    }
+    var list=$('strokeList'); list.innerHTML='';
+    for(var i=0;i<laps;i++){
+      (function(i){
+        var from=i*50, to=Math.min((i+1)*50, raceDist);
+        var row=document.createElement('div');
+        row.className='sk-row';
+        row.innerHTML='<span class="sk-lb">'+(i+1)+'回目<small>'+from+'〜'+to+'m</small></span>'+
+          '<button type="button" class="sk-minus">−</button>'+
+          '<input type="number" inputmode="numeric" min="0" max="99" class="sk-in" value="'+(strokeCounts[i]!=null?strokeCounts[i]:'')+'">'+
+          '<button type="button" class="sk-plus">＋</button>';
+        var inp=row.querySelector('.sk-in');
+        row.querySelector('.sk-minus').onclick=function(){ var v=parseInt(inp.value,10); if(isNaN(v))v=0; if(v>0)v--; inp.value=v; };
+        row.querySelector('.sk-plus').onclick=function(){ var v=parseInt(inp.value,10); if(isNaN(v))v=0; if(v<99)v++; inp.value=v; };
+        list.appendChild(row);
+      })(i);
+    }
+    $('strokeModal').classList.remove('hide');
+  }
+  // とうろくする：全部の行を読み取って保存
+  $('strokeSave').onclick=function(){
+    var ins=$('strokeList').querySelectorAll('.sk-in');
+    for(var i=0;i<ins.length;i++){
+      var v=parseInt(ins[i].value,10);
+      strokeCounts[i]=(isNaN(v)||v<0)?null:v;
+    }
+    $('strokeModal').classList.add('hide');
+    updateStrokeChip(); renderRecords();
+    toast('かき数を とうろくしました');
+  };
+  $('strokeClose').onclick=function(){ $('strokeModal').classList.add('hide'); };
+  $('strokeChip').onclick=function(){ openStrokeModal(); };
+
+  // ========== ほぞん・よびだし（スプレッドシート連携） ==========
+  // GASのウェブアプリURL。GAS側を更新したら「デプロイを編集」で更新し、URLは変えないこと。
+  var GAS_URL='https://script.google.com/macros/s/AKfycbytG05GMzANIkWCzN7B56n3wSZQOiGxKsV_mJx2vlDJRU5DcCjH-oMWULbWEhl4IbCT/exec';
+  function api(payload){
+    return fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify(payload) }).then(function(r){ return r.json(); });
+  }
+  // この携帯の端末ID（初回に作って保存。以後おなじ携帯なら本人あつかい）
+  function deviceId(){
+    try{
+      var v=localStorage.getItem('swimiq_device');
+      if(!v){ v='D'+Date.now()+Math.floor(Math.random()*1e6); localStorage.setItem('swimiq_device', v); }
+      return v;
+    }catch(e){ return 'D-temp'; }
+  }
+  // この携帯で登録済みの選手（複数可。コーチの携帯なら選手を切り替えられる）
+  function getAthletes(){ try{ return JSON.parse(localStorage.getItem('swimiq_athletes')||'[]'); }catch(e){ return []; } }
+  function setAthletes(a){ try{ localStorage.setItem('swimiq_athletes', JSON.stringify(a)); }catch(e){} }
+
+  function fillAthleteSelect(sel, withNew){
+    sel.innerHTML='';
+    getAthletes().forEach(function(a){
+      var o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o);
+    });
+    if(withNew){
+      var o=document.createElement('option'); o.value='__new__'; o.textContent='＋ あたらしい選手';
+      sel.appendChild(o);
+    }
+  }
+  function todayStr(){
+    var d=new Date();
+    function p2(x){ return (x<10?'0':'')+x; }
+    return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+  }
+
+  // 保存画面をひらく
+  function openSaveModal(){
+    app.classList.remove('showtools');
+    fillAthleteSelect($('svAthlete'), true);
+    $('svNewBlock').style.display = getAthletes().length ? 'none' : '';
+    if(!getAthletes().length) $('svAthlete').value='__new__';
+    if(!$('svDate').value) $('svDate').value=todayStr();
+    $('saveModal').classList.remove('hide');
+    // この携帯の登録がまだなら、サーバーにも問い合わせて同期しておく
+    if(!getAthletes().length){
+      api({action:'hello', deviceId:deviceId()}).then(function(res){
+        if(res.ok && res.athletes && res.athletes.length){
+          setAthletes(res.athletes);
+          fillAthleteSelect($('svAthlete'), true);
+          $('svNewBlock').style.display='none';
+        }
+      }).catch(function(){});
+    }
+  }
+  $('saveBtn').addEventListener('click', openSaveModal);
+  $('svAthlete').onchange=function(){
+    $('svNewBlock').style.display = (this.value==='__new__') ? '' : 'none';
+  };
+  $('svClose').onclick=function(){ $('saveModal').classList.add('hide'); };
+
+  // いまの分析データを、送信用のかたまりにまとめる
+  function buildRaceData(){
+    var origin=originTime();
+    var sp={};
+    Object.keys(splitTimes).forEach(function(k){
+      sp[k]=Math.round((splitTimes[k]-origin)*1000)/1000;
+    });
+    return { raceDist:raceDist, splits:sp, official:officialTimes,
+             tempo:tempoValues, strokes:strokeCounts, rt:rtTime };
+  }
+  $('svSave').onclick=function(){
+    var btn=this;
+    var athleteSel=$('svAthlete').value;
+    var isNew=(athleteSel==='__new__'||!athleteSel);
+    if(isNew && !$('svName').value.trim()){ toast('選手の名前を 入れてね'); return; }
+    btn.disabled=true; btn.textContent='送信中…';
+    function done(msg){ btn.disabled=false; btn.textContent='ほぞんする'; if(msg) toast(msg); }
+    var p;
+    if(isNew){
+      p=api({action:'register', deviceId:deviceId(),
+             name:$('svName').value.trim(), birth:$('svBirth').value,
+             sex:$('svSex').value, group:$('svGroup').value.trim()})
+        .then(function(res){
+          if(!res.ok) throw new Error(res.error||'登録できませんでした');
+          var list=getAthletes(); list.push(res.athlete); setAthletes(list);
+          return res.athlete;
+        });
+    } else {
+      var a=getAthletes().filter(function(x){ return x.id===athleteSel; })[0];
+      p=Promise.resolve(a);
+    }
+    p.then(function(athlete){
+      var d=buildRaceData();
+      var origin=originTime();
+      var ft=passOf(raceDist, origin);
+      return api({action:'save', athleteId:athlete.id, athleteName:athlete.name,
+        meetName:$('svMeet').value.trim(), meetDate:$('svDate').value,
+        stroke:$('svStroke').value, raceDist:raceDist,
+        course:$('svCourse').value, round:$('svRound').value,
+        height:$('svHeight').value, weight:$('svWeight').value,
+        finalTime:(ft!=null? fmt(ft):''), data:d });
+    }).then(function(res){
+      if(!res.ok) throw new Error(res.error||'保存できませんでした');
+      $('saveModal').classList.add('hide');
+      done('スプレッドシートに ほぞんしました');
+    }).catch(function(err){
+      done('保存に失敗： '+err.message+'。電波と GAS の設定を確認してね');
+    });
+  };
+
+  // 呼び出し画面をひらく
+  function renderLoadList(athleteId){
+    var box=$('ldList');
+    box.innerHTML='<div class="ld-empty">読み込み中…</div>';
+    api({action:'list', athleteId:athleteId}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'取得できませんでした');
+      box.innerHTML='';
+      if(!res.races.length){ box.innerHTML='<div class="ld-empty">保存された記録が まだありません。</div>'; return; }
+      res.races.forEach(function(r){
+        var b=document.createElement('button');
+        b.className='ld-race';
+        b.innerHTML='<span class="ln">'+(r.meetName||'（試合名なし）')+'　'+r.raceDist+'m '+(r.stroke||'')+'</span>'+
+                    '<span class="ls">'+(r.meetDate||'')+'　'+(r.finalTime||'')+'</span>';
+        b.onclick=function(){
+          b.disabled=true;
+          api({action:'load', raceId:r.raceId}).then(function(res2){
+            if(!res2.ok) throw new Error(res2.error||'読み込めませんでした');
+            applyLoadedRace(res2);
+            $('loadModal').classList.add('hide');
+            toast((res2.meetName||'記録')+' を よびだしました');
+          }).catch(function(err){ b.disabled=false; toast('失敗： '+err.message); });
+        };
+        box.appendChild(b);
+      });
+    }).catch(function(err){
+      box.innerHTML='<div class="ld-empty">読み込みに失敗しました： '+err.message+'</div>';
+    });
+  }
+  function openLoadModal(){
+    app.classList.remove('showtools');
+    if(!getAthletes().length){
+      // この携帯の登録をサーバーにも確認してから案内する
+      toast('確認中…');
+      api({action:'hello', deviceId:deviceId()}).then(function(res){
+        if(res.ok && res.athletes && res.athletes.length){
+          setAthletes(res.athletes); openLoadModal();
+        } else {
+          toast('まず「ほぞん」から 選手登録をしてね');
+        }
+      }).catch(function(){ toast('通信できませんでした'); });
+      return;
+    }
+    fillAthleteSelect($('ldAthlete'), false);
+    $('loadModal').classList.remove('hide');
+    renderLoadList($('ldAthlete').value);
+  }
+  $('loadBtn').addEventListener('click', openLoadModal);
+  $('ldAthlete').onchange=function(){ renderLoadList(this.value); };
+  $('ldClose').onclick=function(){ $('loadModal').classList.add('hide'); };
+
+  // 呼び出した記録を画面にひらく
+  function applyLoadedRace(res){
+    raceDist=parseInt(res.raceDist,10)||raceDist;
+    var d=res.data||{};
+    splitTimes={};
+    Object.keys(d.splits||{}).forEach(function(k){ splitTimes[Number(k)]=Number(d.splits[k]); });
+    officialTimes={};
+    Object.keys(d.official||{}).forEach(function(k){ officialTimes[Number(k)]=Number(d.official[k]); });
+    tempoValues=d.tempo||{};
+    strokeCounts=(d.strokes||[]).map(function(v){ return (v==null)?null:Number(v); });
+    rtTime=(d.rt!=null)?Number(d.rt):null;
+    rtStep=0; openSegKey=null; selDist=0; selFrom=null; selTo=null;
+    setMode('time'); buildScale(); renderRecords();
+    $('distModal').classList.add('hide');
+  }
+  // テンポの測り方を選ぶ
+  $('tm3').onclick=function(){ tempoMethod='3stroke'; tempoMarks=[]; $('tm3').classList.add('active'); $('tmEach').classList.remove('active'); updateTempoUI(); };
+  $('tmEach').onclick=function(){ tempoMethod='each'; tempoMarks=[]; $('tmEach').classList.add('active'); $('tm3').classList.remove('active'); updateTempoUI(); };
+
+  // 地点を選ぶ（記録モードにして、その地点を狙う）
+  function updateRtChip(){
+    var c=$('rtChip'); if(!c) return;
+    c.classList.toggle('sel', selDist==='RT' && mode==='time');
+    c.classList.toggle('done', rtTime!=null);
+  }
+  function pickDist(d){
+    selDist=d;
+    if(mode!=='time') setMode('time'); else updateAim();
+    buildScale();
+    // リアクションタイム（RT）を狙うとき（動画で はかる の途中）
+    if(d==='RT'){
+      toast(rtStep===2 ? '②足が はなれる瞬間に 合わせてね' : '①合図の瞬間に 合わせてね');
+      return;
+    }
+    // この地点がすでに記録済みなら、動画をその瞬間に移動する（見直し・修正に便利）
+    if(splitTimes[d]!=null && isVideoReady()){
+      if(!videoEl.paused) videoEl.pause();
+      var t=splitTimes[d];
+      if(t<0)t=0; if(t>videoEl.duration)t=videoEl.duration;
+      videoEl.currentTime=t; lastFrameTime=t; paintClock();
+      toast(d+'m の きろくへ 移動');
+    } else {
+      toast(d+'m を ねらう');
+    }
+  }
+  // 区間を選ぶ（テンポモードにして、その区間を狙う）＝開閉もする
+  // 節目の区間を開く／閉じる（中の細かい点と区間を出し入れ）
+  function toggleSeg(from, to){
+    var key=from+'-'+to;
+    openSegKey=(openSegKey===key)?null:key;
+    buildScale();
+    if(openSegKey){ toast(from+'〜'+to+'m を ひらきました'); }
+  }
+  // 細かい区間を選んで、その区間のテンポを狙う
+  function selectTempoSeg(from, to){
+    selFrom=from; selTo=to;
+    tempoMarks=[];   // 別の区間に移ったら、途中の測定はリセット
+    if(mode!=='tempo') setMode('tempo'); else { updateAim(); updateTempoUI(); }
+    buildScale();
+    toast(from+'〜'+to+'m の テンポ');
+  }
+  function updateAim(){
+    var a=$('aimText');
+    if(mode==='time'){
+      if(selDist==='RT'){
+        if(rtStep===1){ a.innerHTML='<span class="big">R.T ①</span> 合図の瞬間'; }
+        else if(rtStep===2){ a.innerHTML='<span class="big">R.T ②</span> 足ばなれの瞬間'; }
+        else { a.innerHTML='<span class="big">R.T</span> を きろく'; }
+      }
+      else { a.innerHTML='<span class="big">'+selDist+'m</span> を きろく'; }
+    }
+    else if(selFrom!=null){ a.innerHTML='<span class="big">'+selFrom+'〜'+selTo+'m</span> の テンポ'; }
+    else { a.innerHTML='区間を えらんでください'; }
+  }
+
+  // ========== ラップボタン＝今の動画時刻で記録 ==========
+  $('lapBtn').onclick=function(){
+    if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
+    if(mode==='time'){
+      // リアクションタイムの動画測定（①合図 → ②足ばなれ の2回）
+      if(selDist==='RT'){
+        var now=getStampTime();
+        if(rtStep===1){
+          rtMark1=now; rtStep=2;
+          updateAim();
+          toast('①合図を きろく。つぎは ②足ばなれの瞬間で もう一回');
+          return;
+        }
+        if(rtStep===2){
+          var v=now-rtMark1;
+          if(v<=0){ toast('②は ①より あとの場面に してね'); return; }
+          rtTime=v; rtStep=0;
+          selDist=0; updateAim(); buildScale(); renderRecords();
+          toast('R.T '+v.toFixed(2)+'秒 を きろくしました');
+          return;
+        }
+        // 段階が始まっていなければ、やり方の選択画面を出す
+        openRtModal();
+        return;
+      }
+      // すでに記録済みの地点なら、上書きしてよいか確認する
+      if(splitTimes[selDist]!=null){
+        if(!confirm(selDist+'m は すでに記録があります。今の場面で 上書きしますか？')) return;
+      }
+      splitTimes[selDist]=getStampTime();
+      buildScale(); renderRecords();
+      toast(selDist+'m を きろくしました');
+    } else {
+      // ===== テンポ測定 =====
+      if(selFrom==null){ toast('さきに区間をえらんでね'); return; }
+      var now=getStampTime();
+      // すでに結果があり、まだ測り直しを始めていないなら、上書き確認
+      if(tempoValues[selFrom+'-'+selTo]!=null && tempoMarks.length===0){
+        if(!confirm(selFrom+'〜'+selTo+'m は すでにテンポの記録があります。測り直しますか？')) return;
+        delete tempoValues[selFrom+'-'+selTo];
+      }
+      // 入水の瞬間を1つ記録する
+      tempoMarks.push(now);
+      if(tempoMethod==='3stroke'){
+        // 3ストローク法：1つ目＝始点、4つ目＝3かき目の入水で完了（3かき）
+        if(tempoMarks.length>=4){
+          finalizeTempo();
+        } else {
+          updateTempoUI();
+          toast('入水 '+tempoMarks.length+' を記録');
+        }
+      } else {
+        // 1つずつ：押すたびに記録。2つ以上たまれば途中経過も出す。
+        updateTempoUI();
+        toast('入水 '+tempoMarks.length+' を記録');
+      }
+    }
+  };
+
+  // テンポの結果を計算して確定する
+  function finalizeTempo(){
+    if(tempoMarks.length<2){ toast('もう1回 入水を記録してね'); return; }
+    var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
+    var strokes=marks.length-1;                 // かき数＝間隔の数
+    var total=marks[marks.length-1]-marks[0];   // 全体の時間
+    var perStroke=total/strokes;                // 1かきの秒数
+    var spm=perStroke>0 ? (60/perStroke) : 0;   // 毎分かき数
+    tempoValues[selFrom+'-'+selTo]={ method:tempoMethod, strokes:strokes, perStroke:perStroke, spm:spm };
+    tempoMarks=[];
+    updateTempoUI(); renderRecords();
+    toast(selFrom+'〜'+selTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき');
+  }
+
+  // テンポの状態表示と、ラップボタン・確定ボタンの文字を更新
+  function updateTempoUI(){
+    if(mode!=='tempo') return;
+    var st=$('tempoStatus');
+    var lb=$('lapBtnMain');
+    var n=tempoMarks.length;
+    if(tempoMethod==='3stroke'){
+      // 3ストローク法：1つ目→始点、2・3→途中、4つ目→完了
+      var steps=['入水①（始点）を記録','入水②を記録','入水③を記録','入水④（3かき目）で完了'];
+      st.textContent='3ストローク法 ： '+(n<4?steps[n]:'完了');
+      lb.textContent = (n===0)?'入水① を記録' : (n<3?('入水'+'②③'.charAt(n-1)+' を記録'):'入水④ で完了');
+      // 分かりやすく作り直し
+      if(n===0) lb.textContent='入水① を記録';
+      else if(n===1) lb.textContent='入水② を記録';
+      else if(n===2) lb.textContent='入水③ を記録';
+      else lb.textContent='入水④ で完了';
+      showTempoFinishBtn(false);
+    } else {
+      // 1つずつ：途中経過を出し、確定ボタンで終える
+      if(n===0){ st.textContent='1つずつ ： 入水①から記録'; lb.textContent='入水① を記録'; }
+      else {
+        var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
+        if(n>=2){
+          var strokes=n-1, total=marks[n-1]-marks[0], per=total/strokes, spm=60/per;
+          st.textContent='1つずつ ： '+n+'回記録　'+per.toFixed(2)+'秒／かき　毎分'+Math.round(spm)+'かき';
+        } else {
+          st.textContent='1つずつ ： 入水①を記録ずみ。次を記録';
+        }
+        lb.textContent='入水'+(n+1)+' を記録';
+      }
+      showTempoFinishBtn(n>=2);
+    }
+  }
+  // 1つずつ測定の確定ボタンを出し入れ
+  function showTempoFinishBtn(show){
+    $('tempoFinish').classList.toggle('show', !!show);
+  }
+  // 確定ボタン＝1つずつ測定を終える
+  $('tempoFinish').onclick=function(){ finalizeTempo(); };
+
+  // 記録の起点（0mがあればその時刻、なければ一番早い記録）
+  function originTime(){
+    if(splitTimes[0]!=null) return splitTimes[0];
+    var ts=Object.keys(splitTimes).map(function(k){return splitTimes[k];});
+    return ts.length ? Math.min.apply(null, ts) : 0;
+  }
+  // たて画面用：データ一覧を組み立てる。
+  // 先頭にR.T（リアクションタイム）、距離ごとにタイムと区間、
+  // テンポは区間の値なので、行と行のあいだに挟んで表示する。
+  function renderDataView(){
+    var body=$('dvBody'); if(!body) return;
+    body.innerHTML='';
+    var dists=allDists();
+    var tempoKeys=Object.keys(tempoValues);
+    if(dists.length===0 && tempoKeys.length===0 && rtTime==null && !strokeCounts.some(function(v){return v!=null;})){
+      body.innerHTML='<div class="dv-empty">まだ記録がありません。<br>よこ向きにして測定してください。</div>';
+      return;
+    }
+    var head=document.createElement('div');
+    head.className='dv-row dv-h';
+    head.innerHTML='<span>きょり</span><span>タイム</span><span>区間</span><span>テンポ</span>';
+    body.appendChild(head);
+    var origin=originTime();
+    // 先頭：リアクションタイム（合図→足ばなれの秒数）
+    var rtRow=document.createElement('div');
+    rtRow.className='dv-row';
+    var rtText=(rtTime!=null)?rtTime.toFixed(2):'-';
+    rtRow.innerHTML='<span class="dv-d">R.T</span><span class="dv-t">'+rtText+'</span>'+
+                    '<span class="dv-l">-</span><span class="dv-p"></span>';
+    body.appendChild(rtRow);
+    // テンポ行（区間の値なので、行と行のあいだに挟む）
+    var usedTempo={};
+    function tempoRowsEndingAt(d){
+      tempoKeys.forEach(function(k){
+        if(usedTempo[k]) return;
+        if(parseInt(k.split('-')[1],10)===d){
+          usedTempo[k]=true;
+          var v=tempoValues[k];
+          var row=document.createElement('div');
+          row.className='dv-row tempo';
+          row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
+                        '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+          body.appendChild(row);
+        }
+      });
+    }
+    var prevSplit=0;
+    dists.forEach(function(d){
+      var split=passOf(d, origin);
+      var isOff=(officialTimes[d]!=null);
+      var lap=split-prevSplit;
+      tempoRowsEndingAt(d);   // この地点で終わる区間のテンポを、行の手前に挟む
+      var row=document.createElement('div');
+      row.className='dv-row';
+      row.innerHTML='<span class="dv-d">'+d+'m</span><span class="dv-t'+(isOff?' toff':'')+'">'+fmt(split)+'</span>'+
+                    '<span class="dv-l">'+fmt(lap)+'</span><span class="dv-p"></span>';
+      body.appendChild(row);
+      prevSplit=split;
+    });
+    // 終点のタイムが未記録の区間テンポは、最後にまとめて出す
+    tempoKeys.filter(function(k){ return !usedTempo[k]; })
+      .sort(function(a,b){ return parseInt(a.split('-')[0],10)-parseInt(b.split('-')[0],10); })
+      .forEach(function(k){
+        var v=tempoValues[k];
+        var row=document.createElement('div');
+        row.className='dv-row tempo';
+        row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
+                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+        body.appendChild(row);
+      });
+    // かき数：登録画面で入れた50mごとの値と合計を出す
+    var foot=document.createElement('div');
+    foot.className='dv-foot';
+    var skHas=strokeCounts.some(function(v){ return v!=null; });
+    if(skHas){
+      var total=0, lines='';
+      strokeCounts.forEach(function(v,i){
+        var from=i*50, to=Math.min((i+1)*50, raceDist);
+        lines+='<div class="dv-srow"><span>'+(i+1)+'回目 '+from+'〜'+to+'m</span><span>'+(v!=null? v+' かき':'-')+'</span></div>';
+        if(v!=null) total+=v;
+      });
+      foot.innerHTML='<div class="dv-shead">かき数（50mごと）</div>'+lines+
+                     '<div class="dv-srow total"><span>合計</span><span>'+total+' かき</span></div>';
+    } else {
+      foot.textContent='かき数： まだ登録がありません。よこ画面の「かき数」ボタンから入れられます。';
+    }
+    body.appendChild(foot);
+  }
+  // その距離の表示タイム。正式タイムがあればそれを、なければ動画からの計測を使う。
+  // R.Tが入っているときは、計測タイムにR.Tを足して「合図からの時間」にする（正式タイムには足さない）
+  function passOf(d, origin){
+    if(officialTimes[d]!=null) return officialTimes[d];
+    if(splitTimes[d]!=null) return splitTimes[d]-origin + (rtTime!=null? rtTime : 0);
+    return null;
+  }
+  // タイムを記録した距離と、正式タイムだけ入れた距離を合わせた一覧（0mは除く）
+  function allDists(){
+    var set={};
+    Object.keys(splitTimes).forEach(function(k){ if(Number(k)>0) set[k]=1; });
+    Object.keys(officialTimes).forEach(function(k){ if(Number(k)>0) set[k]=1; });
+    return Object.keys(set).map(Number).sort(function(a,b){return a-b;});
+  }
+  // ========== 数字キーパッド（正式タイム・R.Tの打ち込み） ==========
+  // 右から 100分の1秒 → 秒 → 分 の順に埋まる。例 2,6,5,4 → 26.54 ／ 1,5,2,3,4 → 1:52.34
+  var padDigits='', padMode='time', padOnSave=null, padOnDelete=null;
+  function padValue(){
+    if(padDigits==='') return null;
+    var n=padDigits;
+    if(padMode==='rt'){ return parseInt(n,10)/100; }
+    var hh=(n.length>=2)? n.slice(-2) : n;
+    var ss=(n.length>2)? n.slice(Math.max(0,n.length-4), n.length-2) : '';
+    var mm=(n.length>4)? n.slice(0, n.length-4) : '';
+    return (mm?parseInt(mm,10):0)*60 + (ss?parseInt(ss,10):0) + parseInt(hh,10)/100;
+  }
+  function padPaint(){
+    var d=$('padDisp'); var v=padValue();
+    if(v==null){ d.textContent=(padMode==='rt')?'0.00 秒':'0.00'; d.classList.add('emp'); }
+    else { d.textContent=(padMode==='rt')? v.toFixed(2)+' 秒' : fmt(v); d.classList.remove('emp'); }
+  }
+  // 秒数を、打ち込みの数字の並びに戻す（入れ直し用）
+  function secToDigits(v, rt){
+    if(v==null) return '';
+    var cs=Math.round(v*100);
+    if(rt){ return String(cs); }
+    var m=Math.floor(cs/6000), rest=cs-m*6000;
+    var s=Math.floor(rest/100), h=rest-s*100;
+    function p2(x){ return (x<10?'0':'')+x; }
+    return (m? String(m)+p2(s) : String(s)) + p2(h);
+  }
+  function openPad(title, note, mode, current, onSave, onDelete){
+    padMode=mode; padOnSave=onSave; padOnDelete=onDelete;
+    padDigits=(current!=null)? secToDigits(current, mode==='rt') : '';
+    $('padTitle').textContent=title;
+    $('padNote').textContent=note;
+    $('padDel').style.display = onDelete ? '' : 'none';
+    padPaint();
+    $('padModal').classList.remove('hide');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#padKeys .pk[data-k]'), function(b){
+    b.onclick=function(){
+      if(padDigits.length>=6) return;
+      padDigits+=b.dataset.k;
+      padPaint();
+    };
+  });
+  $('padBack').onclick=function(){ padDigits=padDigits.slice(0,-1); padPaint(); };
+  $('padOk').onclick=function(){
+    var v=padValue();
+    if(v==null||v<=0){ toast('数字を 打ち込んでね'); return; }
+    if(padOnSave && padOnSave(v)===false) return;   // 保存側がだめと言ったら閉じない
+    $('padModal').classList.add('hide');
+  };
+  $('padDel').onclick=function(){ if(padOnDelete) padOnDelete(); $('padModal').classList.add('hide'); };
+  $('padCancel').onclick=function(){ $('padModal').classList.add('hide'); };
+
+  // 正式タイムの入力（キーパッドをひらく）
+  function openOfficialModal(d){
+    var has=(officialTimes[d]!=null);
+    openPad(
+      d+'m の 正式タイム',
+      '右から 100分の1秒 → 秒 → 分 の順です。例 2,6,5,4 で 26.54',
+      'time',
+      has? officialTimes[d] : null,
+      function(v){
+        officialTimes[d]=v;
+        renderRecords();
+        toast(d+'m の正式タイムを とうろくしました');
+      },
+      has? function(){
+        delete officialTimes[d];
+        renderRecords();
+        toast(d+'m の正式タイムを けしました（計測値に もどります）');
+      } : null
+    );
+  }
+
+  // 左側の記録一覧を、距離順に描く。通過タイム＋区間タイム。タイムを押すと正式タイムを入力できる。
+  function renderRecords(){
+    renderDataView();
+    var box=$('recList'); if(!box) return;
+    box.innerHTML='';
+    var dists=allDists();
+    var tempoKeys=Object.keys(tempoValues);
+    var skHas=strokeCounts.some(function(v){ return v!=null; });
+    if(dists.length===0 && tempoKeys.length===0 && rtTime==null && !skHas){
+      box.innerHTML='<div class="empty">まだ記録がありません。地点をえらび、動画を合わせて「ここを きろく」を押してください。</div>';
+      return;
+    }
+    var origin=originTime();
+    // 先頭：リアクションタイム（押すと入力し直せる）
+    if(rtTime!=null){
+      var rtRow=document.createElement('div');
+      rtRow.className='rec';
+      rtRow.innerHTML='<div class="top"><span class="d">R.T</span><span class="t">'+rtTime.toFixed(2)+'</span></div>'+
+                      '<div class="lap">リアクションタイム（通過タイムに 足しています）</div>';
+      rtRow.querySelector('.t').onclick=function(){ openRtModal(); };
+      box.appendChild(rtRow);
+    }
+    var prevSplit=0, prevD=0;
+    dists.forEach(function(d){
+      var split=passOf(d, origin);
+      var isOff=(officialTimes[d]!=null);
+      var lap=split-prevSplit;
+      var row=document.createElement('div');
+      row.className='rec';
+      row.innerHTML='<div class="top"><span class="d">'+d+'m</span><span class="t'+(isOff?' toff':'')+'">'+fmt(split)+'</span></div>'+
+                    '<div class="lap">区間 '+prevD+'→'+d+'m ： '+fmt(lap)+(isOff?'　正式':'')+'</div>';
+      // タイムを押すと、正式タイムの入力画面がひらく
+      row.querySelector('.t').onclick=function(){ openOfficialModal(d); };
+      box.appendChild(row);
+      prevSplit=split; prevD=d;
+    });
+    // 次にテンポ（区間の距離順）
+    tempoKeys.map(function(k){ return {k:k, from:parseInt(k.split('-')[0],10)}; })
+      .sort(function(a,b){return a.from-b.from;})
+      .forEach(function(o){
+        var v=tempoValues[o.k];
+        var row=document.createElement('div');
+        row.className='rec tempo';
+        var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
+        var spm=(v.spm!=null)?Math.round(v.spm):'-';
+        row.innerHTML='<div class="top"><span class="d">'+o.k.replace('-','〜')+'m</span><span class="t">'+per+'</span></div>'+
+                      '<div class="lap">テンポ '+per+'秒／かき　毎分'+spm+'かき</div>';
+        box.appendChild(row);
+      });
+    // 最後にかき数（50mごと・登録があるときだけ）
+    if(skHas){
+      var total=0, parts=[];
+      strokeCounts.forEach(function(v){ if(v!=null){ total+=v; parts.push(v); } else { parts.push('-'); } });
+      var skRow=document.createElement('div');
+      skRow.className='rec stroke';
+      skRow.innerHTML='<div class="top"><span class="d">かき数</span><span class="t">'+total+'</span></div>'+
+                      '<div class="lap">50mごと： '+parts.join(' / ')+'</div>';
+      box.appendChild(skRow);
+    }
+    box.scrollTop=box.scrollHeight;
+  }
+
+  // ========== コマ送り ==========
+  $('b100').onclick=function(){ step(-100); };
+  $('b10').onclick=function(){ step(-10); };
+  $('b1').onclick=function(){ step(-1); };
+  $('f1').onclick=function(){ step(1); };
+  $('f10').onclick=function(){ step(10); };
+  $('f100').onclick=function(){ step(100); };
+  $('bPlay').onclick=function(){
+    if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
+    if(videoEl.paused) videoEl.play(); else videoEl.pause();
+  };
+  function refreshPlay(){ $('bPlay').textContent = videoEl.paused ? '▶' : '⏸'; }
+  videoEl.addEventListener('play', refreshPlay);
+  videoEl.addEventListener('pause', refreshPlay);
+
+  // ========== ズーム・移動（ピンチとドラッグ） ==========
+  var vScale=1, vTx=0, vTy=0, MINS=1, MAXS=6;
+  function applyT(){ videoEl.style.transform='translate(-50%,-50%) translate('+vTx+'px,'+vTy+'px) scale('+vScale+')'; }
+  function setScale(s){ vScale=Math.max(MINS,Math.min(MAXS,s)); if(vScale<=1.001){vTx=0;vTy=0;} applyT(); }
+  videoWrap.addEventListener('wheel', function(e){ if(!app.classList.contains('hasvideo'))return; e.preventDefault(); setScale(vScale+(e.deltaY<0?0.2:-0.2)); }, {passive:false});
+  var drag=false, lx=0, ly=0;
+  videoWrap.addEventListener('mousedown', function(e){ drag=true; lx=e.clientX; ly=e.clientY; });
+  window.addEventListener('mousemove', function(e){ if(!drag)return; vTx+=e.clientX-lx; vTy+=e.clientY-ly; lx=e.clientX; ly=e.clientY; applyT(); });
+  window.addEventListener('mouseup', function(){ drag=false; });
+  var pd=0, ps=1, tlx=0, tly=0;
+  function dist2(a,b){ var dx=a.clientX-b.clientX, dy=a.clientY-b.clientY; return Math.sqrt(dx*dx+dy*dy); }
+  videoWrap.addEventListener('touchstart', function(e){
+    if(e.touches.length===1){ tlx=e.touches[0].clientX; tly=e.touches[0].clientY; }
+    else if(e.touches.length===2){ pd=dist2(e.touches[0],e.touches[1]); ps=vScale; }
+  }, {passive:false});
+  videoWrap.addEventListener('touchmove', function(e){
+    if(!app.classList.contains('hasvideo'))return; e.preventDefault();
+    if(e.touches.length===1){ var nx=e.touches[0].clientX, ny=e.touches[0].clientY; vTx+=nx-tlx; vTy+=ny-tly; tlx=nx; tly=ny; applyT(); }
+    else if(e.touches.length===2 && pd>0){ setScale(ps*(dist2(e.touches[0],e.touches[1])/pd)); }
+  }, {passive:false});
+  videoWrap.addEventListener('touchend', function(e){ if(e.touches.length===0) pd=0; });
+
+  // ========== メニュー（いまはズームのもとに戻す＋記録の予定） ==========
+  $('menuBtn').onclick=function(){
+    // まずはズームを元に戻す簡単メニュー
+    vScale=1; vTx=0; vTy=0; applyT();
+    toast('ズームをもとに戻しました');
+  };
+
+  // 距離をかえる（あとから選び直す）
+  $('distBtn').onclick=function(){
+    var hasRec = Object.keys(splitTimes).length>0 || Object.keys(tempoValues).length>0;
+    if(hasRec){
+      if(!confirm('距離をかえると、いまの記録は消えます。よろしいですか？')) return;
+    }
+    openDistModal();
+  };
+
+  // ========== 動画の読み込み ==========
+  $('videoFile').addEventListener('change', function(e){
+    var f=e.target.files && e.target.files[0];
+    if(!f) return;
+    ready=false; lastFrameTime=0; startTime=null; FPS=60; fpsDetected=false;
+    videoEl.src=URL.createObjectURL(f); videoEl.load();
+    app.classList.add('hasvideo');
+    vScale=1; vTx=0; vTy=0; applyT();
+    // 距離をきく
+    setTimeout(openDistModal, 200);
+  });
+
+  // ========== 距離選択モーダル ==========
+  var DISTS=[25,50,100,200,400,800,1500];
+  function openDistModal(){
+    var grid=$('distGrid'); grid.innerHTML='';
+    DISTS.forEach(function(d){
+      var b=document.createElement('button'); b.textContent=d+'m';
+      b.onclick=function(){ chooseDist(d); };
+      grid.appendChild(b);
+    });
+    $('distModal').classList.remove('hide');
+  }
+  // 背景タップで閉じる（すでに動画があり、距離が決まっているとき＝あとから変更）
+  $('distModal').addEventListener('click', function(e){
+    if(e.target===$('distModal') && app.classList.contains('hasvideo') && raceDist){
+      $('distModal').classList.add('hide');
+    }
+  });
+  function chooseDist(d){
+    raceDist=d; splitTimes={}; tempoValues={}; rtTime=null; rtStep=0; officialTimes={}; strokeCounts=[]; openSegKey=null;
+    // 最初の狙いは0m（スタート）、記録モードで始める
+    selDist=0; selFrom=null; selTo=null;
+    buildScale(); setMode('time'); renderRecords();
+    $('distModal').classList.add('hide');
+    toast(d+'m で分析します');
+  }
+  $('distCustomBtn').onclick=function(){
+    var v=parseInt($('distCustom').value,10);
+    if(isNaN(v)||v<1){ toast('距離を数字で入れてね'); return; }
+    if(v>5000){ toast('5000m までにしてね'); return; }
+    chooseDist(v);
+  };
+
+  // ========== 通知 ==========
+  var toastTimer=null;
+  function toast(msg){
+    var t=$('toast'); t.textContent=msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 1400);
+  }
+
+  // ========== シャッチーくんのチュートリアル ==========
+  var TUT_STEPS = [
+    'やあ！ぼく シャッチーくん。つかい方を おしえるッチー！',
+    'まずは 左上の「動画をひらく」で、レースの動画を えらぶッチ。',
+    'つぎに レースの きょりを えらぶッチ。50mとか 100mとかね！',
+    '右の めもりで、タイムを とりたい 地点を えらぶッチ。',
+    '下の コマ送りボタンで、動画を ぴったり 合わせるッチ。1コマずつ 動かせるッチー！',
+    '合わせたら、「ここを きろく」ボタンを 押すッチ。左に 記録が ふえていくッチー！',
+    'テンポを はかるときは、上の「テンポ」を 押して、めもりの 区間を えらぶッチ。',
+    '区間を えらんだら、入水の しゅんかんで ボタンを 押して テンポを はかるッチ。',
+    'これで バッチリッチー！こまったら いつでも ぼくを 押してほしいッチ。がんばるッチー！'
+  ];
+  var tutIdx=0;
+  function showTut(i){
+    tutIdx=i;
+    $('tutText').textContent=TUT_STEPS[i];
+    // ドット
+    var dots=$('tutDots'); dots.innerHTML='';
+    for(var k=0;k<TUT_STEPS.length;k++){ var d=document.createElement('i'); if(k===i)d.className='on'; dots.appendChild(d); }
+    // 最後は「はじめる」
+    $('tutNext').textContent = (i>=TUT_STEPS.length-1) ? 'はじめる ✔' : 'つぎへ ▶';
+    $('tutorial').classList.remove('hide');
+  }
+  function closeTut(){ $('tutorial').classList.add('hide'); }
+  $('tutNext').onclick=function(){
+    if(tutIdx>=TUT_STEPS.length-1){ closeTut(); }
+    else { showTut(tutIdx+1); }
+  };
+  $('tutSkip').onclick=closeTut;
+  // シャッチーくんを押すと、最初から見られる
+  $('shacchi').onclick=function(){ showTut(0); };
+  // 初めて開いたときは自動で出す。見たことを覚えられれば覚える。
+  var seenTut=false;
+  try{ seenTut = (localStorage.getItem('swimiq_seen_tut')==='1'); }catch(e){ seenTut = !!window.__swimiqSeenTut; }
+  if(!seenTut){
+    showTut(0);
+    try{ localStorage.setItem('swimiq_seen_tut','1'); }catch(e){ window.__swimiqSeenTut=true; }
+  }
+
+  // ========== 右上の歯車：道具ボタンの出し入れ ==========
+  $('toolsBtn').onclick=function(){ app.classList.toggle('showtools'); };
+  // 道具を使ったら、また自動でしまう
+  $('changeBtn').addEventListener('click', function(){ app.classList.remove('showtools'); });
+  $('distBtn').addEventListener('click', function(){ app.classList.remove('showtools'); });
+
+  // ========== ドラッグで動かせる部品（記録一覧・シャッチーくん） ==========
+  // handle（つかむ場所）を押して動かすと、el（動かす部品）が指についてくる。
+  // 少しでも動かしたらドラッグ扱いにして、あとのクリックを1回だけ無効にする。
+  function makeDraggable(el, handle){
+    var startX=0, startY=0, baseL=0, baseT=0, dragging=false, moved=false;
+    function freeze(){
+      // right/bottomで置かれている部品を、いまの位置のままleft/topの指定に変える
+      var r=el.getBoundingClientRect();
+      el.style.left=r.left+'px'; el.style.top=r.top+'px';
+      el.style.right='auto'; el.style.bottom='auto';
+      el.style.width=r.width+'px'; el.style.height=r.height+'px';
+    }
+    handle.addEventListener('pointerdown', function(e){
+      dragging=true; moved=false;
+      freeze();
+      startX=e.clientX; startY=e.clientY;
+      var r=el.getBoundingClientRect(); baseL=r.left; baseT=r.top;
+      try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      var dx=e.clientX-startX, dy=e.clientY-startY;
+      if(Math.abs(dx)>6||Math.abs(dy)>6) moved=true;
+      var w=el.getBoundingClientRect().width, h=el.getBoundingClientRect().height;
+      var nl=Math.min(Math.max(baseL+dx, 0), window.innerWidth-w);
+      var nt=Math.min(Math.max(baseT+dy, 0), window.innerHeight-h);
+      el.style.left=nl+'px'; el.style.top=nt+'px';
+    });
+    handle.addEventListener('pointerup', function(){ dragging=false; });
+    handle.addEventListener('pointercancel', function(){ dragging=false; });
+    // ドラッグ直後のクリックを1回だけ止める（動かしただけで開かないように）
+    handle.addEventListener('click', function(e){
+      if(moved){ e.stopImmediatePropagation(); e.preventDefault(); moved=false; }
+    }, true);
+  }
+  // 記録一覧：見出し「きろく」をつかんで動かす
+  makeDraggable($('recPanel'), $('recPanel').querySelector('.rec-head'));
+  // シャッチーくん：本体をつかんで動かす。タップならチュートリアル。
+  makeDraggable($('shacchi'), $('shacchi'));
+
+  // ========== 初期化 ==========
+  buildScale(); setMode('time'); renderRecords();
+})();
+</script>
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  }
+</script>
+</body>
+</html>

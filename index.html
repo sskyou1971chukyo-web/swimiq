@@ -273,27 +273,21 @@
   #shacchi:active{ transform:scale(.92); }
   @keyframes swim{ 0%,100%{ transform:translateY(0) rotate(-3deg); } 50%{ transform:translateY(-7px) rotate(3deg); } }
 
-  /* ===== チュートリアルの吹き出し ===== */
-  #tutorial{ position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
-    padding:20px; background:rgba(4,20,35,.75); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
-  #tutorial.hide{ display:none; }
-  .tut-card{ width:100%; max-width:460px; display:flex; gap:14px; align-items:flex-start;
-    background:rgba(16,44,74,.95); border:1.5px solid var(--line); border-radius:22px; padding:20px;
-    box-shadow:0 20px 50px rgba(0,20,40,.6); }
-  .tut-orca{ flex:none; width:76px; height:76px; animation:swim 3s ease-in-out infinite; }
-  .tut-body{ flex:1; min-width:0; }
-  .tut-name{ font-size:14px; font-weight:900; color:#7dd3fc; margin-bottom:4px; }
-  .tut-text{ font-size:16px; font-weight:800; line-height:1.6; min-height:3.2em; }
-  .tut-dots{ display:flex; gap:6px; margin:12px 0; }
-  .tut-dots i{ width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.3); }
-  .tut-dots i.on{ background:var(--accent2); }
-  .tut-btns{ display:flex; gap:10px; justify-content:flex-end; }
-  .tut-skip{ padding:10px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
-    background:transparent; color:#fff; font-size:14px; font-weight:800; }
-  .tut-next{ padding:10px 20px; border-radius:12px; cursor:pointer; border:none;
-    background:linear-gradient(135deg,#34d399,#0ea5e9); color:#fff; font-size:15px; font-weight:900;
-    box-shadow:0 4px 0 rgba(0,0,0,.2); }
-  .tut-next:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  /* ===== 解説モードの吹き出し =====
+     全画面をふさがない小さな吹き出し。ボタンを押せるように pointer-events は自分だけ。 */
+  #guide{ position:absolute; left:50%; transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom) + 84px); z-index:26;
+    display:flex; gap:12px; align-items:center; width:min(72vw,560px);
+    background:rgba(16,44,74,.97); border:2px solid var(--accent2); border-radius:18px; padding:12px 14px;
+    box-shadow:0 14px 40px rgba(0,20,40,.55); }
+  #guide.hide{ display:none; }
+  .g-orca{ flex:none; width:60px; height:60px; animation:swim 3s ease-in-out infinite; }
+  .g-body{ flex:1; min-width:0; }
+  .g-name{ font-size:12px; font-weight:900; color:#7dd3fc; margin-bottom:3px; display:flex; align-items:center; gap:8px; }
+  .g-mode{ font-size:10px; font-weight:800; color:#3a2600; background:var(--yellow); border-radius:8px; padding:1px 7px; }
+  .g-text{ font-size:14px; font-weight:800; line-height:1.55; }
+  /* 解説モード中はシャッチーくんが黄色くひかる */
+  #app.guidemode #shacchi{ filter:drop-shadow(0 0 12px #fbbf24) drop-shadow(0 3px 5px rgba(0,0,0,.4)); }
 
   /* ===== 距離選択モーダル ===== */
   #distModal{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
@@ -351,7 +345,7 @@
     #app.hasvideo #timeHud, #app.hasvideo #recPanel, #app.hasvideo #toolsBtn,
     #app.hasvideo #changeBtn, #app.hasvideo #distBtn, #app.hasvideo #scale,
     #app.hasvideo #modeToggle, #app.hasvideo #tempoMethod, #app.hasvideo #dock,
-    #app.hasvideo #frame, #app.hasvideo #menuBtn, #app.hasvideo #shacchi{ display:none !important; }
+    #app.hasvideo #frame, #app.hasvideo #menuBtn, #app.hasvideo #shacchi, #app.hasvideo #guide{ display:none !important; }
     #app.hasvideo #dataView{ display:flex; }
   }
 
@@ -541,21 +535,14 @@
     <img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;">
   </button>
 
-  <!-- チュートリアルの吹き出し -->
-  <div id="tutorial" class="hide">
-    <div class="tut-card">
-      <div class="tut-orca">
-        <img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;">
-      </div>
-      <div class="tut-body">
-        <div class="tut-name">シャッチーくん</div>
-        <div class="tut-text" id="tutText">やあ！ぼく シャッチーくん。つかい方を おしえるっチャ！</div>
-        <div class="tut-dots" id="tutDots"></div>
-        <div class="tut-btns">
-          <button class="tut-skip" id="tutSkip">とじる</button>
-          <button class="tut-next" id="tutNext">つぎへ ▶</button>
-        </div>
-      </div>
+  <!-- 解説モードの吹き出し（シャッチーくんがボタンを説明する） -->
+  <div id="guide" class="hide">
+    <div class="g-orca">
+      <img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;">
+    </div>
+    <div class="g-body">
+      <div class="g-name">シャッチーくん<span id="gMode" class="g-mode">解説モード</span></div>
+      <div class="g-text" id="guideText"></div>
     </div>
   </div>
 
@@ -1708,42 +1695,76 @@
     clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 1400);
   }
 
-  // ========== シャッチーくんのチュートリアル ==========
-  var TUT_STEPS = [
-    'やあ！ぼく シャッチーくん。つかい方を おしえるッチー！',
-    'まずは 左上の「動画をひらく」で、レースの動画を えらぶッチ。',
-    'つぎに レースの きょりを えらぶッチ。50mとか 100mとかね！',
-    '右の めもりで、タイムを とりたい 地点を えらぶッチ。',
-    '下の コマ送りボタンで、動画を ぴったり 合わせるッチ。1コマずつ 動かせるッチー！',
-    '合わせたら、「ここを きろく」ボタンを 押すッチ。左に 記録が ふえていくッチー！',
-    'テンポを はかるときは、上の「テンポ」を 押して、めもりの 区間を えらぶッチ。',
-    '区間を えらんだら、入水の しゅんかんで ボタンを 押して テンポを はかるッチ。',
-    'これで バッチリッチー！こまったら いつでも ぼくを 押してほしいッチ。がんばるッチー！'
+  // ========== シャッチーくんの解説モード ==========
+  // シャッチーくんを押すと解説モードに入る。モード中はボタンの機能は動かず、
+  // 押したボタンの説明を吹き出しで出す。もう一度シャッチーくんを押すとおわる。
+  var guideMode=false;
+  var GUIDE=[
+    ['#openBtn','ここからレースの動画をえらぶチー。カメラロールの動画がつかえるチー。'],
+    ['#toolsBtn','ここは道具箱だチー。動画や距離の変更、ほぞんとよびだしが入っているチー。'],
+    ['#changeBtn','べつの動画にとりかえるチー。いまの記録はのこったままだチー。'],
+    ['#distBtn','レースの距離をえらびなおすチー。記録はリセットされるから気をつけるチー。'],
+    ['#saveBtn','タイムやテンポをスプレッドシートにほぞんするチー。はじめてのときだけ選手登録があるチー。'],
+    ['#loadBtn','ほぞんした記録をよびもどすチー。過去のレースが一覧で出てくるチー。'],
+    ['#mtTime','地点の通過タイムをはかるモードだチー。まず目盛りで地点をえらぶチー。'],
+    ['#mtTempo','区間のテンポをはかるモードにかわるチー。目盛りで区間をえらぶチー。'],
+    ['#tm3','入水を4回おして、3かき分の時間からテンポを出すはかり方だチー。'],
+    ['#tmEach','入水のたびにおして、さいごに確定ボタンでしめくくるはかり方だチー。かき数もかぞえられるチー。'],
+    ['#lapBtn','いちばん大事なボタンだチー。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするチー。'],
+    ['#rtChip','スタートの反応時間をあつかうチー。動画ではかるか、数字で入れるかえらべるチー。'],
+    ['#strokeChip','50mごとのかき数をとうろくするチー。あとから直せるチー。'],
+    ['#tempoFinish','1つずつはかったテンポをここでしめくくるチー。'],
+    ['#b100','100コマ大きくもどるチー。'],
+    ['#b10','10コマもどるチー。'],
+    ['#b1','1コマだけもどるチー。微調整の主役だチー。'],
+    ['#bPlay','再生と一時停止だチー。'],
+    ['#f1','1コマだけすすむチー。'],
+    ['#f10','10コマすすむチー。'],
+    ['#f100','100コマ大きくすすむチー。'],
+    ['#menuBtn','ズームした動画をもとの大きさにもどすチー。'],
+    ['#timeHud','スタートからの経過時間だチー。コマ送りにあわせてかわるチー。'],
+    ['#recPanel','記録がここにたまるチー。きろくの見出しをつかむとパネルごとうごかせるチー。タイムの数字をおすと正式タイムが入れられるチー。'],
+    ['.pt','はかりたい地点をえらぶチー。100m以上のレースは節目をおすとその区間がひらいて、もう一回おすと一覧にもどるチー。'],
+    ['.segzone','ここをおすと区間がえらべるチー。テンポをはかるときにつかうチー。'],
+    ['#aim','いまねらっている地点や区間がここに出るチー。'],
+    ['#tempoStatus','テンポ測定のすすみ具合がここに出るチー。'],
+    ['#scale','きょり目盛りだチー。地点や区間をここでえらぶチー。'],
+    ['#videoWrap','動画の画面だチー。ピンチでズーム、ドラッグでうごかせるチー。']
   ];
-  var tutIdx=0;
-  function showTut(i){
-    tutIdx=i;
-    $('tutText').textContent=TUT_STEPS[i];
-    // ドット
-    var dots=$('tutDots'); dots.innerHTML='';
-    for(var k=0;k<TUT_STEPS.length;k++){ var d=document.createElement('i'); if(k===i)d.className='on'; dots.appendChild(d); }
-    // 最後は「はじめる」
-    $('tutNext').textContent = (i>=TUT_STEPS.length-1) ? 'はじめる ✔' : 'つぎへ ▶';
-    $('tutorial').classList.remove('hide');
+  function guideTextFor(target){
+    for(var i=0;i<GUIDE.length;i++){
+      if(target.closest && target.closest(GUIDE[i][0])) return GUIDE[i][1];
+    }
+    return 'それはまだ解説がないチー。ほかのボタンをおしてみてチー。';
   }
-  function closeTut(){ $('tutorial').classList.add('hide'); }
-  $('tutNext').onclick=function(){
-    if(tutIdx>=TUT_STEPS.length-1){ closeTut(); }
-    else { showTut(tutIdx+1); }
-  };
-  $('tutSkip').onclick=closeTut;
-  // シャッチーくんを押すと、最初から見られる
-  $('shacchi').onclick=function(){ showTut(0); };
-  // 初めて開いたときは自動で出す。見たことを覚えられれば覚える。
+  function showGuide(text){
+    $('guideText').textContent=text;
+    $('guide').classList.remove('hide');
+  }
+  function hideGuide(){ $('guide').classList.add('hide'); }
+  function setGuideMode(on){
+    guideMode=on;
+    app.classList.toggle('guidemode', on);
+    $('gMode').style.display = on ? '' : 'none';
+    if(on){ showGuide('解説モードだチー！気になるボタンをおすと、はたらきをおしえるチー。もう一度ぼくをおすと おわるチー。'); }
+    else { hideGuide(); toast('解説モードを おわったチー'); }
+  }
+  // 解説モード中は、どのボタンも動かさずに説明だけ出す（最前で横取りする）
+  document.addEventListener('click', function(e){
+    if(!guideMode) return;
+    if(e.target.closest('#shacchi') || e.target.closest('#guide')) return;
+    e.preventDefault(); e.stopPropagation();
+    showGuide(guideTextFor(e.target));
+  }, true);
+  // シャッチーくんを押すと解説モードの出入り
+  $('shacchi').onclick=function(){ setGuideMode(!guideMode); };
+  // 初めて開いたときだけ、あいさつの吹き出しを少しのあいだ出す
   var seenTut=false;
   try{ seenTut = (localStorage.getItem('swimiq_seen_tut')==='1'); }catch(e){ seenTut = !!window.__swimiqSeenTut; }
   if(!seenTut){
-    showTut(0);
+    $('gMode').style.display='none';
+    showGuide('やあ！ぼくシャッチーくん。ぼくをおすと解説モードになって、ボタンのはたらきをおしえるチー！');
+    setTimeout(function(){ if(!guideMode) hideGuide(); }, 9000);
     try{ localStorage.setItem('swimiq_seen_tut','1'); }catch(e){ window.__swimiqSeenTut=true; }
   }
 

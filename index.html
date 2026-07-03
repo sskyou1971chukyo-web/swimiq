@@ -1010,6 +1010,81 @@
       fr.readAsArrayBuffer(file);
     });
   }
+  // 方法2：再生しながら聞き取る（iPhoneで音の取り出しを断られたときの逃げ道）
+  // 音を消した早送り再生をしながら、1.4kHzのふるいを通した音が
+  // ふだんの8倍をこえて跳ねた瞬間を、スタート音として拾う。
+  var sndCtx=null, sndSrc=null, sndGain=null;
+  function liveFindStartSound(){
+    return new Promise(function(resolve, reject){
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC){ reject(new Error('この端末では音の分析ができません')); return; }
+      if(!sndCtx){
+        sndCtx=new AC();
+        sndSrc=sndCtx.createMediaElementSource(videoEl);
+        sndGain=sndCtx.createGain();
+        sndSrc.connect(sndGain); sndGain.connect(sndCtx.destination);
+      }
+      if(sndCtx.state==='suspended') sndCtx.resume();
+      var sr=sndCtx.sampleRate;
+      var proc=sndCtx.createScriptProcessor(1024,1,1);
+      // 1.4kHzのふるい（2段）
+      var w0=2*Math.PI*1400/sr, Q=7, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
+      var b0=al/(1+al), b2=-al/(1+al), a1=-2*cs/(1+al), a2=(1-al)/(1+al);
+      var x1=0,x2=0,y1=0,y2=0, p1=0,p2=0,q1=0,q2=0;
+      var baseline=0.001, warm=0, done=false;
+      var origT=videoEl.currentTime, origRate=videoEl.playbackRate, origMuted=videoEl.muted;
+      function finish(t){
+        if(done) return; done=true;
+        try{ proc.disconnect(); sndSrc.disconnect(proc); }catch(e){}
+        sndGain.gain.value=1;
+        videoEl.pause();
+        videoEl.playbackRate=origRate||1;
+        videoEl.muted=origMuted;
+        if(t==null){ videoEl.currentTime=origT; resolve(null); }
+        else{ resolve({ onset: Math.max(0,t) }); }
+      }
+      proc.onaudioprocess=function(ev){
+        if(done) return;
+        var inp=ev.inputBuffer.getChannelData(0);
+        var e=0;
+        for(var i=0;i<inp.length;i++){
+          var v=b0*inp[i]+b2*x2-a1*y1-a2*y2; x2=x1; x1=inp[i]; y2=y1; y1=v;
+          var u=b0*v+b2*p2-a1*q1-a2*q2; p2=p1; p1=v; q2=q1; q1=u;
+          e+=Math.abs(u);
+        }
+        e/=inp.length; warm++;
+        if(warm>20 && e>baseline*8 && e>0.002){
+          // 聞き取りの遅れぶんを少し引いて確定
+          finish(videoEl.currentTime - (inp.length/sr)*videoEl.playbackRate);
+          return;
+        }
+        baseline=baseline*0.995+e*0.005;
+        if((videoEl.duration && videoEl.currentTime>=Math.min(videoEl.duration,120)) || videoEl.ended){
+          finish(null);
+        }
+      };
+      sndSrc.connect(proc); proc.connect(sndCtx.destination);
+      sndGain.gain.value=0;               // 聞き取り中は音を出さない
+      videoEl.muted=false;                // ただし中身の音はふるいに流す
+      try{ videoEl.preservesPitch=true; videoEl.webkitPreservesPitch=true; }catch(e){}
+      videoEl.playbackRate=2;             // 2倍速でさがす
+      videoEl.currentTime=0;
+      var pl=videoEl.play();
+      if(pl && pl.catch) pl.catch(function(){ finish(null); });
+      setTimeout(function(){ finish(null); }, 90000);  // 念のための時間切れ
+    });
+  }
+  // 見つかったあとの共通処理
+  function applyFoundStart(res){
+    $('rtModal').classList.add('hide');
+    if(mode!=='time') setMode('time');
+    selDist='RT'; rtStep=1; updateAim(); buildScale();
+    if(!videoEl.paused) videoEl.pause();
+    var t=res.onset;
+    if(videoEl.duration && t>videoEl.duration) t=videoEl.duration;
+    videoEl.currentTime=t; lastFrameTime=t; paintClock();
+    toast('スタート音を見つけました（'+t.toFixed(2)+'秒）。よければ「ここを きろく」で ①を記録');
+  }
   $('rtSoundBtn').onclick=function(){
     if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
     if(!loadedVideoFile){ toast('動画をえらび直してから 試してね'); return; }
@@ -1019,17 +1094,18 @@
     findStartSound(loadedVideoFile).then(function(res){
       btn.disabled=false;
       if(!res){ toast('スタートの音が 見つかりませんでした。コマ送りで合わせてね'); return; }
-      $('rtModal').classList.add('hide');
-      if(mode!=='time') setMode('time');
-      selDist='RT'; rtStep=1; updateAim(); buildScale();
-      if(!videoEl.paused) videoEl.pause();
-      var t=res.onset;
-      if(videoEl.duration && t>videoEl.duration) t=videoEl.duration;
-      videoEl.currentTime=t; lastFrameTime=t; paintClock();
-      toast('スタート音を見つけました（'+t.toFixed(2)+'秒）。よければ「ここを きろく」で ①を記録');
-    }).catch(function(err){
-      btn.disabled=false;
-      toast('音を調べられませんでした： '+err.message);
+      applyFoundStart(res);
+    }).catch(function(){
+      // iPhoneに音の取り出しを断られた → 早送り再生で聞き取る方式に自動で切り替え
+      toast('聞き取りモードに切りかえます。動画を早送りしながら さがします…');
+      liveFindStartSound().then(function(res){
+        btn.disabled=false;
+        if(!res){ toast('スタートの音が 見つかりませんでした。コマ送りで合わせてね'); return; }
+        applyFoundStart(res);
+      }).catch(function(err2){
+        btn.disabled=false;
+        toast('音を調べられませんでした： '+err2.message);
+      });
     });
   };
 

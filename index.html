@@ -583,7 +583,7 @@
     <h2>R.T（リアクションタイム）</h2>
     <p class="note">合図から 足が台をはなれるまでの時間です。はかり方を えらんでください。①の合図は ピストルの「光」で合わせると せいかくです。音は 会場が広いと おくれて届きます。</p>
     <button id="rtMeasureBtn">🎬 動画で はかる<span class="rt-sub">①合図 → ②足ばなれ の 2回 ボタンをおす</span></button>
-    <button id="rtSoundBtn">🔊 音から合図をさがす<span class="rt-sub">スタート音を見つけて その瞬間に自動で合わせる</span></button>
+    <button id="rtSoundBtn">🔊 音から合図をさがす<span class="rt-sub">スタート直前まで進めてからおすと せいかく</span></button>
     <button id="rtNumBtn">🔢 数字で 入れる<span class="rt-sub">タイムが わかっているとき（例 0.65）</span></button>
     <div class="stroke-btns"><button id="rtClose">とじる</button></div>
   </div>
@@ -943,9 +943,10 @@
   var loadedVideoFile=null;  // いま開いている動画ファイル（音の分析用）
 
   // ========== 音からスタート合図をさがす ==========
-  // やっていること：動画の音を取り出し、スタート音の高さ（1.4kHz付近）だけを通す
-  // ふるいにかけて、いちばん強く鳴った瞬間の立ち上がりを見つける。
-  function findStartSound(file){
+  // ルール：テイクユアマーク等の掛け声のあと、会場は一瞬しずかになる。
+  // その「しずかな時間のあとに急に鳴る大きな音」（ホイッスル・ピストル・電子音）を合図とみなす。
+  // いま見ている場面から先だけをさがす（笛など、前half のまぎらわしい音を拾わないため）。
+  function findStartSound(file, startAt){
     return new Promise(function(resolve, reject){
       var fr=new FileReader();
       fr.onerror=function(){ reject(new Error('ファイルを読めません')); };
@@ -956,53 +957,64 @@
         ctx.decodeAudioData(fr.result, function(buf){
           try{
             var sr=buf.sampleRate;
-            // 長い動画は最初の120秒だけ調べる（スタートはふつう前半にある）
-            var n=Math.min(buf.length, sr*120);
+            var s0=Math.max(0, Math.floor((startAt||0)*sr));
+            var n=Math.min(buf.length, s0+Math.floor(sr*90));  // いまの場面から90秒ぶん
+            if(n-s0 < sr*2){ resolve(null); return; }
             // 全チャンネルをまぜてモノラルに
-            var x=new Float32Array(n);
+            var x=new Float32Array(n-s0);
             for(var c=0;c<buf.numberOfChannels;c++){
               var ch=buf.getChannelData(c);
-              for(var i=0;i<n;i++) x[i]+=ch[i]/buf.numberOfChannels;
+              for(var i=s0;i<n;i++) x[i-s0]+=ch[i]/buf.numberOfChannels;
             }
-            // 1.4kHz付近だけ通すふるい（2回かけて切れ味を上げる）
-            function bandpass(sig, f0, Q){
-              var w0=2*Math.PI*f0/sr, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
-              var b0=al/(1+al), b2=-al/(1+al), a1=-2*cs/(1+al), a2=(1-al)/(1+al);
-              var y=new Float32Array(sig.length);
+            // 低いゴロゴロ音を取りのぞく（300Hzより上だけ通す）
+            (function(){
+              var w0=2*Math.PI*300/sr, Q=0.707, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
+              var a0=1+al;
+              var b0=(1+cs)/2/a0, b1=-(1+cs)/a0, b2=(1+cs)/2/a0, a1=-2*cs/a0, a2=(1-al)/a0;
               var x1=0,x2=0,y1=0,y2=0;
-              for(var i=0;i<sig.length;i++){
-                var v=b0*sig[i]+b2*x2-a1*y1-a2*y2;
-                x2=x1; x1=sig[i]; y2=y1; y1=v; y[i]=v;
+              for(var i=0;i<x.length;i++){
+                var v=b0*x[i]+b1*x1+b2*x2-a1*y1-a2*y2;
+                x2=x1; x1=x[i]; y2=y1; y1=v; x[i]=v;
               }
-              return y;
+            })();
+            // 10ミリ秒ごとの音の強さ
+            var step=Math.round(sr*0.01);
+            var m=Math.floor(x.length/step);
+            var env=new Float32Array(m);
+            for(var i=0;i<m;i++){
+              var s=0;
+              for(var j=i*step;j<(i+1)*step;j++) s+=Math.abs(x[j]);
+              env[i]=s/step;
             }
-            var y=bandpass(bandpass(x,1400,7),1400,7);
-            // 音の強さの動き（5ミリ秒のなめらか化）
-            var k=Math.max(1,Math.round(sr*0.005));
-            var env=new Float32Array(y.length);
-            var sum=0;
-            for(var i=0;i<y.length;i++){
-              sum+=Math.abs(y[i]);
-              if(i>=k) sum-=Math.abs(y[i-k]);
-              env[i]=sum/k;
+            // ふだんの強さ（中央値）
+            var sorted=Array.prototype.slice.call(env).sort(function(a,b){return a-b;});
+            var med=sorted[Math.floor(sorted.length/2)]+1e-9;
+            // 「直前1.5秒がしずか」で「急に大きく鳴った」場所をさがす
+            var W=150;  // 1.5秒ぶん（10ms単位）
+            var best=null;
+            for(var i=W;i<m;i++){
+              var before=0;
+              for(var j=i-W;j<i-5;j++) before+=env[j];
+              before=before/(W-5)+1e-9;
+              if(before > med*1.5) continue;       // 直前がしずかでない → 合図ではない
+              if(env[i] < med*4) continue;         // 大きな音でない
+              var jump=env[i]/before;
+              if(!best || jump>best.jump){ best={i:i, jump:jump}; }
             }
-            // いちばん強い瞬間と、ふだんの強さ（中央値のかわりに間引き平均）
-            var peak=0, pi=0;
-            for(var i=0;i<env.length;i++){ if(env[i]>peak){ peak=env[i]; pi=i; } }
-            var samp=[];
-            for(var i=0;i<env.length;i+=Math.round(sr*0.05)) samp.push(env[i]);
-            samp.sort(function(a,b){return a-b;});
-            var base=samp[Math.floor(samp.length/2)]+1e-9;
-            if(peak/base < 6){ resolve(null); return; }  // 目立つ音がない＝見つからず
-            // 立ち上がり：ピークの0.4秒前から、1割をこえた最初の場所
-            var s0=Math.max(0, pi-Math.round(sr*0.4));
-            var localBase=0, cnt=0;
-            for(var i=s0;i<Math.min(s0+Math.round(sr*0.05),env.length);i++){ localBase+=env[i]; cnt++; }
-            localBase=localBase/Math.max(1,cnt);
-            var th=localBase+(peak-localBase)*0.1;
-            var onset=pi;
-            for(var i=s0;i<=pi;i++){ if(env[i]>th){ onset=i; break; } }
-            resolve({ onset: onset/sr, strength: peak/base });
+            if(!best || best.jump<4){ resolve(null); return; }
+            // 立ち上がりを1ミリ秒単位で細かく
+            var i0=best.i*step;
+            var back=Math.max(0, i0-Math.round(sr*0.05));
+            var fine=Math.round(sr*0.001);
+            var peakAbs=0;
+            for(var j=i0;j<Math.min(x.length,i0+step*3);j++) peakAbs=Math.max(peakAbs,Math.abs(x[j]));
+            var onset=i0;
+            for(var j=back;j<i0+step*3;j+=fine){
+              var s=0;
+              for(var k=j;k<Math.min(x.length,j+fine);k++) s=Math.max(s,Math.abs(x[k]));
+              if(s>peakAbs*0.25){ onset=j; break; }
+            }
+            resolve({ onset: (s0+onset)/sr, strength: best.jump });
           }catch(err){ reject(err); }
           finally{ if(ctx.close) ctx.close(); }
         }, function(){ reject(new Error('この動画の音を読み取れませんでした')); });
@@ -1011,8 +1023,8 @@
     });
   }
   // 方法2：再生しながら聞き取る（iPhoneで音の取り出しを断られたときの逃げ道）
-  // 音を消した早送り再生をしながら、1.4kHzのふるいを通した音が
-  // ふだんの8倍をこえて跳ねた瞬間を、スタート音として拾う。
+  // 同じルールで、いまの場面から先を早送り再生しながら、
+  // 「直前がしずか」で「急に大きく鳴った」瞬間を待ちかまえる。
   var sndCtx=null, sndSrc=null, sndGain=null;
   function liveFindStartSound(){
     return new Promise(function(resolve, reject){
@@ -1027,12 +1039,16 @@
       if(sndCtx.state==='suspended') sndCtx.resume();
       var sr=sndCtx.sampleRate;
       var proc=sndCtx.createScriptProcessor(1024,1,1);
-      // 1.4kHzのふるい（2段）
-      var w0=2*Math.PI*1400/sr, Q=7, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
-      var b0=al/(1+al), b2=-al/(1+al), a1=-2*cs/(1+al), a2=(1-al)/(1+al);
-      var x1=0,x2=0,y1=0,y2=0, p1=0,p2=0,q1=0,q2=0;
-      var baseline=0.001, warm=0, done=false;
+      // 低いゴロゴロ音を取りのぞく（300Hzより上だけ通す）
+      var w0=2*Math.PI*300/sr, Q=0.707, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
+      var a0=1+al;
+      var b0=(1+cs)/2/a0, b1=-(1+cs)/a0, b2h=(1+cs)/2/a0, a1=-2*cs/a0, a2=(1-al)/a0;
+      var x1=0,x2=0,y1=0,y2=0;
+      var base=0.001;   // 直前1.5秒くらいの強さ
+      var longAvg=0.001; // ふだんの強さ（ゆっくり追いかける）
+      var warm=0, done=false;
       var origT=videoEl.currentTime, origRate=videoEl.playbackRate, origMuted=videoEl.muted;
+      var scanFrom=videoEl.currentTime;
       function finish(t){
         if(done) return; done=true;
         try{ proc.disconnect(); sndSrc.disconnect(proc); }catch(e){}
@@ -1048,18 +1064,19 @@
         var inp=ev.inputBuffer.getChannelData(0);
         var e=0;
         for(var i=0;i<inp.length;i++){
-          var v=b0*inp[i]+b2*x2-a1*y1-a2*y2; x2=x1; x1=inp[i]; y2=y1; y1=v;
-          var u=b0*v+b2*p2-a1*q1-a2*q2; p2=p1; p1=v; q2=q1; q1=u;
-          e+=Math.abs(u);
+          var v=b0*inp[i]+b1*x1+b2h*x2-a1*y1-a2*y2;
+          x2=x1; x1=inp[i]; y2=y1; y1=v;
+          e+=Math.abs(v);
         }
         e/=inp.length; warm++;
-        if(warm>20 && e>baseline*8 && e>0.002){
-          // 聞き取りの遅れぶんを少し引いて確定
+        // 直前がしずか（ふだんの1.5倍みまん）＋ 急に大きく（直前の8倍・ふだんの4倍）
+        if(warm>40 && base<longAvg*1.5 && e>base*8 && e>longAvg*4 && e>0.002){
           finish(videoEl.currentTime - (inp.length/sr)*videoEl.playbackRate);
           return;
         }
-        baseline=baseline*0.995+e*0.005;
-        if((videoEl.duration && videoEl.currentTime>=Math.min(videoEl.duration,120)) || videoEl.ended){
+        base=base*0.986+e*0.014;        // 約1.5秒のものさし
+        longAvg=longAvg*0.998+e*0.002;  // 約10秒のものさし
+        if((videoEl.duration && videoEl.currentTime>=Math.min(videoEl.duration, scanFrom+90)) || videoEl.ended){
           finish(null);
         }
       };
@@ -1068,8 +1085,7 @@
       videoEl.muted=false;                // ただし中身の音はふるいに流す
       try{ videoEl.preservesPitch=true; videoEl.webkitPreservesPitch=true; }catch(e){}
       videoEl.playbackRate=2;             // 2倍速でさがす
-      videoEl.currentTime=0;
-      var pl=videoEl.play();
+      var pl=videoEl.play();              // いまの場面からそのまま先へ
       if(pl && pl.catch) pl.catch(function(){ finish(null); });
       setTimeout(function(){ finish(null); }, 90000);  // 念のための時間切れ
     });
@@ -1090,14 +1106,18 @@
     if(!loadedVideoFile){ toast('動画をえらび直してから 試してね'); return; }
     var btn=this;
     btn.disabled=true;
-    toast('音を しらべています…（数秒かかります）');
-    findStartSound(loadedVideoFile).then(function(res){
+    $('rtModal').classList.add('hide');
+    // シャッチーくんの操作アドバイス
+    shacchiSay('スタート直前の姿勢まで 動画を進めてから さがすと、笛とまちがえにくいッチー。いまの場面から先を さがすッチー！');
+    toast('いまの場面から先の音を しらべています…');
+    var startAt=Math.max(0, videoEl.currentTime-1);
+    findStartSound(loadedVideoFile, startAt).then(function(res){
       btn.disabled=false;
       if(!res){ toast('スタートの音が 見つかりませんでした。コマ送りで合わせてね'); return; }
       applyFoundStart(res);
     }).catch(function(){
       // iPhoneに音の取り出しを断られた → 早送り再生で聞き取る方式に自動で切り替え
-      toast('聞き取りモードに切りかえます。動画を早送りしながら さがします…');
+      toast('聞き取りモードに切りかえます。いまの場面から早送りで さがします…');
       liveFindStartSound().then(function(res){
         btn.disabled=false;
         if(!res){ toast('スタートの音が 見つかりませんでした。コマ送りで合わせてね'); return; }
@@ -1914,6 +1934,15 @@
     $('guide').classList.remove('hide');
   }
   function hideGuide(){ $('guide').classList.add('hide'); }
+  // シャッチーくんが一言だけしゃべる（数秒で消える）
+  function shacchiSay(text, ms){
+    $('gMode').style.display = guideMode ? '' : 'none';
+    showGuide(text);
+    clearTimeout(shacchiSay._t);
+    if(!guideMode){
+      shacchiSay._t=setTimeout(function(){ if(!guideMode) hideGuide(); }, ms||8000);
+    }
+  }
   function setGuideMode(on){
     guideMode=on;
     app.classList.toggle('guidemode', on);

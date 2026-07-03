@@ -354,14 +354,14 @@
   #rtModal, #padModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #rtModal.hide, #padModal.hide{ display:none; }
-  #rtMeasureBtn, #rtNumBtn{ display:flex; flex-direction:column; align-items:center; gap:3px; width:100%;
+  #rtMeasureBtn, #rtNumBtn, #rtSoundBtn{ display:flex; flex-direction:column; align-items:center; gap:3px; width:100%;
     padding:16px 10px; margin-bottom:14px; cursor:pointer;
     border:2px solid var(--line); border-radius:14px;
     background:linear-gradient(135deg,rgba(56,189,248,.5),rgba(14,165,233,.4));
     color:#fff; font-size:18px; font-weight:900; text-shadow:var(--shadow);
     box-shadow:0 4px 0 rgba(0,0,0,.18); }
-  #rtMeasureBtn:active, #rtNumBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.18); }
-  #rtMeasureBtn .rt-sub, #rtNumBtn .rt-sub{ font-size:12px; font-weight:700; opacity:.9; }
+  #rtMeasureBtn:active, #rtNumBtn:active, #rtSoundBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.18); }
+  #rtMeasureBtn .rt-sub, #rtNumBtn .rt-sub, #rtSoundBtn .rt-sub{ font-size:12px; font-weight:700; opacity:.9; }
   /* 一覧のタイムは押せる（正式タイムの入力）。正式タイムは黄色で出す */
   #recList .rec .t{ cursor:pointer; }
   #recList .rec .t.toff{ color:var(--yellow); }
@@ -581,8 +581,9 @@
 <div id="rtModal" class="hide">
   <div class="modal-card">
     <h2>R.T（リアクションタイム）</h2>
-    <p class="note">合図から 足が台をはなれるまでの時間です。はかり方を えらんでください。</p>
+    <p class="note">合図から 足が台をはなれるまでの時間です。はかり方を えらんでください。①の合図は ピストルの「光」で合わせると せいかくです。音は 会場が広いと おくれて届きます。</p>
     <button id="rtMeasureBtn">🎬 動画で はかる<span class="rt-sub">①合図 → ②足ばなれ の 2回 ボタンをおす</span></button>
+    <button id="rtSoundBtn">🔊 音から合図をさがす<span class="rt-sub">スタート音を見つけて その瞬間に自動で合わせる</span></button>
     <button id="rtNumBtn">🔢 数字で 入れる<span class="rt-sub">タイムが わかっているとき（例 0.65）</span></button>
     <div class="stroke-btns"><button id="rtClose">とじる</button></div>
   </div>
@@ -939,6 +940,99 @@
     updateAim(); buildScale();
     toast('①合図の瞬間に 動画を合わせて「ここを きろく」');
   };
+  var loadedVideoFile=null;  // いま開いている動画ファイル（音の分析用）
+
+  // ========== 音からスタート合図をさがす ==========
+  // やっていること：動画の音を取り出し、スタート音の高さ（1.4kHz付近）だけを通す
+  // ふるいにかけて、いちばん強く鳴った瞬間の立ち上がりを見つける。
+  function findStartSound(file){
+    return new Promise(function(resolve, reject){
+      var fr=new FileReader();
+      fr.onerror=function(){ reject(new Error('ファイルを読めません')); };
+      fr.onload=function(){
+        var AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC){ reject(new Error('この端末では音の分析ができません')); return; }
+        var ctx=new AC();
+        ctx.decodeAudioData(fr.result, function(buf){
+          try{
+            var sr=buf.sampleRate;
+            // 長い動画は最初の120秒だけ調べる（スタートはふつう前半にある）
+            var n=Math.min(buf.length, sr*120);
+            // 全チャンネルをまぜてモノラルに
+            var x=new Float32Array(n);
+            for(var c=0;c<buf.numberOfChannels;c++){
+              var ch=buf.getChannelData(c);
+              for(var i=0;i<n;i++) x[i]+=ch[i]/buf.numberOfChannels;
+            }
+            // 1.4kHz付近だけ通すふるい（2回かけて切れ味を上げる）
+            function bandpass(sig, f0, Q){
+              var w0=2*Math.PI*f0/sr, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
+              var b0=al/(1+al), b2=-al/(1+al), a1=-2*cs/(1+al), a2=(1-al)/(1+al);
+              var y=new Float32Array(sig.length);
+              var x1=0,x2=0,y1=0,y2=0;
+              for(var i=0;i<sig.length;i++){
+                var v=b0*sig[i]+b2*x2-a1*y1-a2*y2;
+                x2=x1; x1=sig[i]; y2=y1; y1=v; y[i]=v;
+              }
+              return y;
+            }
+            var y=bandpass(bandpass(x,1400,7),1400,7);
+            // 音の強さの動き（5ミリ秒のなめらか化）
+            var k=Math.max(1,Math.round(sr*0.005));
+            var env=new Float32Array(y.length);
+            var sum=0;
+            for(var i=0;i<y.length;i++){
+              sum+=Math.abs(y[i]);
+              if(i>=k) sum-=Math.abs(y[i-k]);
+              env[i]=sum/k;
+            }
+            // いちばん強い瞬間と、ふだんの強さ（中央値のかわりに間引き平均）
+            var peak=0, pi=0;
+            for(var i=0;i<env.length;i++){ if(env[i]>peak){ peak=env[i]; pi=i; } }
+            var samp=[];
+            for(var i=0;i<env.length;i+=Math.round(sr*0.05)) samp.push(env[i]);
+            samp.sort(function(a,b){return a-b;});
+            var base=samp[Math.floor(samp.length/2)]+1e-9;
+            if(peak/base < 6){ resolve(null); return; }  // 目立つ音がない＝見つからず
+            // 立ち上がり：ピークの0.4秒前から、1割をこえた最初の場所
+            var s0=Math.max(0, pi-Math.round(sr*0.4));
+            var localBase=0, cnt=0;
+            for(var i=s0;i<Math.min(s0+Math.round(sr*0.05),env.length);i++){ localBase+=env[i]; cnt++; }
+            localBase=localBase/Math.max(1,cnt);
+            var th=localBase+(peak-localBase)*0.1;
+            var onset=pi;
+            for(var i=s0;i<=pi;i++){ if(env[i]>th){ onset=i; break; } }
+            resolve({ onset: onset/sr, strength: peak/base });
+          }catch(err){ reject(err); }
+          finally{ if(ctx.close) ctx.close(); }
+        }, function(){ reject(new Error('この動画の音を読み取れませんでした')); });
+      };
+      fr.readAsArrayBuffer(file);
+    });
+  }
+  $('rtSoundBtn').onclick=function(){
+    if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
+    if(!loadedVideoFile){ toast('動画をえらび直してから 試してね'); return; }
+    var btn=this;
+    btn.disabled=true;
+    toast('音を しらべています…（数秒かかります）');
+    findStartSound(loadedVideoFile).then(function(res){
+      btn.disabled=false;
+      if(!res){ toast('スタートの音が 見つかりませんでした。コマ送りで合わせてね'); return; }
+      $('rtModal').classList.add('hide');
+      if(mode!=='time') setMode('time');
+      selDist='RT'; rtStep=1; updateAim(); buildScale();
+      if(!videoEl.paused) videoEl.pause();
+      var t=res.onset;
+      if(videoEl.duration && t>videoEl.duration) t=videoEl.duration;
+      videoEl.currentTime=t; lastFrameTime=t; paintClock();
+      toast('スタート音を見つけました（'+t.toFixed(2)+'秒）。よければ「ここを きろく」で ①を記録');
+    }).catch(function(err){
+      btn.disabled=false;
+      toast('音を調べられませんでした： '+err.message);
+    });
+  };
+
   // やり方2：数字で入れる（キーパッドで打ち込む）
   $('rtNumBtn').onclick=function(){
     $('rtModal').classList.add('hide');
@@ -1649,6 +1743,7 @@
   $('videoFile').addEventListener('change', function(e){
     var f=e.target.files && e.target.files[0];
     if(!f) return;
+    loadedVideoFile=f;   // 音の分析（スタート音さがし）に使う
     ready=false; lastFrameTime=0; startTime=null; FPS=60; fpsDetected=false;
     videoEl.src=URL.createObjectURL(f); videoEl.load();
     app.classList.add('hasvideo');
@@ -1712,7 +1807,7 @@
     ['#tm3','入水を4回おして、3かき分の時間からテンポを出すはかり方だチー。'],
     ['#tmEach','入水のたびにおして、さいごに確定ボタンでしめくくるはかり方だチー。かき数もかぞえられるチー。'],
     ['#lapBtn','いちばん大事なボタンだチー。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするチー。'],
-    ['#rtChip','スタートの反応時間をあつかうチー。動画ではかるか、数字で入れるかえらべるチー。'],
+    ['#rtChip','スタートの反応時間をあつかうチー。せいかくに はかるコツは二つあるチー。一つは、ピストルの光が光ったら、①をおすっチー。もう一つは、ピストルの音が鳴ったら、①をおすっチー。だけど、会場が広いと、音はおそく届くっチー。だから光で合わせるのが おすすめだチー。'],
     ['#strokeChip','50mごとのかき数をとうろくするチー。あとから直せるチー。'],
     ['#tempoFinish','1つずつはかったテンポをここでしめくくるチー。'],
     ['#b100','100コマ大きくもどるチー。'],

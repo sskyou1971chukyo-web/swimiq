@@ -1,6 +1,6 @@
 // SwimIQ サービスワーカー
 // 中身を更新したら、この番号を上げること（v18 → v19 → ...）
-var CACHE = 'swim-app-v27';
+var CACHE = 'swim-app-v28';
 var FILES = [
   './',
   './index.html',

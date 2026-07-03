@@ -962,71 +962,218 @@
     }
     return y;
   }
+  // MOV/MP4の箱をあけて、中のAAC音声をiPhoneが読める形（ADTS）で取り出す。
+  // iPhoneは動画の箱ごとだと音の取り出しを断るが、音データ単体なら読めるため。
+  // 戻り値：{ adts: 音データ, skew: 頭の余りの秒数 } か null
+  function extractAacFromMp4(ab){
+    var dv=new DataView(ab);
+    var u8=new Uint8Array(ab);
+    function rd32(o){ return dv.getUint32(o); }
+    function btype(o){ return String.fromCharCode(u8[o+4],u8[o+5],u8[o+6],u8[o+7]); }
+    function boxes(start,end,cb){
+      var o=start;
+      while(o+8<=end){
+        var sz=rd32(o), t=btype(o), hdr=8;
+        if(sz===1){ sz=rd32(o+8)*4294967296+rd32(o+12); hdr=16; }
+        else if(sz===0){ sz=end-o; }
+        if(sz<hdr) break;
+        cb(t,o+hdr,o+sz); o+=sz;
+      }
+    }
+    var res=null;
+    boxes(0,ab.byteLength,function(t,s,e){
+      if(t!=='moov'||res) return;
+      boxes(s,e,function(t2,s2,e2){
+        if(t2!=='trak'||res) return;
+        var isAudio=false, stblR=null, mediaTs=0, editSkip=0;
+        boxes(s2,e2,function(t3,s3,e3){
+          if(t3==='edts'){
+            boxes(s3,e3,function(t4,s4,e4){
+              if(t4==='elst' && rd32(s4+4)>0){
+                var ver=u8[s4];
+                var mt=(ver===1)? (rd32(s4+8+8)*4294967296+rd32(s4+8+12)) : rd32(s4+8+4);
+                if(mt>0 && mt<0xFFFFFFFF) editSkip=mt;
+              }
+            });
+          }
+          if(t3!=='mdia') return;
+          boxes(s3,e3,function(t4,s4,e4){
+            if(t4==='mdhd'){
+              var ver=u8[s4];
+              mediaTs=(ver===1)? rd32(s4+20) : rd32(s4+12);
+            }
+            if(t4==='hdlr'){
+              var h=String.fromCharCode(u8[s4+8],u8[s4+9],u8[s4+10],u8[s4+11]);
+              if(h==='soun') isAudio=true;
+            }
+            if(t4==='minf'){
+              boxes(s4,e4,function(t5,s5,e5){ if(t5==='stbl') stblR=[s5,e5]; });
+            }
+          });
+        });
+        if(!isAudio||!stblR) return;
+        var stsd=null,stsz=null,stsc=null,stco=null,co64=null;
+        boxes(stblR[0],stblR[1],function(t5,s5,e5){
+          if(t5==='stsd') stsd=[s5,e5];
+          if(t5==='stsz') stsz=[s5,e5];
+          if(t5==='stsc') stsc=[s5,e5];
+          if(t5==='stco') stco=[s5,e5];
+          if(t5==='co64') co64=[s5,e5];
+        });
+        if(!stsd||!stsz||!stsc||(!stco&&!co64)) return;
+        var es=stsd[0]+8;
+        if(btype(es)!=='mp4a') return;   // AAC以外の音声トラックはとばす
+        var mp=es+8;
+        var ver2=dv.getUint16(mp+8);
+        var channels=dv.getUint16(mp+16);
+        var srate=dv.getUint32(mp+22)>>>16;
+        var esdsFrom=mp+28+(ver2===1?16:(ver2===2?36:0));
+        var aot=2, freqIdx=null, chCfg=channels;
+        boxes(esdsFrom, es+rd32(es), function(t6,s6,e6){
+          if(t6!=='esds') return;
+          var o=s6+4;
+          function dlen(){ var l=0,b; do{ b=u8[o++]; l=(l<<7)|(b&0x7f); }while(b&0x80); return l; }
+          while(o<e6){
+            var tag=u8[o++]; var len=dlen();
+            if(tag===3){ o+=3; continue; }
+            if(tag===4){ o+=13; continue; }
+            if(tag===5){
+              var b0=u8[o], b1=u8[o+1];
+              aot=(b0>>3)&31;
+              freqIdx=((b0&7)<<1)|(b1>>7);
+              chCfg=(b1>>3)&15;
+              break;
+            }
+            o+=len;
+          }
+        });
+        var rates=[96000,88200,64000,48000,44100,32000,24000,22050,16000,12000,11025,8000,7350];
+        if(mediaTs && rates.indexOf(mediaTs)>=0){ freqIdx=rates.indexOf(mediaTs); }
+        else if(freqIdx===null){ freqIdx=rates.indexOf(srate); if(freqIdx<0) freqIdx=4; }
+        var szo=stsz[0];
+        var fixed=rd32(szo+4), cnt=rd32(szo+8);
+        function sampleSize(i){ return fixed||rd32(szo+12+i*4); }
+        var co=stco||co64, big=!!co64;
+        var chCount=rd32(co[0]+4);
+        function chunkOff(i){
+          return big ? (rd32(co[0]+8+i*8)*4294967296+rd32(co[0]+12+i*8)) : rd32(co[0]+8+i*4);
+        }
+        var scn=rd32(stsc[0]+4);
+        var stscE=[];
+        for(var i=0;i<scn;i++) stscE.push([rd32(stsc[0]+8+i*12), rd32(stsc[0]+12+i*12)]);
+        var total=0;
+        for(var i=0;i<cnt;i++) total+=sampleSize(i)+7;
+        var out=new Uint8Array(total);
+        var op=0, si=0;
+        for(var ci=0; ci<chCount && si<cnt; ci++){
+          var spc=stscE[0][1];
+          for(var k=stscE.length-1;k>=0;k--){ if(ci+1>=stscE[k][0]){ spc=stscE[k][1]; break; } }
+          var off=chunkOff(ci);
+          for(var s2i=0; s2i<spc && si<cnt; s2i++){
+            var sz=sampleSize(si);
+            var flen=sz+7;
+            out[op]=0xFF; out[op+1]=0xF1;
+            out[op+2]=((aot-1)<<6)|(freqIdx<<2)|(chCfg>>2);
+            out[op+3]=((chCfg&3)<<6)|((flen>>11)&3);
+            out[op+4]=(flen>>3)&255;
+            out[op+5]=((flen&7)<<5)|0x1F;
+            out[op+6]=0xFC;
+            out.set(u8.subarray(off,off+sz), op+7);
+            op+=flen; off+=sz; si++;
+          }
+        }
+        if(op>0) res={ adts: out.slice(0,op), skew: (mediaTs? editSkip/mediaTs : 0) };
+      });
+    });
+    return res;
+  }
+  try{ window.__swimiqDbg={ extractAac: extractAacFromMp4 }; }catch(e){}
   function findStartSound(file, startAt){
+    // 音のかたまり（AudioBuffer）を受け取って、合図の場所をさがす共通部分
+    function analyzeBuffer(buf, fromSec){
+      var sr=buf.sampleRate;
+      var s0=Math.max(0, Math.floor((fromSec||0)*sr));
+      var n=Math.min(buf.length, s0+Math.floor(sr*90));
+      if(n-s0 < sr*2) return null;
+      var x=new Float32Array(n-s0);
+      for(var c=0;c<buf.numberOfChannels;c++){
+        var ch=buf.getChannelData(c);
+        for(var i=s0;i<n;i++) x[i-s0]+=ch[i]/buf.numberOfChannels;
+      }
+      var hp=runBiquad(x, makeBiquad('hp',300,0.707,sr));
+      var band1=runBiquad(hp, makeBiquad('bp',1581,1.05,sr));
+      var band2=runBiquad(hp, makeBiquad('bp',3162,2.1,sr));
+      var step=Math.round(sr*0.01);
+      var m=Math.floor(hp.length/step);
+      function env(sig){
+        var e=new Float32Array(m);
+        for(var i=0;i<m;i++){
+          var s=0;
+          for(var j=i*step;j<(i+1)*step;j++) s+=Math.abs(sig[j]);
+          e[i]=s/step;
+        }
+        return e;
+      }
+      function median(e){
+        var a=Array.prototype.slice.call(e).sort(function(p,q){return p-q;});
+        return a[Math.floor(a.length/2)]+1e-9;
+      }
+      var envs=[env(hp), env(band1), env(band2)];
+      var meds=[median(envs[0]), median(envs[1]), median(envs[2])];
+      var W=150, best=null;
+      for(var i=W;i<m;i++){
+        var beforeB=0;
+        for(var j=i-W;j<i-5;j++) beforeB+=envs[0][j];
+        beforeB=beforeB/(W-5)+1e-9;
+        if(beforeB > meds[0]*1.5) continue;   // 直前がしずかでない
+        for(var k=0;k<3;k++){
+          if(envs[k][i] < meds[k]*3) continue;
+          var before=0;
+          for(var j=i-W;j<i-5;j++) before+=envs[k][j];
+          before=before/(W-5)+1e-9;
+          var jump=envs[k][i]/before;
+          if(jump>=4 && (!best || jump>best.jump)) best={i:i, jump:jump, k:k, before:before};
+        }
+      }
+      if(!best) return null;
+      // 鳴り始めの瞬間まで少し巻き戻す（跳ねの最大点は少し遅れるため）
+      var oi=best.i;
+      for(var j2=Math.max(0,best.i-30); j2<=best.i; j2++){
+        if(envs[best.k][j2] > best.before*2.5){ oi=j2; break; }
+      }
+      return { onset:(s0+oi*step)/sr, strength:best.jump };
+    }
     return new Promise(function(resolve, reject){
       var fr=new FileReader();
       fr.onerror=function(){ reject(new Error('ファイルを読めません')); };
       fr.onload=function(){
         var AC=window.AudioContext||window.webkitAudioContext;
         if(!AC){ reject(new Error('この端末では音の分析ができません')); return; }
-        var ctx=new AC();
-        ctx.decodeAudioData(fr.result, function(buf){
-          try{
-            var sr=buf.sampleRate;
-            var s0=Math.max(0, Math.floor((startAt||0)*sr));
-            var n=Math.min(buf.length, s0+Math.floor(sr*90));
-            if(n-s0 < sr*2){ resolve(null); return; }
-            var x=new Float32Array(n-s0);
-            for(var c=0;c<buf.numberOfChannels;c++){
-              var ch=buf.getChannelData(c);
-              for(var i=s0;i<n;i++) x[i-s0]+=ch[i]/buf.numberOfChannels;
-            }
-            // 3つの見方：全体(300Hz以上)・合図の帯・笛の帯
-            var hp=runBiquad(x, makeBiquad('hp',300,0.707,sr));
-            var band1=runBiquad(hp, makeBiquad('bp',1581,1.05,sr));
-            var band2=runBiquad(hp, makeBiquad('bp',3162,2.1,sr));
-            var step=Math.round(sr*0.01);
-            var m=Math.floor(hp.length/step);
-            function env(sig){
-              var e=new Float32Array(m);
-              for(var i=0;i<m;i++){
-                var s=0;
-                for(var j=i*step;j<(i+1)*step;j++) s+=Math.abs(sig[j]);
-                e[i]=s/step;
-              }
-              return e;
-            }
-            function median(e){
-              var a=Array.prototype.slice.call(e).sort(function(p,q){return p-q;});
-              return a[Math.floor(a.length/2)]+1e-9;
-            }
-            var envs=[env(hp), env(band1), env(band2)];
-            var meds=[median(envs[0]), median(envs[1]), median(envs[2])];
-            var W=150, best=null;
-            for(var i=W;i<m;i++){
-              var beforeB=0;
-              for(var j=i-W;j<i-5;j++) beforeB+=envs[0][j];
-              beforeB=beforeB/(W-5)+1e-9;
-              if(beforeB > meds[0]*1.5) continue;   // 直前がしずかでない
-              for(var k=0;k<3;k++){
-                if(envs[k][i] < meds[k]*3) continue;
-                var before=0;
-                for(var j=i-W;j<i-5;j++) before+=envs[k][j];
-                before=before/(W-5)+1e-9;
-                var jump=envs[k][i]/before;
-                if(jump>=4 && (!best || jump>best.jump)) best={i:i, jump:jump, k:k, before:before};
-              }
-            }
-            if(!best){ resolve(null); return; }
-            // 鳴り始めの瞬間まで少し巻き戻す（跳ねの最大点は少し遅れるため）
-            var oi=best.i;
-            for(var j=Math.max(0,best.i-30); j<=best.i; j++){
-              if(envs[best.k][j] > best.before*2.5){ oi=j; break; }
-            }
-            resolve({ onset: (s0+oi*step)/sr, strength: best.jump });
-          }catch(err){ reject(err); }
-          finally{ if(ctx.close) ctx.close(); }
-        }, function(){ reject(new Error('この動画の音を読み取れませんでした')); });
+        var raw=fr.result;
+        function tryDecode(buffer, fromSec, skew, onFail){
+          var ctx=new AC();
+          ctx.decodeAudioData(buffer, function(buf){
+            try{
+              var r=analyzeBuffer(buf, fromSec);
+              if(r) r.onset=Math.max(0, r.onset-skew);   // 頭の余りぶんを引く
+              resolve(r);
+            }catch(err){ reject(err); }
+            finally{ if(ctx.close) ctx.close(); }
+          }, function(){
+            if(ctx.close) ctx.close();
+            onFail();
+          });
+        }
+        // 1回目：動画ファイルをそのまま渡す
+        tryDecode(raw.slice(0), startAt, 0, function(){
+          // 2回目：箱をあけて、音のデータだけを渡す（iPhoneのMOV対策）
+          var ex=null;
+          try{ ex=extractAacFromMp4(raw); }catch(e){}
+          if(!ex){ reject(new Error('この動画の音を読み取れませんでした')); return; }
+          tryDecode(ex.adts.buffer.slice(0), (startAt||0)+ex.skew, ex.skew, function(){
+            reject(new Error('この動画の音を読み取れませんでした'));
+          });
+        });
       };
       fr.readAsArrayBuffer(file);
     });
@@ -1062,7 +1209,7 @@
       }
       var base=null, warm=0, pend=null, done=false, silentSum=0;
       var origT=videoEl.currentTime, origRate=videoEl.playbackRate, origMuted=videoEl.muted;
-      var scanFrom=Math.max(0, videoEl.currentTime-2);   // 2秒手前から慣らす
+      var scanFrom=Math.max(0, videoEl.currentTime-1);   // 1秒手前から慣らす
       function finish(t, msg){
         if(done) return; done=true;
         try{ proc.disconnect(); sndSrc.disconnect(proc); }catch(e){}
@@ -1119,6 +1266,18 @@
       videoEl.currentTime=scanFrom;
       var pl=videoEl.play();
       if(pl && pl.catch) pl.catch(function(){ finish(null,'再生の許可がもらえませんでした。もう一度おしてみてね'); });
+      // 外側の見張り役：音の処理係が動かなくても、必ず止まるようにする
+      var lastWarm=0, stuck=0;
+      var watch=setInterval(function(){
+        if(done){ clearInterval(watch); return; }
+        if((videoEl.duration && videoEl.currentTime>=Math.min(videoEl.duration, scanFrom+92)) || videoEl.ended){
+          clearInterval(watch); finish(null); return;
+        }
+        if(warm===lastWarm){
+          stuck++;
+          if(stuck>=5){ clearInterval(watch); finish(null,'iPhoneが音を渡してくれませんでした'); return; }
+        } else { stuck=0; lastWarm=warm; }
+      }, 500);
       setTimeout(function(){ finish(null); }, 90000);  // 念のための時間切れ
     });
   }

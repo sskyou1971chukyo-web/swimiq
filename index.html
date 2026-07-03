@@ -1105,12 +1105,27 @@
     if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
     if(!loadedVideoFile){ toast('動画をえらび直してから 試してね'); return; }
     var btn=this;
+    var startAt=Math.max(0, videoEl.currentTime-1);
+    // iPhone対策：音つきの再生は「ボタンを押した瞬間」しか許可されないので、
+    // この場で音の道具を起こし、一瞬だけ再生して許可をもらっておく。
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(AC && !sndCtx){
+        sndCtx=new AC();
+        sndSrc=sndCtx.createMediaElementSource(videoEl);
+        sndGain=sndCtx.createGain();
+        sndSrc.connect(sndGain); sndGain.connect(sndCtx.destination);
+      }
+      if(sndCtx && sndCtx.state==='suspended') sndCtx.resume();
+      videoEl.muted=false;
+      var perm=videoEl.play();
+      if(perm && perm.then){ perm.then(function(){ videoEl.pause(); videoEl.currentTime=startAt+1; }).catch(function(){}); }
+    }catch(e){}
     btn.disabled=true;
     $('rtModal').classList.add('hide');
     // シャッチーくんの操作アドバイス
     shacchiSay('スタート直前の姿勢まで 動画を進めてから さがすと、笛とまちがえにくいッチー。いまの場面から先を さがすッチー！');
     toast('いまの場面から先の音を しらべています…');
-    var startAt=Math.max(0, videoEl.currentTime-1);
     findStartSound(loadedVideoFile, startAt).then(function(res){
       btn.disabled=false;
       if(!res){ toast('スタートの音が 見つかりませんでした。コマ送りで合わせてね'); return; }

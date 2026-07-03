@@ -943,9 +943,25 @@
   var loadedVideoFile=null;  // いま開いている動画ファイル（音の分析用）
 
   // ========== 音からスタート合図をさがす ==========
-  // ルール：テイクユアマーク等の掛け声のあと、会場は一瞬しずかになる。
-  // その「しずかな時間のあとに急に鳴る大きな音」（ホイッスル・ピストル・電子音）を合図とみなす。
-  // いま見ている場面から先だけをさがす（笛など、前half のまぎらわしい音を拾わないため）。
+  // ルール（実際のレース音声で検証済み）：
+  //  1) 直前1.5秒がしずか（全体の音が ふだんの1.5倍みまん）
+  //  2) そこから、全体・合図の帯(1〜2.5kHz)・笛の帯(2.5〜4kHz)のどれかが
+  //     ふだんの3倍より大きく、直前の4倍以上に跳ねた瞬間
+  // を合図の候補にして、いちばん跳ねた場所をえらぶ。
+  function makeBiquad(type, f0, Q, sr){
+    var w0=2*Math.PI*f0/sr, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0), a0=1+al;
+    if(type==='hp') return [(1+cs)/2/a0, -(1+cs)/a0, (1+cs)/2/a0, -2*cs/a0, (1-al)/a0];
+    return [al/a0, 0, -al/a0, -2*cs/a0, (1-al)/a0];  // bandpass
+  }
+  function runBiquad(x, c){
+    var y=new Float32Array(x.length);
+    var x1=0,x2=0,y1=0,y2=0;
+    for(var i=0;i<x.length;i++){
+      var v=c[0]*x[i]+c[1]*x1+c[2]*x2-c[3]*y1-c[4]*y2;
+      x2=x1; x1=x[i]; y2=y1; y1=v; y[i]=v;
+    }
+    return y;
+  }
   function findStartSound(file, startAt){
     return new Promise(function(resolve, reject){
       var fr=new FileReader();
@@ -958,63 +974,56 @@
           try{
             var sr=buf.sampleRate;
             var s0=Math.max(0, Math.floor((startAt||0)*sr));
-            var n=Math.min(buf.length, s0+Math.floor(sr*90));  // いまの場面から90秒ぶん
+            var n=Math.min(buf.length, s0+Math.floor(sr*90));
             if(n-s0 < sr*2){ resolve(null); return; }
-            // 全チャンネルをまぜてモノラルに
             var x=new Float32Array(n-s0);
             for(var c=0;c<buf.numberOfChannels;c++){
               var ch=buf.getChannelData(c);
               for(var i=s0;i<n;i++) x[i-s0]+=ch[i]/buf.numberOfChannels;
             }
-            // 低いゴロゴロ音を取りのぞく（300Hzより上だけ通す）
-            (function(){
-              var w0=2*Math.PI*300/sr, Q=0.707, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
-              var a0=1+al;
-              var b0=(1+cs)/2/a0, b1=-(1+cs)/a0, b2=(1+cs)/2/a0, a1=-2*cs/a0, a2=(1-al)/a0;
-              var x1=0,x2=0,y1=0,y2=0;
-              for(var i=0;i<x.length;i++){
-                var v=b0*x[i]+b1*x1+b2*x2-a1*y1-a2*y2;
-                x2=x1; x1=x[i]; y2=y1; y1=v; x[i]=v;
-              }
-            })();
-            // 10ミリ秒ごとの音の強さ
+            // 3つの見方：全体(300Hz以上)・合図の帯・笛の帯
+            var hp=runBiquad(x, makeBiquad('hp',300,0.707,sr));
+            var band1=runBiquad(hp, makeBiquad('bp',1581,1.05,sr));
+            var band2=runBiquad(hp, makeBiquad('bp',3162,2.1,sr));
             var step=Math.round(sr*0.01);
-            var m=Math.floor(x.length/step);
-            var env=new Float32Array(m);
-            for(var i=0;i<m;i++){
-              var s=0;
-              for(var j=i*step;j<(i+1)*step;j++) s+=Math.abs(x[j]);
-              env[i]=s/step;
+            var m=Math.floor(hp.length/step);
+            function env(sig){
+              var e=new Float32Array(m);
+              for(var i=0;i<m;i++){
+                var s=0;
+                for(var j=i*step;j<(i+1)*step;j++) s+=Math.abs(sig[j]);
+                e[i]=s/step;
+              }
+              return e;
             }
-            // ふだんの強さ（中央値）
-            var sorted=Array.prototype.slice.call(env).sort(function(a,b){return a-b;});
-            var med=sorted[Math.floor(sorted.length/2)]+1e-9;
-            // 「直前1.5秒がしずか」で「急に大きく鳴った」場所をさがす
-            var W=150;  // 1.5秒ぶん（10ms単位）
-            var best=null;
+            function median(e){
+              var a=Array.prototype.slice.call(e).sort(function(p,q){return p-q;});
+              return a[Math.floor(a.length/2)]+1e-9;
+            }
+            var envs=[env(hp), env(band1), env(band2)];
+            var meds=[median(envs[0]), median(envs[1]), median(envs[2])];
+            var W=150, best=null;
             for(var i=W;i<m;i++){
-              var before=0;
-              for(var j=i-W;j<i-5;j++) before+=env[j];
-              before=before/(W-5)+1e-9;
-              if(before > med*1.5) continue;       // 直前がしずかでない → 合図ではない
-              if(env[i] < med*4) continue;         // 大きな音でない
-              var jump=env[i]/before;
-              if(!best || jump>best.jump){ best={i:i, jump:jump}; }
+              var beforeB=0;
+              for(var j=i-W;j<i-5;j++) beforeB+=envs[0][j];
+              beforeB=beforeB/(W-5)+1e-9;
+              if(beforeB > meds[0]*1.5) continue;   // 直前がしずかでない
+              for(var k=0;k<3;k++){
+                if(envs[k][i] < meds[k]*3) continue;
+                var before=0;
+                for(var j=i-W;j<i-5;j++) before+=envs[k][j];
+                before=before/(W-5)+1e-9;
+                var jump=envs[k][i]/before;
+                if(jump>=4 && (!best || jump>best.jump)) best={i:i, jump:jump, k:k, before:before};
+              }
             }
-            if(!best || best.jump<4){ resolve(null); return; }
-            // 立ち上がりを1ミリ秒単位で細かく
-            var i0=best.i*step;
-            var back=Math.max(0, i0-Math.round(sr*0.05));
-            var fine=Math.round(sr*0.001);
-            var peakAbs=0;
-            for(var j=i0;j<Math.min(x.length,i0+step*3);j++) peakAbs=Math.max(peakAbs,Math.abs(x[j]));
-            var onset=i0;
-            for(var j=back;j<i0+step*3;j+=fine){
-              var s=0;
-              for(var k=j;k<Math.min(x.length,j+fine);k++) s=Math.max(s,Math.abs(x[k]));
-              if(s>peakAbs*0.25){ onset=j; break; }
+            if(!best){ resolve(null); return; }
+            // 鳴り始めの瞬間まで少し巻き戻す（跳ねの最大点は少し遅れるため）
+            var oi=best.i;
+            for(var j=Math.max(0,best.i-30); j<=best.i; j++){
+              if(envs[best.k][j] > best.before*2.5){ oi=j; break; }
             }
-            resolve({ onset: (s0+onset)/sr, strength: best.jump });
+            resolve({ onset: (s0+oi*step)/sr, strength: best.jump });
           }catch(err){ reject(err); }
           finally{ if(ctx.close) ctx.close(); }
         }, function(){ reject(new Error('この動画の音を読み取れませんでした')); });
@@ -1023,8 +1032,10 @@
     });
   }
   // 方法2：再生しながら聞き取る（iPhoneで音の取り出しを断られたときの逃げ道）
-  // 同じルールで、いまの場面から先を早送り再生しながら、
-  // 「直前がしずか」で「急に大きく鳴った」瞬間を待ちかまえる。
+  // 実際のレース音声で検証したルール：
+  //  合図の帯か笛の帯が、直前の5倍に跳ね、しかも純音（全体の7割以上がその帯）で、
+  //  さらに2ブロックつづけて鳴りつづけたら合図とみなす（拍手や歓声を除くため）。
+  // ユーザーの位置の2秒手前から走査を始めて、ものさしを慣らしてから本番に入る。
   var sndCtx=null, sndSrc=null, sndGain=null;
   function liveFindStartSound(){
     return new Promise(function(resolve, reject){
@@ -1039,44 +1050,64 @@
       if(sndCtx.state==='suspended') sndCtx.resume();
       var sr=sndCtx.sampleRate;
       var proc=sndCtx.createScriptProcessor(1024,1,1);
-      // 低いゴロゴロ音を取りのぞく（300Hzより上だけ通す）
-      var w0=2*Math.PI*300/sr, Q=0.707, al=Math.sin(w0)/(2*Q), cs=Math.cos(w0);
-      var a0=1+al;
-      var b0=(1+cs)/2/a0, b1=-(1+cs)/a0, b2h=(1+cs)/2/a0, a1=-2*cs/a0, a2=(1-al)/a0;
-      var x1=0,x2=0,y1=0,y2=0;
-      var base=0.001;   // 直前1.5秒くらいの強さ
-      var longAvg=0.001; // ふだんの強さ（ゆっくり追いかける）
-      var warm=0, done=false;
+      var cHP=makeBiquad('hp',300,0.707,sr);
+      var cB1=makeBiquad('bp',1581,1.05,sr);
+      var cB2=makeBiquad('bp',3162,2.1,sr);
+      // フィルターの記憶（ブロックをまたいで続ける）
+      var st=[[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+      function stepFilt(v, c, s){
+        var y=c[0]*v+c[1]*s[0]+c[2]*s[1]-c[3]*s[2]-c[4]*s[3];
+        s[1]=s[0]; s[0]=v; s[3]=s[2]; s[2]=y;
+        return y;
+      }
+      var base=null, warm=0, pend=null, done=false, silentSum=0;
       var origT=videoEl.currentTime, origRate=videoEl.playbackRate, origMuted=videoEl.muted;
-      var scanFrom=videoEl.currentTime;
-      function finish(t){
+      var scanFrom=Math.max(0, videoEl.currentTime-2);   // 2秒手前から慣らす
+      function finish(t, msg){
         if(done) return; done=true;
         try{ proc.disconnect(); sndSrc.disconnect(proc); }catch(e){}
         sndGain.gain.value=1;
         videoEl.pause();
         videoEl.playbackRate=origRate||1;
         videoEl.muted=origMuted;
-        if(t==null){ videoEl.currentTime=origT; resolve(null); }
+        if(t==null){ videoEl.currentTime=origT; if(msg) reject(new Error(msg)); else resolve(null); }
         else{ resolve({ onset: Math.max(0,t) }); }
       }
       proc.onaudioprocess=function(ev){
         if(done) return;
         var inp=ev.inputBuffer.getChannelData(0);
-        var e=0;
+        var eb=0,e1=0,e2=0;
         for(var i=0;i<inp.length;i++){
-          var v=b0*inp[i]+b1*x1+b2h*x2-a1*y1-a2*y2;
-          x2=x1; x1=inp[i]; y2=y1; y1=v;
-          e+=Math.abs(v);
+          var h=stepFilt(inp[i], cHP, st[0]);
+          e1+=Math.abs(stepFilt(h, cB1, st[1]));
+          e2+=Math.abs(stepFilt(h, cB2, st[2]));
+          eb+=Math.abs(h);
         }
-        e/=inp.length; warm++;
-        // 直前がしずか（ふだんの1.5倍みまん）＋ 急に大きく（直前の8倍・ふだんの4倍）
-        if(warm>40 && base<longAvg*1.5 && e>base*8 && e>longAvg*4 && e>0.002){
-          finish(videoEl.currentTime - (inp.length/sr)*videoEl.playbackRate);
-          return;
+        eb/=inp.length; e1/=inp.length; e2/=inp.length;
+        var es=[eb,e1,e2];
+        warm++;
+        silentSum+=eb;
+        // 3秒たっても音がまったく来ない → iPhoneが音を渡していない
+        if(warm===140 && silentSum<1e-5){ finish(null,'iPhoneが音を渡してくれませんでした。もう一度おしてみてね'); return; }
+        if(base===null){ base=[Math.max(eb,1e-4), Math.max(e1,1e-4), Math.max(e2,1e-4)]; return; }
+        var a=(inp.length/sr)/1.5;   // 1.5秒のものさし
+        if(pend){
+          if(es[pend.k]>pend.fb*3 && es[pend.k]>eb*0.7){
+            pend.ok++;
+            if(pend.ok>=2){ finish(pend.t); return; }
+          } else { pend=null; }
+        } else if(warm>15){
+          for(var k=1;k<=2;k++){
+            if(es[k]>base[k]*5 && es[k]>0.0015 && es[k]>eb*0.7){
+              pend={ t: videoEl.currentTime-(inp.length/sr)*videoEl.playbackRate, k:k, fb:base[k], ok:0 };
+              break;
+            }
+          }
         }
-        base=base*0.986+e*0.014;        // 約1.5秒のものさし
-        longAvg=longAvg*0.998+e*0.002;  // 約10秒のものさし
-        if((videoEl.duration && videoEl.currentTime>=Math.min(videoEl.duration, scanFrom+90)) || videoEl.ended){
+        if(!pend){
+          for(var k=0;k<3;k++) base[k]=base[k]*(1-a)+es[k]*a;
+        }
+        if((videoEl.duration && videoEl.currentTime>=Math.min(videoEl.duration, scanFrom+92)) || videoEl.ended){
           finish(null);
         }
       };
@@ -1085,8 +1116,9 @@
       videoEl.muted=false;                // ただし中身の音はふるいに流す
       try{ videoEl.preservesPitch=true; videoEl.webkitPreservesPitch=true; }catch(e){}
       videoEl.playbackRate=2;             // 2倍速でさがす
-      var pl=videoEl.play();              // いまの場面からそのまま先へ
-      if(pl && pl.catch) pl.catch(function(){ finish(null); });
+      videoEl.currentTime=scanFrom;
+      var pl=videoEl.play();
+      if(pl && pl.catch) pl.catch(function(){ finish(null,'再生の許可がもらえませんでした。もう一度おしてみてね'); });
       setTimeout(function(){ finish(null); }, 90000);  // 念のための時間切れ
     });
   }

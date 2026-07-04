@@ -78,13 +78,18 @@
   #recList .empty{ font-size:11px; font-weight:600; opacity:.7; text-align:center; padding:14px 4px; line-height:1.5; }
 
   /* ===== 左上：動画を開くボタン（1つだけ） ===== */
-  #openBtn{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
-    display:flex; align-items:center; gap:8px; padding:10px 16px; cursor:pointer;
-    background:linear-gradient(135deg,#f97316,#fbbf24); border:none; border-radius:16px;
+  /* 左上：動画をひらく前に出る、データの三つのボタン */
+  #startMenu{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
+    display:flex; flex-direction:column; gap:8px; }
+  #app.hasvideo #startMenu{ display:none; }  /* 動画を開いたら消える */
+  #startMenu button{ display:flex; align-items:center; gap:8px; padding:10px 16px; cursor:pointer;
+    border:none; border-radius:16px;
     color:#fff; font-size:15px; font-weight:800; text-shadow:var(--shadow);
     box-shadow:0 4px 0 rgba(0,0,0,.2); }
-  #app.hasvideo #openBtn{ display:none; }  /* 動画を開いたら消える */
-  #openBtn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  #startMenu button:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  #smFind{ background:linear-gradient(135deg,#818cf8,#6366f1); }
+  #smAnalyze{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
+  #smCompare{ background:linear-gradient(135deg,#f97316,#fbbf24); }
 
   /* 右上の道具ボタン（歯車）。押すと下の2つのボタンが出たり隠れたりする */
   #toolsBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
@@ -160,10 +165,9 @@
   /* ===== 右下の操作ドック =====
      テンポ状態→狙い→（確定・R.T・記録ボタン）の順に、下から自動で積み上がる。
      位置の決め打ちをやめたので、画面の高さが違っても部品が重ならない */
-  #dock{ position:absolute; right:104px; bottom:calc(env(safe-area-inset-bottom) + 12px); z-index:6;
+  #dock{ position:absolute; right:104px; bottom:calc(env(safe-area-inset-bottom) + 84px); z-index:6;
     display:none; flex-direction:column; align-items:flex-end; gap:6px; }
   #app.hasvideo #dock{ display:flex; }
-  #dock .dockrow{ display:flex; align-items:stretch; gap:8px; }
 
   /* 記録ボタン：主役なのでオレンジで目立たせる（テンポ中は水色） */
   #lapBtn{ display:flex; align-items:center; justify-content:center;
@@ -189,6 +193,21 @@
   /* R.T・かき数は記録モードのときだけ出す（テンポ中はしまう） */
   #app.hasvideo:not(.tempomode) #rtChip{ display:flex; }
   #app.hasvideo:not(.tempomode) #strokeChip{ display:flex; }
+
+  /* 通過ライン（黄色い線）ボタン：R.T・かき数とおそろいの見た目 */
+  #lineChip{ display:none; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    width:54px; padding:5px 4px; cursor:pointer;
+    background:rgba(16,44,74,.85); border:1.5px solid var(--line); border-radius:13px;
+    color:#fff; font-size:13px; font-weight:900; text-shadow:var(--shadow); }
+  #lineChip .rs{ font-size:7px; font-weight:700; opacity:.85; }
+  #lineChip.sel{ background:rgba(251,191,36,.9); border-color:#fff; color:#3a2600; text-shadow:none; }
+  #lineChip.done{ border-color:var(--yellow); }
+  #lineChip.done::after{ content:'✔'; font-size:9px; color:var(--yellow); }
+  #lineChip:active{ transform:translateY(2px); }
+  #app.hasvideo:not(.tempomode) #lineChip{ display:flex; }
+
+  /* 黄色い線をのせる透明の層。タップは下の動画にすり抜ける */
+  #lineLayer{ position:absolute; inset:0; pointer-events:none; overflow:visible; z-index:2; }
 
   /* 記録／テンポ の切り替え（狙い表示のさらに上） */
   #modeToggle{ position:absolute; left:50%; transform:translateX(-50%);
@@ -239,23 +258,39 @@
   #tempoFinish:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
 
   /* ===== 下：コマ送りバー（間隔を広げて押し間違いを防ぐ・全長は約1.5倍） ===== */
-  #frame{ position:absolute; left:50%; transform:translateX(-50%);
+  #frame{ position:absolute; left:calc(env(safe-area-inset-left) + 78px);
+    right:calc(env(safe-area-inset-right) + 104px); transform:none;
     bottom:calc(env(safe-area-inset-bottom) + 12px); z-index:6;
-    display:none; gap:16px; align-items:center;
+    display:none; gap:12px; align-items:center; justify-content:space-between;
     background:rgba(6,24,42,.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
     border:1.5px solid var(--line); border-radius:15px; padding:5px 12px; }
   #app.hasvideo #frame{ display:flex; }
+  /* バーの中の左グループ（コマ送り）と右グループ（記録） */
+  #frame .fgroup{ display:flex; align-items:stretch; gap:12px; }
+  #frame .fgroup > *{ flex:0 0 auto; }  /* ボタンが押しつぶされて文字が切れるのを防ぐ */
+  /* 記録グループの前に細い仕切り線を入れて、役割の境目を見せる */
+  #frame .fgroup.rec{ gap:8px; border-left:1.5px solid rgba(255,255,255,.22); padding-left:12px; }
   .fb{ width:60px; min-width:60px; height:44px; border-radius:10px; cursor:pointer; padding:0;
     border:1.5px solid var(--line); background:rgba(20,52,86,.7);
     color:#fff; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; gap:2px;
     text-shadow:var(--shadow); }
   .fb .n{ font-size:11px; }
+  /* 1000ボタンは数字が長いので少しだけ字を詰める */
+  #b1000 .n, #f1000 .n{ font-size:10px; letter-spacing:-0.5px; }
   .fb:active{ transform:translateY(2px); background:rgba(34,197,94,.6); }
   .fb.play{ background:linear-gradient(135deg,#34d399,#0ea5e9); font-size:18px; }
-  /* 幅の狭い横画面：コマ送りバーを左寄せ・少し詰めて、右下のドックと重ねない */
+  /* 幅の狭い横画面：バーの中身を少し詰めて、ひとつのバーに収める */
   @media (orientation: landscape) and (max-width: 1100px){
-    #frame{ left:calc(env(safe-area-inset-left) + 78px); transform:none; gap:10px; padding:5px 8px; }
-    .fb{ width:52px; min-width:52px; }
+    #frame{ left:calc(env(safe-area-inset-left) + 70px); right:calc(env(safe-area-inset-right) + 98px);
+      gap:6px; padding:4px 8px; }
+    #frame .fgroup{ gap:5px; }
+    #frame .fgroup.rec{ gap:5px; padding-left:8px; }
+    .fb{ width:40px; min-width:40px; }
+    .fb .n{ font-size:9px; }
+    #b1000 .n, #f1000 .n{ font-size:8px; }
+    #lineChip, #rtChip, #strokeChip{ width:46px; font-size:12px; }
+    #lapBtn{ width:62px; font-size:11px; }
+    #dock{ right:98px; bottom:calc(env(safe-area-inset-bottom) + 76px); }
   }
 
   /* ===== 左下：小さなメニューボタン（ズーム・記録・設定をまとめる） ===== */
@@ -320,6 +355,13 @@
     padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 16px); }
   .dv-head{ font-size:22px; font-weight:900; text-align:center; }
   .dv-note{ font-size:12px; font-weight:600; opacity:.75; text-align:center; margin:4px 0 12px; }
+  /* 縦画面のよびだしボタン */
+  #dvLoadBtn{ display:block; width:100%; margin:0 0 12px; padding:12px;
+    border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#818cf8,#6366f1); color:#fff;
+    font-size:15px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  #dvLoadBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
   .dv-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
     display:flex; flex-direction:column; gap:6px; }
   .dv-row{ display:grid; grid-template-columns:62px 1fr 1fr 1.4fr; align-items:center; gap:6px;
@@ -354,6 +396,201 @@
   #rtModal, #padModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #rtModal.hide, #padModal.hide{ display:none; }
+  /* 光か音かを選ぶモーダルと、やり方チュートリアル（R.Tモーダルより手前に出す） */
+  #rtSrcModal, #rtTutModal{ position:fixed; inset:0; z-index:32; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #rtSrcModal.hide, #rtTutModal.hide{ display:none; }
+  /* 呼び出し・分析・比較の画面 */
+  #findModal, #anaModal, #cmpInfoModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #findModal.hide, #anaModal.hide, #cmpInfoModal.hide{ display:none; }
+  .df-card{ width:min(560px, 94vw); max-height:88vh; display:flex; flex-direction:column; }
+  .df-filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .df-filters label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:800; color:#bfe3ff; flex:1 1 45%; }
+  .df-filters select{ padding:8px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:700; }
+  .df-filters input{ padding:8px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:700; }
+  .df-filters label.hide{ display:none; }
+  .df-list{ flex:1; min-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:7px;
+    -webkit-overflow-scrolling:touch; }
+  .df-race{ display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.08);
+    border:1.5px solid var(--line); border-radius:12px; padding:9px 10px; }
+  .df-race .di{ flex:1; text-align:left; }
+  .df-race .dn{ display:block; font-size:14px; font-weight:900; }
+  .df-race .ds{ display:block; font-size:11px; font-weight:700; opacity:.8; }
+  .df-race button{ padding:8px 10px; border:none; border-radius:10px; cursor:pointer;
+    color:#fff; font-size:12px; font-weight:900; text-shadow:var(--shadow); }
+  .df-race .db-load{ background:linear-gradient(135deg,#818cf8,#6366f1); }
+  .df-race .db-ana{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
+  .df-empty{ text-align:center; font-size:13px; font-weight:700; opacity:.8; padding:18px 0; }
+  /* 分析画面 */
+  .ana-card{ width:min(760px, 96vw); max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .ana-tabs{ display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .atab{ padding:8px 14px; border-radius:11px; cursor:pointer; border:1.5px solid var(--line);
+    background:rgba(16,44,74,.85); color:#fff; font-size:13px; font-weight:900; text-shadow:var(--shadow); }
+  .atab.active{ background:linear-gradient(135deg,#34d399,#0ea5e9); border-color:#fff; }
+  #anaCanvas{ width:100%; height:250px; display:block; background:rgba(255,255,255,.05); border-radius:12px; }
+  #anaSummary{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  #anaSummary .as{ flex:1 1 45%; background:rgba(255,255,255,.07); border-radius:12px; padding:8px 10px;
+    font-size:12px; font-weight:800; }
+  #anaSummary .as b{ display:block; font-size:16px; font-weight:900; color:var(--yellow); }
+  #anaTable{ font-size:13px; font-weight:700; }
+  #anaTable .ar{ display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; padding:6px 8px;
+    border-bottom:1px solid rgba(255,255,255,.12); font-variant-numeric:tabular-nums; }
+  #anaTable .ar.h{ font-size:11px; color:#bfe3ff; }
+  /* 比較画面 */
+  .cmp-card{ width:min(620px, 96vw); max-height:92vh; display:flex; flex-direction:column; }
+  .cmp-range{ display:flex; align-items:center; gap:10px; margin-bottom:10px;
+    font-size:12px; font-weight:800; color:#bfe3ff; }
+  .cmp-range.hide{ display:none; }
+  .cmp-range input[type=range]{ flex:1; }
+  #cmpRangeLabel{ min-width:120px; text-align:right; font-variant-numeric:tabular-nums; color:#fff; }
+  .cmp-row{ display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.08);
+    border:1.5px solid var(--line); border-radius:12px; padding:9px 10px; }
+  .cmp-row.me{ border-color:var(--yellow); background:rgba(251,191,36,.14); }
+  .cmp-row .rk{ width:34px; font-size:17px; font-weight:900; color:var(--yellow); text-align:center; }
+  .cmp-row .ci{ flex:1; }
+  .cmp-row .cn{ display:block; font-size:14px; font-weight:900; }
+  .cmp-row .cs{ display:block; font-size:11px; font-weight:700; opacity:.8; }
+  .cmp-row .ct{ font-size:17px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .db-video{ background:linear-gradient(135deg,#f97316,#fbbf24); }
+  /* 比較：人数の一行と、選手対選手の対戦カード */
+  #cmpCount{ font-size:12px; font-weight:800; color:#bfe3ff; margin:0 0 8px; text-align:left; }
+  #cmpVs{ background:rgba(255,255,255,.07); border:1.5px solid rgba(34,211,238,.6); border-radius:14px;
+    padding:12px; margin-bottom:10px; }
+  #cmpVs.hide{ display:none; }
+  .vs-head{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .vs-head .vs-name{ flex:1; font-size:15px; font-weight:900; }
+  .vs-head .vs-name.r{ text-align:right; }
+  .vs-head .vs-mid{ flex:0 0 auto; font-size:12px; font-weight:900; color:#22d3ee; }
+  .vs-diff{ text-align:center; font-size:14px; font-weight:900; color:var(--yellow); margin-bottom:10px; }
+  .vs-row{ margin-bottom:8px; }
+  .vs-row .vs-nums{ display:flex; justify-content:space-between; font-size:12px; font-weight:800;
+    font-variant-numeric:tabular-nums; margin-bottom:2px; }
+  .vs-row .vs-nums .vs-label{ color:#bfe3ff; font-size:11px; }
+  .vs-bars{ display:flex; gap:3px; height:10px; }
+  .vs-bars .half{ flex:1; display:flex; }
+  .vs-bars .half.l{ justify-content:flex-end; }
+  .vs-bars .bar{ height:100%; border-radius:5px; min-width:3px; }
+  .vs-bars .half.l .bar{ background:linear-gradient(90deg,#fbbf24,#f97316); }
+  .vs-bars .half.r .bar{ background:linear-gradient(90deg,#0ea5e9,#34d399); }
+  .cmp-row{ cursor:pointer; }
+  .cmp-row.pick{ border-color:#22d3ee; }
+  .vs-hint{ font-size:11px; font-weight:700; opacity:.75; text-align:center; margin-top:4px; }
+  /* 動き：ぽんと飛び出して落ち着く／下からふわっと現れる／棒がすっと伸びる */
+  @keyframes popIn{
+    0%{ transform:scale(.3); opacity:0; }
+    60%{ transform:scale(1.3); opacity:1; }
+    100%{ transform:scale(1); opacity:1; }
+  }
+  @keyframes rowIn{
+    from{ opacity:0; transform:translateY(10px); }
+    to{ opacity:1; transform:none; }
+  }
+  .vs-diff{ animation:popIn .6s .3s both; }
+  .vs-row{ animation:rowIn .45s both; }
+  .vs-bars .bar{ width:0; transition:width .9s cubic-bezier(.2,.8,.3,1.06); }
+  .vs-nums .vn.win{ display:inline-block; color:var(--yellow); animation:popIn .5s both; }
+  .seg-row{ animation:rowIn .4s both; }
+  .seg-row .sa.win, .seg-row .sb.win{ display:inline-block; animation:popIn .5s both; }
+  .seg-mid{ transform-origin:center; }
+  /* レース再生：2人がプールを泳ぐ */
+  .race-pool{ background:linear-gradient(180deg,rgba(14,116,205,.35),rgba(8,60,120,.45));
+    border:1.5px solid rgba(125,211,252,.4); border-radius:12px; padding:10px; margin-top:10px; }
+  .race-lane{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .race-lane .race-name{ width:70px; font-size:11px; font-weight:900; text-align:left;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .race-track{ flex:1; position:relative; height:24px;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,.10) 0 12px, rgba(255,255,255,.02) 12px 24px);
+    border-top:2px dotted rgba(251,191,36,.55); border-bottom:2px dotted rgba(251,191,36,.55); }
+  .race-sw{ position:absolute; left:0; top:0; font-size:18px; line-height:24px;
+    transform:translateX(-2px) scaleX(-1); will-change:left; }
+  .race-clock{ width:56px; font-size:12px; font-weight:900; font-variant-numeric:tabular-nums; text-align:right; }
+  .race-gap{ text-align:center; font-size:12px; font-weight:900; color:#7dd3fc; min-height:16px; margin:2px 0 6px; }
+  #raceBtn{ display:block; margin:0 auto; padding:7px 16px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:10px;
+    background:linear-gradient(135deg,#34d399,#0ea5e9); color:#fff; font-size:12px; font-weight:900; text-shadow:var(--shadow); }
+  #raceBtn:active{ transform:translateY(2px); }
+  /* 通過ごとの差の表 */
+  .seg-title{ font-size:12px; font-weight:900; color:#bfe3ff; margin:10px 0 4px; text-align:left; }
+  .seg-row{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:800;
+    font-variant-numeric:tabular-nums; padding:3px 0; border-bottom:1px solid rgba(255,255,255,.1); }
+  .seg-row .sm{ width:44px; text-align:left; color:#bfe3ff; }
+  .seg-row .sa, .seg-row .sb{ width:56px; }
+  .seg-row .sa{ text-align:right; }
+  .seg-row .sb{ text-align:left; }
+  .seg-row .sa.win{ color:#fbbf24; }
+  .seg-row .sb.win{ color:#34d399; }
+  .seg-mid{ flex:1; text-align:center; font-size:11px; font-weight:900; border-radius:8px; padding:2px 0; }
+  .seg-mid.a{ background:rgba(251,191,36,.22); color:#ffe9a8; }
+  .seg-mid.b{ background:rgba(52,211,153,.2); color:#bbf7d0; }
+  .seg-mid.even{ background:rgba(255,255,255,.08); color:#dfefff; }
+  /* 設定画面 */
+  #cfgModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #cfgModal.hide{ display:none; }
+  .cfg-card{ width:min(560px, 94vw); max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .cfg-l{ display:block; font-size:12px; font-weight:800; color:#bfe3ff; margin-bottom:4px; text-align:left; }
+  .cfg-l input{ display:block; width:100%; box-sizing:border-box; margin-top:4px; padding:10px;
+    border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:13px; font-weight:700; }
+  .cfg-note{ font-size:11px !important; opacity:.85; margin:6px 0 14px !important; }
+  #smSettings{ background:linear-gradient(135deg,#64748b,#475569); }
+  /* 設定のアップデートボタン */
+  #cfgUpdateBtn{ display:block; width:100%; margin:4px 0 14px; padding:12px; cursor:pointer;
+    border:none; border-radius:12px;
+    background:linear-gradient(135deg,#f97316,#fbbf24); color:#fff;
+    font-size:14px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  #cfgUpdateBtn:disabled{ opacity:.7; cursor:default; }
+  #cfgUpdateBtn:active{ transform:translateY(2px); }
+  /* ほぞん画面：動画フォルダをひらく小さなボタン */
+  #svFolderBtn{ flex:0 0 auto; margin-left:6px; padding:8px 10px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:10px;
+    background:linear-gradient(135deg,#f97316,#fbbf24); color:#fff; font-size:15px; }
+  #svFolderBtn:active{ transform:translateY(2px); }
+  /* ほぞん画面：動画をドライブへ送るボタン（送信中は%表示になる） */
+  #svUploadBtn{ flex:1; padding:10px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:10px;
+    background:linear-gradient(135deg,#818cf8,#6366f1); color:#fff;
+    font-size:13px; font-weight:900; text-shadow:var(--shadow); }
+  #svUploadBtn:disabled{ opacity:.7; cursor:default; }
+  #svUploadBtn:active{ transform:translateY(2px); }
+  /* 送信の進み具合：バーと残り時間と強制終了 */
+  #svUpProg{ display:flex; align-items:center; gap:8px; margin-top:8px; }
+  #svUpProg.hide{ display:none; }
+  #svUpBar{ flex:1; height:14px; border-radius:7px; overflow:hidden;
+    background:rgba(255,255,255,.15); border:1px solid var(--line); }
+  #svUpFill{ height:100%; width:0%; border-radius:7px;
+    background:linear-gradient(90deg,#34d399,#0ea5e9); transition:width .3s; }
+  #svUpText{ min-width:140px; font-size:11px; font-weight:800; color:#bfe3ff; text-align:right;
+    font-variant-numeric:tabular-nums; }
+  #svUpCancel{ flex:0 0 auto; padding:8px 10px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:10px;
+    background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff;
+    font-size:12px; font-weight:900; text-shadow:var(--shadow); }
+  #svUpCancel:active{ transform:translateY(2px); }
+  #rtSrcLight, #rtSrcSound{ display:flex; flex-direction:column; align-items:center; gap:3px; width:100%;
+    padding:16px 10px; margin-bottom:14px; cursor:pointer;
+    border:2px solid var(--line); border-radius:14px;
+    color:#fff; font-size:18px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 4px 0 rgba(0,0,0,.18); }
+  #rtSrcLight{ background:linear-gradient(135deg,rgba(251,191,36,.55),rgba(245,158,11,.45)); }
+  #rtSrcSound{ background:linear-gradient(135deg,rgba(56,189,248,.5),rgba(14,165,233,.4)); }
+  #rtSrcLight:active, #rtSrcSound:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.18); }
+  #rtSrcLight .rt-sub, #rtSrcSound .rt-sub{ font-size:12px; font-weight:700; opacity:.9; }
+  /* やり方せつめいボタン */
+  #rtTutBtn{ display:block; width:100%; padding:11px 10px; margin-bottom:14px; cursor:pointer;
+    border:2px dashed rgba(251,191,36,.8); border-radius:14px;
+    background:rgba(251,191,36,.14); color:#ffe9a8; font-size:15px; font-weight:900; text-shadow:var(--shadow); }
+  #rtTutBtn:active{ transform:translateY(2px); }
+  /* チュートリアルの中身 */
+  .rtTut-card{ text-align:center; }
+  .rtTut-orca{ width:84px; height:84px; margin:0 auto 6px; }
+  .rtTut-step{ font-size:12px; font-weight:800; color:#bfe3ff; margin-bottom:8px; }
+  .rtTut-text{ min-height:110px; font-size:16px; font-weight:800; line-height:1.7; text-align:left;
+    background:rgba(255,255,255,.07); border-radius:14px; padding:14px 16px; margin-bottom:14px; }
   #rtMeasureBtn, #rtNumBtn, #rtSoundBtn{ display:flex; flex-direction:column; align-items:center; gap:3px; width:100%;
     padding:16px 10px; margin-bottom:14px; cursor:pointer;
     border:2px solid var(--line); border-radius:14px;
@@ -455,6 +692,7 @@
   <!-- 動画 -->
   <div id="videoWrap">
     <video id="video" playsinline preload="auto"></video>
+    <svg id="lineLayer" xmlns="http://www.w3.org/2000/svg"></svg>
     <div id="startHint">
       <div class="logo">Swim<span>IQ</span></div>
       <p>動画をひらいて、レースを分析しましょう。<br>下のボタンから動画をえらんでください。</p>
@@ -472,7 +710,12 @@
   </div>
 
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
-  <label id="openBtn" for="videoFile">🎬 動画をひらく</label>
+  <div id="startMenu">
+    <button id="smFind">📂 データを呼び出す</button>
+    <button id="smAnalyze">📈 データを分析</button>
+    <button id="smCompare">⚖️ データを比較</button>
+    <button id="smSettings">⚙️ 設定</button>
+  </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
   <label id="changeBtn" for="videoFile">🎬 動画をかえる</label>
   <button id="distBtn">📏 距離をかえる</button>
@@ -502,23 +745,28 @@
   <div id="dock">
     <div id="tempoStatus"></div>
     <div id="aim"><span id="aimText">50m を きろく</span></div>
-    <div class="dockrow">
+  </div>
+
+  <!-- 下のバー：左にコマ送り、右に記録のボタン。ひとつのバーにまとめる -->
+  <div id="frame">
+    <div class="fgroup">
+      <button class="fb" id="b1000"><span>◀◀</span><span class="n">1000</span></button>
+      <button class="fb" id="b100"><span>◀◀</span><span class="n">100</span></button>
+      <button class="fb" id="b10"><span>◀◀</span><span class="n">10</span></button>
+      <button class="fb" id="b1"><span>◀</span><span class="n">1</span></button>
+      <button class="fb play" id="bPlay">▶</button>
+      <button class="fb" id="f1"><span class="n">1</span><span>▶</span></button>
+      <button class="fb" id="f10"><span class="n">10</span><span>▶▶</span></button>
+      <button class="fb" id="f100"><span class="n">100</span><span>▶▶</span></button>
+      <button class="fb" id="f1000"><span class="n">1000</span><span>▶▶</span></button>
+    </div>
+    <div class="fgroup rec">
       <button id="tempoFinish">✔ このテンポで 確定</button>
+      <button id="lineChip">線<span class="rs">通過ライン</span></button>
       <button id="strokeChip">かき数<span class="rs">とうろく</span></button>
       <button id="rtChip">R.T<span class="rs">スタート反応</span></button>
       <button id="lapBtn" class="time"><span id="lapBtnMain">ここを きろく</span></button>
     </div>
-  </div>
-
-  <!-- コマ送りバー -->
-  <div id="frame">
-    <button class="fb" id="b100"><span>◀◀</span><span class="n">100</span></button>
-    <button class="fb" id="b10"><span>◀◀</span><span class="n">10</span></button>
-    <button class="fb" id="b1"><span>◀</span><span class="n">1</span></button>
-    <button class="fb play" id="bPlay">▶</button>
-    <button class="fb" id="f1"><span class="n">1</span><span>▶</span></button>
-    <button class="fb" id="f10"><span class="n">10</span><span>▶▶</span></button>
-    <button class="fb" id="f100"><span class="n">100</span><span>▶▶</span></button>
   </div>
 
   <!-- 左下メニュー -->
@@ -528,6 +776,7 @@
   <div id="dataView">
     <div class="dv-head">きろく データ</div>
     <div class="dv-note">よこ向きにすると 測定にもどります</div>
+    <button id="dvLoadBtn">📂 ほぞんした きろくを よびだす</button>
     <div id="dvBody" class="dv-body"></div>
   </div>
 
@@ -582,10 +831,35 @@
   <div class="modal-card">
     <h2>R.T（リアクションタイム）</h2>
     <p class="note">合図から 足が台をはなれるまでの時間です。はかり方を えらんでください。①の合図は ピストルの「光」で合わせると せいかくです。音は 会場が広いと おくれて届きます。</p>
+    <button id="rtTutBtn">❓ はじめての人へ　やり方の せつめい</button>
     <button id="rtMeasureBtn">🎬 動画で はかる<span class="rt-sub">①合図 → ②足ばなれ の 2回 ボタンをおす</span></button>
     <button id="rtSoundBtn">🔊 音から合図をさがす<span class="rt-sub">スタート直前まで進めてからおすと せいかく</span></button>
     <button id="rtNumBtn">🔢 数字で 入れる<span class="rt-sub">タイムが わかっているとき（例 0.65）</span></button>
     <div class="stroke-btns"><button id="rtClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- R.Tの①を「光」と「音」のどちらで合わせたかを聞くモーダル -->
+<div id="rtSrcModal" class="hide">
+  <div class="modal-card">
+    <h2>①の合図は なにで合わせましたか？</h2>
+    <p class="note">音は 1秒に およそ340m しか進みません。観客席から音で合わせると、じっさいの合図より およそ0.15秒 おくれています。音で合わせた場合は 0.15秒を 足して 正しいR.Tにします。</p>
+    <button id="rtSrcLight">💡 光で 合わせた<span class="rt-sub">そのまま きろくする</span></button>
+    <button id="rtSrcSound">🔊 音で 合わせた<span class="rt-sub">0.15秒を 足して きろくする</span></button>
+  </div>
+</div>
+
+<!-- R.Tのやり方チュートリアル（シャッチーくんが順番に説明する） -->
+<div id="rtTutModal" class="hide">
+  <div class="modal-card rtTut-card">
+    <div class="rtTut-orca"><img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;"></div>
+    <div class="rtTut-step" id="rtTutStep">1 / 8</div>
+    <div class="rtTut-text" id="rtTutText"></div>
+    <div class="stroke-btns">
+      <button id="rtTutPrev">◀ まえへ</button>
+      <button id="rtTutNext">つぎへ ▶</button>
+      <button id="rtTutClose">とじる</button>
+    </div>
   </div>
 </div>
 
@@ -631,6 +905,13 @@
       <span>体重kg</span><input id="svWeight" type="number" inputmode="decimal" placeholder="任意"></div>
     <div class="sv-row"><span>試合名</span><input id="svMeet" type="text" placeholder="例 学生選手権"></div>
     <div class="sv-row"><span>試合日</span><input id="svDate" type="date"></div>
+    <div class="sv-row"><span>動画リンク</span><input id="svVideo" type="url" placeholder="Googleドライブの共有リンク（任意）"><button id="svFolderBtn" type="button" aria-label="動画フォルダをひらく">📂</button></div>
+    <div class="sv-row"><span></span><button id="svUploadBtn" type="button">⬆️ いまの動画を ドライブへ送る</button></div>
+    <div id="svUpProg" class="hide">
+      <div id="svUpBar"><div id="svUpFill"></div></div>
+      <div id="svUpText">じゅんび中…</div>
+      <button id="svUpCancel" type="button">⏹ 強制終了</button>
+    </div>
     <div class="sv-row"><span>泳法</span><select id="svStroke"><option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option><option>バタフライ</option><option>個人メドレー</option></select>
       <span>水路</span><select id="svCourse"><option>長水路</option><option>短水路</option></select></div>
     <div class="sv-row"><span>ラウンド</span><select id="svRound"><option>予選</option><option>準決勝</option><option>決勝</option><option>タイムレース</option><option>記録会</option><option>練習</option></select></div>
@@ -649,6 +930,116 @@
 </div>
 
 <!-- 通知 -->
+<!-- データを呼び出す：条件で絞り込んでえらぶ -->
+<div id="findModal" class="hide">
+  <div class="modal-card df-card">
+    <h2>データを 呼び出す</h2>
+    <div class="df-filters">
+      <label>どこから<select id="dfSrc">
+        <option value="team">チームの記録</option>
+        <option value="wh">大会データ</option>
+      </select></label>
+      <label id="dfAthleteWrap">選手<select id="dfAthlete"></select></label>
+      <label id="dfNameWrap" class="hide">名前でさがす<input id="dfName" type="text" placeholder="例 松井"></label>
+      <label id="dfSexWrap" class="hide">性別<select id="dfSex"><option value="">すべて</option></select></label>
+      <label>泳法<select id="dfStroke"><option value="">すべて</option></select></label>
+      <label>距離<select id="dfDist"><option value="">すべて</option></select></label>
+      <label>試合<select id="dfMeet"><option value="">すべて</option></select></label>
+      <label>年度<select id="dfYear"><option value="">すべて</option></select></label>
+    </div>
+    <div id="dfList" class="df-list"></div>
+    <div class="stroke-btns"><button id="dfClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- データを分析：グラフと表 -->
+<div id="anaModal" class="hide">
+  <div class="modal-card ana-card">
+    <h2 id="anaTitle">データ分析</h2>
+    <div class="ana-tabs">
+      <button class="atab active" data-c="lap">区間タイム</button>
+      <button class="atab" data-c="speed">スピード</button>
+      <button class="atab" data-c="tempo">テンポ</button>
+      <button class="atab" data-c="stroke">かき数</button>
+    </div>
+    <canvas id="anaCanvas" aria-hidden="true"></canvas>
+    <div id="anaSummary"></div>
+    <div id="anaTable"></div>
+    <div class="stroke-btns"><button id="anaClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- データを比較：体型・年齢・性別でしぼってランキング -->
+<div id="cmpInfoModal" class="hide">
+  <div class="modal-card cmp-card">
+    <h2>データを 比較</h2>
+    <div class="df-filters">
+      <label>くらべる相手<select id="cmpSrc">
+        <option value="team">チームの中で</option>
+        <option value="wh">大会データの中で</option>
+      </select></label>
+      <label>基準の選手<select id="cmpBase"></select></label>
+      <label>泳法<select id="cmpStroke"></select></label>
+      <label>距離<select id="cmpDist"></select></label>
+      <label>体型でしぼる<select id="cmpBody">
+        <option value="">しぼらない</option>
+        <option value="h">身長で</option>
+        <option value="w">体重で</option>
+        <option value="bmi">BMIで</option>
+      </select></label>
+      <label>性別<select id="cmpSex">
+        <option value="">すべて</option>
+        <option value="same">同じ性別だけ</option>
+      </select></label>
+      <label>年齢<select id="cmpAge">
+        <option value="">すべて</option>
+        <option value="0">同じ年齢だけ</option>
+        <option value="1">±1歳まで</option>
+        <option value="2">±2歳まで</option>
+      </select></label>
+    </div>
+    <div class="cmp-range hide" id="cmpRangeRow">
+      <span>体型のはば</span>
+      <input type="range" id="cmpRange" min="1" max="10" value="3" step="1">
+      <span id="cmpRangeLabel">±3%</span>
+    </div>
+    <div id="cmpCount"></div>
+    <div id="cmpVs" class="hide"></div>
+    <div id="cmpList" class="df-list"></div>
+    <div class="stroke-btns"><button id="cmpClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- 設定：3つのURLをこの端末に覚えさせる -->
+<div id="cfgModal" class="hide">
+  <div class="modal-card cfg-card">
+    <h2>設定</h2>
+    <p class="note">それぞれのURLを一度貼っておくと、この端末が覚えます。空欄のところは今までどおり動きます。</p>
+    <label class="cfg-l">データ保存のURL（SwimIQのGAS）
+      <input id="cfgGas" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <p class="note cfg-note">タイムの保存とよびだしに使う、SwimIQ用スプレッドシートのApps ScriptのURLです。空のままなら、アプリに最初から入っているURLを使います。</p>
+    <label class="cfg-l">大会データのURL（水泳レース記録用ツールのGAS）
+      <input id="cfgWh" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
+    <p class="note cfg-note">日本選手権などのデータが入ったスプレッドシートのApps ScriptのURLです。「呼び出す」「比較」の大会データで使います。</p>
+    <label class="cfg-l">動画保存のフォルダURL（Googleドライブ）
+      <input id="cfgVideo" type="url" placeholder="https://drive.google.com/drive/folders/…"></label>
+    <p class="note cfg-note">レース動画専用のフォルダを作り、共有を「リンクを知っている全員：閲覧者」にしてください。見えるのはこのフォルダの中だけで、ドライブのほかの場所は見えません。閲覧者は消したり変えたりもできません。</p>
+    <label class="cfg-l">GitHubトークン（アップデート用の合鍵）
+      <input id="cfgGhToken" type="password" placeholder="github_pat_ ではじまる長い文字"></label>
+    <label class="cfg-l">GitHubのリポジトリ（ユーザー名/倉庫名）
+      <input id="cfgGhRepo" type="text" placeholder="例 sskyou1971chukyo-web/swimiq"></label>
+    <p class="note cfg-note">この2つを入れて「ほぞんする」しておくと、下のボタンから、新しいindex.htmlをえらぶだけでアプリを更新できます。GitHubの手作業は不要になります。</p>
+    <button id="cfgUpdateBtn" type="button">⬆️ アプリを アップデート（新しいindex.htmlをえらぶ）</button>
+    <p class="note cfg-note" id="cfgUpMsg"></p>
+    <input id="cfgUpdateFile" type="file" accept=".html,text/html" style="display:none">
+    <div class="stroke-btns">
+      <button id="cfgSave">ほぞんする</button>
+      <button id="cfgPass">パスワードを変える</button>
+      <button id="cfgClose">とじる</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -782,6 +1173,8 @@
   var rtTime=null;          // リアクションタイム（秒）。合図→足が台をはなれるまでの時間
   var rtStep=0;             // R.Tの動画測定の段階。0=なし 1=①合図まち 2=②足ばなれまち
   var rtMark1=0;            // ①合図の動画時刻
+  var rtBySound=false;      // ①を「音から合図をさがす」で決めたか（音はおくれるので0.15秒たす）
+  var SOUND_DELAY=0.15;     // 観客席に音が届くまでのおくれ（秒）
   var officialTimes={};     // { 距離: 正式タイム（秒） } 入力があれば表示と区間計算を置き換える
   var strokeCounts=[];      // 50mごとのかき数。[1本目, 2本目, ...] 未入力はnull
   // レース距離から、かき数の本数（50mごと）を求める。50m=1, 100m=2, ... 1500m=30
@@ -936,10 +1329,64 @@
     if(rtTime!=null && !confirm('R.T は すでに記録があります。はかり直しますか？')) return;
     $('rtModal').classList.add('hide');
     if(mode!=='time') setMode('time');
-    selDist='RT'; rtStep=1;
+    selDist='RT'; rtStep=1; rtBySound=false;
     updateAim(); buildScale();
     toast('①合図の瞬間に 動画を合わせて「ここを きろく」');
+    shacchiSay('①合図の瞬間にコマ送りで合わせて、「ここを きろく」をおすっチー。ピストルの光で合わせると せいかくだチー。', 15000);
   };
+
+  // ===== R.Tの確定（音のおくれ0.15秒をあつかう） =====
+  var rtPendingV=null;   // ②まで押しおわって、光か音かの返事をまっている値
+  function finalizeRt(v, addDelay){
+    var fin = addDelay ? (v+SOUND_DELAY) : v;
+    // ②足ばなれの瞬間は、レースの0m（スタート）そのもの。
+    // ここを0mとして自動で記録しておくと、通過タイムの基準が正しくなる。
+    splitTimes[0]=rtMark1+v;
+    rtTime=fin; rtStep=0; rtBySound=false; rtPendingV=null;
+    selDist=0; updateAim(); buildScale(); renderRecords();
+    if(addDelay){
+      toast('R.T '+fin.toFixed(2)+'秒（音のおくれ +0.15秒 こみ）・0mも自動で記録');
+      shacchiSay('はかった'+v.toFixed(2)+'秒に、音のおくれ0.15秒を足して、R.Tは'+fin.toFixed(2)+'秒だチー！②足ばなれの瞬間は 0mとしても 自動で記録したチー。', 10000);
+    } else {
+      toast('R.T '+fin.toFixed(2)+'秒 を きろく・0mも自動で記録');
+      shacchiSay('R.Tは'+fin.toFixed(2)+'秒だチー！②足ばなれの瞬間は 0mとしても 自動で記録したから、このまま15mや25mを はかれるっチー。', 10000);
+    }
+  }
+  $('rtSrcLight').onclick=function(){
+    $('rtSrcModal').classList.add('hide');
+    if(rtPendingV!=null) finalizeRt(rtPendingV, false);
+  };
+  $('rtSrcSound').onclick=function(){
+    $('rtSrcModal').classList.add('hide');
+    if(rtPendingV!=null) finalizeRt(rtPendingV, true);
+  };
+
+  // ===== R.Tのやり方チュートリアル =====
+  // シャッチーくんが1ページずつ説明する。R.Tモーダルの「やり方のせつめい」から出る。
+  var RT_TUT=[
+    'これから、スタートの合図から 足が台をはなれるまでの時間、R.Tを はかるっチー。',
+    'まず、はかり方をえらぶっチー。おすすめは「動画で はかる」だチー。①合図と②足ばなれの 2回、「ここを きろく」をおして はかるっチー。',
+    '①合図の瞬間の きめ方だチー。コマ送りで、ピストルが光った瞬間に ぴったり合わせるっチー。光で合わせるのが いちばんせいかくだチー。',
+    '音で合わせることも できるっチー。でも観客席には 音がおくれて届くから、あとで「音で合わせた」をえらぶと 0.15秒を足して 正しくしてくれるっチー。',
+    '「音から合図をさがす」をつかうと、自動で合図をさがしてくれて べんりだチー。その場合は スタート直前まで 動画を進めてから おすっチー。数字がわかっているなら「数字で入れる」もあるっチー。',
+    '①の場面に合ったら、「ここを きろく」をおすっチー。これで合図の瞬間が きまるっチー。',
+    'つぎは②足ばなれだチー。足が台からはなれた直後のコマに合わせて、もう一回「ここを きろく」をおすっチー。この瞬間は 0m（スタート）としても 自動で記録されるっチー。',
+    'これでR.Tの登録は かんぺきだチー！はかった時間は 左の「きろく」の いちばん上に出るっチー。さっそく やってみるっチー！'
+  ];
+  var rtTutPage=0;
+  function showRtTut(){
+    $('rtTutStep').textContent=(rtTutPage+1)+' / '+RT_TUT.length;
+    $('rtTutText').textContent=RT_TUT[rtTutPage];
+    $('rtTutPrev').style.visibility = rtTutPage===0 ? 'hidden' : 'visible';
+    $('rtTutNext').textContent = rtTutPage===RT_TUT.length-1 ? 'とじる' : 'つぎへ ▶';
+  }
+  $('rtTutBtn').onclick=function(){ rtTutPage=0; showRtTut(); $('rtTutModal').classList.remove('hide'); };
+  $('rtTutPrev').onclick=function(){ if(rtTutPage>0){ rtTutPage--; showRtTut(); } };
+  $('rtTutNext').onclick=function(){
+    if(rtTutPage>=RT_TUT.length-1){ $('rtTutModal').classList.add('hide'); return; }
+    rtTutPage++; showRtTut();
+  };
+  $('rtTutClose').onclick=function(){ $('rtTutModal').classList.add('hide'); };
   var loadedVideoFile=null;  // いま開いている動画ファイル（音の分析用）
 
   // ========== 音からスタート合図をさがす ==========
@@ -1285,12 +1732,14 @@
   function applyFoundStart(res){
     $('rtModal').classList.add('hide');
     if(mode!=='time') setMode('time');
-    selDist='RT'; rtStep=1; updateAim(); buildScale();
+    selDist='RT'; rtStep=1; rtBySound=true;  // 音で見つけたので、あとで0.15秒を自動で足す
+    updateAim(); buildScale();
     if(!videoEl.paused) videoEl.pause();
     var t=res.onset;
     if(videoEl.duration && t>videoEl.duration) t=videoEl.duration;
     videoEl.currentTime=t; lastFrameTime=t; paintClock();
     toast('スタート音を見つけました（'+t.toFixed(2)+'秒）。よければ「ここを きろく」で ①を記録');
+    shacchiSay('スタートの音を見つけたチー！この場面でよければ「ここを きろく」で①を記録するっチー。音のおくれ0.15秒は、さいごに自動で足すから 安心だチー。', 15000);
   }
   $('rtSoundBtn').onclick=function(){
     if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
@@ -1345,7 +1794,7 @@
       rtTime,
       function(v){
         if(v>=10){ toast('R.Tは 10秒みまんで 入れてね（例 0.65）'); return false; }
-        rtTime=v; rtStep=0;
+        rtTime=v; rtStep=0; rtBySound=false;
         buildScale(); renderRecords();
         toast('R.T '+v.toFixed(2)+'秒 を とうろくしました');
       },
@@ -1405,8 +1854,12 @@
   // ========== ほぞん・よびだし（スプレッドシート連携） ==========
   // GASのウェブアプリURL。GAS側を更新したら「デプロイを編集」で更新し、URLは変えないこと。
   var GAS_URL='https://script.google.com/macros/s/AKfycbytG05GMzANIkWCzN7B56n3wSZQOiGxKsV_mJx2vlDJRU5DcCjH-oMWULbWEhl4IbCT/exec';
+  // データ保存のURL。設定で貼ったURLがあればそちらを、無ければ最初から入っているURLを使う
+  function gasUrl(){
+    return localStorage.getItem('swimiq_gas_url') || GAS_URL;
+  }
   function api(payload){
-    return fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'text/plain'},
+    return fetch(gasUrl(), { method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify(payload) }).then(function(r){ return r.json(); });
   }
   // この携帯の端末ID（初回に作って保存。以後おなじ携帯なら本人あつかい）
@@ -1444,6 +1897,9 @@
     $('svNewBlock').style.display = getAthletes().length ? 'none' : '';
     if(!getAthletes().length) $('svAthlete').value='__new__';
     if(!$('svDate').value) $('svDate').value=todayStr();
+    $('svUploadBtn').textContent='⬆️ いまの動画を ドライブへ送る';
+    $('svUploadBtn').disabled=false;
+    $('svUpProg').classList.add('hide');
     $('saveModal').classList.remove('hide');
     // この携帯の登録がまだなら、サーバーにも問い合わせて同期しておく
     if(!getAthletes().length){
@@ -1502,6 +1958,7 @@
         stroke:$('svStroke').value, raceDist:raceDist,
         course:$('svCourse').value, round:$('svRound').value,
         height:$('svHeight').value, weight:$('svWeight').value,
+        videoUrl:$('svVideo').value.trim(),
         finalTime:(ft!=null? fmt(ft):''), data:d });
     }).then(function(res){
       if(!res.ok) throw new Error(res.error||'保存できませんでした');
@@ -1559,6 +2016,1200 @@
     renderLoadList($('ldAthlete').value);
   }
   $('loadBtn').addEventListener('click', openLoadModal);
+  $('dvLoadBtn').addEventListener('click', openLoadModal);  // 縦画面からも同じ呼び出し画面をひらく
+
+  // ========== 左上メニュー：データを呼び出す・分析・比較 ==========
+  $('smFind').onclick=function(){ openFindModal(); };
+  $('smAnalyze').onclick=function(){
+    if(allDists().length===0 && rtTime==null){
+      toast('さきに「データを呼び出す」で 記録をえらんでね');
+      openFindModal();
+      return;
+    }
+    openAnaModal();
+  };
+  $('smCompare').onclick=function(){ openCmpModal(); };
+  $('cmpClose').onclick=function(){ $('cmpInfoModal').classList.add('hide'); };
+
+  // ===== 設定（3つのURLをこの端末に覚えさせる。パスワードで守る） =====
+  // パスワードは、そのままではなく数字に変換して覚える（のぞかれても元の言葉がわからないように）
+  function cfgHash(s){
+    var h=5381;
+    for(var i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))|0; }
+    return String(h);
+  }
+  function openCfgModal(){
+    var saved=localStorage.getItem('swimiq_cfg_pass');
+    if(!saved){
+      // はじめてのときは、パスワードを決めてもらう
+      var p1=prompt('設定を守るパスワードを決めてください。\n（次から設定を開くときに必要になります）');
+      if(p1===null || p1.trim()==='') return;
+      localStorage.setItem('swimiq_cfg_pass', cfgHash(p1.trim()));
+      toast('パスワードを決めました');
+    } else {
+      var p=prompt('設定のパスワードを入れてください');
+      if(p===null) return;
+      if(cfgHash(p.trim())!==saved){ toast('パスワードが ちがいます'); return; }
+    }
+    $('cfgGas').value = localStorage.getItem('swimiq_gas_url')||'';
+    $('cfgWh').value = localStorage.getItem('swimiq_wh_url')||'';
+    $('cfgVideo').value = localStorage.getItem('swimiq_video_folder')||'';
+    $('cfgGhToken').value = localStorage.getItem('swimiq_gh_token')||'';
+    $('cfgGhRepo').value = localStorage.getItem('swimiq_gh_repo')||'';
+    $('cfgUpdateBtn').textContent='⬆️ アプリを アップデート（新しいindex.htmlをえらぶ）';
+    $('cfgUpdateBtn').disabled=false;
+    $('cfgModal').classList.remove('hide');
+  }
+  // パスワードを変える（今のパスワードを確認してから）
+  $('cfgPass').onclick=function(){
+    var saved=localStorage.getItem('swimiq_cfg_pass');
+    if(saved){
+      var cur=prompt('今のパスワードを入れてください');
+      if(cur===null) return;
+      if(cfgHash(cur.trim())!==saved){ toast('パスワードが ちがいます'); return; }
+    }
+    var nw=prompt('新しいパスワードを入れてください');
+    if(nw===null || nw.trim()==='') return;
+    localStorage.setItem('swimiq_cfg_pass', cfgHash(nw.trim()));
+    toast('パスワードを かえました');
+  };
+  $('smSettings').onclick=openCfgModal;
+  $('cfgClose').onclick=function(){ $('cfgModal').classList.add('hide'); };
+  $('cfgSave').onclick=function(){
+    // 空欄なら覚えていた値を消す。入っているなら https:// で始まるかだけ確かめて覚える
+    function put(key, val, label){
+      val=String(val||'').trim();
+      if(val===''){ localStorage.removeItem(key); return true; }
+      if(val.indexOf('https://')!==0){ toast(label+'のURLは https:// で始まる必要があります'); return false; }
+      localStorage.setItem(key, val);
+      return true;
+    }
+    if(!put('swimiq_gas_url', $('cfgGas').value, 'データ保存')) return;
+    if(!put('swimiq_wh_url', $('cfgWh').value, '大会データ')) return;
+    if(!put('swimiq_video_folder', $('cfgVideo').value, '動画保存')) return;
+    // GitHubのトークンとリポジトリはURLではないので、そのまま覚える
+    function putRaw(key, val){
+      val=String(val||'').trim();
+      if(val==='') localStorage.removeItem(key); else localStorage.setItem(key, val);
+    }
+    putRaw('swimiq_gh_token', $('cfgGhToken').value);
+    putRaw('swimiq_gh_repo', $('cfgGhRepo').value);
+    whCache={};  // 大会データのURLが変わったかもしれないので、覚えていた中身を空にする
+    $('cfgModal').classList.add('hide');
+    toast('設定を ほぞんしました');
+  };
+
+  // ===== アプリのアップデート（新しいindex.htmlをGitHubに送る） =====
+  // 日本語をふくむ文章を、GitHubが受け取れる形（base64）に変換する
+  function b64utf8(str){
+    var bytes=new TextEncoder().encode(str);
+    var bin='', STEP=0x8000;
+    for(var i=0;i<bytes.length;i+=STEP){
+      bin+=String.fromCharCode.apply(null, bytes.subarray(i, i+STEP));
+    }
+    return btoa(bin);
+  }
+  $('cfgUpdateBtn').onclick=function(){
+    var tok=localStorage.getItem('swimiq_gh_token')||'';
+    var repo=localStorage.getItem('swimiq_gh_repo')||'';
+    if(!tok || !repo){
+      toast('さきに GitHubトークンとリポジトリを入れて「ほぞんする」してね');
+      return;
+    }
+    $('cfgUpdateFile').click();  // 新しいindex.htmlをえらんでもらう
+  };
+  $('cfgUpdateFile').addEventListener('change', function(e){
+    var f=e.target.files && e.target.files[0];
+    e.target.value='';
+    if(!f) return;
+    var tok=localStorage.getItem('swimiq_gh_token')||'';
+    var repo=localStorage.getItem('swimiq_gh_repo')||'';
+    var url='https://api.github.com/repos/'+repo+'/contents/index.html';
+    var head={ 'Authorization':'Bearer '+tok, 'Accept':'application/vnd.github+json' };
+    var btn=$('cfgUpdateBtn');
+    btn.disabled=true;
+    btn.textContent='⬆️ アップデート中…（そのまま待ってね）';
+    $('cfgUpMsg').textContent='';
+    f.text().then(function(text){
+      // かんたんな中身の確認（まちがったファイルを送らないため）
+      if(text.indexOf('SwimIQ')<0 && text.indexOf('swimiq')<0){
+        throw new Error('えらんだファイルが SwimIQ の index.html ではないようです');
+      }
+      // まず今のファイルの「しるし（sha）」をもらう。上書きに必要
+      return fetch(url, { headers:head }).then(function(r){
+        if(r.status===404) return { sha:null };
+        if(!r.ok) throw new Error('今のファイルを確認できません（'+r.status+'）。トークンとリポジトリ名を確認してね');
+        return r.json();
+      }).then(function(cur){
+        var body={ message:'SwimIQ アップデート '+new Date().toLocaleString('ja-JP'),
+                   content:b64utf8(text) };
+        if(cur.sha) body.sha=cur.sha;
+        return fetch(url, { method:'PUT', headers:head, body:JSON.stringify(body) });
+      }).then(function(r){
+        if(!r.ok) throw new Error('送信に失敗（'+r.status+'）。トークンの権限（Contents 読み書き）を確認してね');
+      });
+    }).then(function(){
+      btn.disabled=false;
+      btn.textContent='✅ アップデート完了！';
+      $('cfgUpMsg').textContent='GitHubに送りました。約1分後に新しい版になります。開き直すときは キャッシュクリア（コマンド＋シフト＋R）を忘れずに。';
+      toast('アップデート完了');
+    }).catch(function(err){
+      btn.disabled=false;
+      btn.textContent='⬆️ アプリを アップデート（新しいindex.htmlをえらぶ）';
+      $('cfgUpMsg').textContent='アップデート失敗： '+err.message;
+      toast('アップデート失敗。くわしい理由は ボタンの下に出ています');
+    });
+  });
+  // ほぞん画面の📂：設定した動画フォルダをすぐ開く
+  $('svFolderBtn').onclick=function(){
+    var u=localStorage.getItem('swimiq_video_folder')||'';
+    if(u){ window.open(u, '_blank'); }
+    else { toast('さきに 左上の「設定」で 動画フォルダのURLを 入れてね'); }
+  };
+
+  // ===== 動画をドライブへ送る(小分けアップロード) =====
+  // 動画は大きすぎて一度に送れないので、8MBずつの小包に分けて順番に送る。
+  // GAS(gas_swimiq_v3)がドライブの中で1本に組み立てて、共有リンクを返してくれる。
+  var UP_CHUNK = 8*1024*1024;   // 小包1つの大きさ(8MB)。往復の回数を減らして速くする
+  var upCancel = false;         // 強制終了ボタンが押されたら true になる
+  var upWakeLock = null;        // 送信中に画面が勝手に消えないようにする仕組み
+  // 画面を起こしたままにする(対応していない機種では、静かに何もしない)
+  function upWake(on){
+    try{
+      if(on && navigator.wakeLock){
+        navigator.wakeLock.request('screen').then(function(w){ upWakeLock=w; }).catch(function(){});
+      } else if(!on && upWakeLock){
+        upWakeLock.release().catch(function(){});
+        upWakeLock=null;
+      }
+    }catch(e){}
+  }
+  // 秒を「あと 約◯分◯秒」の形にする
+  function upEta(sec){
+    if(!isFinite(sec) || sec<0) return '';
+    sec=Math.round(sec);
+    var m=Math.floor(sec/60), s=sec%60;
+    return m>0 ? ('あと 約'+m+'分'+(s>0? s+'秒':'')) : ('あと 約'+s+'秒');
+  }
+  // 設定に貼ったフォルダURLから、フォルダの番号だけを取り出す
+  function videoFolderId(){
+    var u=localStorage.getItem('swimiq_video_folder')||'';
+    var m=u.match(/folders\/([A-Za-z0-9_-]+)/);
+    return m? m[1] : '';
+  }
+  // 動画の offset バイト目から size バイトぶんを、文字(base64)にして取り出す
+  function fileChunkBase64(file, offset, size){
+    return new Promise(function(res, rej){
+      var fr=new FileReader();
+      fr.onload=function(){ res(String(fr.result).split(',')[1]); };
+      fr.onerror=function(){ rej(new Error('動画の読み取りに失敗しました')); };
+      fr.readAsDataURL(file.slice(offset, offset+size));
+    });
+  }
+  // 送信の見た目を、始める前の状態にもどす
+  function upReset(){
+    upWake(false);
+    $('svUpProg').classList.add('hide');
+    $('svUploadBtn').disabled=false;
+    $('svUploadBtn').textContent='⬆️ いまの動画を ドライブへ送る';
+  }
+  $('svUpCancel').onclick=function(){ upCancel=true; };
+  $('svUploadBtn').onclick=function(){
+    if(!loadedVideoFile){ toast('さきに「動画をひらく」で レース動画をひらいてね'); return; }
+    var f=loadedVideoFile;
+    var btn=$('svUploadBtn');
+    btn.disabled=true;
+    btn.textContent='⬆️ 送信中…（画面はつけたままに）';
+    upCancel=false;
+    upWake(true);
+    $('svUpProg').classList.remove('hide');
+    $('svUpFill').style.width='0%';
+    $('svUpText').textContent='じゅんび中…';
+    var startTime=Date.now();
+    // 進み具合：バーの長さ、%、送った量、残り時間
+    function prog(offset){
+      var pct=Math.min(99, Math.round(offset/f.size*100));
+      $('svUpFill').style.width=pct+'%';
+      var elapsed=(Date.now()-startTime)/1000;
+      var text=pct+'%';
+      if(offset>0 && elapsed>2){
+        var speed=offset/elapsed;                      // 1秒あたりに送れた量
+        var remain=(f.size-offset)/speed;              // 残りの予想秒数
+        var mb=Math.round(offset/1048576)+'/'+Math.round(f.size/1048576)+'MB';
+        text=pct+'%　'+mb+'　'+upEta(remain);
+      }
+      $('svUpText').textContent=text;
+    }
+    api({ action:'upBegin', name:(f.name||('race_'+Date.now()+'.mp4')),
+          mime:(f.type||'video/mp4'), size:f.size, folderId:videoFolderId() })
+    .then(function(res){
+      if(!res.ok) throw new Error(res.error||'開始できませんでした');
+      var session=res.session, offset=0;
+      function next(){
+        if(upCancel) throw new Error('強制終了しました');
+        var size=Math.min(UP_CHUNK, f.size-offset);
+        return fileChunkBase64(f, offset, size).then(function(b64){
+          if(upCancel) throw new Error('強制終了しました');
+          return api({ action:'upChunk', session:session, offset:offset, total:f.size, data:b64 });
+        }).then(function(r2){
+          if(!r2.ok) throw new Error(r2.error||'送信に失敗しました');
+          offset+=size;
+          prog(offset);
+          if(r2.done){
+            // 完成。もらった共有リンクを、動画リンク欄に自動で貼る
+            $('svVideo').value=r2.url||'';
+            upReset();
+            $('svUploadBtn').textContent='✅ 送信完了（リンクを貼りました）';
+            toast('動画をドライブに送りました。このまま ほぞんすると リンクも一緒に残ります');
+            return;
+          }
+          return next();
+        });
+      }
+      return next();
+    })
+    .catch(function(err){
+      upReset();
+      toast(err.message==='強制終了しました' ? '送信を とちゅうで やめました' : ('動画の送信に失敗： '+err.message));
+    });
+  };
+
+  // ===== データを比較（体型・年齢・性別でしぼってランキング） =====
+  var cmpAll=null;  // サーバーから取った全レース（選手の性別・生年月日つき）
+
+  // ---- 大会データ（倉庫）との連携 ----
+  // 別のスプレッドシートにある大会データ（日本選手権など）を読み込んで、
+  // チームの選手が その中で何位に入るかを見られるようにする。
+  var WAREHOUSE_URL='';   // ここに倉庫のGASのURLを直接書いてもよい
+  var whCache={};         // 種目名（50m など）→ 読み込んだ行
+  function warehouseUrl(){
+    return localStorage.getItem('swimiq_wh_url') || WAREHOUSE_URL || '';
+  }
+  // URLがまだ無いとき、一度だけ聞いて覚える
+  function askWarehouseUrl(){
+    var u=prompt('大会データ（倉庫）のGASのURLを貼ってください。\n（スプレッドシートの Apps Script → デプロイのURL）', warehouseUrl());
+    if(u && u.indexOf('https://')===0){
+      localStorage.setItem('swimiq_wh_url', u.trim());
+      return true;
+    }
+    return false;
+  }
+  // 倉庫から1種目ぶんを読み込む（一度読んだら覚えておく）
+  function fetchWh(eventName){
+    return fetch(warehouseUrl()+'?event='+encodeURIComponent(eventName))
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if(!res.ok) throw new Error(res.error||'取得できませんでした');
+        whCache[eventName]=res.rows||[];
+        return whCache[eventName];
+      });
+  }
+  // 性別の書き方のゆれ（男/男子 など）をそろえる
+  function normSex(s){
+    s=String(s||'');
+    if(s.indexOf('男')>=0) return '男';
+    if(s.indexOf('女')>=0) return '女';
+    return '';
+  }
+  // 倉庫の1行を、SwimIQの呼び出し形式に変換する
+  // 通過タイム→正式タイム、STタイム→テンポ、ストローク回→かき数
+  function whToRace(rec, eventName){
+    var dist=parseInt(eventName,10)||50;
+    var strokes=[];
+    for(var i=0;i<Math.ceil(dist/50);i++){
+      var key=(i*50)+'-'+((i+1)*50);
+      strokes.push(rec.segStrokes && rec.segStrokes[key]!=null ? rec.segStrokes[key] : null);
+    }
+    var tempo={};
+    Object.keys(rec.segSt||{}).forEach(function(k){
+      var v=Number(rec.segSt[k]);
+      if(v>0) tempo[k]={ perStroke:v, spm:60/v };
+    });
+    return { meetName:rec.meet||'', meetDate:(rec.year||''), stroke:rec.stroke||'',
+      raceDist:dist, course:'', round:rec.round||'',
+      data:{ official:rec.pass||{}, splits:{}, tempo:tempo, strokes:strokes,
+             rt:(rec.rt!=null? rec.rt : null) } };
+  }
+  // 選択欄に足りない選択肢を足す（大会データは200m以上もあるため）
+  function ensureOpt(sel, v, t){
+    for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===v) return; }
+    var o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o);
+  }
+  $('cmpSrc').onchange=function(){
+    var wh=$('cmpSrc').value==='wh';
+    $('cmpBody').disabled=wh;
+    $('cmpAge').disabled=wh;
+    if(wh){
+      $('cmpBody').value=''; $('cmpAge').value='';
+      $('cmpRangeRow').classList.add('hide');
+      if(!warehouseUrl() && !askWarehouseUrl()){
+        $('cmpSrc').value='team';
+        $('cmpBody').disabled=false; $('cmpAge').disabled=false;
+        toast('大会データのURLが 必要です');
+        cmpRender();
+        return;
+      }
+      // 大会データにある種目と泳法を、えらべるようにしておく
+      [50,100,200,400,800,1500].forEach(function(d){ ensureOpt($('cmpDist'), String(d), d+'m'); });
+      ['自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー'].forEach(function(s){ ensureOpt($('cmpStroke'), s, s); });
+    }
+    cmpRender();
+  };
+  // 大会データの中でのランキングを描く
+  function cmpRenderWh(){
+    var dist=$('cmpDist').value, stroke=$('cmpStroke').value, baseId=$('cmpBase').value;
+    var sexRule=$('cmpSex').value;
+    var eventName=dist+'m';
+    var box=$('cmpList');
+    if(!whCache[eventName]){
+      box.innerHTML='<div class="df-empty">大会データを 読み込み中…</div>';
+      fetchWh(eventName).then(function(){ cmpRenderWh(); }).catch(function(err){
+        box.innerHTML='<div class="df-empty">大会データの読み込みに失敗しました： '+err.message+'<br>倉庫のGASが「全員がアクセス可」でデプロイされているか 確認してください。</div>';
+      });
+      return;
+    }
+    // 泳法でしぼって、同じ選手はいちばん速い1本だけにする
+    var best={};
+    whCache[eventName].forEach(function(r){
+      if(stroke && r.stroke!==stroke) return;
+      if(r.final==null) return;
+      var k=String(r.name||'').replace(/[\s\u3000]+/g,'')+'|'+String(r.team||'');
+      if(!best[k] || r.final<best[k].final) best[k]=r;
+    });
+    var rows=Object.keys(best).map(function(k){ return best[k]; });
+    // 基準の選手（チームのベスト）を、この土俵に混ぜる
+    var base=null;
+    if(cmpAll){
+      cmpBestList(stroke, dist).forEach(function(b){ if(b.athleteId===baseId) base=b; });
+    }
+    if(sexRule==='same' && base && base.sex){
+      rows=rows.filter(function(r){ return normSex(r.sex)===normSex(base.sex); });
+    }
+    var entries=rows.map(function(r){
+      return { name:r.name, team:r.team||'', meet:r.meet||'', year:r.year||'',
+               t:r.final, tText:Number(r.final).toFixed(2), rec:r, isBase:false };
+    });
+    if(base){
+      entries.push({ name:base.name, team:'チーム記録', meet:base.meetName||'', year:'',
+                     t:base.time, tText:base.timeText, rec:null, isBase:true });
+    }
+    entries.sort(function(a,b){ return a.t-b.t; });
+    box.innerHTML='';
+    $('cmpVs').classList.add('hide');
+    if(!entries.length){ $('cmpCount').textContent=''; box.innerHTML='<div class="df-empty">この条件の大会データは ありません。</div>'; return; }
+    var baseRank=0;
+    entries.forEach(function(en,i){ if(en.isBase) baseRank=i+1; });
+    $('cmpCount').textContent='この条件に合うのは '+entries.length+'人'+
+      (baseRank && base ? '　'+base.name+' は '+baseRank+'位' : '');
+    if(!base) {
+      var w=document.createElement('div'); w.className='df-empty';
+      w.textContent='基準の選手に この種目のチーム記録が無いため、ランキングは大会データのみです。';
+      box.appendChild(w);
+    }
+    cmpSel=[];
+    var baseRow=null;
+    entries.forEach(function(en, i){
+      var row=document.createElement('div');
+      row.className='cmp-row'+(en.isBase?' me':'');
+      var sub=[en.team, en.meet, en.year].filter(function(x){return x;}).join('　');
+      var hasDetail = en.rec && en.rec.pass && Object.keys(en.rec.pass).length>1;
+      row.innerHTML='<span class="rk">'+(i+1)+'</span>'+
+                    '<span class="ci"><span class="cn">'+en.name+(en.isBase?'　★基準':'')+'</span>'+
+                    '<span class="cs">'+sub+'</span></span>'+
+                    (hasDetail? '<button class="db-ana">ぶんせき</button>' : '')+
+                    '<span class="ct">'+en.tText+'</span>';
+      // 2人えらぶと、対戦カード（VS）が上に出る
+      var obj = en.isBase && base
+        ? { name:base.name, time:base.time, height:base.height, weight:base.weight, birth:base.birth, raceId:base.raceId }
+        : { name:en.name, time:en.t, height:null, weight:null, birth:null,
+            pass:(en.rec? en.rec.pass : null), rt:(en.rec && en.rec.rt!=null? en.rec.rt : null) };
+      row.onclick=function(){ cmpTap(row, obj); };
+      if(en.isBase) baseRow=row;
+      if(hasDetail){
+        // 大会データのレースを、SwimIQの分析画面でグラフにして見る
+        row.querySelector('.db-ana').onclick=function(ev){
+          ev.stopPropagation();
+          applyLoadedRace(whToRace(en.rec, eventName));
+          $('cmpInfoModal').classList.add('hide');
+          anaLabel=en.name+'　'+eventName+' '+(en.rec.stroke||'');
+          openAnaModal();
+        };
+      }
+      box.appendChild(row);
+    });
+    // 基準の選手（チーム記録）がいれば、1人目として最初からえらんでおく
+    if(baseRow && base){
+      cmpSel=[{ row:baseRow, obj:{ name:base.name, time:base.time, height:base.height, weight:base.weight, birth:base.birth, raceId:base.raceId } }];
+      baseRow.classList.add('pick');
+    }
+    if(entries.length>1){
+      var h=document.createElement('div'); h.className='vs-hint';
+      h.textContent = (baseRow && base)
+        ? '気になる選手をおすと、'+base.name+' との くらべ（VS）が出ます。★基準をおして外せば、大会の2人どうしも くらべられます'
+        : '2人 えらぶと くらべ（VS）が出ます';
+      box.appendChild(h);
+    }
+  }
+  function openCmpModal(){
+    $('cmpInfoModal').classList.remove('hide');
+    if(cmpAll){ cmpBuildFilters(); cmpRender(); return; }
+    $('cmpList').innerHTML='<div class="df-empty">全選手のデータを 読み込み中…</div>';
+    api({action:'search'}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'取得できませんでした');
+      cmpAll=res.races||[];
+      if(!cmpAll.length){ $('cmpList').innerHTML='<div class="df-empty">まだ保存された記録がありません。</div>'; return; }
+      cmpBuildFilters();
+      cmpRender();
+    }).catch(function(err){
+      $('cmpList').innerHTML='<div class="df-empty">チームのデータの読み込みに失敗しました： '+err.message+'<br>GASをv2に更新して 再デプロイしたか 確認してください。<br>「くらべる相手」を「大会データの中で」にすると、大会データだけでの比較はできます。</div>';
+      // 大会データ比較だけでも使えるよう、種目と泳法のえらべる値を用意しておく
+      [50,100,200,400,800,1500].forEach(function(d){ ensureOpt($('cmpDist'), String(d), d+'m'); });
+      ['自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー'].forEach(function(s){ ensureOpt($('cmpStroke'), s, s); });
+      // 基準の選手の欄も、この端末に覚えている選手で埋めておく（空欄のままにしない）
+      if(!$('cmpBase').options.length && getAthletes().length){
+        fillAthleteSelect($('cmpBase'), false);
+      }
+    });
+  }
+  // タイムの文字（26.54 や 1:02.34）を秒の数字に直す
+  function parseT(s){
+    s=String(s||'').trim();
+    if(!s) return null;
+    var m=s.split(':');
+    var v = (m.length===2) ? (Number(m[0])*60+Number(m[1])) : Number(m[0]);
+    return (isFinite(v) && v>0) ? v : null;
+  }
+  // 生年月日から今日の年齢を出す
+  function ageOf(birth){
+    if(!birth) return null;
+    var b=new Date(birth); if(isNaN(b)) return null;
+    var t=new Date();
+    var a=t.getFullYear()-b.getFullYear();
+    if(t.getMonth()<b.getMonth() || (t.getMonth()===b.getMonth() && t.getDate()<b.getDate())) a--;
+    return a;
+  }
+  // 選択欄を、実際にあるデータから作る
+  function cmpBuildFilters(){
+    function fill(sel, values, keep){
+      var cur=keep? sel.value : '';
+      sel.innerHTML='';
+      values.forEach(function(v){
+        var o=document.createElement('option'); o.value=v.v; o.textContent=v.t; sel.appendChild(o);
+      });
+      if(keep){ sel.value=cur; if(sel.value!==cur) sel.selectedIndex=0; }
+    }
+    // 基準の選手（名前順・重複なし）
+    var seen={}, aths=[];
+    cmpAll.forEach(function(r){ if(!seen[r.athleteId]){ seen[r.athleteId]=1; aths.push({v:r.athleteId, t:r.name}); } });
+    aths.sort(function(a,b){ return String(a.t).localeCompare(String(b.t),'ja'); });
+    fill($('cmpBase'), aths, true);
+    var st={}, di={};
+    cmpAll.forEach(function(r){ if(r.stroke) st[r.stroke]=1; if(r.raceDist) di[r.raceDist]=1; });
+    fill($('cmpStroke'), Object.keys(st).sort().map(function(v){return {v:v,t:v};}), true);
+    fill($('cmpDist'), Object.keys(di).map(Number).sort(function(a,b){return a-b;}).map(function(v){return {v:String(v),t:v+'m'};}), true);
+  }
+  // 選手ごとに、えらんだ種目・距離のいちばん速いタイムと体の情報をまとめる
+  function cmpBestList(stroke, dist){
+    var best={};
+    cmpAll.forEach(function(r){
+      if(r.stroke!==stroke || String(r.raceDist)!==String(dist)) return;
+      var t=parseT(r.finalTime);
+      if(t==null) return;
+      var b=best[r.athleteId];
+      if(!b || t<b.time){
+        best[r.athleteId]={ athleteId:r.athleteId, name:r.name, sex:r.sex, birth:r.birth,
+                            time:t, timeText:r.finalTime, meetName:r.meetName, meetDate:r.meetDate,
+                            height:r.height, weight:r.weight, raceId:r.raceId };
+      }
+    });
+    // 身長や体重がその試合に無ければ、同じ選手のほかの記録からおぎなう
+    Object.keys(best).forEach(function(id){
+      var b=best[id];
+      if(b.height && b.weight) return;
+      cmpAll.forEach(function(r){
+        if(r.athleteId!==id) return;
+        if(!b.height && r.height) b.height=r.height;
+        if(!b.weight && r.weight) b.weight=r.weight;
+      });
+    });
+    return Object.keys(best).map(function(id){ return best[id]; });
+  }
+  function bmiOf(b){ return (b.height && b.weight) ? b.weight/Math.pow(b.height/100,2) : null; }
+  // ---- 2人えらんで くらべる仕組み ----
+  // 一覧の中から2人おすと、その2人の対戦カードが出る。
+  // 基準の選手がいるときは、1人目として最初からえらばれている。
+  var cmpSel=[];  // いまえらばれている人（最大2人）
+  function cmpTap(row, obj){
+    // すでに2人えらんでいたら、いったん白紙にもどして新しくえらび直す
+    if(cmpSel.length>=2){
+      document.querySelectorAll('#cmpList .cmp-row').forEach(function(x){ x.classList.remove('pick'); });
+      $('cmpVs').classList.add('hide');
+      cmpSel=[];
+    }
+    // 同じ人をもう一度おしたら、えらぶのをやめる
+    for(var i=0;i<cmpSel.length;i++){
+      if(cmpSel[i].row===row){
+        cmpSel.splice(i,1);
+        row.classList.remove('pick');
+        $('cmpVs').classList.add('hide');
+        return;
+      }
+    }
+    cmpSel.push({ row:row, obj:obj });
+    row.classList.add('pick');
+    if(cmpSel.length===2){
+      renderVs(cmpSel[0].obj, cmpSel[1].obj);
+    } else {
+      toast('もう1人 えらぶと くらべが出ます');
+    }
+  }
+  // ---- 対戦カード（VS表示） ----
+  // 1つの項目を、左右の棒の長さでくらべる1行
+  // idx: 上から何番目か（順番にふわっと出すため） betterLow: 小さいほうが勝ちの項目（タイムなど）
+  function vsBar(label, av, bv, unit, dec, idx, betterLow){
+    if(av==null || bv==null || !isFinite(av) || !isFinite(bv)) return '';
+    var max=Math.max(av,bv)||1;
+    var delay=(idx||0)*0.12;
+    function f(v){ return (dec!=null? Number(v).toFixed(dec) : v)+unit; }
+    // 勝っているほうの数字に win を付ける（ぽんと飛び出す）
+    var aWin = betterLow && av<bv, bWin = betterLow && bv<av;
+    return '<div class="vs-row" style="animation-delay:'+delay+'s">'+
+      '<div class="vs-nums">'+
+      '<span class="vn'+(aWin?' win':'')+'" style="animation-delay:'+(delay+0.5)+'s">'+f(av)+'</span>'+
+      '<span class="vs-label">'+label+'</span>'+
+      '<span class="vn'+(bWin?' win':'')+'" style="animation-delay:'+(delay+0.5)+'s">'+f(bv)+'</span></div>'+
+      '<div class="vs-bars"><div class="half l"><div class="bar" data-w="'+(av/max*100)+'"></div></div>'+
+      '<div class="half r"><div class="bar" data-w="'+(bv/max*100)+'"></div></div></div></div>';
+  }
+  // カードの中の棒を、長さゼロから本当の長さまで すっと伸ばす
+  function vsAnimateBars(box){
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      box.querySelectorAll('.vs-bars .bar').forEach(function(el){
+        el.style.width=el.getAttribute('data-w')+'%';
+      });
+    }); });
+  }
+  // 基準の選手(a)と、えらんだ選手(b)を左右にならべてくらべる
+  function renderVs(a, b){
+    var box=$('cmpVs');
+    var s='<div class="vs-head"><span class="vs-name">'+a.name+'</span><span class="vs-mid">VS</span><span class="vs-name r">'+b.name+'</span></div>';
+    var d=(b.time!=null && a.time!=null)? b.time-a.time : null;
+    if(d!=null && d!==0){
+      var fast = d>0? a.name : b.name;
+      s+='<div class="vs-diff">🏆 '+fast+' が '+Math.abs(d).toFixed(2)+'秒 はやい</div>';
+    } else if(d===0){
+      s+='<div class="vs-diff">タイムは 同じ</div>';
+    }
+    s+=vsBar('タイム（秒）', a.time, b.time, '', 2, 0, true);
+    s+=vsBar('身長（cm）', a.height, b.height, '', 0, 1);
+    s+=vsBar('体重（kg）', a.weight, b.weight, '', 0, 2);
+    s+=vsBar('BMI', bmiOf(a), bmiOf(b), '', 1, 3);
+    s+=vsBar('年齢（歳）', ageOf(a.birth), ageOf(b.birth), '', 0, 4);
+    s+='<div id="vsDetail"><div class="vs-hint">通過タイムを しらべています…</div></div>';
+    box.innerHTML=s;
+    box.classList.remove('hide');
+    vsAnimateBars(box);
+    // 2人の通過タイムを取り寄せてから、レース再生と区間くらべを描く
+    Promise.all([vsResolve(a), vsResolve(b)]).then(function(){
+      renderVsDetail(a, b);
+    }).catch(function(){
+      $('vsDetail').innerHTML='';
+    });
+  }
+  // その選手の通過タイム(pass)を用意する。
+  // 大会データは最初から持っている。チーム記録は、記録IDでスプレッドシートから取り寄せる。
+  function vsResolve(x){
+    if(x.pass) return Promise.resolve(x);
+    if(!x.raceId) return Promise.resolve(x);
+    return api({action:'load', raceId:x.raceId}).then(function(res){
+      if(res.ok && res.data){
+        x.pass=teamPassOf(res.data);
+        if(res.data.rt!=null) x.rt=Number(res.data.rt);
+      }
+      return x;
+    }).catch(function(){ return x; });
+  }
+  // チーム記録のデータから、号砲からの通過タイムの表を作る
+  function teamPassOf(data){
+    var pass={};
+    var official=data.official||{}, splits=data.splits||{}, rt=(data.rt!=null? Number(data.rt) : 0);
+    var origin=null;
+    if(splits[0]!=null) origin=Number(splits[0]);
+    else {
+      var ts=Object.keys(splits).map(function(k){ return Number(splits[k]); });
+      if(ts.length) origin=Math.min.apply(null, ts);
+    }
+    Object.keys(official).forEach(function(k){ var m=Number(k); if(m>0) pass[m]=Number(official[k]); });
+    Object.keys(splits).forEach(function(k){
+      var m=Number(k);
+      if(m>0 && pass[m]==null && origin!=null) pass[m]=Number(splits[k])-origin+rt;
+    });
+    return pass;
+  }
+  // レース再生と、通過ごとの差の表
+  function renderVsDetail(a, b){
+    var boxD=$('vsDetail'); if(!boxD) return;
+    // 2人とも通過タイムが2地点以上あるときだけ
+    function pts(x){
+      if(!x.pass) return [];
+      return Object.keys(x.pass).map(Number).filter(function(m){ return m>0 && x.pass[m]>0; })
+        .sort(function(p,q){ return p-q; }).map(function(m){ return [m, Number(x.pass[m])]; });
+    }
+    var pa=pts(a), pb=pts(b);
+    if(pa.length<2 || pb.length<2){
+      boxD.innerHTML='<div class="vs-hint">ラップのくらべは、通過タイムのある記録どうしで 表示されます</div>';
+      return;
+    }
+    var distA=pa[pa.length-1][0], distB=pb[pb.length-1][0];
+    var raceDistVs=Math.min(distA, distB);
+    // --- 通過ごとの差の表 ---
+    var s='<div class="seg-title">通過ごとの くらべ（左が '+a.name+'）</div>';
+    var commons=pa.map(function(p){return p[0];}).filter(function(m){ return b.pass[m]!=null; });
+    commons.forEach(function(m, i){
+      var ta=a.pass[m], tb=b.pass[m], gap=tb-ta;
+      var midCls = Math.abs(gap)<0.005 ? 'even' : (gap>0? 'a':'b');
+      var midTxt = Math.abs(gap)<0.005 ? 'ならんでいる'
+        : (gap>0? a.name : b.name)+' +'+Math.abs(gap).toFixed(2)+'秒 リード';
+      var delay=i*0.1;
+      s+='<div class="seg-row" style="animation-delay:'+delay+'s"><span class="sm">'+m+'m</span>'+
+         '<span class="sa'+(gap>0?' win':'')+'" style="animation-delay:'+(delay+0.25)+'s">'+ta.toFixed(2)+'</span>'+
+         '<span class="seg-mid '+midCls+'">'+midTxt+'</span>'+
+         '<span class="sb'+(gap<0?' win':'')+'" style="animation-delay:'+(delay+0.25)+'s">'+tb.toFixed(2)+'</span></div>';
+    });
+    // --- レース再生 ---
+    s+='<div class="race-pool">'+
+       '<div class="race-lane"><span class="race-name">'+a.name+'</span><div class="race-track"><span class="race-sw" id="rsA">🏊</span></div><span class="race-clock" id="rcA">0.00</span></div>'+
+       '<div class="race-lane"><span class="race-name">'+b.name+'</span><div class="race-track"><span class="race-sw" id="rsB">🏊</span></div><span class="race-clock" id="rcB">0.00</span></div>'+
+       '<div class="race-gap" id="raceGap"></div>'+
+       '<button id="raceBtn" type="button">▶ レースを さいせい</button></div>';
+    boxD.innerHTML=s;
+    // 通過タイムの点と点のあいだを なめらかにつないで、時刻→位置 を計算する
+    function interp(points, t){
+      var pts2=[[0,0]].concat(points);
+      if(t<=0) return 0;
+      for(var i=1;i<pts2.length;i++){
+        if(t<=pts2[i][1]){
+          var d0=pts2[i-1][0], t0=pts2[i-1][1], d1=pts2[i][0], t1=pts2[i][1];
+          return d0 + (d1-d0)*(t-t0)/(t1-t0);
+        }
+      }
+      return pts2[pts2.length-1][0];
+    }
+    var finA=pa[pa.length-1][1], finB=pb[pb.length-1][1];
+    var raceEnd=Math.max(finA, finB);
+    var DUR=6000;  // レース全体を約6秒に縮めて見せる
+    var raceRun=null;
+    function playRace(){
+      if(raceRun) cancelAnimationFrame(raceRun);
+      var trackW=boxD.querySelector('.race-track').clientWidth-22;
+      var swA=$('rsA'), swB=$('rsB');
+      var start=performance.now();
+      function frame(now){
+        var t=Math.min(raceEnd, (now-start)*raceEnd/DUR);  // レース内の時刻
+        var dA=Math.min(interp(pa,t), raceDistVs), dB=Math.min(interp(pb,t), raceDistVs);
+        swA.style.left=(dA/raceDistVs*trackW)+'px';
+        swB.style.left=(dB/raceDistVs*trackW)+'px';
+        $('rcA').textContent=Math.min(t, finA).toFixed(2);
+        $('rcB').textContent=Math.min(t, finB).toFixed(2);
+        var lead=dA-dB;
+        $('raceGap').textContent = Math.abs(lead)<0.05 ? 'ならんでいる！'
+          : (lead>0? a.name : b.name)+' が '+Math.abs(lead).toFixed(1)+'m リード';
+        if(t<raceEnd){ raceRun=requestAnimationFrame(frame); }
+        else {
+          var win = finA<finB ? swA : (finB<finA? swB : null);
+          if(win) win.textContent='🏊👑';
+          $('raceGap').textContent='🏁 ゴール！ '+(finA<finB? a.name : finB<finA? b.name : '同時')+
+            (finA!==finB? ' の勝ち（'+Math.abs(finA-finB).toFixed(2)+'秒差）' : '');
+        }
+      }
+      swA.textContent='🏊'; swB.textContent='🏊';
+      raceRun=requestAnimationFrame(frame);
+    }
+    $('raceBtn').onclick=playRace;
+    playRace();  // 開いたら自動で1回さいせい
+  }
+  // 条件でしぼってランキングを描く
+  function cmpRender(){
+    if($('cmpSrc').value==='wh'){ cmpRenderWh(); return; }
+    if(!cmpAll) return;
+    var stroke=$('cmpStroke').value, dist=$('cmpDist').value, baseId=$('cmpBase').value;
+    var bodyKey=$('cmpBody').value, sexRule=$('cmpSex').value, ageRule=$('cmpAge').value;
+    var pct=Number($('cmpRange').value);
+    $('cmpRangeRow').classList.toggle('hide', !bodyKey);
+    var list=cmpBestList(stroke, dist);
+    var base=null;
+    list.forEach(function(b){ if(b.athleteId===baseId) base=b; });
+    var box=$('cmpList');
+    // 体型のはばの説明（基準の選手の実際の範囲を出す）
+    if(bodyKey){
+      var bv = base ? (bodyKey==='h'? base.height : bodyKey==='w'? base.weight : bmiOf(base)) : null;
+      if(bv){
+        var lo=bv*(1-pct/100), hi=bv*(1+pct/100);
+        var unit = bodyKey==='h'?'cm' : bodyKey==='w'?'kg' : '';
+        $('cmpRangeLabel').textContent='±'+pct+'%（'+lo.toFixed(1)+'〜'+hi.toFixed(1)+unit+'）';
+      } else {
+        $('cmpRangeLabel').textContent='±'+pct+'%';
+      }
+    }
+    // しぼりこみ
+    var rows=list.filter(function(b){
+      if(bodyKey){
+        if(!base) return true;
+        var bv = bodyKey==='h'? base.height : bodyKey==='w'? base.weight : bmiOf(base);
+        var v  = bodyKey==='h'? b.height    : bodyKey==='w'? b.weight    : bmiOf(b);
+        if(bv==null || v==null) return b.athleteId===baseId;  // 情報が無い選手は外す（基準本人は残す）
+        if(v < bv*(1-pct/100) || v > bv*(1+pct/100)) return false;
+      }
+      if(sexRule==='same' && base && base.sex && b.sex!==base.sex) return false;
+      if(ageRule!=='' && base){
+        var ba=ageOf(base.birth), va=ageOf(b.birth);
+        if(ba!=null && va!=null && Math.abs(va-ba)>Number(ageRule)) return false;
+      }
+      return true;
+    });
+    rows.sort(function(a,b){ return a.time-b.time; });
+    box.innerHTML='';
+    $('cmpVs').classList.add('hide');
+    if(!rows.length){ $('cmpCount').textContent=''; box.innerHTML='<div class="df-empty">この条件に合う記録が ありません。</div>'; return; }
+    // 「この条件に合うのは◯人、基準の選手は◯位」の一行
+    var baseRank=0;
+    rows.forEach(function(b,i){ if(b.athleteId===baseId) baseRank=i+1; });
+    $('cmpCount').textContent='この条件に合うのは '+rows.length+'人'+
+      (baseRank && base ? '　'+base.name+' は '+baseRank+'位' : '');
+    if(base && (bodyKey==='h'&&!base.height || bodyKey==='w'&&!base.weight || bodyKey==='bmi'&&!bmiOf(base))){
+      var w=document.createElement('div'); w.className='df-empty';
+      w.textContent='基準の選手の身長・体重が登録されていないため、体型のしぼりこみは できません。ほぞんのときに 身長と体重を入れてください。';
+      box.appendChild(w);
+    }
+    cmpSel=[];
+    var baseRow=null;
+    rows.forEach(function(b, i){
+      var row=document.createElement('div');
+      row.className='cmp-row'+(b.athleteId===baseId?' me':'');
+      var a=ageOf(b.birth), bmi=bmiOf(b);
+      var parts=[];
+      if(b.height) parts.push(b.height+'cm');
+      if(b.weight) parts.push(b.weight+'kg');
+      if(bmi) parts.push('BMI '+bmi.toFixed(1));
+      if(a!=null) parts.push(a+'歳');
+      if(b.sex) parts.push(b.sex);
+      row.innerHTML='<span class="rk">'+(i+1)+'</span>'+
+                    '<span class="ci"><span class="cn">'+b.name+(b.athleteId===baseId?'　★基準':'')+'</span>'+
+                    '<span class="cs">'+parts.join('　')+'　'+(b.meetName||'')+'</span></span>'+
+                    '<span class="ct">'+b.timeText+'</span>';
+      // 2人えらぶと、対戦カード（VS）が上に出る
+      row.onclick=function(){ cmpTap(row, b); };
+      if(b.athleteId===baseId) baseRow=row;
+      box.appendChild(row);
+    });
+    // 基準の選手は、1人目として最初からえらんでおく
+    if(baseRow && base){
+      cmpSel=[{ row:baseRow, obj:base }];
+      baseRow.classList.add('pick');
+    }
+    if(rows.length>1){
+      var h=document.createElement('div'); h.className='vs-hint';
+      h.textContent = (baseRow && base)
+        ? '気になる選手をおすと、'+base.name+' との くらべ（VS）が出ます。★基準をおして外せば、ほかの2人どうしも くらべられます'
+        : '2人 えらぶと くらべ（VS）が出ます';
+      box.appendChild(h);
+    }
+  }
+  $('cmpBase').onchange=cmpRender;
+  $('cmpStroke').onchange=cmpRender;
+  $('cmpDist').onchange=cmpRender;
+  $('cmpBody').onchange=cmpRender;
+  $('cmpSex').onchange=cmpRender;
+  $('cmpAge').onchange=cmpRender;
+  $('cmpRange').oninput=cmpRender;
+
+  // ===== データを呼び出す（条件で絞り込み） =====
+  var dfRaces=[];   // チーム：えらんだ選手の全レース
+  var dfWhRows=[];  // 大会データ：いまえらんでいる種目シートの全行
+  function openFindModal(){
+    $('findModal').classList.remove('hide');
+    if($('dfSrc').value==='wh'){ dfFetchWh(); return; }
+    if(!getAthletes().length){
+      $('dfList').innerHTML='<div class="df-empty">確認中…</div>';
+      api({action:'hello', deviceId:deviceId()}).then(function(res){
+        if(res.ok && res.athletes && res.athletes.length){
+          setAthletes(res.athletes);
+          fillAthleteSelect($('dfAthlete'), false);
+          dfFetch();
+        } else {
+          $('dfList').innerHTML='<div class="df-empty">まだ選手登録がありません。「ほぞん」から登録するか、上の「どこから」を「大会データ」にしてください。</div>';
+        }
+      }).catch(function(){
+        $('dfList').innerHTML='<div class="df-empty">通信できませんでした。電波を確認してください。</div>';
+      });
+      return;
+    }
+    fillAthleteSelect($('dfAthlete'), false);
+    dfFetch();
+  }
+  function dfFetch(){
+    $('dfList').innerHTML='<div class="df-empty">読み込み中…</div>';
+    api({action:'list', athleteId:$('dfAthlete').value}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'取得できませんでした');
+      dfRaces=res.races||[];
+      dfBuildFilters();
+      dfRender();
+    }).catch(function(err){
+      $('dfList').innerHTML='<div class="df-empty">読み込みに失敗しました： '+err.message+'</div>';
+    });
+  }
+  // レース一覧から、泳法・距離・試合・年度のえらべる値を作る
+  function dfBuildFilters(){
+    function fill(sel, values, label){
+      var cur=sel.value;
+      sel.innerHTML='<option value="">すべて</option>';
+      values.forEach(function(v){
+        var o=document.createElement('option'); o.value=v; o.textContent=v+(label||''); sel.appendChild(o);
+      });
+      sel.value=cur;  // えらんでいた値が残っていれば保つ
+      if(sel.value!==cur) sel.value='';
+    }
+    var st={}, di={}, me={}, yr={};
+    dfRaces.forEach(function(r){
+      if(r.stroke) st[r.stroke]=1;
+      if(r.raceDist) di[r.raceDist]=1;
+      if(r.meetName) me[r.meetName]=1;
+      if(r.meetDate){ var y=String(r.meetDate).slice(0,4); if(y) yr[y]=1; }
+    });
+    fill($('dfStroke'), Object.keys(st).sort());
+    fill($('dfDist'), Object.keys(di).map(Number).sort(function(a,b){return a-b;}).map(String), 'm');
+    fill($('dfMeet'), Object.keys(me).sort());
+    fill($('dfYear'), Object.keys(yr).sort().reverse(), '年');
+  }
+  // 絞り込んだ一覧を出す。よびだす＝画面にひらく、ぶんせき＝ひらいてすぐグラフ
+  function dfRender(){
+    var box=$('dfList');
+    var fs=$('dfStroke').value, fd=$('dfDist').value, fm=$('dfMeet').value, fy=$('dfYear').value;
+    var list=dfRaces.filter(function(r){
+      if(fs && r.stroke!==fs) return false;
+      if(fd && String(r.raceDist)!==fd) return false;
+      if(fm && r.meetName!==fm) return false;
+      if(fy && String(r.meetDate).slice(0,4)!==fy) return false;
+      return true;
+    });
+    box.innerHTML='';
+    if(!list.length){ box.innerHTML='<div class="df-empty">この条件の記録は ありません。</div>'; return; }
+    list.forEach(function(r){
+      var row=document.createElement('div');
+      row.className='df-race';
+      row.innerHTML='<span class="di"><span class="dn">'+r.raceDist+'m '+(r.stroke||'')+'　'+(r.finalTime||'')+'</span>'+
+                    '<span class="ds">'+(r.meetName||'（試合名なし）')+'　'+(r.meetDate||'')+'</span></span>'+
+                    (r.videoUrl? '<button class="db-video">🎬 動画</button>' : '')+
+                    '<button class="db-load">よびだす</button><button class="db-ana">ぶんせき</button>';
+      if(r.videoUrl){
+        // Googleドライブなどに置いた動画を、新しいタブでひらく
+        row.querySelector('.db-video').onclick=function(){ window.open(r.videoUrl, '_blank'); };
+      }
+      function loadIt(cb){
+        row.querySelectorAll('button').forEach(function(b){ b.disabled=true; });
+        api({action:'load', raceId:r.raceId}).then(function(res2){
+          if(!res2.ok) throw new Error(res2.error||'読み込めませんでした');
+          applyLoadedRace(res2);
+          $('findModal').classList.add('hide');
+          if(cb) cb(res2);
+        }).catch(function(err){
+          row.querySelectorAll('button').forEach(function(b){ b.disabled=false; });
+          toast('失敗： '+err.message);
+        });
+      }
+      row.querySelector('.db-load').onclick=function(){ loadIt(function(res2){ toast((res2.meetName||'記録')+' を よびだしました'); }); };
+      row.querySelector('.db-ana').onclick=function(){ loadIt(function(res2){ anaLabel=(res2.meetName||'')+' '+r.raceDist+'m '+(r.stroke||''); openAnaModal(); }); };
+      box.appendChild(row);
+    });
+  }
+  // ---- 大会データからの呼び出し ----
+  // 大会データはシートが種目（距離）ごとに分かれているので、距離をきめてから読み込む
+  function dfFetchWh(){
+    if(!warehouseUrl() && !askWarehouseUrl()){
+      $('dfSrc').value='team';
+      dfModeUpdate();
+      toast('大会データのURLが 必要です');
+      return;
+    }
+    [50,100,200,400,800,1500].forEach(function(d){ ensureOpt($('dfDist'), String(d), d+'m'); });
+    if(!$('dfDist').value) $('dfDist').value='50';
+    var eventName=$('dfDist').value+'m';
+    $('dfList').innerHTML='<div class="df-empty">大会データを 読み込み中…</div>';
+    fetchWh(eventName).then(function(rows){
+      dfWhRows=rows;
+      dfBuildFiltersWh();
+      dfRenderWh();
+    }).catch(function(err){
+      $('dfList').innerHTML='<div class="df-empty">大会データの読み込みに失敗しました： '+err.message+'<br>倉庫のGASが「全員がアクセス可」でデプロイされているか 確認してください。</div>';
+    });
+  }
+  // 読み込んだ行から、泳法・試合・年度・性別のえらべる値を作る
+  function dfBuildFiltersWh(){
+    function fill(sel, values, suffix){
+      var cur=sel.value;
+      sel.innerHTML='<option value="">すべて</option>';
+      values.forEach(function(v){
+        var o=document.createElement('option'); o.value=v; o.textContent=v+(suffix||''); sel.appendChild(o);
+      });
+      sel.value=cur; if(sel.value!==cur) sel.value='';
+    }
+    var st={}, me={}, yr={}, sx={};
+    dfWhRows.forEach(function(r){
+      if(r.stroke) st[r.stroke]=1;
+      if(r.meet) me[r.meet]=1;
+      if(r.year) yr[String(r.year).slice(0,4)]=1;
+      if(r.sex) sx[r.sex]=1;
+    });
+    fill($('dfStroke'), Object.keys(st).sort());
+    fill($('dfMeet'), Object.keys(me).sort());
+    fill($('dfYear'), Object.keys(yr).sort().reverse(), '年');
+    fill($('dfSex'), Object.keys(sx).sort());
+  }
+  // 絞り込んだ大会データの一覧を出す
+  function dfRenderWh(){
+    var box=$('dfList');
+    var fs=$('dfStroke').value, fm=$('dfMeet').value, fy=$('dfYear').value, fx=$('dfSex').value;
+    var nm=$('dfName').value.replace(/[\s\u3000]+/g,'');
+    var eventName=($('dfDist').value||'50')+'m';
+    var list=dfWhRows.filter(function(r){
+      if(fs && r.stroke!==fs) return false;
+      if(fm && r.meet!==fm) return false;
+      if(fy && String(r.year).slice(0,4)!==fy) return false;
+      if(fx && r.sex!==fx) return false;
+      if(nm && String(r.name||'').replace(/[\s\u3000]+/g,'').indexOf(nm)<0) return false;
+      return true;
+    });
+    box.innerHTML='';
+    if(!list.length){ box.innerHTML='<div class="df-empty">この条件の大会データは ありません。</div>'; return; }
+    var over=list.length>100;
+    if(over) list=list.slice(0,100);
+    list.forEach(function(r){
+      // 通過タイムが2地点以上あるレースだけ、よびだしと分析ができる
+      var hasDetail = r.pass && Object.keys(r.pass).length>1;
+      var t=(r.final!=null)? Number(r.final).toFixed(2) : '—';
+      var row=document.createElement('div');
+      row.className='df-race';
+      row.innerHTML='<span class="di"><span class="dn">'+(r.name||'')+'　'+t+'</span>'+
+        '<span class="ds">'+[(r.team||''),(r.stroke||''),(r.meet||''),String(r.year||'').slice(0,4)].filter(function(x){return x;}).join('　')+'</span></span>'+
+        (hasDetail? '<button class="db-load">よびだす</button><button class="db-ana">ぶんせき</button>'
+                  : '<span class="ds">くわしい通過データなし</span>');
+      if(hasDetail){
+        row.querySelector('.db-load').onclick=function(){
+          applyLoadedRace(whToRace(r, eventName));
+          $('findModal').classList.add('hide');
+          toast((r.name||'')+' の記録を よびだしました');
+        };
+        row.querySelector('.db-ana').onclick=function(){
+          applyLoadedRace(whToRace(r, eventName));
+          $('findModal').classList.add('hide');
+          anaLabel=(r.name||'')+'　'+eventName+' '+(r.stroke||'');
+          openAnaModal();
+        };
+      }
+      box.appendChild(row);
+    });
+    if(over){
+      var w=document.createElement('div'); w.className='df-empty';
+      w.textContent='100件までを表示しています。名前や条件で もう少し しぼってください。';
+      box.appendChild(w);
+    }
+  }
+  // どこから呼び出すかの切り替え（えらべる欄も入れ替わる）
+  function dfModeUpdate(){
+    var wh=$('dfSrc').value==='wh';
+    $('dfAthleteWrap').classList.toggle('hide', wh);
+    $('dfNameWrap').classList.toggle('hide', !wh);
+    $('dfSexWrap').classList.toggle('hide', !wh);
+    if(wh) dfFetchWh(); else openFindModal();
+  }
+  $('dfSrc').onchange=dfModeUpdate;
+  $('dfName').oninput=function(){ if($('dfSrc').value==='wh') dfRenderWh(); };
+  $('dfSex').onchange=function(){ if($('dfSrc').value==='wh') dfRenderWh(); };
+  $('dfAthlete').onchange=dfFetch;
+  $('dfStroke').onchange=function(){ if($('dfSrc').value==='wh') dfRenderWh(); else dfRender(); };
+  $('dfDist').onchange=function(){ if($('dfSrc').value==='wh') dfFetchWh(); else dfRender(); };
+  $('dfMeet').onchange=function(){ if($('dfSrc').value==='wh') dfRenderWh(); else dfRender(); };
+  $('dfYear').onchange=function(){ if($('dfSrc').value==='wh') dfRenderWh(); else dfRender(); };
+  $('dfClose').onclick=function(){ $('findModal').classList.add('hide'); };
+
+  // ===== データを分析（グラフ・まとめ・表） =====
+  var anaType='lap';     // いま見ているグラフの種類
+  var anaLabel='';       // 分析画面の見出しにそえる説明
+  // いま画面にある記録から、区間ごとの数字を組み立てる
+  function anaRows(){
+    var origin=originTime(), ds=allDists(), rows=[], prevP=0, prevD=0;
+    ds.forEach(function(d){
+      var p=passOf(d, origin);
+      if(p==null) return;
+      var lap=p-prevP, dist=d-prevD;
+      rows.push({from:prevD, to:d, pass:p, lap:lap, dist:dist, speed:(lap>0? dist/lap : 0)});
+      prevP=p; prevD=d;
+    });
+    return rows;
+  }
+  function openAnaModal(){
+    $('anaTitle').textContent='データ分析'+(anaLabel? '　'+anaLabel : '');
+    $('anaModal').classList.remove('hide');
+    anaType='lap';
+    document.querySelectorAll('.atab').forEach(function(b){ b.classList.toggle('active', b.dataset.c==='lap'); });
+    renderAna();
+  }
+  document.querySelectorAll('.atab').forEach(function(b){
+    b.onclick=function(){
+      anaType=b.dataset.c;
+      document.querySelectorAll('.atab').forEach(function(x){ x.classList.toggle('active', x===b); });
+      renderAna();
+    };
+  });
+  $('anaClose').onclick=function(){ $('anaModal').classList.add('hide'); anaLabel=''; };
+
+  function renderAna(){
+    var rows=anaRows();
+    drawAnaChart(rows);
+    renderAnaSummary(rows);
+    renderAnaTable(rows);
+  }
+  // まとめカード：R.T、ゴール、最速と最遅の区間、スピードの落ち方
+  function renderAnaSummary(rows){
+    var box=$('anaSummary'); box.innerHTML='';
+    function card(label, big, small){
+      var d=document.createElement('div'); d.className='as';
+      d.innerHTML=label+'<b>'+big+'</b>'+(small? '<span>'+small+'</span>' : '');
+      box.appendChild(d);
+    }
+    if(rtTime!=null) card('R.T（反応時間）', rtTime.toFixed(2)+'秒','');
+    if(rows.length){
+      card('ゴールタイム', fmt(rows[rows.length-1].pass), rows[rows.length-1].to+'m');
+      var fastest=rows[0], slowest=rows[0];
+      rows.forEach(function(r){ if(r.speed>fastest.speed) fastest=r; if(r.speed<slowest.speed) slowest=r; });
+      card('最速区間', fastest.from+'→'+fastest.to+'m', fastest.speed.toFixed(2)+' m/秒');
+      card('最遅区間', slowest.from+'→'+slowest.to+'m', slowest.speed.toFixed(2)+' m/秒');
+      if(rows.length>=2){
+        var drop=(1 - rows[rows.length-1].speed/fastest.speed)*100;
+        card('スピード低下率', drop.toFixed(1)+'%', '最速区間 → 最終区間');
+      }
+      // 前半と後半（ちょうど半分の地点が記録されているときだけ）
+      var half=raceDist/2, hp=null;
+      rows.forEach(function(r){ if(r.to===half) hp=r.pass; });
+      if(hp!=null && rows[rows.length-1].to===raceDist){
+        var back=rows[rows.length-1].pass-hp;
+        card('前半 / 後半', fmt(hp)+' / '+fmt(back), '後半差 '+(back-hp>=0?'+':'')+(back-hp).toFixed(2)+'秒');
+      }
+    }
+    if(!box.children.length) box.innerHTML='<div class="as">まだ記録がありません。呼び出すか、測定してください。</div>';
+  }
+  // 表：スクリーンリーダーでも読めるよう、グラフと同じ中身を文字でも出す
+  function renderAnaTable(rows){
+    var box=$('anaTable'); box.innerHTML='';
+    if(!rows.length) return;
+    var h=document.createElement('div'); h.className='ar h';
+    h.innerHTML='<span>区間</span><span>通過</span><span>区間タイム</span><span>速さ</span>';
+    box.appendChild(h);
+    rows.forEach(function(r){
+      var d=document.createElement('div'); d.className='ar';
+      d.innerHTML='<span>'+r.from+'→'+r.to+'m</span><span>'+fmt(r.pass)+'</span>'+
+                  '<span>'+fmt(r.lap)+'</span><span>'+r.speed.toFixed(2)+' m/秒</span>';
+      box.appendChild(d);
+    });
+  }
+  // グラフの描画。棒＝区間タイムとかき数、折れ線＝スピードとテンポ
+  // 開いた瞬間に、棒は下からすっと伸び、折れ線は左からすーっと描かれていく
+  var anaAnimId=null;
+  function drawAnaChart(rows){
+    if(anaAnimId) cancelAnimationFrame(anaAnimId);
+    var start=performance.now(), DUR=750;
+    function ease(x){ return 1-Math.pow(1-x,3); }  // はじめ速く、さいごゆっくり落ち着く
+    function frame(now){
+      var p=Math.min(1, (now-start)/DUR);
+      drawAnaFrame(rows, ease(p));
+      if(p<1) anaAnimId=requestAnimationFrame(frame);
+    }
+    anaAnimId=requestAnimationFrame(frame);
+  }
+  // P は 0から1 の進み具合。1 になったら完成の姿
+  function drawAnaFrame(rows, P){
+    var c=$('anaCanvas');
+    var W=c.clientWidth||600, H=250, dpr=window.devicePixelRatio||1;
+    c.width=W*dpr; c.height=H*dpr;
+    var ctx=c.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,W,H);
+    ctx.font='11px sans-serif'; ctx.textAlign='center';
+    var padL=44, padR=12, padT=16, padB=30;
+    var iw=W-padL-padR, ih=H-padT-padB;
+    function grid(maxV, unit){
+      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.fillStyle='#bfe3ff'; ctx.textAlign='right';
+      for(var i=0;i<=4;i++){
+        var y=padT+ih-ih*i/4;
+        ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+        ctx.fillText((maxV*i/4).toFixed(1)+unit, padL-5, y+4);
+      }
+      ctx.textAlign='center';
+    }
+    function empty(msg){ ctx.fillStyle='#bfe3ff'; ctx.font='14px sans-serif'; ctx.fillText(msg, W/2, H/2); }
+    function bars(items, color, unit){
+      if(!items.length){ empty('この項目の記録は まだありません'); return; }
+      var maxV=Math.max.apply(null, items.map(function(x){return x.v;}))*1.15||1;
+      grid(maxV, unit);
+      var bw=Math.min(56, iw/items.length*0.6);
+      items.forEach(function(it,i){
+        var x=padL+iw*(i+0.5)/items.length;
+        var h2=ih*it.v/maxV*P;   // 進み具合ぶんだけ伸びる
+        ctx.fillStyle=color;
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(x-bw/2, padT+ih-h2, bw, h2, 5); else ctx.rect(x-bw/2, padT+ih-h2, bw, h2);
+        ctx.fill();
+        // 数字は伸びきる直前から ふわっと出す
+        if(P>0.85){
+          ctx.globalAlpha=(P-0.85)/0.15;
+          ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif';
+          ctx.fillText(it.v.toFixed(it.dec!=null?it.dec:2), x, padT+ih-h2-5);
+          ctx.globalAlpha=1;
+        }
+        ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif';
+        ctx.fillText(it.label, x, H-10);
+      });
+    }
+    function line(items, color, unit){
+      if(!items.length){ empty('この項目の記録は まだありません'); return; }
+      var maxV=Math.max.apply(null, items.map(function(x){return x.v;}))*1.15||1;
+      grid(maxV, unit);
+      // 左から進み具合ぶんだけ「窓」をあけて、線が描かれていくように見せる
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, padL+iw*P+8, H);
+      ctx.clip();
+      ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath();
+      items.forEach(function(it,i){
+        var x=padL+iw*(i+0.5)/items.length, y=padT+ih-ih*it.v/maxV;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      items.forEach(function(it,i){
+        var x=padL+iw*(i+0.5)/items.length, y=padT+ih-ih*it.v/maxV;
+        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.fillText(it.v.toFixed(2), x, y-9);
+        ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif'; ctx.fillText(it.label, x, H-10);
+      });
+      ctx.restore();
+    }
+    if(anaType==='lap'){
+      bars(rows.map(function(r){ return {v:r.lap, label:r.from+'→'+r.to, dec:2}; }), '#fbbf24', '秒');
+    } else if(anaType==='speed'){
+      line(rows.map(function(r){ return {v:r.speed, label:r.from+'→'+r.to}; }), '#34d399', 'm/s');
+    } else if(anaType==='tempo'){
+      var items=Object.keys(tempoValues).map(function(k){
+        return {from:parseInt(k.split('-')[0],10), v:tempoValues[k].perStroke, label:k.replace('-','→')};
+      }).sort(function(a,b){return a.from-b.from;});
+      bars(items.map(function(x){ return {v:x.v, label:x.label, dec:2}; }), '#22d3ee', '秒');
+    } else if(anaType==='stroke'){
+      var items2=[];
+      strokeCounts.forEach(function(v,i){
+        if(v!=null) items2.push({v:v, label:(i*50)+'→'+((i+1)*50), dec:0});
+      });
+      bars(items2, '#a78bfa', 'かき');
+    }
+  }
   $('ldAthlete').onchange=function(){ renderLoadList(this.value); };
   $('ldClose').onclick=function(){ $('loadModal').classList.add('hide'); };
 
@@ -1573,7 +3224,7 @@
     tempoValues=d.tempo||{};
     strokeCounts=(d.strokes||[]).map(function(v){ return (v==null)?null:Number(v); });
     rtTime=(d.rt!=null)?Number(d.rt):null;
-    rtStep=0; openSegKey=null; selDist=0; selFrom=null; selTo=null;
+    rtStep=0; rtBySound=false; rtPendingV=null; openSegKey=null; selDist=0; selFrom=null; selTo=null;
     setMode('time'); buildScale(); renderRecords();
     $('distModal').classList.add('hide');
   }
@@ -1648,14 +3299,20 @@
           rtMark1=now; rtStep=2;
           updateAim();
           toast('①合図を きろく。つぎは ②足ばなれの瞬間で もう一回');
+          shacchiSay('つぎは②足ばなれだチー。足が台からはなれた瞬間にコマ送りで合わせて、もう一回「ここを きろく」をおすっチー。', 15000);
           return;
         }
         if(rtStep===2){
           var v=now-rtMark1;
           if(v<=0){ toast('②は ①より あとの場面に してね'); return; }
-          rtTime=v; rtStep=0;
-          selDist=0; updateAim(); buildScale(); renderRecords();
-          toast('R.T '+v.toFixed(2)+'秒 を きろくしました');
+          if(rtBySound){
+            // ①を音で決めたときは、音のおくれ0.15秒を自動で足す
+            finalizeRt(v, true);
+          } else {
+            // ①を自分で合わせたときは、光か音かを聞いてから確定する
+            rtPendingV=v;
+            $('rtSrcModal').classList.remove('hide');
+          }
           return;
         }
         // 段階が始まっていなければ、やり方の選択画面を出す
@@ -1669,6 +3326,10 @@
       splitTimes[selDist]=getStampTime();
       buildScale(); renderRecords();
       toast(selDist+'m を きろくしました');
+      // 0m（スタート）が無いと通過タイムの基準が作れないので、気づかせる
+      if(selDist>0 && splitTimes[0]==null){
+        shacchiSay('0m（スタート）が まだ記録されていないっチー。このままだと通過タイムが正しく出ないっチー。R.Tを動画ではかるか、足が台をはなれた瞬間に 0mを きろくするっチー。', 13000);
+      }
     } else {
       // ===== テンポ測定 =====
       if(selFrom==null){ toast('さきに区間をえらんでね'); return; }
@@ -1989,12 +3650,14 @@
   }
 
   // ========== コマ送り ==========
+  $('b1000').onclick=function(){ step(-1000); };
   $('b100').onclick=function(){ step(-100); };
   $('b10').onclick=function(){ step(-10); };
   $('b1').onclick=function(){ step(-1); };
   $('f1').onclick=function(){ step(1); };
   $('f10').onclick=function(){ step(10); };
   $('f100').onclick=function(){ step(100); };
+  $('f1000').onclick=function(){ step(1000); };
   $('bPlay').onclick=function(){
     if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
     if(videoEl.paused) videoEl.play(); else videoEl.pause();
@@ -2005,7 +3668,7 @@
 
   // ========== ズーム・移動（ピンチとドラッグ） ==========
   var vScale=1, vTx=0, vTy=0, MINS=1, MAXS=6;
-  function applyT(){ videoEl.style.transform='translate(-50%,-50%) translate('+vTx+'px,'+vTy+'px) scale('+vScale+')'; }
+  function applyT(){ videoEl.style.transform='translate(-50%,-50%) translate('+vTx+'px,'+vTy+'px) scale('+vScale+')'; renderLine(); }
   function setScale(s){ vScale=Math.max(MINS,Math.min(MAXS,s)); if(vScale<=1.001){vTx=0;vTy=0;} applyT(); }
   videoWrap.addEventListener('wheel', function(e){ if(!app.classList.contains('hasvideo'))return; e.preventDefault(); setScale(vScale+(e.deltaY<0?0.2:-0.2)); }, {passive:false});
   var drag=false, lx=0, ly=0;
@@ -2024,6 +3687,89 @@
     else if(e.touches.length===2 && pd>0){ setScale(ps*(dist2(e.touches[0],e.touches[1])/pd)); }
   }, {passive:false});
   videoWrap.addEventListener('touchend', function(e){ if(e.touches.length===0) pd=0; });
+
+  // ========== 通過ライン（黄色い線） ==========
+  // 斜めから撮った動画でも、頭が「線」を横切った瞬間で判定できるようにする機能。
+  // 線ボタンを押す → 手前の赤い目印をタップ → 奥の赤い目印をタップ → 黄色い線が出る。
+  // 線は動画にはりついていて、ズームや移動をしても一緒についてくる。
+  var lineLayer=$('lineLayer');
+  var lineMode=0;                 // 0=ふつう 1=1点目を待つ 2=2点目を待つ
+  var lineP1=null, lineP2=null;   // タップした2点（動画の元の大きさでの座標）
+
+  // 画面上のタップ位置を、動画の元の大きさでの座標に直す
+  function lineLocalPoint(cx,cy){
+    var vr=videoEl.getBoundingClientRect();
+    return { x:(cx-vr.left)/vScale, y:(cy-vr.top)/vScale };
+  }
+
+  // 記憶している2点から線を描き直す（ズームや移動のたびに呼ばれる）
+  function renderLine(){
+    if(!lineP1 && !lineP2){ lineLayer.innerHTML=''; return; }
+    var vr=videoEl.getBoundingClientRect(), wr=videoWrap.getBoundingClientRect();
+    function S(p){ return { x: vr.left + p.x*vScale - wr.left, y: vr.top + p.y*vScale - wr.top }; }
+    var s='';
+    if(lineP1 && lineP2){
+      var a=S(lineP1), b=S(lineP2);
+      var dx=b.x-a.x, dy=b.y-a.y, len=Math.sqrt(dx*dx+dy*dy)||1;
+      // 2点を結んだ向きのまま、画面の外まで大きくのばす
+      var ex=dx/len*4000, ey=dy/len*4000;
+      var x1=a.x-ex, y1=a.y-ey, x2=b.x+ex, y2=b.y+ey;
+      s+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="rgba(0,0,0,.5)" stroke-width="7" stroke-linecap="round"></line>';
+      s+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#fde047" stroke-width="4" stroke-linecap="round"></line>';
+    }
+    function dot(p){ var q=S(p); return '<circle cx="'+q.x+'" cy="'+q.y+'" r="8" fill="#ef4444" stroke="#fff" stroke-width="2.5"></circle>'; }
+    if(lineP1) s+=dot(lineP1);
+    if(lineP2) s+=dot(lineP2);
+    lineLayer.innerHTML=s;
+  }
+
+  // ボタンの見た目を今の状態に合わせる（選択中は黄色、線があるときはチェック）
+  function updateLineChip(){
+    var c=$('lineChip');
+    c.classList.toggle('sel', lineMode>0);
+    c.classList.toggle('done', !!(lineP1&&lineP2) && lineMode===0);
+  }
+
+  // タップで点を置く
+  function placeLinePoint(cx,cy){
+    var p=lineLocalPoint(cx,cy);
+    if(lineMode===1){
+      lineP1=p; lineMode=2; renderLine(); updateLineChip();
+      shacchiSay('つぎに、おくの赤い目印を タップするチー。', 15000);
+    } else if(lineMode===2){
+      lineP2=p; lineMode=0; renderLine(); updateLineChip();
+      shacchiSay('黄色い線を引いたチー！頭が線を通った瞬間に「ここを きろく」だチー。', 9000);
+    }
+  }
+
+  // 線ボタン：ふつう→線モード開始（古い線は消える）／線モード中にもう一度押すと中止
+  $('lineChip').onclick=function(){
+    if(lineMode>0){
+      lineMode=0; lineP1=null; lineP2=null; renderLine(); updateLineChip();
+      toast('線を やめました');
+    } else {
+      lineP1=null; lineP2=null; lineMode=1; renderLine(); updateLineChip();
+      shacchiSay('手前の赤い目印を タップするチー。ズームしてから タップしてもいいチー。', 15000);
+    }
+  };
+
+  // タップの判定：指がほとんど動かなかったときだけ「タップ」とみなす
+  // （ドラッグやピンチのときは click が起きないので、線モード中でも動かす操作はそのまま使える）
+  var lineDownX=0, lineDownY=0;
+  videoWrap.addEventListener('mousedown', function(e){ lineDownX=e.clientX; lineDownY=e.clientY; });
+  videoWrap.addEventListener('click', function(e){
+    if(lineMode<=0) return;
+    var dx=e.clientX-lineDownX, dy=e.clientY-lineDownY;
+    if(dx*dx+dy*dy>64) return;
+    placeLinePoint(e.clientX, e.clientY);
+  });
+
+  // 画面の向きや大きさが変わったら線を描き直す
+  window.addEventListener('resize', renderLine);
+  // 新しい動画を開いたら、前の線は意味がなくなるので消す
+  videoEl.addEventListener('loadedmetadata', function(){
+    lineMode=0; lineP1=null; lineP2=null; renderLine(); updateLineChip();
+  });
 
   // ========== メニュー（いまはズームのもとに戻す＋記録の予定） ==========
   $('menuBtn').onclick=function(){
@@ -2098,7 +3844,10 @@
   // 押したボタンの説明を吹き出しで出す。もう一度シャッチーくんを押すとおわる。
   var guideMode=false;
   var GUIDE=[
-    ['#openBtn','ここからレースの動画をえらぶチー。カメラロールの動画がつかえるチー。'],
+    ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるチー。'],
+    ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するチー。区間タイム・スピード・テンポ・かき数が 見られるチー。'],
+    ['#smCompare','ほかの選手と くらべる機能だチー。同じ体型（身長・体重・BMIのはばは1〜10%でえらべるチー）、同じ年齢、同じ性別で しぼって、ランキングが見られるチー。'],
+    ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるチー。'],
     ['#toolsBtn','ここは道具箱だチー。動画や距離の変更、ほぞんとよびだしが入っているチー。'],
     ['#changeBtn','べつの動画にとりかえるチー。いまの記録はのこったままだチー。'],
     ['#distBtn','レースの距離をえらびなおすチー。記録はリセットされるから気をつけるチー。'],
@@ -2111,7 +3860,9 @@
     ['#lapBtn','いちばん大事なボタンだチー。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするチー。'],
     ['#rtChip','スタートの反応時間をあつかうチー。せいかくに はかるコツは二つあるチー。一つは、ピストルの光が光ったら、①をおすっチー。もう一つは、ピストルの音が鳴ったら、①をおすっチー。だけど、会場が広いと、音はおそく届くっチー。だから光で合わせるのが おすすめだチー。'],
     ['#strokeChip','50mごとのかき数をとうろくするチー。あとから直せるチー。'],
+    ['#lineChip','黄色い通過ラインを引くボタンだチー。おしてから、手前の赤い目印、おくの赤い目印のじゅんにタップすると線が出るチー。ななめから撮った動画でも、頭が線を通った瞬間で正しく判定できるチー。もう一度おすと引き直せるチー。'],
     ['#tempoFinish','1つずつはかったテンポをここでしめくくるチー。'],
+    ['#b1000','1000コマ、いっきに もどるチー。べつのレースの頭出しに べんりだチー。'],
     ['#b100','100コマ大きくもどるチー。'],
     ['#b10','10コマもどるチー。'],
     ['#b1','1コマだけもどるチー。微調整の主役だチー。'],
@@ -2119,6 +3870,7 @@
     ['#f1','1コマだけすすむチー。'],
     ['#f10','10コマすすむチー。'],
     ['#f100','100コマ大きくすすむチー。'],
+    ['#f1000','1000コマ、いっきに すすむチー。'],
     ['#menuBtn','ズームした動画をもとの大きさにもどすチー。'],
     ['#timeHud','スタートからの経過時間だチー。コマ送りにあわせてかわるチー。'],
     ['#recPanel','記録がここにたまるチー。きろくの見出しをつかむとパネルごとうごかせるチー。タイムの数字をおすと正式タイムが入れられるチー。'],

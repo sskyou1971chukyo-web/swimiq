@@ -545,6 +545,19 @@
     box-shadow:0 3px 0 rgba(0,0,0,.2); }
   #cfgUpdateBtn:disabled{ opacity:.7; cursor:default; }
   #cfgUpdateBtn:active{ transform:translateY(2px); }
+  /* 新しい版のお知らせの帯：画面の上に出て、更新するかあとにするかをえらべる */
+  #updBanner{ position:fixed; left:50%; top:calc(env(safe-area-inset-top) + 8px); transform:translateX(-50%);
+    z-index:60; display:flex; align-items:center; gap:10px;
+    background:linear-gradient(135deg,#4f46e5,#0ea5e9); border:1.5px solid rgba(255,255,255,.5);
+    border-radius:14px; padding:8px 12px; box-shadow:0 6px 18px rgba(0,0,0,.4);
+    font-size:13px; font-weight:900; text-shadow:var(--shadow);
+    animation:popIn .5s both; }
+  #updBanner.hide{ display:none; }
+  #updBanner button{ padding:7px 10px; border:none; border-radius:9px; cursor:pointer;
+    font-size:12px; font-weight:900; color:#fff; text-shadow:var(--shadow); }
+  #updNow{ background:linear-gradient(135deg,#f97316,#fbbf24); }
+  #updLater{ background:rgba(255,255,255,.18); }
+  #updBanner button:active{ transform:translateY(2px); }
   /* ほぞん画面：動画フォルダをひらく小さなボタン */
   #svFolderBtn{ flex:0 0 auto; margin-left:6px; padding:8px 10px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:10px;
@@ -1038,6 +1051,13 @@
       <button id="cfgClose">とじる</button>
     </div>
   </div>
+</div>
+
+<!-- 新しい版のお知らせの帯 -->
+<div id="updBanner" class="hide">
+  <span>✨ 新しい版が あります</span>
+  <button id="updNow" type="button">今すぐ 更新</button>
+  <button id="updLater" type="button">あとで</button>
 </div>
 
 <div id="toast"></div>
@@ -3973,6 +3993,58 @@
   makeDraggable($('recPanel'), $('recPanel').querySelector('.rec-head'));
   // シャッチーくん：本体をつかんで動かす。タップならチュートリアル。
   makeDraggable($('shacchi'), $('shacchi'));
+
+  // ========== 新しい版のお知らせ ==========
+  // アプリを開いたとき（と、ときどき）、GitHubの倉庫に「index.htmlの最新の更新しるし」を聞きに行く。
+  // 前に見たしるしと違っていたら、新しい版が出たということなので、上に帯を出して知らせる。
+  function updRepo(){ return localStorage.getItem('swimiq_gh_repo') || 'sskyou1971chukyo-web/swimiq'; }
+  var updLatest=null;
+  function updCheck(){
+    fetch('https://api.github.com/repos/'+updRepo()+'/commits?path=index.html&per_page=1')
+      .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(function(list){
+        if(!list || !list[0] || !list[0].sha) return;
+        updLatest=list[0].sha;
+        var seen=localStorage.getItem('swimiq_seen_sha');
+        if(!seen){
+          // はじめての起動。いま見ている版を「見た」として覚えるだけ
+          localStorage.setItem('swimiq_seen_sha', updLatest);
+          return;
+        }
+        if(seen!==updLatest && !sessionStorage.getItem('swimiq_upd_later')){
+          $('updBanner').classList.remove('hide');
+        }
+      })
+      .catch(function(){});  // 電波が無いときなどは、だまって何もしない
+  }
+  // 今すぐ更新：古い写し（キャッシュ）を片付けてから、読み込み直す
+  $('updNow').onclick=function(){
+    if(updLatest) localStorage.setItem('swimiq_seen_sha', updLatest);
+    $('updBanner').classList.add('hide');
+    function go(){ location.replace(location.pathname+'?v='+Date.now()); }
+    var jobs=[];
+    try{
+      if(window.caches){
+        jobs.push(caches.keys().then(function(ks){
+          return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+        }));
+      }
+      if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+        jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+          return Promise.all(rs.map(function(r){ return r.update(); }));
+        }));
+      }
+    }catch(e){}
+    Promise.all(jobs).then(go, go);
+  };
+  // あとで：この起動のあいだは もう出さない（次にひらいたときは また知らせる）
+  $('updLater').onclick=function(){
+    sessionStorage.setItem('swimiq_upd_later','1');
+    $('updBanner').classList.add('hide');
+  };
+  updCheck();
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) updCheck(); });
+  setInterval(updCheck, 30*60*1000);  // 30分ごとにも そっと確認する
 
   // ========== 初期化 ==========
   buildScale(); setMode('time'); renderRecords();

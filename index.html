@@ -270,15 +270,22 @@
   #frame .fgroup > *{ flex:0 0 auto; }  /* ボタンが押しつぶされて文字が切れるのを防ぐ */
   /* 記録グループの前に細い仕切り線を入れて、役割の境目を見せる */
   #frame .fgroup.rec{ gap:8px; border-left:1.5px solid rgba(255,255,255,.22); padding-left:12px; }
-  .fb{ width:60px; min-width:60px; height:44px; border-radius:10px; cursor:pointer; padding:0;
+  .fb{ width:60px; min-width:60px; height:44px; border-radius:14px; cursor:pointer; padding:0;
     border:1.5px solid var(--line); background:rgba(20,52,86,.7);
     color:#fff; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; gap:2px;
-    text-shadow:var(--shadow); }
-  .fb .n{ font-size:11px; }
-  /* 1000ボタンは数字が長いので少しだけ字を詰める */
-  #b1000 .n, #f1000 .n{ font-size:10px; letter-spacing:-0.5px; }
+    text-shadow:var(--shadow);
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }  /* 長押しで文字選択が出ないように */
+  /* もどる・すすむ：押すたび1コマ、長押しで30秒ずつ */
+  .fb.jump{ width:80px; min-width:80px; height:52px; font-size:22px; }
+  /* 調整：1回で0.9秒 */
+  .fb.adj{ width:80px; min-width:80px; height:52px; font-size:14px;
+    background:rgba(99,102,241,.35); }
   .fb:active{ transform:translateY(2px); background:rgba(34,197,94,.6); }
-  .fb.play{ background:linear-gradient(135deg,#34d399,#0ea5e9); font-size:18px; }
+  .fb.play{ width:80px; min-width:80px; height:52px; font-size:24px;
+    background:linear-gradient(135deg,#34d399,#0ea5e9);
+    margin:0 18px; }  /* 再生の左右に間をあけて、おしまちがいを防ぐ */
+  /* 5つのボタンは、左のひろい空間の まんなかに等間隔でならべる */
+  #frame .fgroup.steps{ flex:1; justify-content:center; gap:12px; }
   /* 幅の狭い横画面（携帯）：バーを二段建てにして、ボタンを大きく見やすく */
   @media (orientation: landscape) and (max-width: 1100px){
     #frame{ left:calc(env(safe-area-inset-left) + 70px); right:calc(env(safe-area-inset-right) + 98px);
@@ -286,10 +293,10 @@
       background:rgba(4,18,34,.88); }  /* 背景を濃くして、ボタンをくっきり見せる */
     #frame .fgroup{ width:100%; gap:6px; }
     #frame .fgroup > *{ flex:1; }  /* ボタンが横いっぱいに ひろがって大きくなる */
-    /* 上の段：コマ送り */
-    .fb{ width:auto; min-width:0; height:46px; font-size:15px; }
-    .fb .n{ font-size:13px; }
-    #b1000 .n, #f1000 .n{ font-size:12px; letter-spacing:-0.5px; }
+    /* 上の段：調整・もどる・さいせい・すすむ・調整 */
+    .fb.jump, .fb.play{ width:auto; min-width:0; height:54px; font-size:24px; }
+    .fb.adj{ width:auto; min-width:0; height:54px; font-size:15px; }
+    .fb.play{ margin:0 12px; }
     /* 下の段：記録のボタン。仕切り線は横線にかわる */
     #frame .fgroup.rec{ border-left:none; padding-left:0;
       border-top:1.5px solid rgba(255,255,255,.22); padding-top:7px; gap:6px; }
@@ -543,6 +550,23 @@
     background:rgba(10,32,55,.9); color:#fff; font-size:13px; font-weight:700; }
   .cfg-note{ font-size:11px !important; opacity:.85; margin:6px 0 14px !important; }
   #smSettings{ background:linear-gradient(135deg,#64748b,#475569); }
+  #smMine{ background:linear-gradient(135deg,#ec4899,#f97316); font-size:17px; }
+  /* じぶんの記録：子どもでも読める大きな文字 */
+  #mineModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #mineModal.hide{ display:none; }
+  .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:14px;
+    background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
+    text-shadow:var(--shadow); }
+  .mine-name:active{ transform:translateY(2px); background:rgba(34,197,94,.4); }
+  .df-race.mine-big{ padding:13px 12px; }
+  .df-race.mine-big .dn{ font-size:17px; }
+  .df-race.mine-big .ds{ font-size:12px; }
+  .df-race.mine-big button{ padding:12px 14px; font-size:14px; }
+  .mine-switch{ display:block; margin:10px auto 0; padding:8px 14px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:10px;
+    background:rgba(255,255,255,.1); color:#bfe3ff; font-size:12px; font-weight:800; }
   /* 設定のアップデートボタン */
   #cfgUpdateBtn{ display:block; width:100%; margin:4px 0 14px; padding:12px; cursor:pointer;
     border:none; border-radius:12px;
@@ -730,6 +754,7 @@
 
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
+    <button id="smMine">🙋 じぶんの記録</button>
     <button id="smFind">📂 データを呼び出す</button>
     <button id="smAnalyze">📈 データを分析</button>
     <button id="smCompare">⚖️ データを比較</button>
@@ -768,16 +793,12 @@
 
   <!-- 下のバー：左にコマ送り、右に記録のボタン。ひとつのバーにまとめる -->
   <div id="frame">
-    <div class="fgroup">
-      <button class="fb" id="b1000"><span>◀◀</span><span class="n">1000</span></button>
-      <button class="fb" id="b100"><span>◀◀</span><span class="n">100</span></button>
-      <button class="fb" id="b10"><span>◀◀</span><span class="n">10</span></button>
-      <button class="fb" id="b1"><span>◀</span><span class="n">1</span></button>
-      <button class="fb play" id="bPlay">▶</button>
-      <button class="fb" id="f1"><span class="n">1</span><span>▶</span></button>
-      <button class="fb" id="f10"><span class="n">10</span><span>▶▶</span></button>
-      <button class="fb" id="f100"><span class="n">100</span><span>▶▶</span></button>
-      <button class="fb" id="f1000"><span class="n">1000</span><span>▶▶</span></button>
+    <div class="fgroup steps">
+      <button class="fb adj" id="bAdjBack" aria-label="0.9秒もどる">◀0.9秒</button>
+      <button class="fb jump" id="bBack" aria-label="もどる">◀◀</button>
+      <button class="fb play" id="bPlay" aria-label="さいせい・いちじていし">▶</button>
+      <button class="fb jump" id="bFwd" aria-label="すすむ">▶▶</button>
+      <button class="fb adj" id="bAdjFwd" aria-label="0.9秒すすむ">0.9秒▶</button>
     </div>
     <div class="fgroup rec">
       <button id="tempoFinish">✔ このテンポで 確定</button>
@@ -1064,6 +1085,15 @@
   <span>✨ 新しい版が あります</span>
   <button id="updNow" type="button">今すぐ 更新</button>
   <button id="updLater" type="button">あとで</button>
+</div>
+
+<!-- じぶんの記録：はじめに名前をえらべば、あとは1タップで自分のレースが出る -->
+<div id="mineModal" class="hide">
+  <div class="modal-card df-card">
+    <h2 id="mineTitle">じぶんの記録</h2>
+    <div id="mineList" class="df-list"></div>
+    <div class="stroke-btns"><button id="mineClose">とじる</button></div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -2046,6 +2076,111 @@
 
   // ========== 左上メニュー：データを呼び出す・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
+
+  // ========== じぶんの記録（1タップで自分のレース） ==========
+  // はじめの1回だけ、名簿から自分の名前をえらんで、携帯に覚えさせる。
+  // 以後はボタン1つで自分のレースが出る。一度読み込んだ一覧は携帯が覚えるので、
+  // 電波が無い場所でも 前回の一覧が見られる。
+  var MINE_CACHE='swimiq_mine_races';
+  function myId(){ return localStorage.getItem('swimiq_me_id')||''; }
+  function myName(){ return localStorage.getItem('swimiq_me_name')||''; }
+  $('smMine').onclick=openMine;
+  $('mineClose').onclick=function(){ $('mineModal').classList.add('hide'); };
+  function openMine(){
+    $('mineModal').classList.remove('hide');
+    if(!myId()){ mineChoose(); return; }
+    $('mineTitle').textContent=myName()+' の記録';
+    // まず、携帯が覚えている一覧をすぐ出す（電波が無くても見られる）
+    var cached=null;
+    try{ cached=JSON.parse(localStorage.getItem(MINE_CACHE)||'null'); }catch(e){}
+    if(cached && cached.length) mineRender(cached, true);
+    else $('mineList').innerHTML='<div class="df-empty">読み込み中…</div>';
+    // うらで最新の一覧を取りにいって、届いたら入れかえる
+    api({action:'list', athleteId:myId()}).then(function(res){
+      if(res.ok){
+        localStorage.setItem(MINE_CACHE, JSON.stringify(res.races||[]));
+        mineRender(res.races||[], false);
+      }
+    }).catch(function(){
+      if(!(cached && cached.length)){
+        $('mineList').innerHTML='<div class="df-empty">電波がとどきませんでした。一度読み込めば、次からは電波が無くても見られます。</div>';
+      }
+    });
+  }
+  // はじめの1回：名簿から自分をえらぶ
+  function mineChoose(){
+    $('mineTitle').textContent='じぶんを えらぶ';
+    $('mineList').innerHTML='<div class="df-empty">名簿を 読み込み中…</div>';
+    api({action:'roster'}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'名簿を取得できませんでした');
+      var box=$('mineList'); box.innerHTML='';
+      var hint=document.createElement('div'); hint.className='df-empty';
+      hint.textContent='はじめてだけの設定です。じぶんの名前を おしてね。';
+      box.appendChild(hint);
+      (res.athletes||[]).forEach(function(a){
+        var b=document.createElement('button'); b.type='button'; b.className='mine-name';
+        b.textContent=a.name+(a.group? '　'+a.group : '');
+        b.onclick=function(){
+          localStorage.setItem('swimiq_me_id', a.id);
+          localStorage.setItem('swimiq_me_name', a.name);
+          localStorage.removeItem(MINE_CACHE);
+          openMine();
+        };
+        box.appendChild(b);
+      });
+      if(!(res.athletes||[]).length){
+        box.innerHTML='<div class="df-empty">まだ選手が登録されていません。コーチに登録してもらってね。</div>';
+      }
+    }).catch(function(err){
+      $('mineList').innerHTML='<div class="df-empty">名簿を読み込めませんでした： '+err.message+'<br>（GASをv4に更新すると使えるようになります）</div>';
+    });
+  }
+  // 自分のレースを、大きなカードでならべる
+  function mineRender(races, fromCache){
+    var box=$('mineList'); box.innerHTML='';
+    if(fromCache){
+      var o=document.createElement('div'); o.className='df-empty';
+      o.textContent='（前に読み込んだ一覧です。新しい記録がないか 確認中…）';
+      box.appendChild(o);
+    }
+    if(!races.length){
+      box.innerHTML='<div class="df-empty">まだ記録がありません。コーチにほぞんしてもらってね。</div>';
+    }
+    races.forEach(function(r){
+      var row=document.createElement('div'); row.className='df-race mine-big';
+      row.innerHTML='<span class="di"><span class="dn">'+r.raceDist+'m '+(r.stroke||'')+'　'+(r.finalTime||'')+'</span>'+
+        '<span class="ds">'+[(r.meetName||''),(r.meetDate||'')].filter(function(x){return x;}).join('　')+'</span></span>'+
+        (r.videoUrl? '<button class="db-video">🎬</button>' : '')+
+        '<button class="db-ana">グラフ</button>';
+      row.querySelector('.db-ana').onclick=function(){
+        row.querySelector('.db-ana').disabled=true;
+        api({action:'load', raceId:r.raceId}).then(function(res2){
+          if(!res2.ok) throw new Error(res2.error||'読み込めませんでした');
+          applyLoadedRace(res2);
+          $('mineModal').classList.add('hide');
+          anaLabel=(res2.meetName||'')+' '+r.raceDist+'m '+(r.stroke||'');
+          openAnaModal();
+        }).catch(function(err){
+          row.querySelector('.db-ana').disabled=false;
+          toast('よみこみ失敗： '+err.message);
+        });
+      };
+      if(r.videoUrl){
+        row.querySelector('.db-video').onclick=function(){ window.open(r.videoUrl, '_blank'); };
+      }
+      box.appendChild(row);
+    });
+    // まちがえて えらんだときのための、えらび直しボタン
+    var sw=document.createElement('button'); sw.type='button'; sw.className='mine-switch';
+    sw.textContent='べつの人に かわる';
+    sw.onclick=function(){
+      localStorage.removeItem('swimiq_me_id');
+      localStorage.removeItem('swimiq_me_name');
+      localStorage.removeItem(MINE_CACHE);
+      mineChoose();
+    };
+    box.appendChild(sw);
+  }
   $('smAnalyze').onclick=function(){
     if(allDists().length===0 && rtTime==null){
       toast('さきに「データを呼び出す」で 記録をえらんでね');
@@ -3676,14 +3811,37 @@
   }
 
   // ========== コマ送り ==========
-  $('b1000').onclick=function(){ step(-1000); };
-  $('b100').onclick=function(){ step(-100); };
-  $('b10').onclick=function(){ step(-10); };
-  $('b1').onclick=function(){ step(-1); };
-  $('f1').onclick=function(){ step(1); };
-  $('f10').onclick=function(){ step(10); };
-  $('f100').onclick=function(){ step(100); };
-  $('f1000').onclick=function(){ step(1000); };
+  // もどる・すすむ：押すたびに1コマ。長押しすると、押しているあいだ30秒ずつ移動しつづける
+  function bindStepBtn(el, dir){
+    var longTimer=null;    // 長押しを見はる時計
+    var repTimer=null;     // 長押し中に くり返すための時計
+    var longFired=false;   // 長押しがもう働いたか
+    function stopAll(){ clearTimeout(longTimer); clearInterval(repTimer); }
+    el.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      longFired=false;
+      stopAll();
+      longTimer=setTimeout(function(){
+        longFired=true;
+        step(dir*Math.round(30*FPS));            // まず30秒
+        repTimer=setInterval(function(){
+          step(dir*Math.round(30*FPS));          // 押しているあいだ、30秒ずつくり返す
+        }, 600);
+      }, 700);
+    });
+    el.addEventListener('pointerup', function(){
+      stopAll();
+      if(!longFired) step(dir*1);                // ふつうに押したら、その場で1コマ
+    });
+    el.addEventListener('pointerleave', stopAll);
+    el.addEventListener('pointercancel', stopAll);
+    el.addEventListener('contextmenu', function(e){ e.preventDefault(); });  // 長押しメニューを出さない
+  }
+  bindStepBtn($('bBack'), -1);
+  bindStepBtn($('bFwd'), 1);
+  // 調整ボタン：1回おすと0.9秒
+  $('bAdjBack').onclick=function(){ step(-Math.round(0.9*FPS)); };
+  $('bAdjFwd').onclick=function(){ step(Math.round(0.9*FPS)); };
   $('bPlay').onclick=function(){
     if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
     if(videoEl.paused) videoEl.play(); else videoEl.pause();
@@ -3795,6 +3953,11 @@
   // 新しい動画を開いたら、前の線は意味がなくなるので消す
   videoEl.addEventListener('loadedmetadata', function(){
     lineMode=0; lineP1=null; lineP2=null; renderLine(); updateLineChip();
+    // 新しいコマ送りボタンの使い方を、はじめての1回だけ シャッチーくんが教える
+    if(!localStorage.getItem('swimiq_tut_stepbtn2')){
+      localStorage.setItem('swimiq_tut_stepbtn2','1');
+      shacchiSay('コマ送りボタンの使い方だチー。◀◀と▶▶は、押すたびに1コマ、長押しで30秒ずつ移動するチー。りょうはしの「0.9秒」は、1回おすと0.9秒うごく調整ボタンだチー。', 18000);
+    }
   });
 
   // ========== メニュー（いまはズームのもとに戻す＋記録の予定） ==========
@@ -3870,6 +4033,7 @@
   // 押したボタンの説明を吹き出しで出す。もう一度シャッチーくんを押すとおわる。
   var guideMode=false;
   var GUIDE=[
+    ['#smMine','じぶんの記録が 1タップで見られるボタンだチー。はじめてのときだけ 名簿からじぶんの名前をえらぶチー。一度読み込めば、電波が無くても前の一覧が見られるチー。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるチー。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するチー。区間タイム・スピード・テンポ・かき数が 見られるチー。'],
     ['#smCompare','ほかの選手と くらべる機能だチー。同じ体型（身長・体重・BMIのはばは1〜10%でえらべるチー）、同じ年齢、同じ性別で しぼって、ランキングが見られるチー。'],
@@ -3888,15 +4052,11 @@
     ['#strokeChip','50mごとのかき数をとうろくするチー。あとから直せるチー。'],
     ['#lineChip','黄色い通過ラインを引くボタンだチー。おしてから、手前の赤い目印、おくの赤い目印のじゅんにタップすると線が出るチー。ななめから撮った動画でも、頭が線を通った瞬間で正しく判定できるチー。もう一度おすと引き直せるチー。'],
     ['#tempoFinish','1つずつはかったテンポをここでしめくくるチー。'],
-    ['#b1000','1000コマ、いっきに もどるチー。べつのレースの頭出しに べんりだチー。'],
-    ['#b100','100コマ大きくもどるチー。'],
-    ['#b10','10コマもどるチー。'],
-    ['#b1','1コマだけもどるチー。微調整の主役だチー。'],
+    ['#bAdjBack','調整ボタンだチー。1回おすと 0.9秒もどるチー。'],
+    ['#bBack','もどるボタンだチー。押すたびに1コマ、長押しすると 30秒ずつ もどりつづけるチー。'],
     ['#bPlay','再生と一時停止だチー。'],
-    ['#f1','1コマだけすすむチー。'],
-    ['#f10','10コマすすむチー。'],
-    ['#f100','100コマ大きくすすむチー。'],
-    ['#f1000','1000コマ、いっきに すすむチー。'],
+    ['#bFwd','すすむボタンだチー。押すたびに1コマ、長押しすると 30秒ずつ すすみつづけるチー。'],
+    ['#bAdjFwd','調整ボタンだチー。1回おすと 0.9秒すすむチー。'],
     ['#menuBtn','ズームした動画をもとの大きさにもどすチー。'],
     ['#timeHud','スタートからの経過時間だチー。コマ送りにあわせてかわるチー。'],
     ['#recPanel','記録がここにたまるチー。きろくの見出しをつかむとパネルごとうごかせるチー。タイムの数字をおすと正式タイムが入れられるチー。'],

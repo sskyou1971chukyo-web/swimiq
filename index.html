@@ -279,18 +279,24 @@
   #b1000 .n, #f1000 .n{ font-size:10px; letter-spacing:-0.5px; }
   .fb:active{ transform:translateY(2px); background:rgba(34,197,94,.6); }
   .fb.play{ background:linear-gradient(135deg,#34d399,#0ea5e9); font-size:18px; }
-  /* 幅の狭い横画面：バーの中身を少し詰めて、ひとつのバーに収める */
+  /* 幅の狭い横画面（携帯）：バーを二段建てにして、ボタンを大きく見やすく */
   @media (orientation: landscape) and (max-width: 1100px){
     #frame{ left:calc(env(safe-area-inset-left) + 70px); right:calc(env(safe-area-inset-right) + 98px);
-      gap:6px; padding:4px 8px; }
-    #frame .fgroup{ gap:5px; }
-    #frame .fgroup.rec{ gap:5px; padding-left:8px; }
-    .fb{ width:40px; min-width:40px; }
-    .fb .n{ font-size:9px; }
-    #b1000 .n, #f1000 .n{ font-size:8px; }
-    #lineChip, #rtChip, #strokeChip{ width:46px; font-size:12px; }
-    #lapBtn{ width:62px; font-size:11px; }
-    #dock{ right:98px; bottom:calc(env(safe-area-inset-bottom) + 76px); }
+      flex-direction:column; align-items:stretch; gap:7px; padding:7px 10px;
+      background:rgba(4,18,34,.88); }  /* 背景を濃くして、ボタンをくっきり見せる */
+    #frame .fgroup{ width:100%; gap:6px; }
+    #frame .fgroup > *{ flex:1; }  /* ボタンが横いっぱいに ひろがって大きくなる */
+    /* 上の段：コマ送り */
+    .fb{ width:auto; min-width:0; height:46px; font-size:15px; }
+    .fb .n{ font-size:13px; }
+    #b1000 .n, #f1000 .n{ font-size:12px; letter-spacing:-0.5px; }
+    /* 下の段：記録のボタン。仕切り線は横線にかわる */
+    #frame .fgroup.rec{ border-left:none; padding-left:0;
+      border-top:1.5px solid rgba(255,255,255,.22); padding-top:7px; gap:6px; }
+    #lineChip, #rtChip, #strokeChip{ width:auto; min-height:50px; font-size:16px; }
+    #lineChip .rs, #rtChip .rs, #strokeChip .rs{ font-size:10px; }
+    #lapBtn{ width:auto; flex:1.6; min-height:50px; font-size:17px; }
+    #dock{ right:98px; bottom:calc(env(safe-area-inset-bottom) + 138px); }
   }
 
   /* ===== 左下：小さなメニューボタン（ズーム・記録・設定をまとめる） ===== */

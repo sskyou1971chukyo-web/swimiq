@@ -550,23 +550,6 @@
     background:rgba(10,32,55,.9); color:#fff; font-size:13px; font-weight:700; }
   .cfg-note{ font-size:11px !important; opacity:.85; margin:6px 0 14px !important; }
   #smSettings{ background:linear-gradient(135deg,#64748b,#475569); }
-  #smMine{ background:linear-gradient(135deg,#ec4899,#f97316); font-size:17px; }
-  /* じぶんの記録：子どもでも読める大きな文字 */
-  #mineModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
-    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-  #mineModal.hide{ display:none; }
-  .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
-    border:1.5px solid var(--line); border-radius:14px;
-    background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
-    text-shadow:var(--shadow); }
-  .mine-name:active{ transform:translateY(2px); background:rgba(34,197,94,.4); }
-  .df-race.mine-big{ padding:13px 12px; }
-  .df-race.mine-big .dn{ font-size:17px; }
-  .df-race.mine-big .ds{ font-size:12px; }
-  .df-race.mine-big button{ padding:12px 14px; font-size:14px; }
-  .mine-switch{ display:block; margin:10px auto 0; padding:8px 14px; cursor:pointer;
-    border:1.5px solid var(--line); border-radius:10px;
-    background:rgba(255,255,255,.1); color:#bfe3ff; font-size:12px; font-weight:800; }
   /* 設定のアップデートボタン */
   #cfgUpdateBtn{ display:block; width:100%; margin:4px 0 14px; padding:12px; cursor:pointer;
     border:none; border-radius:12px;
@@ -754,7 +737,6 @@
 
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
-    <button id="smMine">🙋 じぶんの記録</button>
     <button id="smFind">📂 データを呼び出す</button>
     <button id="smAnalyze">📈 データを分析</button>
     <button id="smCompare">⚖️ データを比較</button>
@@ -1085,15 +1067,6 @@
   <span>✨ 新しい版が あります</span>
   <button id="updNow" type="button">今すぐ 更新</button>
   <button id="updLater" type="button">あとで</button>
-</div>
-
-<!-- じぶんの記録：はじめに名前をえらべば、あとは1タップで自分のレースが出る -->
-<div id="mineModal" class="hide">
-  <div class="modal-card df-card">
-    <h2 id="mineTitle">じぶんの記録</h2>
-    <div id="mineList" class="df-list"></div>
-    <div class="stroke-btns"><button id="mineClose">とじる</button></div>
-  </div>
 </div>
 
 <div id="toast"></div>
@@ -2076,111 +2049,6 @@
 
   // ========== 左上メニュー：データを呼び出す・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
-
-  // ========== じぶんの記録（1タップで自分のレース） ==========
-  // はじめの1回だけ、名簿から自分の名前をえらんで、携帯に覚えさせる。
-  // 以後はボタン1つで自分のレースが出る。一度読み込んだ一覧は携帯が覚えるので、
-  // 電波が無い場所でも 前回の一覧が見られる。
-  var MINE_CACHE='swimiq_mine_races';
-  function myId(){ return localStorage.getItem('swimiq_me_id')||''; }
-  function myName(){ return localStorage.getItem('swimiq_me_name')||''; }
-  $('smMine').onclick=openMine;
-  $('mineClose').onclick=function(){ $('mineModal').classList.add('hide'); };
-  function openMine(){
-    $('mineModal').classList.remove('hide');
-    if(!myId()){ mineChoose(); return; }
-    $('mineTitle').textContent=myName()+' の記録';
-    // まず、携帯が覚えている一覧をすぐ出す（電波が無くても見られる）
-    var cached=null;
-    try{ cached=JSON.parse(localStorage.getItem(MINE_CACHE)||'null'); }catch(e){}
-    if(cached && cached.length) mineRender(cached, true);
-    else $('mineList').innerHTML='<div class="df-empty">読み込み中…</div>';
-    // うらで最新の一覧を取りにいって、届いたら入れかえる
-    api({action:'list', athleteId:myId()}).then(function(res){
-      if(res.ok){
-        localStorage.setItem(MINE_CACHE, JSON.stringify(res.races||[]));
-        mineRender(res.races||[], false);
-      }
-    }).catch(function(){
-      if(!(cached && cached.length)){
-        $('mineList').innerHTML='<div class="df-empty">電波がとどきませんでした。一度読み込めば、次からは電波が無くても見られます。</div>';
-      }
-    });
-  }
-  // はじめの1回：名簿から自分をえらぶ
-  function mineChoose(){
-    $('mineTitle').textContent='じぶんを えらぶ';
-    $('mineList').innerHTML='<div class="df-empty">名簿を 読み込み中…</div>';
-    api({action:'roster'}).then(function(res){
-      if(!res.ok) throw new Error(res.error||'名簿を取得できませんでした');
-      var box=$('mineList'); box.innerHTML='';
-      var hint=document.createElement('div'); hint.className='df-empty';
-      hint.textContent='はじめてだけの設定です。じぶんの名前を おしてね。';
-      box.appendChild(hint);
-      (res.athletes||[]).forEach(function(a){
-        var b=document.createElement('button'); b.type='button'; b.className='mine-name';
-        b.textContent=a.name+(a.group? '　'+a.group : '');
-        b.onclick=function(){
-          localStorage.setItem('swimiq_me_id', a.id);
-          localStorage.setItem('swimiq_me_name', a.name);
-          localStorage.removeItem(MINE_CACHE);
-          openMine();
-        };
-        box.appendChild(b);
-      });
-      if(!(res.athletes||[]).length){
-        box.innerHTML='<div class="df-empty">まだ選手が登録されていません。コーチに登録してもらってね。</div>';
-      }
-    }).catch(function(err){
-      $('mineList').innerHTML='<div class="df-empty">名簿を読み込めませんでした： '+err.message+'<br>（GASをv4に更新すると使えるようになります）</div>';
-    });
-  }
-  // 自分のレースを、大きなカードでならべる
-  function mineRender(races, fromCache){
-    var box=$('mineList'); box.innerHTML='';
-    if(fromCache){
-      var o=document.createElement('div'); o.className='df-empty';
-      o.textContent='（前に読み込んだ一覧です。新しい記録がないか 確認中…）';
-      box.appendChild(o);
-    }
-    if(!races.length){
-      box.innerHTML='<div class="df-empty">まだ記録がありません。コーチにほぞんしてもらってね。</div>';
-    }
-    races.forEach(function(r){
-      var row=document.createElement('div'); row.className='df-race mine-big';
-      row.innerHTML='<span class="di"><span class="dn">'+r.raceDist+'m '+(r.stroke||'')+'　'+(r.finalTime||'')+'</span>'+
-        '<span class="ds">'+[(r.meetName||''),(r.meetDate||'')].filter(function(x){return x;}).join('　')+'</span></span>'+
-        (r.videoUrl? '<button class="db-video">🎬</button>' : '')+
-        '<button class="db-ana">グラフ</button>';
-      row.querySelector('.db-ana').onclick=function(){
-        row.querySelector('.db-ana').disabled=true;
-        api({action:'load', raceId:r.raceId}).then(function(res2){
-          if(!res2.ok) throw new Error(res2.error||'読み込めませんでした');
-          applyLoadedRace(res2);
-          $('mineModal').classList.add('hide');
-          anaLabel=(res2.meetName||'')+' '+r.raceDist+'m '+(r.stroke||'');
-          openAnaModal();
-        }).catch(function(err){
-          row.querySelector('.db-ana').disabled=false;
-          toast('よみこみ失敗： '+err.message);
-        });
-      };
-      if(r.videoUrl){
-        row.querySelector('.db-video').onclick=function(){ window.open(r.videoUrl, '_blank'); };
-      }
-      box.appendChild(row);
-    });
-    // まちがえて えらんだときのための、えらび直しボタン
-    var sw=document.createElement('button'); sw.type='button'; sw.className='mine-switch';
-    sw.textContent='べつの人に かわる';
-    sw.onclick=function(){
-      localStorage.removeItem('swimiq_me_id');
-      localStorage.removeItem('swimiq_me_name');
-      localStorage.removeItem(MINE_CACHE);
-      mineChoose();
-    };
-    box.appendChild(sw);
-  }
   $('smAnalyze').onclick=function(){
     if(allDists().length===0 && rtTime==null){
       toast('さきに「データを呼び出す」で 記録をえらんでね');
@@ -4033,7 +3901,6 @@
   // 押したボタンの説明を吹き出しで出す。もう一度シャッチーくんを押すとおわる。
   var guideMode=false;
   var GUIDE=[
-    ['#smMine','じぶんの記録が 1タップで見られるボタンだチー。はじめてのときだけ 名簿からじぶんの名前をえらぶチー。一度読み込めば、電波が無くても前の一覧が見られるチー。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるチー。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するチー。区間タイム・スピード・テンポ・かき数が 見られるチー。'],
     ['#smCompare','ほかの選手と くらべる機能だチー。同じ体型（身長・体重・BMIのはばは1〜10%でえらべるチー）、同じ年齢、同じ性別で しぼって、ランキングが見られるチー。'],

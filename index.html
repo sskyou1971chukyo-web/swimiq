@@ -78,15 +78,23 @@
   #recList .empty{ font-size:11px; font-weight:600; opacity:.7; text-align:center; padding:14px 4px; line-height:1.5; }
 
   /* ===== 左上：動画を開くボタン（1つだけ） ===== */
-  /* 左上：動画をひらく前に出る、データの三つのボタン */
-  #startMenu{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
-    display:flex; flex-direction:column; gap:8px; }
+  /* ホームのメニュー：上にロゴ、下に同じ大きさのボタンを縦ならび */
+  #startMenu{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 14px); z-index:7;
+    display:flex; flex-direction:column; align-items:center; gap:10px; padding:0 16px 16px;
+    max-height:calc(100% - env(safe-area-inset-top) - 24px); overflow-y:auto; }
   #app.hasvideo #startMenu{ display:none; }  /* 動画を開いたら消える */
-  #startMenu button{ display:flex; align-items:center; gap:8px; padding:10px 16px; cursor:pointer;
+  #startMenu .logo{ font-size:clamp(30px,7vw,46px); font-weight:900; letter-spacing:.04em;
+    text-shadow:var(--shadow); margin-bottom:4px; }
+  #startMenu .logo span{ color:var(--accent2); }
+  #startMenu button, #startMenu label{ display:flex; align-items:center; justify-content:flex-start; gap:12px;
+    width:min(230px,59vw); height:56px; padding:0 22px; cursor:pointer; text-align:left;
     border:none; border-radius:16px;
-    color:#fff; font-size:15px; font-weight:800; text-shadow:var(--shadow);
+    color:#fff; font-size:17px; font-weight:800; text-shadow:var(--shadow);
     box-shadow:0 4px 0 rgba(0,0,0,.2); }
-  #startMenu button:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  #startMenu button:active, #startMenu label:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  #startMenu button svg, #startMenu label svg{ width:22px; height:22px; flex:0 0 22px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+  #smOpen{ background:linear-gradient(135deg,#f97316,#fbbf24); }
   #smFind{ background:linear-gradient(135deg,#818cf8,#6366f1); }
   #smAnalyze{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
   #smCompare{ background:linear-gradient(135deg,#f97316,#fbbf24); }
@@ -315,7 +323,7 @@
   #menuBtn:active{ transform:translateY(2px); }
 
   /* ===== シャッチーくん（右下のマスコット） ===== */
-  #shacchi{ position:absolute; right:160px; top:calc(env(safe-area-inset-top) + 6px); z-index:8;
+  #shacchi{ position:absolute; right:10px; top:calc(env(safe-area-inset-top) + 6px); z-index:8;
     width:64px !important; height:64px !important;  /* 何があっても この大きさ（育つバグの再発防止） */
     padding:0; border:none; background:transparent; cursor:pointer;
     touch-action:none;  /* ドラッグで自由に動かせる */
@@ -593,14 +601,8 @@
     border:1.5px solid var(--line); border-radius:14px; background:rgba(255,255,255,.1);
     color:#fff; font-size:13px; font-weight:900; }
   #dupOver:active, #dupAdd:active, #dupCancel:active{ transform:translateY(2px); }
-  /* 正式レース結果：左下にいつも浮かんでいる旗のボタン */
-  #officialBtn{ position:fixed; left:12px; bottom:calc(env(safe-area-inset-bottom) + 76px); z-index:44;
-    padding:9px 12px; cursor:pointer;
-    border:1.5px solid rgba(255,255,255,.4); border-radius:14px;
-    background:linear-gradient(135deg,#0ea5e9,#6366f1); color:#fff;
-    font-size:12px; font-weight:900; text-shadow:var(--shadow);
-    box-shadow:0 3px 0 rgba(0,0,0,.25); }
-  #officialBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.25); }
+  /* 正式レース結果：ホームのメニューの中のボタン */
+  #officialBtn{ background:linear-gradient(135deg,#0ea5e9,#6366f1); }
   #officialModal{ position:fixed; inset:0; z-index:46; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #officialModal.hide{ display:none; }
@@ -657,7 +659,7 @@
   .prog-chart{ background:rgba(255,255,255,.06); border-radius:12px; padding:10px 6px 4px; margin-top:2px; }
   .prog-chart svg{ display:block; width:100%; height:auto; }
   .prog-legend{ font-size:12px; font-weight:700; opacity:.85; margin:6px 2px 2px; }
-  #smMine{ background:linear-gradient(135deg,#ec4899,#f97316); font-size:17px; }
+  #smMine{ background:linear-gradient(135deg,#ec4899,#f97316); }
   /* じぶんの記録：子どもでも読める大きな文字 */
   #mineModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
@@ -858,11 +860,7 @@
   <div id="videoWrap">
     <video id="video" playsinline preload="auto"></video>
     <svg id="lineLayer" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div id="startHint">
-      <div class="logo">Swim<span>IQ</span></div>
-      <p>動画をひらいて、レースを分析しましょう。<br>下のボタンから動画をえらんでください。</p>
-      <label id="openBtnBig" for="videoFile" style="padding:16px 28px;background:linear-gradient(135deg,#f97316,#fbbf24);border-radius:18px;font-weight:900;font-size:18px;cursor:pointer;box-shadow:0 5px 0 rgba(0,0,0,.2);">🎬 動画をひらく</label>
-    </div>
+    <div id="startHint"></div>
   </div>
 
   <!-- 経過時間 -->
@@ -876,12 +874,15 @@
 
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
-    <button id="smMine">🙋 じぶんの記録</button>
-    <button id="smFind">📂 データを呼び出す</button>
-    <button id="smAnalyze">📈 データを分析</button>
-    <button id="smCompare">⚖️ データを比較</button>
-    <button id="smProgress">📊 進捗</button>
-    <button id="smSettings">⚙️ 設定</button>
+    <div class="logo">Swim<span>IQ</span></div>
+    <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
+    <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
+    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>データを呼び出す</span></button>
+    <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
+    <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
+    <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
+    <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
+    <button id="smSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9.5" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
   <label id="changeBtn" for="videoFile">🎬 動画をかえる</label>
@@ -1295,7 +1296,6 @@
 </div>
 
 <!-- 正式レース結果：3つの公式サイトへの入り口 -->
-<button id="officialBtn" type="button">🏁 正式結果</button>
 <div id="officialModal" class="hide">
   <div class="modal-card">
     <h2>正式レース結果</h2>
@@ -4954,6 +4954,7 @@
   // 押したボタンの説明を吹き出しで出す。もう一度シャッチーくんを押すとおわる。
   var guideMode=false;
   var GUIDE=[
+    ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],

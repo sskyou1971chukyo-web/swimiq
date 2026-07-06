@@ -685,6 +685,10 @@
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #riModal.hide{ display:none; }
   .ri-card{ width:min(480px, 94vw); max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .ri-sec{ margin:14px 2px 6px; padding-top:10px; border-top:1px solid rgba(255,255,255,.28);
+    font-size:13px; font-weight:900; letter-spacing:.04em; color:#7dd3fc; }
+  .ri-sec.ri-first{ margin-top:4px; padding-top:0; border-top:none; }
+  .ri-note{ margin:0 2px 6px; font-size:12px; }
   .ri-val{ flex:1; text-align:center; font-size:16px !important; font-weight:900 !important;
     color:var(--yellow); font-variant-numeric:tabular-nums; }
   #riJasf{ display:block; width:100%; margin:12px 0; padding:11px; cursor:pointer;
@@ -1237,16 +1241,24 @@
 <div id="riModal" class="hide">
   <div class="modal-card ri-card">
     <h2>レースの じょうほう</h2>
-    <p class="note">一度入れれば この携帯が覚えて、次からは 最初から入っています。</p>
+    <div class="ri-sec ri-first">自分自身（この携帯の持ち主）</div>
+    <p class="note ri-note">一度入れれば この携帯が覚えて、次からは 最初から入っています。</p>
     <div class="sv-row"><span>自分の名前</span><input id="riMyName" type="text" placeholder="例 谷口卓"></div>
     <div class="sv-row"><span>生年月日</span><input id="riBirth" type="date"></div>
-    <div class="sv-row"><span>泳ぐ人の名前</span><select id="riSwimmerSel" aria-label="泳ぐ人をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
-    <div class="sv-row" id="riSwimmerFreeRow"><span></span><input id="riSwimmer" type="text" list="swimmerList" placeholder="自分なら そのまま"></div>
-    <datalist id="swimmerList"></datalist>
     <div class="sv-row"><span>身長cm</span><input id="riHeight" type="number" inputmode="decimal" placeholder="例 170">
       <span>体重kg</span><input id="riWeight" type="number" inputmode="decimal" placeholder="例 62"></div>
-    <div class="sv-row"><span>BMI</span><span id="riBmi" class="ri-val">—</span>
-      <span>距離</span><span id="riDist" class="ri-val">50m</span></div>
+    <div class="sv-row"><span>BMI</span><span id="riBmi" class="ri-val">—</span></div>
+    <div class="ri-sec">泳ぐ人（記録をつける相手）</div>
+    <p class="note ri-note">自分がおよぐなら そのままでOK。生年月日・身長・体重は 空欄でもかまいません。</p>
+    <div class="sv-row"><span>泳ぐ人の名前</span><select id="riSwimmerSel" aria-label="泳ぐ人をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
+    <div class="sv-row" id="riSwimmerFreeRow"><span></span><input id="riSwimmer" type="text" list="swimmerList" placeholder="はじめての人は ここに名前"></div>
+    <datalist id="swimmerList"></datalist>
+    <div class="sv-row"><span>生年月日</span><input id="riSwBirth" type="date"></div>
+    <div class="sv-row"><span>身長cm</span><input id="riSwHeight" type="number" inputmode="decimal" placeholder="任意">
+      <span>体重kg</span><input id="riSwWeight" type="number" inputmode="decimal" placeholder="任意"></div>
+    <div class="sv-row"><span>BMI</span><span id="riSwBmi" class="ri-val">—</span></div>
+    <div class="ri-sec">このレース</div>
+    <div class="sv-row"><span>距離</span><span id="riDist" class="ri-val">50m</span></div>
     <div class="sv-row"><span>種目</span><select id="riStroke">
       <option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option>
       <option>バタフライ</option><option>個人メドレー</option></select></div>
@@ -2300,9 +2312,11 @@
     meetNoAuto=false; svMeetTouched=false;
     $('svMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
     if(raceInfo){
-      if(raceInfo.height) $('svHeight').value=raceInfo.height;
-      if(raceInfo.weight) $('svWeight').value=raceInfo.weight;
+      $('svHeight').value=raceInfo.height||'';
+      $('svWeight').value=raceInfo.weight||'';
       if(raceInfo.stroke) $('svStroke').value=raceInfo.stroke;
+      if(raceInfo.swimmer) $('svName').value=raceInfo.swimmer;   // 新規登録のときの手間を減らす
+      $('svBirth').value=raceInfo.swBirth||'';
       if(raceInfo.meetChosen){
         // はじめの画面で決めた試合を、そのまま引きつぐ（空欄なら空欄のまま）
         $('svMeet').value = raceInfo.meetName || '';
@@ -2557,6 +2571,30 @@
       var o=document.createElement('option'); o.value=n; dl.appendChild(o);
     });
   }
+  // 泳ぐ人のからだメモ帳：名前ごとに 生年月日・身長・体重を携帯が覚える
+  function swInfoBook(){ try{ return JSON.parse(localStorage.getItem('swimiq_swimmer_info')||'{}'); }catch(e){ return {}; } }
+  function rememberSwimmerInfo(name, info){
+    name=String(name||'').trim(); if(!name) return;
+    var book=swInfoBook();
+    book[name]={ birth:info.birth||'', height:info.height||'', weight:info.weight||'' };
+    try{ localStorage.setItem('swimiq_swimmer_info', JSON.stringify(book)); }catch(e){}
+  }
+  // 泳ぐ人の欄に、その人のからだの数字を流しこむ
+  // 自分なら自分の欄からうつし、他の人ならからだメモ帳から出す。知らない人なら空欄。
+  function riFillSwimmerData(name){
+    name=String(name||'').trim();
+    var me=($('riMyName').value||'').trim();
+    var d=null;
+    if(name && name===me){
+      d={ birth:$('riBirth').value, height:$('riHeight').value, weight:$('riWeight').value };
+    } else if(name){
+      d=swInfoBook()[name]||null;
+    }
+    $('riSwBirth').value = d? (d.birth||'') : '';
+    $('riSwHeight').value = d? (d.height||'') : '';
+    $('riSwWeight').value = d? (d.weight||'') : '';
+    riSwCalcBmi();
+  }
   // 泳ぐ人のえらぶ式メニュー：過去に測った人の名前帳を新しい順に並べる
   function fillRiSwimmerSelect(){
     var sel=$('riSwimmerSel');
@@ -2577,13 +2615,15 @@
     var sel=$('riSwimmerSel');
     if(sel.value==='__free__'){
       $('riSwimmerFreeRow').style.display='';
-      if(userTouched) $('riSwimmer').value='';
+      if(userTouched){ $('riSwimmer').value=''; riFillSwimmerData(''); }
       return;
     }
     $('riSwimmerFreeRow').style.display='none';
     $('riSwimmer').value=sel.value;
+    riFillSwimmerData(sel.value);
   }
   $('riSwimmerSel').onchange=function(){ applyRiSwimmerChoice(true); };
+  $('riSwimmer').addEventListener('change', function(){ riFillSwimmerData(this.value); });
   function rememberSwimmer(name){
     name=String(name||'').trim();
     if(!name) return;
@@ -2598,6 +2638,19 @@
   }
   $('riHeight').addEventListener('input', riCalcBmi);
   $('riWeight').addEventListener('input', riCalcBmi);
+  function riSwCalcBmi(){
+    var h=Number($('riSwHeight').value), w=Number($('riSwWeight').value);
+    $('riSwBmi').textContent = (h>0 && w>0) ? (w/Math.pow(h/100,2)).toFixed(1) : '—';
+  }
+  $('riSwHeight').addEventListener('input', riSwCalcBmi);
+  $('riSwWeight').addEventListener('input', riSwCalcBmi);
+  // 自分が泳ぐときは、自分の欄を直したら泳ぐ人の欄にも同じ数字をうつす
+  ['riBirth','riHeight','riWeight'].forEach(function(id){
+    $(id).addEventListener('input', function(){
+      var name=($('riSwimmer').value||'').trim();
+      if(name && name===($('riMyName').value||'').trim()) riFillSwimmerData(name);
+    });
+  });
   function openRiModal(){
     var p=riProfile();
     $('riMyName').value = p.name || myName() || '';
@@ -2609,6 +2662,7 @@
     $('riDist').textContent = raceDist + 'm';
     fillSwimmerList();   // これまで分析した人の名前を、えらべるようにしておく
     fillRiSwimmerSelect();   // 泳ぐ人の名前を、えらぶ式メニューにも並べる
+    riFillSwimmerData($('riSwimmer').value);   // 泳ぐ人のからだの数字も流しこむ
     riMeetTouched=false;
     $('riMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
     refreshMeets();      // 試合名の一覧も、えらぶ式メニューに用意する
@@ -2636,7 +2690,8 @@
     var mSel=$('riMeetSel');
     var mOpt=mSel.options[mSel.selectedIndex]||null;
     raceInfo={ swimmer: $('riSwimmer').value.trim() || $('riMyName').value.trim(),
-               height: $('riHeight').value, weight: $('riWeight').value,
+               height: $('riSwHeight').value, weight: $('riSwWeight').value,
+               swBirth: $('riSwBirth').value,
                stroke: $('riStroke').value,
                meetChosen: true,
                meetName: (mSel.value==='__free__') ? $('riMeet').value.trim() : mSel.value,
@@ -2644,6 +2699,8 @@
                meetEnd:   (mSel.value!=='__free__' && mOpt) ? (mOpt.dataset.end||'')   : '',
                meetCourse:(mSel.value!=='__free__' && mOpt) ? (mOpt.dataset.course||''): '' };
     rememberSwimmer(raceInfo.swimmer);   // この名前を名前ちょうに入れて、次から候補に出す
+    rememberSwimmerInfo(raceInfo.swimmer, { birth:$('riSwBirth').value,
+      height:$('riSwHeight').value, weight:$('riSwWeight').value });   // からだメモ帳にも覚える
     $('riModal').classList.add('hide');
     toast((raceInfo.swimmer||'')+' の '+raceDist+'m '+raceInfo.stroke+' を 測ります');
   

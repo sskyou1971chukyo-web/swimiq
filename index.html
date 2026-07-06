@@ -1220,6 +1220,8 @@
     <div class="sv-row"><span>種目</span><select id="riStroke">
       <option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option>
       <option>バタフライ</option><option>個人メドレー</option></select></div>
+    <div class="sv-row"><span>試合名</span><select id="riMeetSel" aria-label="試合名をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
+    <div class="sv-row" id="riMeetFreeRow"><span></span><input id="riMeet" type="text" placeholder="例 学生選手権（練習なら空欄でOK）"></div>
     <button id="riJasf" type="button">🏁 正式レース結果を ひらく</button>
     <div class="stroke-btns">
       <button id="riStart">はじめる</button>
@@ -2128,52 +2130,71 @@
 
   // ========== 試合名を スプレッドシートから えらぶ ==========
   // スプレッドシートの「試合名」シート（試合名・日程開始・日程終了・場所・水路）から
-  // 一覧をもらって、保存画面の えらぶ式メニューに並べる。
+  // 一覧をもらって、えらぶ式メニューに並べる。
+  // メニューは2か所にある。はじめの「レースの じょうほう」画面と、保存画面。
+  // ふつうは はじめの画面でえらべば、保存画面には自動で入っている。
   // 一度もらった一覧は この携帯にも おぼえておくので、電波が悪くても前回の一覧が使える。
   var meetList=[];
+  var meetNoAuto=false;   // はじめの画面ですでに決めた時は、保存画面での自動えらびを止める
   function meetCache(){ try{ return JSON.parse(localStorage.getItem('swimiq_meets')||'[]'); }catch(e){ return []; } }
-  function fillMeetSelect(){
-    var sel=$('svMeetSel');
+  // ならべ順の点数：きょう開催中=0 → これからの試合=1 → 終わった試合=2
+  function meetRank(m){
+    var today=todayStr();
+    if(m.start && m.start<=today && (!m.end || today<=m.end)) return 0;
+    if(m.start && m.start>today) return 1;
+    return 2;
+  }
+  function sortedMeets(){
+    return meetList.slice().sort(function(a,b){
+      var ra=meetRank(a), rb=meetRank(b);
+      if(ra!==rb) return ra-rb;
+      if(ra===1) return (a.start<b.start)? -1:1;   // これから：近い順
+      return (a.start>b.start)? -1:1;              // 終わった：新しい順
+    });
+  }
+  // えらぶ式メニューに、試合の一覧を並べる（どのメニューにも使える共通部品）
+  function fillMeetOptions(sel){
     var keep=sel.value;   // いま えらばれているものは、入れ直しても そのまま残す
     sel.innerHTML='';
     var o0=document.createElement('option');
     o0.value='__free__'; o0.textContent='じぶんで 入力する';
     sel.appendChild(o0);
-    var today=todayStr();
-    // ならべ順：きょう開催中 → これからの試合（近い順）→ 終わった試合（新しい順）
-    function rank(m){
-      if(m.start && m.start<=today && (!m.end || today<=m.end)) return 0;
-      if(m.start && m.start>today) return 1;
-      return 2;
-    }
-    var list=meetList.slice().sort(function(a,b){
-      var ra=rank(a), rb=rank(b);
-      if(ra!==rb) return ra-rb;
-      if(ra===1) return (a.start<b.start)? -1:1;
-      return (a.start>b.start)? -1:1;
-    });
-    list.forEach(function(m){
+    sortedMeets().forEach(function(m){
       var o=document.createElement('option');
       o.value=m.name; o.textContent=m.name;
       o.dataset.start=m.start||''; o.dataset.end=m.end||''; o.dataset.course=m.course||'';
       sel.appendChild(o);
     });
+    if(keep && keep!=='__free__') sel.value=keep;
+    if(!sel.value) sel.value='__free__';   // えらんでいた試合が一覧から消えていた時の逃げ道
+    return sel.value===keep;   // えらび直しを復元できたら true
+  }
+  // 開催中ならきょうの日付、まだ先や終わった試合なら開始日（記録用の日付の目安）
+  function meetAutoDate(start, end){
+    var today=todayStr();
+    return (start && start<=today && (!end || today<=end)) ? today : (start||'');
+  }
+  // ----- 保存画面のメニュー -----
+  var svMeetTouched=false;   // 人が一度でも手でえらんだら true。以後、機械は自動でえらばない
+  function fillMeetSelect(){
+    var sel=$('svMeetSel');
+    var kept=fillMeetOptions(sel);
     // えらび直しの復元 → 入力欄の中身と同じ名前 → きょう開催中の試合 の順で自動セット
-    var doneSel=false;
-    if(keep && keep!=='__free__'){
-      sel.value=keep; doneSel=(sel.value===keep);
-    }
-    if(!doneSel && $('svMeet').value.trim()){
-      sel.value=$('svMeet').value.trim(); doneSel=(sel.value===$('svMeet').value.trim());
-    }
-    if(!doneSel && list.length && rank(list[0])===0){
-      sel.value=list[0].name; doneSel=true;
+    var doneSel=kept && sel.value!=='__free__';
+    if(!doneSel && !svMeetTouched){
+      if($('svMeet').value.trim()){
+        sel.value=$('svMeet').value.trim(); doneSel=(sel.value===$('svMeet').value.trim());
+      }
+      var top=sortedMeets()[0];
+      if(!doneSel && !meetNoAuto && top && meetRank(top)===0){
+        sel.value=top.name; doneSel=true;
+      }
     }
     if(!doneSel) sel.value='__free__';
     applyMeetChoice(false);
   }
   // えらんだ試合の内容を、下の欄に流しこむ
-  // userTouched が true のときだけ、試合日と水路も上書きする
+  // userTouched が true のときだけ、試合日も上書きする
   function applyMeetChoice(userTouched){
     var sel=$('svMeetSel');
     if(sel.value==='__free__'){
@@ -2184,25 +2205,53 @@
     $('svMeetFreeRow').style.display='none';
     $('svMeet').value=sel.value;
     var opt=sel.options[sel.selectedIndex]; if(!opt) return;
-    var start=opt.dataset.start||'', end=opt.dataset.end||'', today=todayStr();
-    if(start){
-      // 開催中なら きょうの日付、まだ先や 終わった試合なら 開始日を入れる
-      var auto=(start<=today && (!end || today<=end)) ? today : start;
-      if(userTouched || !$('svDate').value) $('svDate').value=auto;
-    }
+    var auto=meetAutoDate(opt.dataset.start||'', opt.dataset.end||'');
+    if(auto && (userTouched || !$('svDate').value)) $('svDate').value=auto;
     var course=opt.dataset.course||'';
     if(course.indexOf('短')>=0) $('svCourse').value='短水路';
     else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
   }
-  $('svMeetSel').onchange=function(){ applyMeetChoice(true); };
+  $('svMeetSel').onchange=function(){ svMeetTouched=true; applyMeetChoice(true); };
+  // ----- はじめの「レースの じょうほう」画面のメニュー -----
+  var riMeetTouched=false;   // 人が一度でも手でえらんだら true。以後、機械は自動でえらばない
+  function fillRiMeetSelect(){
+    var sel=$('riMeetSel');
+    var kept=fillMeetOptions(sel);
+    var doneSel=kept && sel.value!=='__free__';
+    if(!doneSel && !riMeetTouched){
+      if($('riMeet').value.trim()){
+        sel.value=$('riMeet').value.trim(); doneSel=(sel.value===$('riMeet').value.trim());
+      }
+      var top=sortedMeets()[0];
+      if(!doneSel && top && meetRank(top)===0){
+        sel.value=top.name; doneSel=true;   // きょう開催中の試合は、最初からえらんでおく
+      }
+    }
+    if(!doneSel) sel.value='__free__';
+    applyRiMeetChoice(false);
+  }
+  function applyRiMeetChoice(userTouched){
+    var sel=$('riMeetSel');
+    if(sel.value==='__free__'){
+      $('riMeetFreeRow').style.display='';
+      if(userTouched) $('riMeet').value='';
+      return;
+    }
+    $('riMeetFreeRow').style.display='none';
+    $('riMeet').value=sel.value;
+  }
+  $('riMeetSel').onchange=function(){ riMeetTouched=true; applyRiMeetChoice(true); };
+  // 一覧の読み込み：まず携帯のおぼえ書きで即表示、そのあと最新版をもらって入れ替える
   function refreshMeets(){
     meetList=meetCache();
     fillMeetSelect();
+    fillRiMeetSelect();
     api({action:'meets'}).then(function(res){
       if(res.ok && res.meets){
         meetList=res.meets;
         try{ localStorage.setItem('swimiq_meets', JSON.stringify(meetList)); }catch(e){}
         fillMeetSelect();
+        fillRiMeetSelect();
       }
     }).catch(function(){});
   }
@@ -2215,15 +2264,28 @@
     $('svNewBlock').style.display = getAthletes().length ? 'none' : '';
     if(!getAthletes().length) $('svAthlete').value='__new__';
     if(!$('svDate').value) $('svDate').value=todayStr();
-    refreshMeets();   // 試合名の一覧を、えらぶ式メニューに用意する
     $('svUploadBtn').textContent='⬆️ いまの動画を ドライブへ送る';
     $('svUploadBtn').disabled=false;
     $('svUpProg').classList.add('hide');
     // 「レースの じょうほう」で入れた中身を、最初から入れておく
+    meetNoAuto=false; svMeetTouched=false;
+    $('svMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
     if(raceInfo){
       if(raceInfo.height) $('svHeight').value=raceInfo.height;
       if(raceInfo.weight) $('svWeight').value=raceInfo.weight;
       if(raceInfo.stroke) $('svStroke').value=raceInfo.stroke;
+      if(raceInfo.meetChosen){
+        // はじめの画面で決めた試合を、そのまま引きつぐ（空欄なら空欄のまま）
+        $('svMeet').value = raceInfo.meetName || '';
+        meetNoAuto=true;   // ここで決めてあるので、保存画面での自動えらびはしない
+        if(raceInfo.meetStart){
+          $('svDate').value = meetAutoDate(raceInfo.meetStart, raceInfo.meetEnd);
+        }
+        if(raceInfo.meetCourse){
+          if(raceInfo.meetCourse.indexOf('短')>=0) $('svCourse').value='短水路';
+          else if(raceInfo.meetCourse.indexOf('長')>=0) $('svCourse').value='長水路';
+        }
+      }
       if(raceInfo.swimmer){
         // 登録者の名前が選手一覧にあれば、えらんでおく
         var selA=$('svAthlete');
@@ -2235,6 +2297,7 @@
         }
       }
     }
+    refreshMeets();   // 試合名の一覧を、えらぶ式メニューに用意する（引きついだ試合はそのまま）
     $('saveModal').classList.remove('hide');
     // この携帯の登録がまだなら、サーバーにも問い合わせて同期しておく
     if(!getAthletes().length){
@@ -2489,6 +2552,9 @@
     $('riStroke').value = localStorage.getItem('swimiq_last_stroke') || '自由形';
     $('riDist').textContent = raceDist + 'm';
     fillSwimmerList();   // これまで分析した人の名前を、えらべるようにしておく
+    riMeetTouched=false;
+    $('riMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
+    refreshMeets();      // 試合名の一覧も、えらぶ式メニューに用意する
     riCalcBmi();
     $('riModal').classList.remove('hide');
   }
@@ -2510,9 +2576,16 @@
       weight: $('riWeight').value
     }));
     localStorage.setItem('swimiq_last_stroke', $('riStroke').value);
+    var mSel=$('riMeetSel');
+    var mOpt=mSel.options[mSel.selectedIndex]||null;
     raceInfo={ swimmer: $('riSwimmer').value.trim() || $('riMyName').value.trim(),
                height: $('riHeight').value, weight: $('riWeight').value,
-               stroke: $('riStroke').value };
+               stroke: $('riStroke').value,
+               meetChosen: true,
+               meetName: (mSel.value==='__free__') ? $('riMeet').value.trim() : mSel.value,
+               meetStart: (mSel.value!=='__free__' && mOpt) ? (mOpt.dataset.start||'') : '',
+               meetEnd:   (mSel.value!=='__free__' && mOpt) ? (mOpt.dataset.end||'')   : '',
+               meetCourse:(mSel.value!=='__free__' && mOpt) ? (mOpt.dataset.course||''): '' };
     rememberSwimmer(raceInfo.swimmer);   // この名前を名前ちょうに入れて、次から候補に出す
     $('riModal').classList.add('hide');
     toast((raceInfo.swimmer||'')+' の '+raceDist+'m '+raceInfo.stroke+' を 測ります');

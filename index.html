@@ -559,6 +559,56 @@
     background:rgba(255,255,255,.08); color:#bfe3ff; font-size:12px; font-weight:900;
     text-shadow:var(--shadow); }
   .home-btn:active{ transform:translateY(2px); background:rgba(255,255,255,.16); }
+  /* ほぞんの確認画面 */
+  #svConfirmModal{ position:fixed; inset:0; z-index:32; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #svConfirmModal.hide{ display:none; }
+  .svc-box{ background:rgba(255,255,255,.07); border:1.5px solid var(--line); border-radius:14px;
+    padding:14px; margin-bottom:14px; text-align:left; }
+  .svc-box .svc-name{ font-size:22px; font-weight:900; color:var(--yellow); }
+  .svc-box .svc-line{ font-size:14px; font-weight:800; margin-top:6px; }
+  .svc-box .svc-sub{ font-size:12px; font-weight:700; opacity:.8; margin-top:6px; }
+  #svcOk{ display:block; width:100%; padding:14px; margin-bottom:10px; cursor:pointer;
+    border:none; border-radius:14px;
+    background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff;
+    font-size:17px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.25); }
+  #svcOk:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.25); }
+  #svcEdit{ display:block; width:100%; padding:11px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:14px;
+    background:rgba(255,255,255,.1); color:#fff; font-size:14px; font-weight:900; text-shadow:var(--shadow); }
+  #svcEdit:active{ transform:translateY(2px); }
+  /* 同じレースの三択 */
+  #dupModal{ position:fixed; inset:0; z-index:33; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.85); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #dupModal.hide{ display:none; }
+  #dupOver{ display:block; width:100%; padding:13px; margin-bottom:10px; cursor:pointer;
+    border:none; border-radius:14px; background:linear-gradient(135deg,#f97316,#fbbf24);
+    color:#fff; font-size:15px; font-weight:900; text-shadow:var(--shadow); box-shadow:0 3px 0 rgba(0,0,0,.25); }
+  #dupAdd{ display:block; width:100%; padding:13px; margin-bottom:10px; cursor:pointer;
+    border:none; border-radius:14px; background:linear-gradient(135deg,#34d399,#0ea5e9);
+    color:#fff; font-size:15px; font-weight:900; text-shadow:var(--shadow); box-shadow:0 3px 0 rgba(0,0,0,.25); }
+  #dupCancel{ display:block; width:100%; padding:10px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:14px; background:rgba(255,255,255,.1);
+    color:#fff; font-size:13px; font-weight:900; }
+  #dupOver:active, #dupAdd:active, #dupCancel:active{ transform:translateY(2px); }
+  /* 正式レース結果：左下にいつも浮かんでいる旗のボタン */
+  #officialBtn{ position:fixed; left:12px; bottom:calc(env(safe-area-inset-bottom) + 76px); z-index:44;
+    padding:9px 12px; cursor:pointer;
+    border:1.5px solid rgba(255,255,255,.4); border-radius:14px;
+    background:linear-gradient(135deg,#0ea5e9,#6366f1); color:#fff;
+    font-size:12px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.25); }
+  #officialBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.25); }
+  #officialModal{ position:fixed; inset:0; z-index:46; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #officialModal.hide{ display:none; }
+  .official-link{ display:block; width:100%; padding:14px; margin-bottom:10px; cursor:pointer;
+    border:1.5px solid var(--line); border-radius:14px;
+    background:rgba(255,255,255,.09); color:#fff; font-size:16px; font-weight:900; text-align:left;
+    text-shadow:var(--shadow); }
+  .official-link .ol-sub{ display:block; font-size:11px; font-weight:700; opacity:.75; margin-top:2px; }
+  .official-link:active{ transform:translateY(2px); background:rgba(56,189,248,.25); }
   /* 道案内のチュートリアル */
   #tutOverlay{ position:fixed; inset:0; z-index:45; display:flex; align-items:center; justify-content:center;
     padding:24px; background:rgba(4,20,35,.75); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
@@ -1164,7 +1214,7 @@
     <div class="sv-row"><span>種目</span><select id="riStroke">
       <option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option>
       <option>バタフライ</option><option>個人メドレー</option></select></div>
-    <button id="riJasf" type="button">📄 競泳レース分析プロジェクト（日本水泳連盟）を ひらく</button>
+    <button id="riJasf" type="button">🏁 正式レース結果を ひらく</button>
     <div class="stroke-btns">
       <button id="riStart">はじめる</button>
       <button id="riSkip">スキップ</button>
@@ -1178,6 +1228,43 @@
     <div class="tut-orca"><img src="shacchi.png" alt="シャッチーくん" width="100%" height="100%" style="display:block;object-fit:contain;"></div>
     <div id="tutText"></div>
     <div class="tut-tap">画面を タップで とじる</div>
+  </div>
+</div>
+
+<!-- ほぞんの かくにん：はじめに決めた内容で良いかを聞くだけの一枚 -->
+<div id="svConfirmModal" class="hide">
+  <div class="modal-card">
+    <h2>この内容で ほぞんしますか？</h2>
+    <div id="svcSummary" class="svc-box"></div>
+    <button id="svcOk" type="button">✅ この内容で ほぞんする</button>
+    <button id="svcEdit" type="button">✏️ 修正する</button>
+  </div>
+</div>
+
+<!-- 同じレースが見つかったときの三択 -->
+<div id="dupModal" class="hide">
+  <div class="modal-card" data-nonav="1">
+    <h2>まえに ほぞんした 同じレースが あります</h2>
+    <div class="svc-box">
+      <div class="svc-line" id="dupOld"></div>
+      <div class="svc-line" id="dupNew"></div>
+      <div class="svc-sub">測り直しなら「上書き」、別の組・別のレースなら「別のレースとして ほぞん」をえらんでください。</div>
+    </div>
+    <button id="dupOver" type="button">🔁 上書きする（前のを 置きかえる）</button>
+    <button id="dupAdd" type="button">➕ 別のレースとして ほぞんする</button>
+    <button id="dupCancel" type="button">やめる</button>
+  </div>
+</div>
+
+<!-- 正式レース結果：3つの公式サイトへの入り口 -->
+<button id="officialBtn" type="button">🏁 正式結果</button>
+<div id="officialModal" class="hide">
+  <div class="modal-card">
+    <h2>正式レース結果</h2>
+    <p class="note">公式のリザルトや分析データを ひらきます。</p>
+    <button class="official-link" data-url="https://kizahashi.co.jp/JASF/PDF/">📊 競泳レース分析プロジェクト<span class="ol-sub">日本水泳連盟</span></button>
+    <button class="official-link" data-url="https://swim.seiko.co.jp/">⏱ セイコーリザルト<span class="ol-sub">大会の速報・結果</span></button>
+    <button class="official-link" data-url="https://www.tdsystem.co.jp/">🖥 東洋電子システム<span class="ol-sub">TDシステムのリザルト</span></button>
   </div>
 </div>
 
@@ -2071,7 +2158,44 @@
       }).catch(function(){});
     }
   }
-  $('saveBtn').addEventListener('click', openSaveModal);
+  // ほぞんボタン → まず「この内容でいい？」の確認だけを出す。
+  // 中身は「レースの じょうほう」で決めた内容が すでに入っているので、
+  // 合っていれば ✅ ひとつで保存。ちがうときだけ ✏️ で入力画面をひらく。
+  function openSaveFlow(){
+    openSaveModal();                          // まず中身を用意する（自動で書き込まれる）
+    var selA=$('svAthlete');
+    var picked = selA.options[selA.selectedIndex] ? String(selA.options[selA.selectedIndex].textContent) : '';
+    var matched = raceInfo && raceInfo.swimmer && selA.value && selA.value!=='__new__' &&
+      picked.replace(/[\s\u3000]+/g,'').indexOf(raceInfo.swimmer.replace(/[\s\u3000]+/g,''))===0;
+    if(!matched){
+      // はじめに決めていない・選手一覧に見つからない → 今までどおり入力画面で
+      return;
+    }
+    // 入力画面はかくして、確認の一枚だけを見せる
+    $('saveModal').classList.add('hide');
+    var lines='';
+    lines+='<div class="svc-name">'+picked+'</div>';
+    lines+='<div class="svc-line">'+raceDist+'m '+$('svStroke').value+'　'+$('svCourse').value+'　'+$('svRound').value+'</div>';
+    lines+='<div class="svc-line">試合日：'+$('svDate').value+'</div>';
+    var hw=[];
+    if($('svHeight').value) hw.push('身長 '+$('svHeight').value+'cm');
+    if($('svWeight').value) hw.push('体重 '+$('svWeight').value+'kg');
+    if(hw.length) lines+='<div class="svc-sub">'+hw.join('　')+'</div>';
+    lines+='<div class="svc-sub">はじめに決めた内容です。試合名や動画リンクを足したいときは「修正する」へ。</div>';
+    $('svcSummary').innerHTML=lines;
+    $('svConfirmModal').classList.remove('hide');
+  }
+  $('saveBtn').addEventListener('click', openSaveFlow);
+  // ✅ この内容で ほぞんする：入力画面のほぞんボタンを、かわりに押してあげる
+  $('svcOk').onclick=function(){
+    $('svConfirmModal').classList.add('hide');
+    $('svSave').click();
+  };
+  // ✏️ 修正する：今までの入力画面をひらく
+  $('svcEdit').onclick=function(){
+    $('svConfirmModal').classList.add('hide');
+    $('saveModal').classList.remove('hide');
+  };
   $('svAthlete').onchange=function(){
     $('svNewBlock').style.display = (this.value==='__new__') ? '' : 'none';
   };
@@ -2109,24 +2233,78 @@
       p=Promise.resolve(a);
     }
     p.then(function(athlete){
-      var d=buildRaceData();
       var origin=originTime();
       var ft=passOf(raceDist, origin);
-      return api({action:'save', athleteId:athlete.id, athleteName:athlete.name,
+      var payload={ action:'save', athleteId:athlete.id, athleteName:athlete.name,
         meetName:$('svMeet').value.trim(), meetDate:$('svDate').value,
         stroke:$('svStroke').value, raceDist:raceDist,
         course:$('svCourse').value, round:$('svRound').value,
         height:$('svHeight').value, weight:$('svWeight').value,
         videoUrl:$('svVideo').value.trim(),
-        finalTime:(ft!=null? fmt(ft):''), data:d });
-    }).then(function(res){
-      if(!res.ok) throw new Error(res.error||'保存できませんでした');
-      $('saveModal').classList.add('hide');
-      done('スプレッドシートに ほぞんしました');
+        finalTime:(ft!=null? fmt(ft):''), data:buildRaceData() };
+      // 送るまえに、同じレース（同じ日・距離・泳法・ラウンド）が無いか一覧でたしかめる
+      return api({action:'list', athleteId:athlete.id}).catch(function(){ return {ok:false}; })
+        .then(function(res){
+          var dup=null;
+          if(res.ok){
+            (res.races||[]).forEach(function(r){
+              if(dup) return;
+              if(String(r.raceDist)===String(raceDist) &&
+                 (r.stroke||'')===payload.stroke &&
+                 String(r.meetDate||'')===payload.meetDate &&
+                 (r.round==null || r.round==='' || r.round===payload.round)){
+                dup=r;
+              }
+            });
+          }
+          if(!dup) return payload;   // かぶり無し → そのまま保存
+          // 同じ測定の中の保存し直しなら、聞かずにだまって上書き
+          var key=[payload.athleteId, payload.meetDate, payload.raceDist, payload.stroke, payload.round].join('|');
+          if(lastSaved.key===key && lastSaved.raceId===dup.raceId){
+            payload.replaceId=dup.raceId;
+            payload._silent=true;
+            return payload;
+          }
+          // 過去の同じレース → 三択で聞く
+          return askDup(dup, payload.finalTime).then(function(choice){
+            if(choice==='cancel') return null;
+            if(choice==='over') payload.replaceId=dup.raceId;
+            return payload;
+          });
+        });
+    }).then(function(payload){
+      if(!payload){ done('ほぞんを やめました'); return; }
+      var silent=payload._silent; delete payload._silent;
+      return api(payload).then(function(res){
+        if(!res.ok) throw new Error(res.error||'保存できませんでした');
+        lastSaved={ key:[payload.athleteId, payload.meetDate, payload.raceDist, payload.stroke, payload.round].join('|'),
+                    raceId: res.raceId || payload.replaceId || '' };
+        $('saveModal').classList.add('hide');
+        done(payload.replaceId
+          ? (silent ? '前のほぞんを 新しい内容に 上書きしました' : '上書きして ほぞんしました')
+          : 'スプレッドシートに ほぞんしました');
+      });
     }).catch(function(err){
       done('保存に失敗： '+err.message+'。電波と GAS の設定を確認してね');
     });
   };
+  // この測定で最後にほぞんしたレースの覚え書き（保存し直しの見分けに使う）
+  var lastSaved={ key:'', raceId:'' };
+  // 三択の画面を出して、えらばれるまで待つ
+  var dupResolve=null;
+  function askDup(dup, newTime){
+    $('dupOld').textContent='まえ： '+(dup.finalTime||'—')+'　（'+[(dup.meetDate||''),(dup.meetName||'')].filter(function(x){return x;}).join(' ')+'）';
+    $('dupNew').textContent='今回： '+(newTime||'—');
+    $('dupModal').classList.remove('hide');
+    return new Promise(function(resolve){ dupResolve=resolve; });
+  }
+  function dupAnswer(c){
+    $('dupModal').classList.add('hide');
+    if(dupResolve){ dupResolve(c); dupResolve=null; }
+  }
+  $('dupOver').onclick=function(){ dupAnswer('over'); };
+  $('dupAdd').onclick=function(){ dupAnswer('new'); };
+  $('dupCancel').onclick=function(){ dupAnswer('cancel'); };
 
   // 呼び出し画面をひらく
   function renderLoadList(athleteId){
@@ -2224,9 +2402,9 @@
     riCalcBmi();
     $('riModal').classList.remove('hide');
   }
-  // 日本水泳連盟の「競泳レース分析プロジェクト」を新しいタブでひらく
+  // 「正式レース結果」の入り口をひらく（3つの公式サイトがえらべる）
   $('riJasf').onclick=function(){
-    window.open('https://kizahashi.co.jp/JASF/PDF/index.php', '_blank');
+    $('officialModal').classList.remove('hide');
   };
   $('riSkip').onclick=function(){
     $('riModal').classList.add('hide');
@@ -3768,10 +3946,20 @@
       // ゴールの距離まで記録できたら「ほぞんしよう」の道案内
       if(selDist===raceDist){
         showTut('ゴールまで 記録できたね！\n\nさいごに ほぞんしよう。\n右上の 光っている「💾 ほぞん」ボタンだよ');
-      } else if(splitTimes[0]!=null){
-        shacchiSay(selDist+'mを記録したッチ！つぎにできることが 光っているッチ。次の地点を測る？テンポを測る？ほぞんする？直したいときは 記録ずみの地点をおすッチ。', 9000);
+      } else {
+        // つぎの空いている地点を、アプリが先回りしてえらんでおく
+        var nx=guideNextDist();
+        if(nx!=null){
+          var justDone=selDist;
+          selDist=nx;
+          updateAim();
+          buildScale();
+          if(splitTimes[0]!=null){
+            shacchiSay(justDone+'mを記録したッチ！つぎは '+nx+'mだッチ。頭が通る瞬間に「ここを きろく」ッチ。', 8000);
+          }
+        }
       }
-      guideStep();   // 地点を記録するたび、いま選べる道をぜんぶ光らせる
+      guideStep();   // 予測した次の一手を光らせる
     } else {
       // ===== テンポ測定 =====
       if(selFrom==null){ toast('さきに区間をえらんでね'); return; }
@@ -4321,6 +4509,7 @@
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smCompare','ほかの選手と くらべる機能だッチ。同じ体型（身長・体重・BMIのはばは1〜10%でえらべるッチ）、同じ年齢、同じ性別で しぼって、ランキングが見られるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
+    ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],
     ['#toolsBtn','ここは道具箱だッチ。動画や距離の変更、ほぞんとよびだしが入っているッチ。'],
     ['#changeBtn','べつの動画にとりかえるッチ。いまの記録はのこったままだッチ。'],
     ['#distBtn','レースの距離をえらびなおすッチ。記録はリセットされるから気をつけるッチ。'],
@@ -4466,32 +4655,44 @@
     if(rtStep>0){ glowNext('lapBtn'); return; }
     // R.Tがまだ → R.Tボタン
     if(rtTime==null){ glowNext('rtChip'); return; }
-    // つぎに記録すべき、まだ空いている節目をさがす
-    var nodes=nodesFor(raceDist);
-    var next=null;
-    for(var i=0;i<nodes.length;i++){
-      var d=nodes[i];
-      if(d>0 && splitTimes[d]==null){ next=d; break; }
-    }
+    // つぎに記録すべき地点を、画面のロープに実際に並んでいる目盛りから探す
+    // （記録ずみは とばして、いちばん手前の空いている地点＝次の予測）
+    var next=guideNextDist();
     // ぜんぶ記録ずみ → ほぞん
     if(next==null){ glowNext('saveBtn'); return; }
     // テンポモードで作業中は、じゃまをしない（記録モードにもどると案内が再開）
     if(mode==='tempo'){ glowNext(null); return; }
-    // その地点がもう えらばれている → 「ここを きろく」
-    if(selDist===next){ glowNext('lapBtn'); return; }
-    // まだ えらばれていない → いま選べる道を ぜんぶ光らせる
-    var targets=[];
+    // 予測した「次の一手」だけを光らせる：
+    // 次の地点の目盛りと、（その地点がもう狙われているなら）「ここを きろく」
     var tick=ticksBox.querySelector('.pt[data-d="'+next+'"]');
-    if(tick) targets.push(tick);                       // 次の地点を測る
-    targets.push('mtTempo');                           // テンポを測る
-    if(Object.keys(splitTimes).length>1){
-      targets.push('saveBtn');                         // とちゅうでも ほぞんできる
-      // 直したいとき：記録ずみの地点のうち、いちばん最近のもの
-      var doneTicks=ticksBox.querySelectorAll('.pt.done[data-d]');
-      if(doneTicks.length) targets.push(doneTicks[doneTicks.length-1]);
+    if(selDist===next){
+      glowNext([tick, 'lapBtn']);   // ねらいは合っている。あとは押すだけ
+    } else {
+      glowNext(tick || 'lapBtn');   // まずロープで この地点をえらんでね
     }
-    glowNext(targets.length ? targets : 'lapBtn');
   }
+  // ロープの目盛りを上から順に見て、まだ記録の入っていない いちばん手前の地点を返す
+  function guideNextDist(){
+    var ds=[];
+    ticksBox.querySelectorAll('.pt[data-d]').forEach(function(el){
+      var d=parseFloat(el.getAttribute('data-d'));
+      if(isFinite(d) && d>0) ds.push(d);
+    });
+    ds.sort(function(a,b){ return a-b; });
+    for(var i=0;i<ds.length;i++){
+      if(splitTimes[ds[i]]==null) return ds[i];
+    }
+    return null;
+  }
+
+  // ========== 正式レース結果（3つの公式サイトへの入り口） ==========
+  $('officialBtn').onclick=function(){ $('officialModal').classList.remove('hide'); };
+  document.querySelectorAll('.official-link').forEach(function(b){
+    b.onclick=function(){
+      window.open(b.getAttribute('data-url'), '_blank');
+      $('officialModal').classList.add('hide');
+    };
+  });
 
   // ========== 道案内のチュートリアル（タップで消える） ==========
   function showTut(text){
@@ -4527,6 +4728,7 @@
   }
   // 起動したときに、すべての画面の下に「前に戻る」と「『動画を開く』に戻る」を置く
   document.querySelectorAll('.modal-card').forEach(function(card){
+    if(card.hasAttribute('data-nonav')) return;   // 三択などの途中の画面には付けない
     var wrap=document.createElement('div');
     wrap.className='nav-row';
     var back=document.createElement('button');

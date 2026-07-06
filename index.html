@@ -1239,7 +1239,8 @@
     <p class="note">一度入れれば この携帯が覚えて、次からは 最初から入っています。</p>
     <div class="sv-row"><span>自分の名前</span><input id="riMyName" type="text" placeholder="例 谷口卓"></div>
     <div class="sv-row"><span>生年月日</span><input id="riBirth" type="date"></div>
-    <div class="sv-row"><span>泳ぐ人の名前</span><input id="riSwimmer" type="text" list="swimmerList" placeholder="自分なら そのまま"></div>
+    <div class="sv-row"><span>泳ぐ人の名前</span><select id="riSwimmerSel" aria-label="泳ぐ人をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
+    <div class="sv-row" id="riSwimmerFreeRow"><span></span><input id="riSwimmer" type="text" list="swimmerList" placeholder="自分なら そのまま"></div>
     <datalist id="swimmerList"></datalist>
     <div class="sv-row"><span>身長cm</span><input id="riHeight" type="number" inputmode="decimal" placeholder="例 170">
       <span>体重kg</span><input id="riWeight" type="number" inputmode="decimal" placeholder="例 62"></div>
@@ -2556,6 +2557,33 @@
       var o=document.createElement('option'); o.value=n; dl.appendChild(o);
     });
   }
+  // 泳ぐ人のえらぶ式メニュー：過去に測った人の名前帳を新しい順に並べる
+  function fillRiSwimmerSelect(){
+    var sel=$('riSwimmerSel');
+    sel.innerHTML='';
+    var o0=document.createElement('option'); o0.value='__free__'; o0.textContent='じぶんで 入力する';
+    sel.appendChild(o0);
+    swimmerHistory().forEach(function(n){
+      var o=document.createElement('option'); o.value=n; o.textContent=n;
+      sel.appendChild(o);
+    });
+    // いま入っている名前（ふつうは自分）が名前帳にあれば、えらんでおく
+    var cur=$('riSwimmer').value.trim();
+    if(cur) sel.value=cur;
+    if(!sel.value) sel.value='__free__';
+    applyRiSwimmerChoice(false);
+  }
+  function applyRiSwimmerChoice(userTouched){
+    var sel=$('riSwimmerSel');
+    if(sel.value==='__free__'){
+      $('riSwimmerFreeRow').style.display='';
+      if(userTouched) $('riSwimmer').value='';
+      return;
+    }
+    $('riSwimmerFreeRow').style.display='none';
+    $('riSwimmer').value=sel.value;
+  }
+  $('riSwimmerSel').onchange=function(){ applyRiSwimmerChoice(true); };
   function rememberSwimmer(name){
     name=String(name||'').trim();
     if(!name) return;
@@ -2580,6 +2608,7 @@
     $('riStroke').value = localStorage.getItem('swimiq_last_stroke') || '自由形';
     $('riDist').textContent = raceDist + 'm';
     fillSwimmerList();   // これまで分析した人の名前を、えらべるようにしておく
+    fillRiSwimmerSelect();   // 泳ぐ人の名前を、えらぶ式メニューにも並べる
     riMeetTouched=false;
     $('riMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
     refreshMeets();      // 試合名の一覧も、えらぶ式メニューに用意する

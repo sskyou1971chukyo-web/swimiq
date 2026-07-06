@@ -645,12 +645,27 @@
     border-radius:10px; border:1.5px solid var(--line);
     background:rgba(10,32,55,.9); color:#fff; font-size:13px; font-weight:700; }
   .cfg-note{ font-size:11px !important; opacity:.85; margin:6px 0 14px !important; }
+  #smProgress{ background:linear-gradient(135deg,#06b6d4,#3b82f6); }
   #smSettings{ background:linear-gradient(135deg,#64748b,#475569); }
+  /* 進捗：成績表の行。低視力でも読めるよう、数字は大きく */
+  .prog-row{ display:flex; align-items:baseline; gap:10px; background:rgba(255,255,255,.08);
+    border-radius:12px; padding:12px; margin-bottom:8px; }
+  .prog-label{ font-size:14px; font-weight:800; opacity:.9; flex:0 0 8.5em; }
+  .prog-val{ font-size:22px; font-weight:800; letter-spacing:.5px; }
+  .prog-note{ font-size:12px; opacity:.75; margin-left:auto; text-align:right; }
+  .prog-sub{ font-size:13px; font-weight:800; opacity:.85; margin:12px 2px 6px; }
+  .prog-chart{ background:rgba(255,255,255,.06); border-radius:12px; padding:10px 6px 4px; margin-top:2px; }
+  .prog-chart svg{ display:block; width:100%; height:auto; }
+  .prog-legend{ font-size:12px; font-weight:700; opacity:.85; margin:6px 2px 2px; }
   #smMine{ background:linear-gradient(135deg,#ec4899,#f97316); font-size:17px; }
   /* じぶんの記録：子どもでも読める大きな文字 */
   #mineModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #mineModal.hide{ display:none; }
+  /* 進捗カードも、同じように画面へかぶせて中央に浮かべる */
+  #progModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #progModal.hide{ display:none; }
   .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:14px;
     background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
@@ -865,6 +880,7 @@
     <button id="smFind">📂 データを呼び出す</button>
     <button id="smAnalyze">📈 データを分析</button>
     <button id="smCompare">⚖️ データを比較</button>
+    <button id="smProgress">📊 進捗</button>
     <button id="smSettings">⚙️ 設定</button>
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
@@ -1201,6 +1217,18 @@
     <h2 id="mineTitle">じぶんの記録</h2>
     <div id="mineList" class="df-list"></div>
     <div class="stroke-btns"><button id="mineClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- 進捗：選手ひとりの記録を、種目ごとにまとめた成績表 -->
+<div id="progModal" class="hide">
+  <div class="modal-card df-card">
+    <h2>進捗</h2>
+    <div class="sv-row"><span>選手</span><select id="progAthlete"></select></div>
+    <div class="sv-row"><span>種目</span><select id="progEvent"></select></div>
+    <div class="sv-row"><span>直近レース数</span><select id="progRecentN"></select></div>
+    <div id="progList" class="df-list"></div>
+    <div class="stroke-btns"><button id="progClose">とじる</button></div>
   </div>
 </div>
 
@@ -2952,6 +2980,236 @@
     });
   };
 
+  // ========== 進捗（選手ひとりの記録を、種目ごとにまとめた成績表） ==========
+  // チーム全体のデータから、えらんだ選手・えらんだ種目のレースだけを取り出して、
+  // ベスト・平均・予選と決勝のちがい・直近の調子を、ひとまとめにして見せる。
+  // データはデータ比較と同じ倉庫（cmpAll）を使うので、二度読みしない。
+  function loadAllRaces(){
+    if(cmpAll && cmpAll.length) return Promise.resolve(cmpAll);
+    return api({action:'search'}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'取得できませんでした');
+      cmpAll=res.races||[];
+      return cmpAll;
+    });
+  }
+  $('smProgress').onclick=openProgress;
+  $('progClose').onclick=function(){ $('progModal').classList.add('hide'); };
+  function openProgress(){
+    $('progModal').classList.remove('hide');
+    // 直近レース数のえらび（2〜10本）は、はじめの一回だけ用意する
+    var nSel=$('progRecentN');
+    if(!nSel.options.length){
+      for(var n=2;n<=10;n++){
+        var o=document.createElement('option'); o.value=String(n); o.textContent=n+'レース';
+        nSel.appendChild(o);
+      }
+      nSel.value='5';
+    }
+    $('progList').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
+    loadAllRaces().then(function(){
+      progFillAthletes();
+      progFillEvents();
+      progRender();
+    }).catch(function(err){
+      $('progList').innerHTML='<div class="df-empty">読み込みに失敗しました： '+err.message+'</div>';
+    });
+  }
+  // 選手のえらび：ふつうは じぶん が最初から選ばれている
+  function progFillAthletes(){
+    var sel=$('progAthlete');
+    var keep=sel.value;
+    sel.innerHTML='';
+    var seen={}, people=[];
+    (cmpAll||[]).forEach(function(r){
+      var id=String(r.athleteId||'');
+      if(!id || seen[id]) return;
+      seen[id]=true;
+      people.push({ id:id, name:String(r.name||''), group:String(r.group||'') });
+    });
+    people.sort(function(a,b){ return a.name<b.name? -1:1; });
+    people.forEach(function(p){
+      var o=document.createElement('option'); o.value=p.id;
+      o.textContent=p.name+(p.group? '　'+p.group:'');
+      sel.appendChild(o);
+    });
+    if(keep) sel.value=keep;                                   // えらび直しはそのまま
+    if(!sel.value && myId()) sel.value=myId();                 // ふつうは じぶん
+    if(!sel.value && getAthletes().length) sel.value=getAthletes()[0].id;  // この携帯の選手
+    if(!sel.value && people.length) sel.value=people[0].id;    // それも無ければ先頭の人
+  }
+  // 種目のえらび：その選手が泳いだ種目を、新しい順にならべる
+  function progFillEvents(){
+    var aid=$('progAthlete').value;
+    var sel=$('progEvent');
+    var keep=sel.value;
+    sel.innerHTML='';
+    var latest={};
+    (cmpAll||[]).forEach(function(r){
+      if(String(r.athleteId)!==String(aid)) return;
+      if(parseT(r.finalTime)==null) return;
+      var key=String(r.raceDist)+'|'+String(r.stroke||'');
+      var d=String(r.meetDate||'');
+      if(latest[key]==null || d>latest[key]) latest[key]=d;
+    });
+    var keys=Object.keys(latest).sort(function(a,b){ return latest[a]>latest[b]? -1:1; });
+    keys.forEach(function(k){
+      var p=k.split('|');
+      var o=document.createElement('option'); o.value=k;
+      o.textContent=p[0]+'m '+p[1];
+      sel.appendChild(o);
+    });
+    if(keep) sel.value=keep;
+    if(!sel.value && keys.length) sel.value=keys[0];
+  }
+  // えらんだ選手・種目のレースを、新しい順（試合日→保存の順番）でそろえる
+  function progRaces(){
+    var aid=$('progAthlete').value;
+    var ev=String($('progEvent').value||'').split('|');
+    var dist=ev[0], stroke=ev[1]||'';
+    var list=(cmpAll||[]).filter(function(r){
+      return String(r.athleteId)===String(aid) &&
+             String(r.raceDist)===String(dist) &&
+             String(r.stroke||'')===stroke &&
+             parseT(r.finalTime)!=null;
+    });
+    list.sort(function(a,b){
+      var da=String(a.meetDate||''), db=String(b.meetDate||'');
+      if(da!==db) return da>db? -1:1;
+      return String(a.raceId)>String(b.raceId)? -1:1;
+    });
+    return list;
+  }
+  // 一番はやいレースをさがす
+  function progBest(list){
+    var best=null, bt=null;
+    list.forEach(function(r){
+      var t=parseT(r.finalTime);
+      if(t!=null && (bt==null || t<bt)){ bt=t; best=r; }
+    });
+    return best;
+  }
+  // 平均タイム（秒）を出す
+  function progAvg(list){
+    var sum=0, c=0;
+    list.forEach(function(r){
+      var t=parseT(r.finalTime);
+      if(t!=null){ sum+=t; c++; }
+    });
+    return c? sum/c : null;
+  }
+  // タイムのうつりかわりを、折れ線グラフの絵にして返す
+  // 左が古いレース、右が新しいレース。上にいくほど速い。
+  function progChart(chron){
+    var wrap=document.createElement('div'); wrap.className='prog-chart';
+    var pts=chron.map(function(r){
+      return { t:parseT(r.finalTime), d:String(r.meetDate||''), round:String(r.round||'') };
+    }).filter(function(p){ return p.t!=null; });
+    if(!pts.length) return wrap;
+    var W=520, H=240, L=64, R=16, T=26, B=34;   // 絵の大きさと余白
+    var min=Infinity, max=-Infinity;
+    pts.forEach(function(p){ if(p.t<min)min=p.t; if(p.t>max)max=p.t; });
+    if(max-min<0.6){ var mid=(min+max)/2; min=mid-0.5; max=mid+0.5; }   // 差が小さい時は目盛りを広げる
+    var iw=W-L-R, ih=H-T-B;
+    function x(i){ return pts.length===1 ? L+iw/2 : L + iw*i/(pts.length-1); }
+    function y(t){ return T + ih*(t-min)/(max-min); }   // 小さいタイム（速い）ほど上
+    var bestI=0; pts.forEach(function(p,i){ if(p.t<pts[bestI].t) bestI=i; });
+    function col(round){ return round==='決勝' ? '#fbbf24' : (round==='予選' ? '#38bdf8' : '#cbd5e1'); }
+    var s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タイムのうつりかわりのグラフ。上にいくほど速い。">';
+    // うすい横線とタイムの目盛りを3段
+    for(var g=0; g<=2; g++){
+      var gy=T+ih*g/2, gt=min+(max-min)*g/2;
+      s+='<line x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.18)" stroke-width="1"/>';
+      s+='<text x="'+(L-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="12" fill="rgba(255,255,255,.75)">'+fmt(gt)+'</text>';
+    }
+    // 折れ線
+    if(pts.length>1){
+      var dstr='';
+      pts.forEach(function(p,i){ dstr+=(i? ' L ':'M ')+x(i).toFixed(1)+' '+y(p.t).toFixed(1); });
+      s+='<path d="'+dstr+'" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2.5"/>';
+    }
+    // 点とタイムの数字。混み合うときは 最初・ベスト・最新だけに間引く
+    var showAll=pts.length<=8;
+    pts.forEach(function(p,i){
+      var cx=x(i).toFixed(1), cy=y(p.t).toFixed(1);
+      if(i===bestI) s+='<circle cx="'+cx+'" cy="'+cy+'" r="10" fill="none" stroke="#22c55e" stroke-width="3"/>';
+      s+='<circle cx="'+cx+'" cy="'+cy+'" r="5.5" fill="'+col(p.round)+'"/>';
+      if(showAll || i===0 || i===bestI || i===pts.length-1){
+        s+='<text x="'+cx+'" y="'+(y(p.t)-13).toFixed(1)+'" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">'+fmt(p.t)+'</text>';
+      }
+    });
+    // 日付。混み合うときは間引く
+    var step=Math.max(1, Math.ceil(pts.length/6));
+    pts.forEach(function(p,i){
+      if(i%step!==0 && i!==pts.length-1) return;
+      var md=p.d? p.d.slice(5) : '';
+      s+='<text x="'+x(i).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="11" fill="rgba(255,255,255,.75)">'+md+'</text>';
+    });
+    s+='</svg>';
+    wrap.innerHTML=s;
+    return wrap;
+  }
+  // 成績表を組み立てて表示する
+  function progRender(){
+    var box=$('progList'); box.innerHTML='';
+    if(!$('progEvent').value){
+      box.innerHTML='<div class="df-empty">この選手の保存された記録が まだありません。</div>';
+      return;
+    }
+    var races=progRaces();
+    if(!races.length){
+      box.innerHTML='<div class="df-empty">この種目の記録が まだありません。</div>';
+      return;
+    }
+    var pre=races.filter(function(r){ return String(r.round||'')==='予選'; });
+    var fin=races.filter(function(r){ return String(r.round||'')==='決勝'; });
+    var n=Math.min(Number($('progRecentN').value)||5, races.length);
+    var recent=races.slice(0, n);
+    function row(label, val, note){
+      var d=document.createElement('div'); d.className='prog-row';
+      var l=document.createElement('span'); l.className='prog-label'; l.textContent=label;
+      var v=document.createElement('span'); v.className='prog-val'; v.textContent=val;
+      var t=document.createElement('span'); t.className='prog-note'; t.textContent=note||'';
+      d.appendChild(l); d.appendChild(v); d.appendChild(t);
+      box.appendChild(d);
+    }
+    var b=progBest(races);
+    row('ベストタイム', fmt(parseT(b.finalTime)),
+        [(b.meetDate||''),(b.meetName||'')].filter(function(x){return x;}).join('　'));
+    var bp=progBest(pre);
+    row('予選ベスト', bp? fmt(parseT(bp.finalTime)) : 'まだなし', bp? (bp.meetDate||'') : '');
+    var bf=progBest(fin);
+    row('決勝ベスト', bf? fmt(parseT(bf.finalTime)) : 'まだなし', bf? (bf.meetDate||'') : '');
+    row('全レース平均', fmt(progAvg(races)), races.length+'本');
+    row('予選平均', pre.length? fmt(progAvg(pre)) : 'まだなし', pre.length? pre.length+'本' : '');
+    row('決勝平均', fin.length? fmt(progAvg(fin)) : 'まだなし', fin.length? fin.length+'本' : '');
+    row('直近'+n+'レース平均', fmt(progAvg(recent)), '新しい順に'+n+'本');
+    // タイムのうつりかわりのグラフ（古い順にならべて、調子の流れを絵にする）
+    var subG=document.createElement('div'); subG.className='prog-sub';
+    subG.textContent='タイムの うつりかわり（左が古い　右が新しい。上にいくほど速い）';
+    box.appendChild(subG);
+    box.appendChild(progChart(races.slice().reverse()));
+    var lg=document.createElement('div'); lg.className='prog-legend';
+    lg.textContent='青い点が予選、黄色い点が決勝、灰色の点がその他。緑の輪がベスト。';
+    box.appendChild(lg);
+    // 直近のレースの中身も、下に小さくならべる（調子の流れが読めるように）
+    var sub=document.createElement('div'); sub.className='prog-sub';
+    sub.textContent='直近のレース（新しい順）';
+    box.appendChild(sub);
+    recent.forEach(function(r){
+      var d=document.createElement('div'); d.className='df-race';
+      var s=document.createElement('span'); s.className='di';
+      var t1=document.createElement('span'); t1.className='dn';
+      t1.textContent=(r.finalTime||'')+'　'+(String(r.round||'')||'ラウンドなし');
+      var t2=document.createElement('span'); t2.className='ds';
+      t2.textContent=[(r.meetDate||''),(r.meetName||'')].filter(function(x){return x;}).join('　');
+      s.appendChild(t1); s.appendChild(t2); d.appendChild(s);
+      box.appendChild(d);
+    });
+  }
+  $('progAthlete').onchange=function(){ progFillEvents(); progRender(); };
+  $('progEvent').onchange=function(){ progRender(); };
+  $('progRecentN').onchange=function(){ progRender(); };
+
   // ===== データを比較（体型・年齢・性別でしぼってランキング） =====
   var cmpAll=null;  // サーバーから取った全レース（選手の性別・生年月日つき）
 
@@ -4670,6 +4928,7 @@
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
+    ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
     ['#smCompare','ほかの選手と くらべる機能だッチ。同じ体型（身長・体重・BMIのはばは1〜10%でえらべるッチ）、同じ年齢、同じ性別で しぼって、ランキングが見られるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],

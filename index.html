@@ -1050,7 +1050,8 @@
     </div>
     <div class="sv-row"><span>身長cm</span><input id="svHeight" type="number" inputmode="decimal" placeholder="任意">
       <span>体重kg</span><input id="svWeight" type="number" inputmode="decimal" placeholder="任意"></div>
-    <div class="sv-row"><span>試合名</span><input id="svMeet" type="text" placeholder="例 学生選手権"></div>
+    <div class="sv-row"><span>試合名</span><select id="svMeetSel" aria-label="試合名をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
+    <div class="sv-row" id="svMeetFreeRow"><span></span><input id="svMeet" type="text" placeholder="例 学生選手権"></div>
     <div class="sv-row"><span>試合日</span><input id="svDate" type="date"></div>
     <div class="sv-row"><span>動画リンク</span><input id="svVideo" type="url" placeholder="Googleドライブの共有リンク（任意）"><button id="svFolderBtn" type="button" aria-label="動画フォルダをひらく">📂</button></div>
     <div class="sv-row"><span></span><button id="svUploadBtn" type="button">⬆️ いまの動画を ドライブへ送る</button></div>
@@ -2125,6 +2126,87 @@
     return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
   }
 
+  // ========== 試合名を スプレッドシートから えらぶ ==========
+  // スプレッドシートの「試合名」シート（試合名・日程開始・日程終了・場所・水路）から
+  // 一覧をもらって、保存画面の えらぶ式メニューに並べる。
+  // 一度もらった一覧は この携帯にも おぼえておくので、電波が悪くても前回の一覧が使える。
+  var meetList=[];
+  function meetCache(){ try{ return JSON.parse(localStorage.getItem('swimiq_meets')||'[]'); }catch(e){ return []; } }
+  function fillMeetSelect(){
+    var sel=$('svMeetSel');
+    var keep=sel.value;   // いま えらばれているものは、入れ直しても そのまま残す
+    sel.innerHTML='';
+    var o0=document.createElement('option');
+    o0.value='__free__'; o0.textContent='じぶんで 入力する';
+    sel.appendChild(o0);
+    var today=todayStr();
+    // ならべ順：きょう開催中 → これからの試合（近い順）→ 終わった試合（新しい順）
+    function rank(m){
+      if(m.start && m.start<=today && (!m.end || today<=m.end)) return 0;
+      if(m.start && m.start>today) return 1;
+      return 2;
+    }
+    var list=meetList.slice().sort(function(a,b){
+      var ra=rank(a), rb=rank(b);
+      if(ra!==rb) return ra-rb;
+      if(ra===1) return (a.start<b.start)? -1:1;
+      return (a.start>b.start)? -1:1;
+    });
+    list.forEach(function(m){
+      var o=document.createElement('option');
+      o.value=m.name; o.textContent=m.name;
+      o.dataset.start=m.start||''; o.dataset.end=m.end||''; o.dataset.course=m.course||'';
+      sel.appendChild(o);
+    });
+    // えらび直しの復元 → 入力欄の中身と同じ名前 → きょう開催中の試合 の順で自動セット
+    var doneSel=false;
+    if(keep && keep!=='__free__'){
+      sel.value=keep; doneSel=(sel.value===keep);
+    }
+    if(!doneSel && $('svMeet').value.trim()){
+      sel.value=$('svMeet').value.trim(); doneSel=(sel.value===$('svMeet').value.trim());
+    }
+    if(!doneSel && list.length && rank(list[0])===0){
+      sel.value=list[0].name; doneSel=true;
+    }
+    if(!doneSel) sel.value='__free__';
+    applyMeetChoice(false);
+  }
+  // えらんだ試合の内容を、下の欄に流しこむ
+  // userTouched が true のときだけ、試合日と水路も上書きする
+  function applyMeetChoice(userTouched){
+    var sel=$('svMeetSel');
+    if(sel.value==='__free__'){
+      $('svMeetFreeRow').style.display='';
+      if(userTouched) $('svMeet').value='';
+      return;
+    }
+    $('svMeetFreeRow').style.display='none';
+    $('svMeet').value=sel.value;
+    var opt=sel.options[sel.selectedIndex]; if(!opt) return;
+    var start=opt.dataset.start||'', end=opt.dataset.end||'', today=todayStr();
+    if(start){
+      // 開催中なら きょうの日付、まだ先や 終わった試合なら 開始日を入れる
+      var auto=(start<=today && (!end || today<=end)) ? today : start;
+      if(userTouched || !$('svDate').value) $('svDate').value=auto;
+    }
+    var course=opt.dataset.course||'';
+    if(course.indexOf('短')>=0) $('svCourse').value='短水路';
+    else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
+  }
+  $('svMeetSel').onchange=function(){ applyMeetChoice(true); };
+  function refreshMeets(){
+    meetList=meetCache();
+    fillMeetSelect();
+    api({action:'meets'}).then(function(res){
+      if(res.ok && res.meets){
+        meetList=res.meets;
+        try{ localStorage.setItem('swimiq_meets', JSON.stringify(meetList)); }catch(e){}
+        fillMeetSelect();
+      }
+    }).catch(function(){});
+  }
+
   // 保存画面をひらく
   function openSaveModal(){
     guideOn=false; glowNext(null);   // 道しるべの旅はここでゴール
@@ -2133,6 +2215,7 @@
     $('svNewBlock').style.display = getAthletes().length ? 'none' : '';
     if(!getAthletes().length) $('svAthlete').value='__new__';
     if(!$('svDate').value) $('svDate').value=todayStr();
+    refreshMeets();   // 試合名の一覧を、えらぶ式メニューに用意する
     $('svUploadBtn').textContent='⬆️ いまの動画を ドライブへ送る';
     $('svUploadBtn').disabled=false;
     $('svUpProg').classList.add('hide');
@@ -2182,6 +2265,7 @@
     var lines='';
     lines+='<div class="svc-name">'+picked+'</div>';
     lines+='<div class="svc-line">'+raceDist+'m '+$('svStroke').value+'　'+$('svCourse').value+'　'+$('svRound').value+'</div>';
+    if($('svMeet').value.trim()) lines+='<div class="svc-line">試合名：'+$('svMeet').value.trim()+'</div>';
     lines+='<div class="svc-line">試合日：'+$('svDate').value+'</div>';
     var hw=[];
     if($('svHeight').value) hw.push('身長 '+$('svHeight').value+'cm');

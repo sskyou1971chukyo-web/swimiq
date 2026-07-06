@@ -4597,11 +4597,16 @@
   function makeDraggable(el, handle){
     var startX=0, startY=0, baseL=0, baseT=0, dragging=false, moved=false;
     function freeze(){
-      // right/bottomで置かれている部品を、いまの位置のままleft/topの指定に変える
+      // right/bottomで置かれている部品を、いまの位置のままleft/topの指定に変える。
+      // 大きさは、かたむいた見た目の枠（getBoundingClientRect）ではなく、
+      // 本当の大きさ（offsetWidth/offsetHeight）で固定する。
+      // ※ゆらゆらアニメで かたむいたまま測ると、枠が少し大きくなり、
+      //   タップのたびに育ってしまうため。
       var r=el.getBoundingClientRect();
+      var w=el.offsetWidth, h=el.offsetHeight;
       el.style.left=r.left+'px'; el.style.top=r.top+'px';
       el.style.right='auto'; el.style.bottom='auto';
-      el.style.width=r.width+'px'; el.style.height=r.height+'px';
+      el.style.width=w+'px'; el.style.height=h+'px';
     }
     handle.addEventListener('pointerdown', function(e){
       dragging=true; moved=false;
@@ -4615,7 +4620,7 @@
       if(!dragging) return;
       var dx=e.clientX-startX, dy=e.clientY-startY;
       if(Math.abs(dx)>6||Math.abs(dy)>6) moved=true;
-      var w=el.getBoundingClientRect().width, h=el.getBoundingClientRect().height;
+      var w=el.offsetWidth, h=el.offsetHeight;   // ここも本当の大きさで計算する
       var nl=Math.min(Math.max(baseL+dx, 0), window.innerWidth-w);
       var nt=Math.min(Math.max(baseT+dy, 0), window.innerHeight-h);
       el.style.left=nl+'px'; el.style.top=nt+'px';

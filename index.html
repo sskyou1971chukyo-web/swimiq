@@ -697,6 +697,8 @@
   .cmp-pager button{ padding:7px 14px; border-radius:10px; border:1.5px solid var(--line);
     background:rgba(255,255,255,.12); color:#fff; font-weight:800; cursor:pointer; font-size:14px; }
   .cmp-pager span{ font-size:11px; opacity:.8; font-weight:700; text-align:center; }
+  /* 比較画面: hideを付けたら隠れる決まり(新しい部品ぶん) */
+  #cmp2Cond.hide, #cmp2Sum.hide, #cmp2Body .hide{ display:none; }
   /* 比較画面: 選び終わったあとの まとめの一行 */
   #cmp2Sum{ display:flex; align-items:center; justify-content:space-between; gap:8px;
     background:rgba(255,255,255,.08); border:1.5px solid var(--line); border-radius:12px;
@@ -940,7 +942,7 @@
     <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
     <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
-    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>データを呼び出す</span></button>
+    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
     <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
     <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
     <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
@@ -1158,10 +1160,10 @@
 </div>
 
 <!-- 通知 -->
-<!-- データを呼び出す：条件で絞り込んでえらぶ -->
+<!-- 記録をさがす：条件で絞り込んでえらぶ -->
 <div id="findModal" class="hide">
   <div class="modal-card df-card">
-    <h2>データを 呼び出す</h2>
+    <h2>記録を さがす</h2>
     <div class="df-filters">
       <label>どこから<select id="dfSrc">
         <option value="team">チームの記録</option>
@@ -2657,7 +2659,7 @@
   $('loadBtn').addEventListener('click', openLoadModal);
   $('dvLoadBtn').addEventListener('click', openLoadModal);  // 縦画面からも同じ呼び出し画面をひらく
 
-  // ========== 左上メニュー：データを呼び出す・分析・比較 ==========
+  // ========== 左上メニュー：記録をさがす・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
 
   // ========== レースの じょうほう（距離のあとに聞く画面） ==========
@@ -2920,7 +2922,7 @@
   }
   $('smAnalyze').onclick=function(){
     if(allDists().length===0 && rtTime==null){
-      toast('さきに「データを呼び出す」で 記録をえらんでね');
+      toast('さきに「記録を さがす」で 記録をえらんでね');
       openFindModal();
       return;
     }
@@ -3675,10 +3677,11 @@
     }, 0);
   }
   // 局面ごとの棒グラフ。青がAサン、黄がBサン。棒が短いほど速い。
-  function cmp2Phases(box, lapsA, lapsB, dist){
+  function cmp2Phases(box, lapsA, lapsB, dist, naA, naB){
+    naA=naA||'A'; naB=naB||'B';
     var wrap=document.createElement('div');
     var note=document.createElement('div'); note.className='ph-note';
-    note.textContent='局面ごとの区間タイム。棒が短いほど速い。';
+    note.textContent='青が'+naA+'、黄が'+naB+'。局面ごとの区間タイム。棒が短いほど速い。';
     wrap.appendChild(note);
     var bmap={}; (lapsB||[]).forEach(function(p){ bmap[p.x]=p.y; });
     var maxT=0;
@@ -3697,14 +3700,14 @@
       if(tb!=null){
         var d=p.y-tb;
         if(Math.abs(d)<0.005) diff='<span class="ph-diff same">同じ</span>';
-        else if(d<0) diff='<span class="ph-diff awin">Aが '+(-d).toFixed(2)+'秒 速い</span>';
-        else diff='<span class="ph-diff bwin">Bが '+d.toFixed(2)+'秒 速い</span>';
+        else if(d<0) diff='<span class="ph-diff awin">'+naA+'が '+(-d).toFixed(2)+'秒 速い</span>';
+        else diff='<span class="ph-diff bwin">'+naB+'が '+d.toFixed(2)+'秒 速い</span>';
       }
       var naka='<div class="ph-head"><span class="ph-name">'+name+'</span>'+diff+'</div>'
         +'<div class="ph-bar a" style="width:'+(p.y/maxT*100).toFixed(1)+'%">'+p.y.toFixed(2)+'</div>';
       naka += (tb!=null)
         ? '<div class="ph-bar b" style="width:'+(tb/maxT*100).toFixed(1)+'%">'+tb.toFixed(2)+'</div>'
-        : '<div class="ph-none">Bサンは この区間の記録が ありません。</div>';
+        : '<div class="ph-none">'+naB+'は この区間の記録が ありません。</div>';
       row.innerHTML=naka;
       wrap.appendChild(row);
       prev=p.x;
@@ -3751,14 +3754,19 @@
       var dist=Number($('cmp2Dist').value)||50;
       var aName=$('cmpA').options[$('cmpA').selectedIndex].textContent;
       var bName=$('cmpB').options[$('cmpB').selectedIndex].textContent;
-      // 選び終わったので、選択欄をたたんで まとめの一行に変える
+      // 選び終わったので、選択欄をたたんで まとめに変える
       var tA=String($('cmpRaceA').options[$('cmpRaceA').selectedIndex].textContent).trim().split(/\s+/)[0];
       var tB=String($('cmpRaceB').options[$('cmpRaceB').selectedIndex].textContent).trim().split(/\s+/)[0];
-      $('cmp2SumText').textContent='青 A '+aName+' '+tA+'　×　黄 B '+bName+' '+tB;
+      var naA=String(aName).trim().split(/\s+/)[0];   // 名字だけ(例 中野由基)
+      var naB=String(bName).trim().split(/\s+/)[0];
+      $('cmp2SumText').innerHTML=
+        '<div>'+dist+'m'+$('cmp2Stroke').value+'</div>'+
+        '<div><span style="color:#7dd3fc">'+naA+' '+tA+'</span> vs '+
+        '<span style="color:#fcd34d">'+naB+' '+tB+'</span></div>';
       $('cmp2Cond').classList.add('hide');
       $('cmp2Sum').classList.remove('hide');
       // 主役: 局面ごとの棒グラフ
-      cmp2Phases(box, sA.laps, sB.laps, dist);
+      cmp2Phases(box, sA.laps, sB.laps, dist, naA, naB);
       // わき役: ボタンを押したときだけ見えるグラフ
       cmp2Toggle(box, 'スピードのグラフ', function(naka){
         cmp2Section(naka, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });
@@ -4424,7 +4432,7 @@
   $('cmpAge').onchange=cmpRender;
   $('cmpRange').oninput=cmpRender;
 
-  // ===== データを呼び出す（条件で絞り込み） =====
+  // ===== 記録をさがす（条件で絞り込み） =====
   var dfRaces=[];   // チーム：えらんだ選手の全レース
   var dfWhRows=[];  // 大会データ：いまえらんでいる種目シートの全行
   function openFindModal(){

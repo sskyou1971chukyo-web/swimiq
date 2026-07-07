@@ -725,6 +725,29 @@
   .cmp-toggle{ display:block; width:100%; padding:13px; margin:12px 0 6px; border-radius:12px;
     border:1.5px solid var(--line); background:rgba(255,255,255,.10); color:#fff;
     font-weight:900; font-size:15px; cursor:pointer; text-align:center; }
+  /* 進捗画面: カードが下から順番にふわっと現れる */
+  @keyframes prog-in{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+  .prog-anim{ animation:prog-in .45s ease-out both; }
+  /* 進捗画面: 自己ベスト更新のお祝い(金色に2回光る) */
+  @keyframes pb-glow{ 0%,100%{ box-shadow:0 0 0 rgba(251,191,36,0); }
+    50%{ box-shadow:0 0 18px rgba(251,191,36,.55); } }
+  .prog-row.pb{ border:1.5px solid #fbbf24; animation:prog-in .45s ease-out both, pb-glow 1.6s ease-in-out .6s 2; }
+  .pb-badge{ display:inline-block; margin-left:8px; padding:2px 8px; border-radius:8px;
+    background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#3b2703; font-size:12px; font-weight:900; }
+  /* 進捗画面: 全国基準メーター */
+  .kj-meter{ background:rgba(255,255,255,.07); border:1.5px solid var(--line);
+    border-radius:12px; padding:12px; margin:10px 0; }
+  .kj-meter .t1{ font-weight:900; font-size:15px; margin-bottom:2px; }
+  .kj-meter .t2{ font-size:13px; opacity:.9; margin-bottom:8px; }
+  .kj-track{ height:14px; border-radius:7px; background:rgba(255,255,255,.12); overflow:hidden; }
+  .kj-fill{ height:100%; width:0; border-radius:7px;
+    background:linear-gradient(90deg,#38bdf8,#fbbf24);
+    transition:width .9s cubic-bezier(.2,.8,.2,1); }
+  /* 動きが苦手な人への逃げ道(iPhoneの「視差効果を減らす」がオンなら動きを止める) */
+  @media (prefers-reduced-motion: reduce){
+    .prog-anim, .prog-row.pb{ animation:none; }
+    .kj-fill{ transition:none; }
+  }
   .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:14px;
     background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
@@ -3411,17 +3434,44 @@
     var fin=races.filter(function(r){ return String(r.round||'')==='決勝'; });
     var n=Math.min(Number($('progRecentN').value)||5, races.length);
     var recent=races.slice(0, n);
+    // 動きが苦手な設定(視差効果を減らす)がオンかどうか
+    var ugokiOK = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var junban = 0;  // カードの入場順(順に少しずつ遅らせる)
     function row(label, val, note){
-      var d=document.createElement('div'); d.className='prog-row';
+      var d=document.createElement('div'); d.className='prog-row prog-anim';
+      d.style.animationDelay=(junban*0.07)+'s'; junban++;
       var l=document.createElement('span'); l.className='prog-label'; l.textContent=label;
       var v=document.createElement('span'); v.className='prog-val'; v.textContent=val;
       var t=document.createElement('span'); t.className='prog-note'; t.textContent=note||'';
       d.appendChild(l); d.appendChild(v); d.appendChild(t);
       box.appendChild(d);
+      // タイムの数字は、0から駆け上がって本当の値でピタッと止まる(0.6秒)
+      var target=parseT(val);
+      if(ugokiOK && target!=null){
+        v.textContent=fmt(0);
+        var t0=null;
+        var step=function(ts){
+          if(t0===null) t0=ts;
+          var p=Math.min(1, (ts-t0)/600);
+          p=1-Math.pow(1-p, 3);   // 最後ほどゆっくり止まる味付け
+          v.textContent=fmt(target*p);
+          if(p<1) requestAnimationFrame(step);
+          else v.textContent=fmt(target);
+        };
+        requestAnimationFrame(step);
+      }
+      return { hako:d, namae:l, kazu:v };
     }
     var b=progBest(races);
-    row('ベストタイム', fmt(parseT(b.finalTime)),
+    var bestRow=row('ベストタイム', fmt(parseT(b.finalTime)),
         [(b.meetDate||''),(b.meetName||'')].filter(function(x){return x;}).join('　'));
+    // ベストが一番あたらしい大会で出たものなら、更新したてのお祝いを出す
+    if(b && races[0] && String(b.meetDate) && String(b.meetDate)===String(races[0].meetDate)){
+      bestRow.hako.classList.add('pb');
+      var iwai=document.createElement('span'); iwai.className='pb-badge';
+      iwai.textContent='自己ベスト更新!';
+      bestRow.namae.appendChild(iwai);
+    }
     var bp=progBest(pre);
     row('予選ベスト', bp? fmt(parseT(bp.finalTime)) : 'まだなし', bp? (bp.meetDate||'') : '');
     var bf=progBest(fin);
@@ -3430,6 +3480,50 @@
     row('予選平均', pre.length? fmt(progAvg(pre)) : 'まだなし', pre.length? pre.length+'本' : '');
     row('決勝平均', fin.length? fmt(progAvg(fin)) : 'まだなし', fin.length? fin.length+'本' : '');
     row('直近'+n+'レース平均', fmt(progAvg(recent)), '新しい順に'+n+'本');
+    // ===== 全国基準メーター: ベストタイムが次の目標ラインまでどれだけ近いか =====
+    if(typeof progKijun==='function'){
+      var kj=progKijun();
+      var bestT=parseT(b.finalTime);
+      if(kj && bestT!=null){
+        var lines=[
+          { t:kj.nipponichi, m:'日本一' },
+          { t:kj.nyusho,     m:'入賞ライン' },
+          { t:kj.kessho,     m:'決勝ライン' },
+          { t:kj.bkessho,    m:'B決勝ライン' },
+          { t:kj.saigo,      m:'全国出場ライン' }
+        ].filter(function(l){ return l.t!=null; });
+        var mokuhyou=null, deppatsu=null;
+        lines.forEach(function(l){
+          if(l.t<bestT && (mokuhyou===null||l.t>mokuhyou.t)) mokuhyou=l;   // 次にこえる線
+          if(l.t>=bestT && (deppatsu===null||l.t<deppatsu.t)) deppatsu=l;  // もうこえた線
+        });
+        var card=document.createElement('div'); card.className='kj-meter prog-anim';
+        card.style.animationDelay=(junban*0.07)+'s'; junban++;
+        var wari, kotoba;
+        if(!mokuhyou){
+          wari=100; kotoba='日本一のタイムを超えています！';
+        }else{
+          kotoba='次の目標：'+mokuhyou.m+'まで あと'+fmt(bestT-mokuhyou.t)+'秒';
+          wari = deppatsu
+            ? Math.round((deppatsu.t-bestT)/(deppatsu.t-mokuhyou.t)*100)
+            : 4;
+          wari=Math.max(4, Math.min(100, wari));
+        }
+        card.innerHTML='<div class="t1">全国基準メーター</div>'
+          +'<div class="t2">'+kotoba+'</div>'
+          +'<div class="kj-track"><div class="kj-fill"></div></div>'
+          +'<div class="t2" style="margin:6px 0 0">基準 2026日本選手権</div>';
+        box.appendChild(card);
+        var fill=card.querySelector('.kj-fill');
+        if(ugokiOK){
+          requestAnimationFrame(function(){ requestAnimationFrame(function(){
+            fill.style.width=wari+'%';
+          }); });
+        }else{
+          fill.style.width=wari+'%';
+        }
+      }
+    }
     // タイムのうつりかわりのグラフ（古い順にならべて、調子の流れを絵にする）
     var subG=document.createElement('div'); subG.className='prog-sub';
     subG.textContent='タイムの うつりかわり（左が古い　右が新しい。上にいくほど速い）';

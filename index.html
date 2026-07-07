@@ -668,6 +668,18 @@
   #progModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #progModal.hide{ display:none; }
+  /* くらべる（新）も、同じかぶせ表示 */
+  #cmp2Modal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #cmp2Modal.hide{ display:none; }
+  /* 横に長いグラフは、指でスワイプかボタンでめくる */
+  .cmp-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; background:rgba(255,255,255,.06);
+    border-radius:12px; padding:8px 4px 2px; }
+  .cmp-scroll svg{ display:block; height:auto; }
+  .cmp-pager{ display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px; gap:8px; }
+  .cmp-pager button{ padding:7px 14px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(255,255,255,.12); color:#fff; font-weight:800; cursor:pointer; font-size:14px; }
+  .cmp-pager span{ font-size:11px; opacity:.8; font-weight:700; text-align:center; }
   .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:14px;
     background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
@@ -1193,6 +1205,12 @@
     <label class="cfg-l">動画保存のフォルダURL（Googleドライブ）
       <input id="cfgVideo" type="url" placeholder="https://drive.google.com/drive/folders/…"></label>
     <p class="note cfg-note">レース動画専用のフォルダを作り、共有を「リンクを知っている全員：閲覧者」にしてください。見えるのはこのフォルダの中だけで、ドライブのほかの場所は見えません。閲覧者は消したり変えたりもできません。</p>
+    <label class="cfg-l">シャッチーくんの案内
+      <select id="cfgShacchi">
+        <option value="on">出す（はじめての人用）</option>
+        <option value="off">出さない（慣れてきた人用）</option>
+      </select></label>
+    <p class="note cfg-note">「出さない」にすると、自動のふきだしは出ません。シャッチーくん本人を押して解説モードにしたときだけ 説明します。</p>
     <label class="cfg-l">GitHubトークン（アップデート用の合鍵）
       <input id="cfgGhToken" type="password" placeholder="github_pat_ ではじまる長い文字"></label>
     <label class="cfg-l">GitHubのリポジトリ（ユーザー名/倉庫名）
@@ -1234,6 +1252,21 @@
     <div class="sv-row"><span>直近レース数</span><select id="progRecentN"></select></div>
     <div id="progList" class="df-list"></div>
     <div class="stroke-btns"><button id="progClose">とじる</button></div>
+  </div>
+</div>
+
+<!-- くらべる（新）：AサンとBサンのレースをグラフで見くらべる -->
+<div id="cmp2Modal" class="hide">
+  <div class="modal-card df-card">
+    <h2>データを 比較</h2>
+    <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
+    <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
+    <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
+    <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
+    <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
+    <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
+    <div id="cmp2Body" class="df-list"></div>
+    <div class="stroke-btns"><button id="cmp2Close">とじる</button></div>
   </div>
 </div>
 
@@ -2820,7 +2853,7 @@
     }
     openAnaModal();
   };
-  $('smCompare').onclick=function(){ openCmpModal(); };
+  $('smCompare').onclick=function(){ openCmp2Modal(); };
   $('cmpClose').onclick=function(){ $('cmpInfoModal').classList.add('hide'); };
 
   // ===== 設定（3つのURLをこの端末に覚えさせる。パスワードで守る） =====
@@ -2848,6 +2881,7 @@
     $('cfgVideo').value = localStorage.getItem('swimiq_video_folder')||'';
     $('cfgGhToken').value = localStorage.getItem('swimiq_gh_token')||'';
     $('cfgGhRepo').value = localStorage.getItem('swimiq_gh_repo')||'';
+    $('cfgShacchi').value = (localStorage.getItem('swimiq_shacchi')==='off') ? 'off' : 'on';
     $('cfgUpdateBtn').textContent='⬆️ アプリを アップデート（新しいindex.htmlをえらぶ）';
     $('cfgUpdateBtn').disabled=false;
     $('cfgModal').classList.remove('hide');
@@ -2878,6 +2912,7 @@
     }
     if(!put('swimiq_gas_url', $('cfgGas').value, 'データ保存')) return;
     if(!put('swimiq_wh_url', $('cfgWh').value, '大会データ')) return;
+    try{ localStorage.setItem('swimiq_shacchi', $('cfgShacchi').value==='off' ? 'off' : 'on'); }catch(e){}
     if(!put('swimiq_video_folder', $('cfgVideo').value, '動画保存')) return;
     // GitHubのトークンとリポジトリはURLではないので、そのまま覚える
     function putRaw(key, val){
@@ -3295,6 +3330,256 @@
   $('progAthlete').onchange=function(){ progFillEvents(); progRender(); };
   $('progEvent').onchange=function(){ progRender(); };
   $('progRecentN').onchange=function(){ progRender(); };
+
+  // ========== くらべる（Aサン・Bサンのグラフ比較） ==========
+  // 選手をふたりえらび、同じ種目・距離のレースを一本ずつ取り寄せて、
+  // ラップ・スピード・テンポを二色の折れ線でならべる。
+  // 横に長いレース（200m以上など）は、指のスワイプかボタンで横にめくって見る。
+  var cmp2DataCache={};   // 記録ID → レースの中身（一度取り寄せたら覚える）
+  var CMP_A_COL='#38bdf8', CMP_B_COL='#fbbf24';
+  $('cmp2Close').onclick=function(){ $('cmp2Modal').classList.add('hide'); };
+  function openCmp2Modal(){
+    $('cmp2Modal').classList.remove('hide');
+    $('cmp2Body').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
+    loadAllRaces().then(function(){
+      cmp2FillPeople();
+      cmp2FillEvents();
+      cmp2FillRaces();
+      cmp2Render();
+    }).catch(function(err){
+      $('cmp2Body').innerHTML='<div class="df-empty">読み込みに失敗しました： '+err.message+'</div>';
+    });
+  }
+  function cmp2People(){
+    var seen={}, people=[];
+    (cmpAll||[]).forEach(function(r){
+      var id=String(r.athleteId||'');
+      if(!id || seen[id]) return; seen[id]=1;
+      people.push({ id:id, name:String(r.name||''), group:String(r.group||'') });
+    });
+    people.sort(function(a,b){ return a.name<b.name? -1:1; });
+    return people;
+  }
+  // Aサン（ふつうは自分）とBサンのえらび
+  function cmp2FillPeople(){
+    var people=cmp2People();
+    [['cmpA', myId()], ['cmpB', '']].forEach(function(pair){
+      var sel=$(pair[0]); var keep=sel.value; sel.innerHTML='';
+      if(pair[0]==='cmpB'){
+        var o0=document.createElement('option'); o0.value=''; o0.textContent='えらんでください';
+        sel.appendChild(o0);
+      }
+      people.forEach(function(p){
+        var o=document.createElement('option'); o.value=p.id;
+        o.textContent=p.name+(p.group? '　'+p.group:'');
+        sel.appendChild(o);
+      });
+      if(keep) sel.value=keep;
+      if(!sel.value && pair[1]) sel.value=pair[1];
+    });
+    if(!$('cmpA').value){
+      if(getAthletes().length) $('cmpA').value=getAthletes()[0].id;
+      var people2=cmp2People();
+      if(!$('cmpA').value && people2.length) $('cmpA').value=people2[0].id;
+    }
+  }
+  function cmp2RacesOf(aid){
+    return (cmpAll||[]).filter(function(r){
+      return String(r.athleteId)===String(aid) && parseT(r.finalTime)!=null;
+    });
+  }
+  // 種目と距離のえらび：AかBが泳いだものだけをならべる
+  function cmp2FillEvents(){
+    var pool=cmp2RacesOf($('cmpA').value).concat(cmp2RacesOf($('cmpB').value));
+    var sSel=$('cmp2Stroke'); var sKeep=sSel.value; sSel.innerHTML='';
+    var strokes={}, latest={};
+    pool.forEach(function(r){
+      var st=String(r.stroke||''); strokes[st]=1;
+      var d=String(r.meetDate||'');
+      if(latest[st]==null || d>latest[st]) latest[st]=d;
+    });
+    Object.keys(strokes).sort(function(a,b){ return latest[a]>latest[b]? -1:1; }).forEach(function(st){
+      var o=document.createElement('option'); o.value=st; o.textContent=st||'（種目なし）';
+      sSel.appendChild(o);
+    });
+    if(sKeep) sSel.value=sKeep;
+    if(!sSel.value && sSel.options.length) sSel.selectedIndex=0;
+    var dSel=$('cmp2Dist'); var dKeep=dSel.value; dSel.innerHTML='';
+    var dists={};
+    pool.forEach(function(r){
+      if(String(r.stroke||'')!==sSel.value) return;
+      dists[String(r.raceDist)]=1;
+    });
+    Object.keys(dists).sort(function(a,b){ return Number(a)-Number(b); }).forEach(function(k){
+      var o=document.createElement('option'); o.value=k; o.textContent=k+'m';
+      dSel.appendChild(o);
+    });
+    if(dKeep) dSel.value=dKeep;
+    if(!dSel.value && dSel.options.length) dSel.selectedIndex=0;
+  }
+  // ふたりのレースのえらび：はやい順にならべ、ベストが最初にえらばれる
+  function cmp2FillRaces(){
+    [['cmpRaceA','cmpA'],['cmpRaceB','cmpB']].forEach(function(pair){
+      var sel=$(pair[0]); var keep=sel.value; sel.innerHTML='';
+      var aid=$(pair[1]).value;
+      var list=cmp2RacesOf(aid).filter(function(r){
+        return String(r.raceDist)===$('cmp2Dist').value && String(r.stroke||'')===$('cmp2Stroke').value;
+      });
+      if(!list.length){
+        var o=document.createElement('option'); o.value=''; o.textContent='レースが ありません';
+        sel.appendChild(o); return;
+      }
+      list.sort(function(a,b){ return parseT(a.finalTime)-parseT(b.finalTime); });
+      list.forEach(function(r){
+        var o=document.createElement('option'); o.value=r.raceId;
+        o.textContent=(r.finalTime||'')+'　'+(r.meetDate||'')+(r.meetName? '　'+r.meetName:'');
+        sel.appendChild(o);
+      });
+      if(keep) sel.value=keep;
+      if(!sel.value) sel.selectedIndex=0;
+    });
+  }
+  // レース一本の中身を取り寄せる（一度取り寄せたら携帯が覚える）
+  function cmp2LoadData(raceId){
+    if(!raceId) return Promise.resolve(null);
+    if(cmp2DataCache[raceId]) return Promise.resolve(cmp2DataCache[raceId]);
+    return api({action:'load', raceId:raceId}).then(function(res){
+      if(!res.ok) return null;
+      cmp2DataCache[raceId]=res.data||{};
+      return cmp2DataCache[raceId];
+    }).catch(function(){ return null; });
+  }
+  // レースの中身から、ラップ・スピード・テンポの数列を作る
+  // 通過タイムは、正式タイムがあればそれを、無ければ計測値にR.Tを足したものを使う
+  function cmp2Series(d){
+    if(!d) return null;
+    var rt=(d.rt!=null && d.rt!=='')? Number(d.rt)||0 : 0;
+    var set={};
+    Object.keys(d.splits||{}).forEach(function(k){ if(Number(k)>0) set[k]=1; });
+    Object.keys(d.official||{}).forEach(function(k){ if(Number(k)>0) set[k]=1; });
+    var ds=Object.keys(set).map(Number).sort(function(a,b){ return a-b; });
+    var laps=[], speed=[];
+    var pd=0, pt=0;
+    ds.forEach(function(dist){
+      var t=null;
+      if(d.official && d.official[dist]!=null) t=Number(d.official[dist]);
+      else if(d.splits && d.splits[dist]!=null) t=Number(d.splits[dist])+rt;
+      if(t==null || !(t>pt)) return;
+      laps.push({ x:dist, y:t-pt });                  // 区間タイム（終わりの距離に置く）
+      speed.push({ x:(pd+dist)/2, y:(dist-pd)/(t-pt) });   // 区間スピード（まん中に置く）
+      pd=dist; pt=t;
+    });
+    var tempo=[];
+    Object.keys(d.tempo||{}).forEach(function(k){
+      var v=d.tempo[k]||{}; var p=k.split('-');
+      if(v.perStroke) tempo.push({ x:(Number(p[0])+Number(p[1]))/2, y:Number(v.perStroke) });
+    });
+    tempo.sort(function(a,b){ return a.x-b.x; });
+    return { laps:laps, speed:speed, tempo:tempo };
+  }
+  // 二色の折れ線グラフ。横じくは距離。長いレースは横に広く描いて、めくって見る
+  function cmp2Chart(ptsA, ptsB, raceDist, opts){
+    var pxPerM=4.4;
+    var L=24, R=24, T=30, B=30, H=230;
+    var iw=Math.max(412, raceDist*pxPerM);
+    var W=L+iw+R;
+    var all=ptsA.concat(ptsB);
+    var min=Infinity, max=-Infinity;
+    all.forEach(function(p){ if(p.y<min)min=p.y; if(p.y>max)max=p.y; });
+    var pad=opts.pad||0.4;
+    if(max-min<pad){ var mid=(min+max)/2; min=mid-pad/2-0.15; max=mid+pad/2+0.15; }
+    var ih=H-T-B;
+    function x(m){ return L + iw*m/raceDist; }
+    function y(v){
+      var r=(v-min)/(max-min);
+      return opts.invert ? (T+ih*r) : (T+ih*(1-r));   // invert=タイム系（小さいほど上＝速い）
+    }
+    var s='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg">';
+    for(var m=0; m<=raceDist; m+=25){
+      s+='<line x1="'+x(m).toFixed(1)+'" y1="'+T+'" x2="'+x(m).toFixed(1)+'" y2="'+(H-B)+'" stroke="rgba(255,255,255,.14)" stroke-width="1"/>';
+      s+='<text x="'+x(m).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-size="11" fill="rgba(255,255,255,.75)">'+m+'m</text>';
+    }
+    function draw(pts, col, above){
+      if(!pts.length) return;
+      if(pts.length>1){
+        var dstr=''; pts.forEach(function(p,i){ dstr+=(i? ' L ':'M ')+x(p.x).toFixed(1)+' '+y(p.y).toFixed(1); });
+        s+='<path d="'+dstr+'" fill="none" stroke="'+col+'" stroke-width="2.5" opacity=".9"/>';
+      }
+      pts.forEach(function(p){
+        var cx=x(p.x).toFixed(1), cy=y(p.y);
+        s+='<circle cx="'+cx+'" cy="'+cy.toFixed(1)+'" r="5" fill="'+col+'"/>';
+        s+='<text x="'+cx+'" y="'+(above? cy-11 : cy+21).toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="'+col+'">'+p.y.toFixed(opts.decimals)+'</text>';
+      });
+    }
+    draw(ptsA, CMP_A_COL, true);   // Aサンの数字は点の上に
+    draw(ptsB, CMP_B_COL, false);  // Bサンの数字は点の下に（重なりを防ぐ）
+    s+='</svg>';
+    var wrap=document.createElement('div'); wrap.className='cmp-scroll';
+    wrap.innerHTML=s;
+    return wrap;
+  }
+  // 横に長いときだけ出す、ページめくりのボタン
+  function cmp2Pager(sc){
+    var pager=document.createElement('div'); pager.className='cmp-pager';
+    var prev=document.createElement('button'); prev.type='button'; prev.textContent='◀ まえへ';
+    var info=document.createElement('span'); info.textContent='指で横にうごかすか、ボタンでめくれます';
+    var next=document.createElement('button'); next.type='button'; next.textContent='つぎへ ▶';
+    prev.onclick=function(){ sc.scrollBy({ left:-sc.clientWidth*0.9, behavior:'smooth' }); };
+    next.onclick=function(){ sc.scrollBy({ left: sc.clientWidth*0.9, behavior:'smooth' }); };
+    pager.appendChild(prev); pager.appendChild(info); pager.appendChild(next);
+    return pager;
+  }
+  function cmp2Section(box, title, a, b, dist, opts){
+    var sub=document.createElement('div'); sub.className='prog-sub'; sub.textContent=title;
+    box.appendChild(sub);
+    if(!a.length && !b.length){
+      var e=document.createElement('div'); e.className='df-empty'; e.textContent='この記録が ありません。';
+      box.appendChild(e); return;
+    }
+    var chart=cmp2Chart(a, b, dist, opts);
+    box.appendChild(chart);
+    setTimeout(function(){
+      if(chart.scrollWidth > chart.clientWidth + 8){
+        box.insertBefore(cmp2Pager(chart), chart.nextSibling);
+      }
+    }, 0);
+  }
+  function cmp2Render(){
+    var box=$('cmp2Body'); box.innerHTML='';
+    if(!$('cmpB').value){
+      box.innerHTML='<div class="df-empty">Bサンを えらんでください。Aサンは ふつうは自分です。</div>';
+      return;
+    }
+    var rA=$('cmpRaceA').value, rB=$('cmpRaceB').value;
+    if(!rA || !rB){
+      box.innerHTML='<div class="df-empty">'+(!rA? 'Aサン':'Bサン')+'には この種目・距離のレースが ありません。</div>';
+      return;
+    }
+    box.innerHTML='<div class="df-empty">レースの中身を 取り寄せ中…</div>';
+    Promise.all([cmp2LoadData(rA), cmp2LoadData(rB)]).then(function(res){
+      var sA=cmp2Series(res[0]), sB=cmp2Series(res[1]);
+      box.innerHTML='';
+      if(!sA || !sB){
+        box.innerHTML='<div class="df-empty">レースの中身を 取り寄せられませんでした。電波を確かめて、もう一度えらび直してください。</div>';
+        return;
+      }
+      var dist=Number($('cmp2Dist').value)||50;
+      var lg=document.createElement('div'); lg.className='prog-legend';
+      var aName=$('cmpA').options[$('cmpA').selectedIndex].textContent;
+      var bName=$('cmpB').options[$('cmpB').selectedIndex].textContent;
+      lg.textContent='青が Aサン（'+aName+'）、黄色が Bサン（'+bName+'）。';
+      box.appendChild(lg);
+      cmp2Section(box, 'ラップ（区間タイム・秒。上にいくほど速い）', sA.laps, sB.laps, dist, { invert:true, decimals:2, pad:0.6 });
+      cmp2Section(box, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });
+      cmp2Section(box, 'テンポ（1かきの秒数。小さいほど回転が速い）', sA.tempo, sB.tempo, dist, { invert:false, decimals:2, pad:0.2 });
+    });
+  }
+  $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
+  $('cmpB').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Dist').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
+  $('cmpRaceA').onchange=function(){ cmp2Render(); };
+  $('cmpRaceB').onchange=function(){ cmp2Render(); };
 
   // ===== データを比較（体型・年齢・性別でしぼってランキング） =====
   var cmpAll=null;  // サーバーから取った全レース（選手の性別・生年月日つき）
@@ -5016,7 +5301,7 @@
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
-    ['#smCompare','ほかの選手と くらべる機能だッチ。同じ体型（身長・体重・BMIのはばは1〜10%でえらべるッチ）、同じ年齢、同じ性別で しぼって、ランキングが見られるッチ。'],
+    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],
     ['#toolsBtn','ここは道具箱だッチ。動画や距離の変更、ほぞんとよびだしが入っているッチ。'],
@@ -5059,8 +5344,12 @@
     $('guide').classList.remove('hide');
   }
   function hideGuide(){ $('guide').classList.add('hide'); }
+  // 設定で「出さない（慣れてきた人用）」がえらばれているか
+  function shacchiOff(){ try{ return localStorage.getItem('swimiq_shacchi')==='off'; }catch(e){ return false; } }
   // シャッチーくんが一言だけしゃべる（数秒で消える）
+  // 「出さない」設定のときは、解説モード中いがい なにも言わない
   function shacchiSay(text, ms){
+    if(!guideMode && shacchiOff()) return;
     $('gMode').style.display = guideMode ? '' : 'none';
     showGuide(text);
     clearTimeout(shacchiSay._t);
@@ -5087,7 +5376,7 @@
   // 初めて開いたときだけ、あいさつの吹き出しを少しのあいだ出す
   var seenTut=false;
   try{ seenTut = (localStorage.getItem('swimiq_seen_tut')==='1'); }catch(e){ seenTut = !!window.__swimiqSeenTut; }
-  if(!seenTut){
+  if(!seenTut && !shacchiOff()){
     $('gMode').style.display='none';
     showGuide('やあ！ぼくシャッチーくん。ぼくをおすと解説モードになって、ボタンのはたらきをおしえるッチ！');
     setTimeout(function(){ if(!guideMode) hideGuide(); }, 9000);

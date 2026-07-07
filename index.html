@@ -3445,16 +3445,18 @@
       var t=document.createElement('span'); t.className='prog-note'; t.textContent=note||'';
       d.appendChild(l); d.appendChild(v); d.appendChild(t);
       box.appendChild(d);
-      // タイムの数字は、0から駆け上がって本当の値でピタッと止まる(0.6秒)
+      // タイムの数字は、本当の値より0.6秒手前から駆け上がってピタッと止まる
+      // 例: 23.78なら、23.18から始まって23.78で止まる
       var target=parseT(val);
       if(ugokiOK && target!=null){
-        v.textContent=fmt(0);
+        var hajimari=Math.max(0, target-0.6);   // 出発点(目標の0.6秒手前)
+        v.textContent=fmt(hajimari);
         var t0=null;
         var step=function(ts){
           if(t0===null) t0=ts;
           var p=Math.min(1, (ts-t0)/600);
           p=1-Math.pow(1-p, 3);   // 最後ほどゆっくり止まる味付け
-          v.textContent=fmt(target*p);
+          v.textContent=fmt(hajimari + (target-hajimari)*p);
           if(p<1) requestAnimationFrame(step);
           else v.textContent=fmt(target);
         };

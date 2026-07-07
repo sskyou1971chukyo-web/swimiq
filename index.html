@@ -58,10 +58,19 @@
      iOS Safariの不具合で黒い矩形が描画されることがある。ぼかしは使わず色を濃くして対応。 */
   #recPanel{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 54px);
     bottom:calc(env(safe-area-inset-bottom) + 72px); width:150px; z-index:6;
+    max-height:calc(100% - 120px);
     display:none; flex-direction:column;
     background:rgba(6,24,42,.85); transform:translateZ(0);
     border:1.5px solid var(--line); border-radius:16px; padding:8px 8px 6px; }
   #app.hasvideo #recPanel{ display:flex; }
+  /* 分析画面の左下に出る、ホームにもどるボタン */
+  #homeBtn{ position:fixed; left:12px; bottom:calc(env(safe-area-inset-bottom) + 76px); z-index:44;
+    display:none; align-items:center; gap:6px; padding:9px 14px; border-radius:999px;
+    border:1.5px solid var(--line); background:linear-gradient(135deg,#0ea5e9,#6366f1);
+    color:#fff; font-weight:800; font-size:14px; cursor:pointer; box-shadow:var(--shadow); }
+  #homeBtn svg{ width:18px; height:18px; flex:0 0 18px; }
+  #homeBtn:active{ transform:translateY(2px); }
+  #app.hasvideo #homeBtn{ display:flex; }
   #recPanel .rec-head{ font-size:12px; font-weight:800; color:#bfe3ff; text-align:center;
     padding-bottom:6px; margin-bottom:4px; border-bottom:1px solid rgba(255,255,255,.25); flex:none;
     cursor:grab; touch-action:none; }  /* ここをつかんでパネルごと動かせる */
@@ -883,6 +892,9 @@
   <div id="timeHud"><span class="lb">けいか</span><span class="tm" id="bigTimeHud">0.00</span></div>
 
   <!-- 左側：記録した通過タイムの一覧 -->
+  <button id="homeBtn" type="button" aria-label="ホームにもどる">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11.2 12 4l8 7.2"/><path d="M6.2 10v9.2h11.6V10"/></svg><span>ホーム</span>
+  </button>
   <div id="recPanel">
     <div class="rec-head">きろく</div>
     <div id="recList"></div>
@@ -5356,6 +5368,7 @@
     ['#bAdjFwd','調整ボタンだッチ。1回おすと 1秒すすむッチ。'],
     ['#menuBtn','ズームした動画をもとの大きさにもどすッチ。'],
     ['#timeHud','スタートからの経過時間だッチ。コマ送りにあわせてかわるッチ。'],
+    ['#homeBtn','ホームにもどるボタンだッチ。動画をとじて、さいしょの画面にもどるッチ。ほぞんしていない記録があるときは、一度たしかめるから安心だッチ。'],
     ['#recPanel','記録がここにたまるッチ。きろくの見出しをつかむとパネルごとうごかせるッチ。タイムの数字をおすと正式タイムが入れられるッチ。'],
     ['.pt','はかりたい地点をえらぶッチ。100m以上のレースは節目をおすとその区間がひらいて、もう一回おすと一覧にもどるッチ。'],
     ['.segzone','ここをおすと区間がえらべるッチ。テンポをはかるときにつかうッチ。'],
@@ -5427,8 +5440,12 @@
     var startX=0, startY=0, baseL=0, baseT=0, dragging=false, moved=false;
     function freeze(){
       // right/bottomで置かれている部品を、いまの位置のままleft/topの指定に変える。
-      // 大きさは いっさい さわらない（書き込むから育つ事故が起きる。書かなければ育たない）
+      // bottomの決まりを外すと背丈の上限も消えて、パネルが画面の外まで伸びてしまう。
+      // そこで、いまの背丈をピクセルの数字でそのまま釘打ちする。
+      // ふちや余白の数えちがいで育たないよう、数え方（box-sizing）も固定しておく。
       var r=el.getBoundingClientRect();
+      el.style.boxSizing='border-box';
+      el.style.height=r.height+'px';
       el.style.left=r.left+'px'; el.style.top=r.top+'px';
       el.style.right='auto'; el.style.bottom='auto';
     }
@@ -5552,17 +5569,18 @@
     // まだ ほぞんしていない記録があるときは、一度たしかめる
     var hasRec = Object.keys(splitTimes).length>0 || Object.keys(tempoValues).length>0 || rtTime!=null;
     if(app.classList.contains('hasvideo') && hasRec){
-      if(!confirm('まだ ほぞんしていない記録が あるかもしれません。\n「動画を開く」に もどりますか？')) return;
+      if(!confirm('まだ ほぞんしていない記録が あるかもしれません。\nホームに もどりますか？')) return;
     }
     document.querySelectorAll('div[id$="Modal"]').forEach(function(m){
       m.classList.add('hide');
     });
     app.classList.remove('showtools');   // 道具箱もとじる
     if(!videoEl.paused) videoEl.pause(); // 動画は止める
-    app.classList.remove('hasvideo');    // 「動画をひらく」の入口画面にもどる
+    app.classList.remove('hasvideo');    // ホーム（トップ画面）にもどる
     guideOn=false; glowNext(null);       // 道しるべも消す
-    toast('「動画を開く」に もどりました');
+    toast('ホームに もどりました');
   }
+  $('homeBtn').onclick=goStart;
   // 起動したときに、すべての画面の下に「前に戻る」と「『動画を開く』に戻る」を置く
   document.querySelectorAll('.modal-card').forEach(function(card){
     if(card.hasAttribute('data-nonav')) return;   // 三択などの途中の画面には付けない
@@ -5579,7 +5597,7 @@
     var st=document.createElement('button');
     st.type='button';
     st.className='home-btn';
-    st.textContent='🎬 「動画を開く」に戻る';
+    st.textContent='ホームに もどる';
     st.onclick=goStart;
     wrap.appendChild(back);
     wrap.appendChild(st);

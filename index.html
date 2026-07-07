@@ -697,6 +697,32 @@
   .cmp-pager button{ padding:7px 14px; border-radius:10px; border:1.5px solid var(--line);
     background:rgba(255,255,255,.12); color:#fff; font-weight:800; cursor:pointer; font-size:14px; }
   .cmp-pager span{ font-size:11px; opacity:.8; font-weight:700; text-align:center; }
+  /* 比較画面: 選び終わったあとの まとめの一行 */
+  #cmp2Sum{ display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:rgba(255,255,255,.08); border:1.5px solid var(--line); border-radius:12px;
+    padding:10px 12px; margin-bottom:8px; }
+  #cmp2Sum .txt{ font-weight:900; font-size:15px; line-height:1.5; }
+  #cmp2Sum button{ padding:8px 12px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(255,255,255,.12); color:#fff; font-weight:800; cursor:pointer; flex-shrink:0; }
+  /* 比較画面: 局面ごとの棒グラフ */
+  .ph-note{ font-size:13px; opacity:.85; margin:2px 0 8px; }
+  .ph-row{ margin:10px 0 16px; }
+  .ph-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px; }
+  .ph-name{ font-weight:900; font-size:16px; }
+  .ph-diff{ font-size:13px; font-weight:800; padding:3px 10px; border-radius:9px; white-space:nowrap; }
+  .ph-diff.awin{ background:rgba(56,189,248,.22); color:#7dd3fc; }
+  .ph-diff.bwin{ background:rgba(251,191,36,.22); color:#fcd34d; }
+  .ph-diff.same{ background:rgba(255,255,255,.15); color:#e5e7eb; }
+  .ph-bar{ height:28px; border-radius:7px; margin:4px 0; display:flex; align-items:center;
+    justify-content:flex-end; padding-right:8px; font-weight:900; font-size:14px;
+    color:#08243d; min-width:52px; }
+  .ph-bar.a{ background:#38bdf8; }
+  .ph-bar.b{ background:#fbbf24; }
+  .ph-none{ font-size:12px; opacity:.7; margin:4px 0; }
+  /* 比較画面: スピードやテンポを見る/隠すボタン */
+  .cmp-toggle{ display:block; width:100%; padding:13px; margin:12px 0 6px; border-radius:12px;
+    border:1.5px solid var(--line); background:rgba(255,255,255,.10); color:#fff;
+    font-weight:900; font-size:15px; cursor:pointer; text-align:center; }
   .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:14px;
     background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
@@ -1283,12 +1309,18 @@
 <div id="cmp2Modal" class="hide">
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
-    <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
-    <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
-    <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
-    <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
-    <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
-    <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
+    <div id="cmp2Cond">
+      <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
+      <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
+      <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
+      <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
+      <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
+      <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
+    </div>
+    <div id="cmp2Sum" class="hide">
+      <span class="txt" id="cmp2SumText"></span>
+      <button id="cmp2Edit" type="button">条件を 変える</button>
+    </div>
     <div id="cmp2Body" class="df-list"></div>
     <div class="stroke-btns"><button id="cmp2Close">とじる</button></div>
   </div>
@@ -3642,6 +3674,61 @@
       }
     }, 0);
   }
+  // 局面ごとの棒グラフ。青がAサン、黄がBサン。棒が短いほど速い。
+  function cmp2Phases(box, lapsA, lapsB, dist){
+    var wrap=document.createElement('div');
+    var note=document.createElement('div'); note.className='ph-note';
+    note.textContent='局面ごとの区間タイム。棒が短いほど速い。';
+    wrap.appendChild(note);
+    var bmap={}; (lapsB||[]).forEach(function(p){ bmap[p.x]=p.y; });
+    var maxT=0;
+    (lapsA||[]).forEach(function(p){
+      if(p.y>maxT) maxT=p.y;
+      if(bmap[p.x]!=null && bmap[p.x]>maxT) maxT=bmap[p.x];
+    });
+    if(!maxT){ box.appendChild(wrap); return; }
+    var prev=0;
+    (lapsA||[]).forEach(function(p){
+      var name = prev===0 ? ('スタート 0-'+p.x+'m')
+               : (p.x===dist ? (prev+'-'+p.x+'m ゴール') : (prev+'-'+p.x+'m'));
+      var tb=bmap[p.x];
+      var row=document.createElement('div'); row.className='ph-row';
+      var diff='';
+      if(tb!=null){
+        var d=p.y-tb;
+        if(Math.abs(d)<0.005) diff='<span class="ph-diff same">同じ</span>';
+        else if(d<0) diff='<span class="ph-diff awin">Aが '+(-d).toFixed(2)+'秒 速い</span>';
+        else diff='<span class="ph-diff bwin">Bが '+d.toFixed(2)+'秒 速い</span>';
+      }
+      var naka='<div class="ph-head"><span class="ph-name">'+name+'</span>'+diff+'</div>'
+        +'<div class="ph-bar a" style="width:'+(p.y/maxT*100).toFixed(1)+'%">'+p.y.toFixed(2)+'</div>';
+      naka += (tb!=null)
+        ? '<div class="ph-bar b" style="width:'+(tb/maxT*100).toFixed(1)+'%">'+tb.toFixed(2)+'</div>'
+        : '<div class="ph-none">Bサンは この区間の記録が ありません。</div>';
+      row.innerHTML=naka;
+      wrap.appendChild(row);
+      prev=p.x;
+    });
+    box.appendChild(wrap);
+  }
+  // 押したときだけ中身を見せる ボタンつきの入れ物
+  function cmp2Toggle(box, namae, tsukuru){
+    var btn=document.createElement('button'); btn.type='button'; btn.className='cmp-toggle';
+    btn.textContent=namae+' を見る';
+    var naka=document.createElement('div'); naka.className='hide';
+    var dekita=false;
+    btn.onclick=function(){
+      if(naka.classList.contains('hide')){
+        if(!dekita){ tsukuru(naka); dekita=true; }
+        naka.classList.remove('hide');
+        btn.textContent=namae+' を隠す';
+      }else{
+        naka.classList.add('hide');
+        btn.textContent=namae+' を見る';
+      }
+    };
+    box.appendChild(btn); box.appendChild(naka);
+  }
   function cmp2Render(){
     var box=$('cmp2Body'); box.innerHTML='';
     if(!$('cmpB').value){
@@ -3662,14 +3749,23 @@
         return;
       }
       var dist=Number($('cmp2Dist').value)||50;
-      var lg=document.createElement('div'); lg.className='prog-legend';
       var aName=$('cmpA').options[$('cmpA').selectedIndex].textContent;
       var bName=$('cmpB').options[$('cmpB').selectedIndex].textContent;
-      lg.textContent='青が Aサン（'+aName+'）、黄色が Bサン（'+bName+'）。';
-      box.appendChild(lg);
-      cmp2Section(box, 'ラップ（区間タイム・秒。上にいくほど速い）', sA.laps, sB.laps, dist, { invert:true, decimals:2, pad:0.6 });
-      cmp2Section(box, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });
-      cmp2Section(box, 'テンポ（1かきの秒数。小さいほど回転が速い）', sA.tempo, sB.tempo, dist, { invert:false, decimals:2, pad:0.2 });
+      // 選び終わったので、選択欄をたたんで まとめの一行に変える
+      var tA=String($('cmpRaceA').options[$('cmpRaceA').selectedIndex].textContent).trim().split(/\s+/)[0];
+      var tB=String($('cmpRaceB').options[$('cmpRaceB').selectedIndex].textContent).trim().split(/\s+/)[0];
+      $('cmp2SumText').textContent='青 A '+aName+' '+tA+'　×　黄 B '+bName+' '+tB;
+      $('cmp2Cond').classList.add('hide');
+      $('cmp2Sum').classList.remove('hide');
+      // 主役: 局面ごとの棒グラフ
+      cmp2Phases(box, sA.laps, sB.laps, dist);
+      // わき役: ボタンを押したときだけ見えるグラフ
+      cmp2Toggle(box, 'スピードのグラフ', function(naka){
+        cmp2Section(naka, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });
+      });
+      cmp2Toggle(box, 'テンポのグラフ', function(naka){
+        cmp2Section(naka, 'テンポ（1かきの秒数。小さいほど回転が速い）', sA.tempo, sB.tempo, dist, { invert:false, decimals:2, pad:0.2 });
+      });
     });
   }
   $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
@@ -3678,6 +3774,10 @@
   $('cmp2Dist').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
   $('cmpRaceA').onchange=function(){ cmp2Render(); };
   $('cmpRaceB').onchange=function(){ cmp2Render(); };
+  $('cmp2Edit').onclick=function(){
+    $('cmp2Cond').classList.remove('hide');
+    $('cmp2Sum').classList.add('hide');
+  };
 
   // ===== データを比較（体型・年齢・性別でしぼってランキング） =====
   var cmpAll=null;  // サーバーから取った全レース（選手の性別・生年月日つき）

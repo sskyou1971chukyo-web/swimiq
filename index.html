@@ -92,6 +92,14 @@
     display:flex; flex-direction:column; align-items:center; gap:10px; padding:0 16px 16px;
     max-height:calc(100% - env(safe-area-inset-top) - 24px); overflow-y:auto; }
   #app.hasvideo #startMenu{ display:none; }  /* 動画を開いたら消える */
+  /* 分析中にホームを重ねて出す。動画と記録はそのまま生きている */
+  #app.hasvideo.homeover #startMenu{ display:flex; top:0; bottom:0; max-height:none; z-index:28;
+    padding-top:calc(env(safe-area-inset-top) + 16px);
+    background:rgba(4,20,35,.92); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #app.homeover #homeBtn{ display:none; }
+  /* ホームを重ねている時だけ出る「分析にもどる」ボタン */
+  #startMenu #smBackVideo{ display:none; background:linear-gradient(135deg,#22c55e,#0ea5e9); }
+  #app.homeover #startMenu #smBackVideo{ display:flex; }
   #startMenu .logo{ font-size:clamp(30px,7vw,46px); font-weight:900; letter-spacing:.04em;
     text-shadow:var(--shadow); margin-bottom:4px; }
   #startMenu .logo span{ color:var(--accent2); }
@@ -903,6 +911,7 @@
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
     <div class="logo">Swim<span>IQ</span></div>
+    <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
     <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
     <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>データを呼び出す</span></button>
@@ -5289,6 +5298,7 @@
     ready=false; lastFrameTime=0; startTime=null; FPS=60; fpsDetected=false;
     videoEl.src=URL.createObjectURL(f); videoEl.load();
     app.classList.add('hasvideo');
+    app.classList.remove('homeover');   // ホームの重ね掛けが残っていたら片づける
     vScale=1; vTx=0; vTy=0; applyT();
     // 距離をきく
     setTimeout(openDistModal, 200);
@@ -5368,7 +5378,8 @@
     ['#bAdjFwd','調整ボタンだッチ。1回おすと 1秒すすむッチ。'],
     ['#menuBtn','ズームした動画をもとの大きさにもどすッチ。'],
     ['#timeHud','スタートからの経過時間だッチ。コマ送りにあわせてかわるッチ。'],
-    ['#homeBtn','ホームにもどるボタンだッチ。動画をとじて、さいしょの画面にもどるッチ。ほぞんしていない記録があるときは、一度たしかめるから安心だッチ。'],
+    ['#smBackVideo','分析のつづきに もどるボタンだッチ。動画も記録も そのまま残っているッチ。'],
+    ['#homeBtn','ホームを上にかさねて出すボタンだッチ。動画と記録は消えずに そのまま残るッチ。「分析に もどる」で つづきができるッチ。'],
     ['#recPanel','記録がここにたまるッチ。きろくの見出しをつかむとパネルごとうごかせるッチ。タイムの数字をおすと正式タイムが入れられるッチ。'],
     ['.pt','はかりたい地点をえらぶッチ。100m以上のレースは節目をおすとその区間がひらいて、もう一回おすと一覧にもどるッチ。'],
     ['.segzone','ここをおすと区間がえらべるッチ。テンポをはかるときにつかうッチ。'],
@@ -5577,10 +5588,17 @@
     app.classList.remove('showtools');   // 道具箱もとじる
     if(!videoEl.paused) videoEl.pause(); // 動画は止める
     app.classList.remove('hasvideo');    // ホーム（トップ画面）にもどる
+    app.classList.remove('homeover');    // ホームの重ね掛けも片づける
     guideOn=false; glowNext(null);       // 道しるべも消す
     toast('ホームに もどりました');
   }
-  $('homeBtn').onclick=goStart;
+  // ホームボタン：動画は生かしたまま、ホームを上に重ねる（分析にもどるで続きができる）
+  function openHomeOver(){
+    if(!videoEl.paused) videoEl.pause();   // 動画はいったん止めるだけ。とじない
+    app.classList.add('homeover');
+  }
+  $('homeBtn').onclick=openHomeOver;
+  $('smBackVideo').onclick=function(){ app.classList.remove('homeover'); };
   // 起動したときに、すべての画面の下に「前に戻る」と「『動画を開く』に戻る」を置く
   document.querySelectorAll('.modal-card').forEach(function(card){
     if(card.hasAttribute('data-nonav')) return;   // 三択などの途中の画面には付けない

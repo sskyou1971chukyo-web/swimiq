@@ -725,14 +725,14 @@
   .cmp-toggle{ display:block; width:100%; padding:13px; margin:12px 0 6px; border-radius:12px;
     border:1.5px solid var(--line); background:rgba(255,255,255,.10); color:#fff;
     font-weight:900; font-size:15px; cursor:pointer; text-align:center; }
-  /* 進捗画面: カードが左から右へ、上から下へ滑り込みながら順番に現れる */
-  @keyframes prog-in{ from{ opacity:0; transform:translate(-24px, -12px); }
-    to{ opacity:1; transform:none; } }
-  .prog-anim{ animation:prog-in .4s steps(4, end) both; }
+  /* 進捗画面: カードが右から左へ0.3秒で伸びて現れる(上から一枚ずつ順番に) */
+  @keyframes prog-in{ from{ clip-path: inset(0 0 0 100%); }
+    to{ clip-path: inset(0 0 0 0); } }
+  .prog-anim{ animation:prog-in .3s ease-out both; }
   /* 進捗画面: 自己ベスト更新のお祝い(金色に2回光る) */
   @keyframes pb-glow{ 0%,100%{ box-shadow:0 0 0 rgba(251,191,36,0); }
     50%{ box-shadow:0 0 18px rgba(251,191,36,.55); } }
-  .prog-row.pb{ border:1.5px solid #fbbf24; animation:prog-in .4s steps(4, end) both, pb-glow 1.6s steps(6) .6s 2; }
+  .prog-row.pb{ border:1.5px solid #fbbf24; animation:prog-in .3s ease-out both, pb-glow 1.6s ease-in-out .6s 2; }
   .pb-badge{ display:inline-block; margin-left:8px; padding:2px 8px; border-radius:8px;
     background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#3b2703; font-size:12px; font-weight:900; }
   /* 進捗画面: 全国基準メーター */
@@ -743,7 +743,7 @@
   .kj-track{ height:14px; border-radius:7px; background:rgba(255,255,255,.12); overflow:hidden; }
   .kj-fill{ height:100%; width:0; border-radius:7px;
     background:linear-gradient(90deg,#38bdf8,#fbbf24);
-    transition:width .8s steps(8, end); }
+    transition:width .9s cubic-bezier(.2,.8,.2,1); }
   /* 動きが苦手な人への逃げ道(iPhoneの「視差効果を減らす」がオンなら動きを止める) */
   @media (prefers-reduced-motion: reduce){
     .prog-anim, .prog-row.pb{ animation:none; }
@@ -3440,7 +3440,8 @@
     var junban = 0;  // カードの入場順(順に少しずつ遅らせる)
     function row(label, val, note){
       var d=document.createElement('div'); d.className='prog-row prog-anim';
-      d.style.animationDelay=(junban*0.07)+'s'; junban++;
+      var matsu=junban*0.3;            // 前の一枚が出終わってから自分の番(0.3秒ずつ)
+      d.style.animationDelay=matsu+'s'; junban++;
       var l=document.createElement('span'); l.className='prog-label'; l.textContent=label;
       var v=document.createElement('span'); v.className='prog-val'; v.textContent=val;
       var t=document.createElement('span'); t.className='prog-note'; t.textContent=note||'';
@@ -3456,12 +3457,13 @@
         var step=function(ts){
           if(t0===null) t0=ts;
           var p=Math.min(1, (ts-t0)/600);
-          p=Math.floor(p*8)/8;   // 8コマ刻みでカチッカチッと上がる機械の味付け
+          p=1-Math.pow(1-p, 3);   // 最後ほどゆっくり止まる味付け
           v.textContent=fmt(hajimari + (target-hajimari)*p);
           if(p<1) requestAnimationFrame(step);
           else v.textContent=fmt(target);
         };
-        requestAnimationFrame(step);
+        // 自分のカードが現れるのを待ってから駆け上がりを始める
+        setTimeout(function(){ requestAnimationFrame(step); }, matsu*1000);
       }
       return { hako:d, namae:l, kazu:v };
     }
@@ -3501,7 +3503,8 @@
           if(l.t>=bestT && (deppatsu===null||l.t<deppatsu.t)) deppatsu=l;  // もうこえた線
         });
         var card=document.createElement('div'); card.className='kj-meter prog-anim';
-        card.style.animationDelay=(junban*0.07)+'s'; junban++;
+        var mMatsu=junban*0.3;
+        card.style.animationDelay=mMatsu+'s'; junban++;
         var wari, kotoba;
         if(!mokuhyou){
           wari=100; kotoba='日本一のタイムを超えています！';
@@ -3519,9 +3522,7 @@
         box.appendChild(card);
         var fill=card.querySelector('.kj-fill');
         if(ugokiOK){
-          requestAnimationFrame(function(){ requestAnimationFrame(function(){
-            fill.style.width=wari+'%';
-          }); });
+          setTimeout(function(){ fill.style.width=wari+'%'; }, mMatsu*1000+300);
         }else{
           fill.style.width=wari+'%';
         }

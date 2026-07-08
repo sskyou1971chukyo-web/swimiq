@@ -764,9 +764,12 @@
     background:linear-gradient(90deg,#38bdf8,#fbbf24);
     transition:width .9s cubic-bezier(.2,.8,.2,1); }
   /* 動きが苦手な人への逃げ道(iPhoneの「視差効果を減らす」がオンなら動きを止める) */
+  /* ホーム画面: ボタンが右から左へ開き、上から一枚ずつ現れる */
+  #startMenu.nyujo > *{ animation:prog-in .3s ease-out both; }
   @media (prefers-reduced-motion: reduce){
     .prog-anim, .prog-row.pb{ animation:none; }
     .kj-fill{ transition:none; }
+    #startMenu.nyujo > *{ animation:none; }
   }
   /* 設定画面: 標準記録の取り込み */
   #stdPaste{ width:100%; min-height:110px; font-size:14px; border:1.5px solid var(--line);
@@ -6145,7 +6148,7 @@
     if(!videoEl.paused) videoEl.pause();   // 動画はいったん止めるだけ。とじない
     app.classList.add('homeover');
   }
-  $('homeBtn').onclick=openHomeOver;
+  $('homeBtn').onclick=function(){ openHomeOver(); homeNyujo(); };
   $('smBackVideo').onclick=function(){ app.classList.remove('homeover'); };
   // 起動したときに、すべての画面の下に「前に戻る」と「『動画を開く』に戻る」を置く
   document.querySelectorAll('.modal-card').forEach(function(card){
@@ -6230,8 +6233,19 @@
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) updCheck(); });
   setInterval(updCheck, 30*60*1000);  // 30分ごとにも そっと確認する
 
+  // ホームのボタンを、右から左へ開きながら上から一枚ずつ入場させる
+  function homeNyujo(){
+    var sm=$('startMenu'); if(!sm) return;
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    sm.classList.remove('nyujo');
+    void sm.offsetWidth;   // 一度リセットして、動きをやり直せるようにするおまじない
+    for(var i=0; i<sm.children.length; i++){
+      sm.children[i].style.animationDelay=(i*0.3)+'s';
+    }
+    sm.classList.add('nyujo');
+  }
   // ========== 初期化 ==========
-  buildScale(); setMode('time'); renderRecords();
+  buildScale(); setMode('time'); renderRecords(); homeNyujo();
 })();
 </script>
 <script>

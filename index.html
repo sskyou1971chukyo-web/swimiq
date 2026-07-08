@@ -665,6 +665,12 @@
     background:rgba(10,32,55,.9); color:#fff; font-size:13px; font-weight:700; }
   .cfg-note{ font-size:11px !important; opacity:.85; margin:6px 0 14px !important; }
   #smProgress{ background:linear-gradient(135deg,#06b6d4,#3b82f6); }
+  /* きょうの水泳ニュースの帯（静かな一枚。二行まで折り返す） */
+  #startMenu #newsBar{ display:none; height:auto; min-height:46px; width:min(320px,86vw);
+    background:rgba(255,255,255,.10); font-size:13px; font-weight:700;
+    white-space:normal; line-height:1.4; text-align:left; padding:9px 14px; }
+  #startMenu #newsBar.show{ display:flex; }
+  #startMenu #newsBar svg{ opacity:.85; }
   #smSettings{ background:linear-gradient(135deg,#64748b,#475569); }
   /* 進捗：成績表の行。低視力でも読めるよう、数字は大きく */
   .prog-row{ display:flex; align-items:baseline; gap:10px; background:rgba(255,255,255,.08);
@@ -924,6 +930,7 @@
     <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
     <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
     <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
+    <button id="newsBar" type="button" aria-label="きょうの水泳ニュース。押すと元の記事がひらきます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h8M8 16.5h5"/></svg><span id="newsText">きょうの水泳ニュース</span></button>
     <button id="smSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9.5" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
@@ -2246,6 +2253,41 @@
     function p2(x){ return (x<10?'0':'')+x; }
     return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
   }
+
+  // ========== きょうの水泳ニュース（ホームの一行） ==========
+  // 夜のあいだにGASが集めた見出しを、開くたびに一本ずつ順送りで見せる。
+  // 押すと元の記事がひらく。シャッチーくんの案内の設定とは独立して動く。
+  function newsCache(){ try{ return JSON.parse(localStorage.getItem('swimiq_news')||'null'); }catch(e){ return null; } }
+  var newsShownI=null;   // この起動で見せる見出しの番号。一度きめたら変えない
+  function showNewsBar(){
+    var bar=$('newsBar');
+    var c=newsCache();
+    if(!c || !c.list || !c.list.length){ bar.classList.remove('show'); return; }
+    var len=c.list.length;
+    if(newsShownI==null){
+      newsShownI=(Number(localStorage.getItem('swimiq_news_i'))||0) % len;
+      // つぎに開いたとき用に、一つ先へ繰り上げておく（この起動ではもうやらない）
+      try{ localStorage.setItem('swimiq_news_i', String((newsShownI+1)%len)); }catch(e){}
+    }
+    var n=c.list[newsShownI % len];
+    $('newsText').textContent='水泳ニュース：'+n.t;
+    bar.classList.add('show');
+    bar.onclick=function(){
+      if(n.url) window.open(n.url, '_blank');   // 押すと元の記事へ
+    };
+  }
+  function refreshNews(){
+    showNewsBar();   // まず携帯が覚えているぶんを出す
+    var c=newsCache();
+    if(c && (Date.now()-(c.t||0)) < 6*60*60*1000) return;   // 6時間は前のを使う
+    api({action:'news'}).then(function(res){
+      if(res.ok && res.news && res.news.length){
+        try{ localStorage.setItem('swimiq_news', JSON.stringify({ t:Date.now(), list:res.news })); }catch(e){}
+        showNewsBar();   // 届きたての見出しで出し直す（番号はこの起動のまま）
+      }
+    }).catch(function(){});
+  }
+  refreshNews();
 
   // ========== 試合名を スプレッドシートから えらぶ ==========
   // スプレッドシートの「試合名」シート（試合名・日程開始・日程終了・場所・水路）から
@@ -5410,6 +5452,7 @@
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
     ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
+    ['#newsBar','きょうの水泳ニュースだッチ。押すと元の記事がひらくッチ。つぎに開くと 新しい見出しに かわるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],
     ['#toolsBtn','ここは道具箱だッチ。動画や距離の変更、ほぞんとよびだしが入っているッチ。'],

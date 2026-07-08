@@ -747,7 +747,11 @@
   /* 進捗画面: 自己ベスト更新のお祝い(金色に2回光る) */
   @keyframes pb-glow{ 0%,100%{ box-shadow:0 0 0 rgba(251,191,36,0); }
     50%{ box-shadow:0 0 18px rgba(251,191,36,.55); } }
-  .prog-row.pb{ border:1.5px solid #fbbf24; animation:prog-in .3s ease-out both, pb-glow 1.6s ease-in-out .6s 2; }
+  /* ベストタイムのカードは青、標準記録のカードは薄紫 */
+  .prog-row.best{ background:rgba(56,189,248,.14); border:1.5px solid #38bdf8; }
+  .prog-row.std{ background:rgba(196,181,253,.14); border:1.5px solid #c4b5fd; }
+  /* 自己ベスト更新の日は、金色のお祝い姿がいちばん強い */
+  .prog-row.pb{ background:rgba(251,191,36,.16); border:1.5px solid #fbbf24; animation:prog-in .3s ease-out both, pb-glow 1.6s ease-in-out .6s 2; }
   .pb-badge{ display:inline-block; margin-left:8px; padding:2px 8px; border-radius:8px;
     background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#3b2703; font-size:12px; font-weight:900; }
   /* 進捗画面: 全国基準メーター */
@@ -3685,6 +3689,7 @@
     var b=progBest(races);
     var bestRow=row('ベストタイム', fmt(parseT(b.finalTime)),
         [(b.meetDate||''),(b.meetName||'')].filter(function(x){return x;}).join('　'));
+    bestRow.hako.classList.add('best');
     // ベストが一番あたらしい大会で出たものなら、更新したてのお祝いを出す
     if(b && races[0] && String(b.meetDate) && String(b.meetDate)===String(races[0].meetDate)){
       bestRow.hako.classList.add('pb');
@@ -3699,7 +3704,8 @@
     // レースの水路(短水路か長水路)に合わせた標準記録をさがす
     var stdRec=stdFind(races[0] && races[0].course);
     if(stdRec){
-      row('標準記録('+stdRec.course+')', stdRec.time, stdRec.year+'年 '+stdRec.label);
+      var stdRow=row('標準記録('+stdRec.course+')', stdRec.time, stdRec.year+'年 '+stdRec.label);
+      stdRow.hako.classList.add('std');
     }
     var bp=progBest(pre);
     row('予選ベスト', bp? fmt(parseT(bp.finalTime)) : 'まだなし', bp? (bp.meetDate||'') : '');

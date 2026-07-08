@@ -2948,6 +2948,11 @@
   };
   $('smSettings').onclick=openCfgModal;
   $('cfgClose').onclick=function(){ $('cfgModal').classList.add('hide'); };
+  // シャッチーくんの設定は、えらんだ瞬間にその場で覚える（ほぞんボタンに頼らない）
+  $('cfgShacchi').onchange=function(){
+    try{ localStorage.setItem('swimiq_shacchi', this.value==='off' ? 'off' : 'on'); }catch(e){}
+    toast(this.value==='off' ? '自動の案内を「出さない」にしました' : '自動の案内を「出す」にしました');
+  };
   $('cfgSave').onclick=function(){
     // 空欄なら覚えていた値を消す。入っているなら https:// で始まるかだけ確かめて覚える
     function put(key, val, label){
@@ -2957,13 +2962,14 @@
       localStorage.setItem(key, val);
       return true;
     }
-    if(!put('swimiq_gas_url', $('cfgGas').value, 'データ保存')) return;
-    if(!put('swimiq_wh_url', $('cfgWh').value, '大会データ')) return;
+    // だいじな二つ（シャッチーくんと招待コード）は、ほかの欄の点検より先に必ず覚える
     try{ localStorage.setItem('swimiq_shacchi', $('cfgShacchi').value==='off' ? 'off' : 'on'); }catch(e){}
     try{
       var iv=$('cfgInvite').value.trim();
       if(iv) localStorage.setItem('swimiq_invite', iv); else localStorage.removeItem('swimiq_invite');
     }catch(e){}
+    if(!put('swimiq_gas_url', $('cfgGas').value, 'データ保存')) return;
+    if(!put('swimiq_wh_url', $('cfgWh').value, '大会データ')) return;
     if(!put('swimiq_video_folder', $('cfgVideo').value, '動画保存')) return;
     // GitHubのトークンとリポジトリはURLではないので、そのまま覚える
     function putRaw(key, val){

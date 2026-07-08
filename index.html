@@ -3692,15 +3692,7 @@
       iwai.textContent='自己ベスト更新!';
       bestRow.namae.appendChild(iwai);
     }
-    var bp=progBest(pre);
-    row('予選ベスト', bp? fmt(parseT(bp.finalTime)) : 'まだなし', bp? (bp.meetDate||'') : '');
-    var bf=progBest(fin);
-    row('決勝ベスト', bf? fmt(parseT(bf.finalTime)) : 'まだなし', bf? (bf.meetDate||'') : '');
-    row('全レース平均', fmt(progAvg(races)), races.length+'本');
-    row('予選平均', pre.length? fmt(progAvg(pre)) : 'まだなし', pre.length? pre.length+'本' : '');
-    row('決勝平均', fin.length? fmt(progAvg(fin)) : 'まだなし', fin.length? fin.length+'本' : '');
-    row('直近'+n+'レース平均', fmt(progAvg(recent)), '新しい順に'+n+'本');
-    // ===== 標準記録: まだ読んでいなければ読みに行き、読めたら描き直す =====
+    // ===== 標準記録: ベストタイムのすぐ下に表示する =====
     if(stdCache===null){
       stdLoad(function(){ try{ progRender(); }catch(e){} });
     }
@@ -3709,6 +3701,14 @@
     if(stdRec){
       row('標準記録('+stdRec.course+')', stdRec.time, stdRec.year+'年 '+stdRec.label);
     }
+    var bp=progBest(pre);
+    row('予選ベスト', bp? fmt(parseT(bp.finalTime)) : 'まだなし', bp? (bp.meetDate||'') : '');
+    var bf=progBest(fin);
+    row('決勝ベスト', bf? fmt(parseT(bf.finalTime)) : 'まだなし', bf? (bf.meetDate||'') : '');
+    row('全レース平均', fmt(progAvg(races)), races.length+'本');
+    row('予選平均', pre.length? fmt(progAvg(pre)) : 'まだなし', pre.length? pre.length+'本' : '');
+    row('決勝平均', fin.length? fmt(progAvg(fin)) : 'まだなし', fin.length? fin.length+'本' : '');
+    row('直近'+n+'レース平均', fmt(progAvg(recent)), '新しい順に'+n+'本');
     // ===== 全国基準メーター: ベストタイムが次の目標ラインまでどれだけ近いか =====
     if(typeof progKijun==='function'){
       var kj=progKijun();

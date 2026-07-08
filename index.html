@@ -301,7 +301,7 @@
     color:#fff; font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; gap:2px;
     text-shadow:var(--shadow);
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }  /* 長押しで文字選択が出ないように */
-  /* もどる・すすむ：押すたび1コマ、長押しで30秒ずつ */
+  /* もどる・すすむ：押すたび1コマ、長押しで10コマずつ */
   .fb.jump{ width:80px; min-width:80px; height:52px; font-size:22px; }
   /* 調整：1回で0.9秒 */
   .fb.adj{ width:80px; min-width:80px; height:52px; font-size:14px;
@@ -691,64 +691,17 @@
   #cmp2Modal.hide{ display:none; }
   /* 横に長いグラフは、指でスワイプかボタンでめくる */
   .cmp-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; background:rgba(255,255,255,.06);
-    border-radius:12px; padding:8px 4px 2px; }
+    border-radius:12px; padding:8px 4px 2px; flex:none; }  /* 縮まない札。押しつぶされ防止 */
+  .cmp-tabs{ display:flex; gap:6px; margin:6px 0 2px; flex:none; flex-wrap:wrap; }
+  .cmp-tabs button{ flex:1 1 auto; min-width:72px; padding:10px 6px; border-radius:10px;
+    border:1.5px solid var(--line); background:rgba(255,255,255,.10);
+    color:#fff; font-weight:800; font-size:14px; cursor:pointer; }
+  .cmp-tabs button.on{ background:linear-gradient(135deg,#0ea5e9,#6366f1); border-color:transparent; }
   .cmp-scroll svg{ display:block; }
   .cmp-pager{ display:flex; justify-content:space-between; align-items:center; margin:6px 0 2px; gap:8px; }
   .cmp-pager button{ padding:7px 14px; border-radius:10px; border:1.5px solid var(--line);
     background:rgba(255,255,255,.12); color:#fff; font-weight:800; cursor:pointer; font-size:14px; }
   .cmp-pager span{ font-size:11px; opacity:.8; font-weight:700; text-align:center; }
-  /* 比較画面: hideを付けたら隠れる決まり(新しい部品ぶん) */
-  #cmp2Cond.hide, #cmp2Sum.hide, #cmp2Body .hide{ display:none; }
-  /* 比較画面: 選び終わったあとの まとめの一行 */
-  #cmp2Sum{ display:flex; align-items:center; justify-content:space-between; gap:8px;
-    background:rgba(255,255,255,.08); border:1.5px solid var(--line); border-radius:12px;
-    padding:10px 12px; margin-bottom:8px; }
-  #cmp2Sum .txt{ font-weight:900; font-size:15px; line-height:1.5; }
-  #cmp2Sum button{ padding:8px 12px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(255,255,255,.12); color:#fff; font-weight:800; cursor:pointer; flex-shrink:0; }
-  /* 比較画面: 局面ごとの棒グラフ */
-  .ph-note{ font-size:13px; opacity:.85; margin:2px 0 8px; }
-  .ph-row{ margin:10px 0 16px; }
-  .ph-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; gap:8px; }
-  .ph-name{ font-weight:900; font-size:16px; }
-  .ph-diff{ font-size:13px; font-weight:800; padding:3px 10px; border-radius:9px; white-space:nowrap; }
-  .ph-diff.awin{ background:rgba(56,189,248,.22); color:#7dd3fc; }
-  .ph-diff.bwin{ background:rgba(251,191,36,.22); color:#fcd34d; }
-  .ph-diff.same{ background:rgba(255,255,255,.15); color:#e5e7eb; }
-  .ph-bar{ height:28px; border-radius:7px; margin:4px 0; display:flex; align-items:center;
-    justify-content:flex-end; padding-right:8px; font-weight:900; font-size:14px;
-    color:#08243d; min-width:52px; }
-  .ph-bar.a{ background:#38bdf8; }
-  .ph-bar.b{ background:#fbbf24; }
-  .ph-none{ font-size:12px; opacity:.7; margin:4px 0; }
-  /* 比較画面: スピードやテンポを見る/隠すボタン */
-  .cmp-toggle{ display:block; width:100%; padding:13px; margin:12px 0 6px; border-radius:12px;
-    border:1.5px solid var(--line); background:rgba(255,255,255,.10); color:#fff;
-    font-weight:900; font-size:15px; cursor:pointer; text-align:center; }
-  /* 進捗画面: カードが右から左へ0.3秒で伸びて現れる(上から一枚ずつ順番に) */
-  @keyframes prog-in{ from{ clip-path: inset(0 0 0 100%); }
-    to{ clip-path: inset(0 0 0 0); } }
-  .prog-anim{ animation:prog-in .3s ease-out both; }
-  /* 進捗画面: 自己ベスト更新のお祝い(金色に2回光る) */
-  @keyframes pb-glow{ 0%,100%{ box-shadow:0 0 0 rgba(251,191,36,0); }
-    50%{ box-shadow:0 0 18px rgba(251,191,36,.55); } }
-  .prog-row.pb{ border:1.5px solid #fbbf24; animation:prog-in .3s ease-out both, pb-glow 1.6s ease-in-out .6s 2; }
-  .pb-badge{ display:inline-block; margin-left:8px; padding:2px 8px; border-radius:8px;
-    background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#3b2703; font-size:12px; font-weight:900; }
-  /* 進捗画面: 全国基準メーター */
-  .kj-meter{ background:rgba(255,255,255,.07); border:1.5px solid var(--line);
-    border-radius:12px; padding:12px; margin:10px 0; }
-  .kj-meter .t1{ font-weight:900; font-size:15px; margin-bottom:2px; }
-  .kj-meter .t2{ font-size:13px; opacity:.9; margin-bottom:8px; }
-  .kj-track{ height:14px; border-radius:7px; background:rgba(255,255,255,.12); overflow:hidden; }
-  .kj-fill{ height:100%; width:0; border-radius:7px;
-    background:linear-gradient(90deg,#38bdf8,#fbbf24);
-    transition:width .9s cubic-bezier(.2,.8,.2,1); }
-  /* 動きが苦手な人への逃げ道(iPhoneの「視差効果を減らす」がオンなら動きを止める) */
-  @media (prefers-reduced-motion: reduce){
-    .prog-anim, .prog-row.pb{ animation:none; }
-    .kj-fill{ transition:none; }
-  }
   .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:14px;
     background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
@@ -966,7 +919,7 @@
     <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
     <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
-    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
+    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>データを呼び出す</span></button>
     <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
     <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
     <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
@@ -1184,10 +1137,10 @@
 </div>
 
 <!-- 通知 -->
-<!-- 記録をさがす：条件で絞り込んでえらぶ -->
+<!-- データを呼び出す：条件で絞り込んでえらぶ -->
 <div id="findModal" class="hide">
   <div class="modal-card df-card">
-    <h2>記録を さがす</h2>
+    <h2>データを 呼び出す</h2>
     <div class="df-filters">
       <label>どこから<select id="dfSrc">
         <option value="team">チームの記録</option>
@@ -1335,18 +1288,12 @@
 <div id="cmp2Modal" class="hide">
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
-    <div id="cmp2Cond">
-      <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
-      <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
-      <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
-      <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
-      <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
-      <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
-    </div>
-    <div id="cmp2Sum" class="hide">
-      <span class="txt" id="cmp2SumText"></span>
-      <button id="cmp2Edit" type="button">条件を 変える</button>
-    </div>
+    <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
+    <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
+    <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
+    <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
+    <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
+    <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
     <div id="cmp2Body" class="df-list"></div>
     <div class="stroke-btns"><button id="cmp2Close">とじる</button></div>
   </div>
@@ -2683,7 +2630,7 @@
   $('loadBtn').addEventListener('click', openLoadModal);
   $('dvLoadBtn').addEventListener('click', openLoadModal);  // 縦画面からも同じ呼び出し画面をひらく
 
-  // ========== 左上メニュー：記録をさがす・分析・比較 ==========
+  // ========== 左上メニュー：データを呼び出す・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
 
   // ========== レースの じょうほう（距離のあとに聞く画面） ==========
@@ -2946,7 +2893,7 @@
   }
   $('smAnalyze').onclick=function(){
     if(allDists().length===0 && rtTime==null){
-      toast('さきに「記録を さがす」で 記録をえらんでね');
+      toast('さきに「データを呼び出す」で 記録をえらんでね');
       openFindModal();
       return;
     }
@@ -3324,27 +3271,6 @@
   }
   // タイムのうつりかわりを、折れ線グラフの絵にして返す
   // 左が古いレース、右が新しいレース。上にいくほど速い。
-  // ===== 全国基準線(第102回日本選手権 2026年 予選・決勝データ) =====
-  // 種目ごとの基準タイム(秒)。nipponichi=優勝 nyusho=決勝8位
-  // kessho=決勝ライン(予選8位) bkessho=B決勝ライン(予選16位)
-  // chuo=出場者の真ん中 saigo=出場者の最後尾
-  var ZENKOKU_KIJUN = {"女子 50mバタフライ": {"nipponichi": 25.85, "nyusho": 26.98, "kessho": 26.86, "bkessho": 27.2, "chuo": 27.51, "saigo": 28.66}, "女子 50m平泳ぎ": {"nipponichi": 30.39, "nyusho": 32.38, "kessho": 32.06, "bkessho": 32.58, "chuo": 32.78, "saigo": 34.28}, "女子 50m背泳ぎ": {"nipponichi": 28.03, "nyusho": 29.06, "kessho": 28.9, "bkessho": 29.49, "chuo": 29.46, "saigo": 31.26}, "女子 50m自由形": {"nipponichi": 25.21, "nyusho": 25.74, "kessho": 25.81, "bkessho": 26.08, "chuo": 26.3, "saigo": 27.03}, "男子 50mバタフライ": {"nipponichi": 23.28, "nyusho": 23.55, "kessho": 23.64, "bkessho": 23.94, "chuo": 24.31, "saigo": 25.04}, "男子 50m平泳ぎ": {"nipponichi": 26.84, "nyusho": 27.72, "kessho": 27.73, "bkessho": 28.01, "chuo": 28.37, "saigo": 29.67}, "男子 50m背泳ぎ": {"nipponichi": 24.96, "nyusho": 25.68, "kessho": 25.59, "bkessho": 25.83, "chuo": 26.26, "saigo": 27.76}, "男子 50m自由形": {"nipponichi": 22.12, "nyusho": 22.46, "kessho": 22.52, "bkessho": 22.77, "chuo": 22.96, "saigo": 24.55}, "女子 100mバタフライ": {"nipponichi": 57.6, "nyusho": 59.69, "kessho": 59.55, "bkessho": 60.26, "chuo": 60.55, "saigo": 62.83}, "女子 100m平泳ぎ": {"nipponichi": 65.87, "nyusho": 69.44, "kessho": 69.85, "bkessho": 70.68, "chuo": 70.92, "saigo": 74.4}, "女子 100m背泳ぎ": {"nipponichi": 60.25, "nyusho": 62.02, "kessho": 61.69, "bkessho": 62.65, "chuo": 62.56, "saigo": 64.92}, "女子 100m自由形": {"nipponichi": 54.79, "nyusho": 56.1, "kessho": 56.08, "bkessho": 56.74, "chuo": 57.14, "saigo": 58.69}, "男子 100mバタフライ": {"nipponichi": 51.31, "nyusho": 52.01, "kessho": 52.28, "bkessho": 53.17, "chuo": 53.95, "saigo": 57.96}, "男子 100m平泳ぎ": {"nipponichi": 59.11, "nyusho": 60.85, "kessho": 60.84, "bkessho": 61.71, "chuo": 61.78, "saigo": 63.58}, "男子 100m背泳ぎ": {"nipponichi": 53.85, "nyusho": 54.82, "kessho": 54.79, "bkessho": 55.34, "chuo": 55.52, "saigo": 57.69}, "男子 100m自由形": {"nipponichi": 48.55, "nyusho": 49.59, "kessho": 49.74, "bkessho": 50.24, "chuo": 50.66, "saigo": 53.06}, "女子 200mバタフライ": {"nipponichi": 128.17, "nyusho": 132.08, "kessho": 132.47, "bkessho": 134.1, "chuo": 134.2, "saigo": 139.34}, "女子 200m個人メドレー": {"nipponichi": 130.25, "nyusho": 136.92, "kessho": 135.99, "bkessho": 137.76, "chuo": 137.83, "saigo": 142.17}, "女子 200m平泳ぎ": {"nipponichi": 144.79, "nyusho": 151.38, "kessho": 149.71, "bkessho": 150.76, "chuo": 151.54, "saigo": 157.46}, "女子 200m背泳ぎ": {"nipponichi": 129.82, "nyusho": 133.4, "kessho": 132.93, "bkessho": 134.74, "chuo": 135.18, "saigo": 144.39}, "女子 200m自由形": {"nipponichi": 119.13, "nyusho": 121.83, "kessho": 121.31, "bkessho": 122.87, "chuo": 122.75, "saigo": 126.09}, "男子 200mバタフライ": {"nipponichi": 115.03, "nyusho": 117.88, "kessho": 117.69, "bkessho": 118.93, "chuo": 120.48, "saigo": 125.75}, "男子 200m個人メドレー": {"nipponichi": 117.28, "nyusho": 120.74, "kessho": 120.93, "bkessho": 123.7, "chuo": 122.24, "saigo": 126.35}, "男子 200m平泳ぎ": {"nipponichi": 127.31, "nyusho": 132.84, "kessho": 131.49, "bkessho": 132.8, "chuo": 133.64, "saigo": 147.6}, "男子 200m背泳ぎ": {"nipponichi": 115.62, "nyusho": 119.76, "kessho": 119.7, "bkessho": 121.21, "chuo": 122.06, "saigo": 126.55}, "男子 200m自由形": {"nipponichi": 105.65, "nyusho": 108.9, "kessho": 108.91, "bkessho": 109.99, "chuo": 110.3, "saigo": 115.94}, "女子 400m個人メドレー": {"nipponichi": 275.16, "nyusho": 283.05, "kessho": 284.35, "bkessho": 289.83, "chuo": 289.83, "saigo": 303.56}, "女子 400m自由形": {"nipponichi": 248.14, "nyusho": 254.14, "kessho": 254.51, "bkessho": 258.52, "chuo": 258.79, "saigo": 271.21}, "男子 400m個人メドレー": {"nipponichi": 248.66, "nyusho": 259.28, "kessho": 257.98, "bkessho": 259.66, "chuo": 263.25, "saigo": 272.56}, "男子 400m自由形": {"nipponichi": 226.11, "nyusho": 232.9, "kessho": 232.8, "bkessho": 234.14, "chuo": 234.87, "saigo": 239.36}, "女子 800m自由形": {"nipponichi": 513.16, "nyusho": 534.53, "kessho": 528.61, "bkessho": 536.75, "chuo": 532.48, "saigo": 550.51}, "男子 800m自由形": {"nipponichi": 468.56, "nyusho": 486.37, "kessho": 486.37, "bkessho": 497.67, "chuo": 495.67, "saigo": 505.13}, "女子 1500m自由形": {"nipponichi": 993.98, "nyusho": 1020.52, "kessho": 1020.52, "bkessho": null, "chuo": 1018.21, "saigo": 1034.62}, "男子 1500m自由形": {"nipponichi": 895.04, "nyusho": 929.86, "kessho": 923.28, "bkessho": 940.11, "chuo": 940.35, "saigo": 979.86}};
-  // いま進捗画面で選ばれている選手と種目に合う全国基準を返す(無ければnull)
-  function progKijun(){
-    try{
-      var aid=$('progAthlete').value;
-      var sex='';
-      (cmpAll||[]).some(function(r){
-        if(String(r.athleteId)===String(aid) && normSex(r.sex)){ sex=normSex(r.sex); return true; }
-        return false;
-      });
-      if(!sex) return null;
-      var ev=String($('progEvent').value||'').split('|');
-      if(ev.length<2 || !ev[1]) return null;
-      var key=(sex==='男'?'男子':'女子')+' '+ev[0]+'m'+ev[1];
-      return ZENKOKU_KIJUN[key]||null;
-    }catch(e){ return null; }
-  }
   function progChart(chron){
     var wrap=document.createElement('div'); wrap.className='prog-chart';
     var pts=chron.map(function(r){
@@ -3366,31 +3292,6 @@
       var gy=T+ih*g/2, gt=min+(max-min)*g/2;
       s+='<line x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+gy.toFixed(1)+'" stroke="rgba(255,255,255,.18)" stroke-width="1"/>';
       s+='<text x="'+(L-8)+'" y="'+(gy+4).toFixed(1)+'" text-anchor="end" font-size="12" fill="rgba(255,255,255,.75)">'+fmt(gt)+'</text>';
-    }
-    // ===== 全国基準線: 表示中のタイム範囲に入る線だけ点線で描く =====
-    var kj=(typeof progKijun==='function')? progKijun():null;
-    if(kj){
-      [ {t:kj.kessho, moji:'決勝ライン', iro:'#fbbf24'},
-        {t:kj.bkessho, moji:'B決勝', iro:'#cbd5e1'},
-        {t:kj.chuo, moji:'全国の真ん中', iro:'#38bdf8'} ].forEach(function(l){
-        if(l.t==null || l.t<min || l.t>max) return;
-        var ly=y(l.t).toFixed(1);
-        s+='<line x1="'+L+'" y1="'+ly+'" x2="'+(W-R)+'" y2="'+ly+'" stroke="'+l.iro+'" stroke-width="2" stroke-dasharray="6 4" opacity=".85"/>';
-        s+='<text x="'+(W-R)+'" y="'+(y(l.t)-5).toFixed(1)+'" text-anchor="end" font-size="11" font-weight="700" fill="'+l.iro+'">'+l.moji+' '+fmt(l.t)+'</text>';
-      });
-      // いちばん速い記録から、次の目標までの距離をグラフの左上に一言
-      var kBest=pts[bestI].t;
-      var kouho=[ {t:kj.saigo, moji:'全国出場ライン'},
-                  {t:kj.bkessho, moji:'B決勝ライン'},
-                  {t:kj.kessho, moji:'決勝ライン'},
-                  {t:kj.nyusho, moji:'入賞ライン'},
-                  {t:kj.nipponichi, moji:'日本一'} ].filter(function(l){ return l.t!=null; });
-      var mokuhyou=null;
-      kouho.forEach(function(l){ if(l.t<kBest && (mokuhyou==null||l.t>mokuhyou.t)) mokuhyou=l; });
-      var kotoba = mokuhyou ? ('★ '+mokuhyou.moji+'まで あと'+fmt(kBest-mokuhyou.t)+'秒')
-                            : '★ 日本一のタイムを超えています';
-      s+='<text x="'+L+'" y="14" font-size="12" font-weight="700" fill="#fbbf24">'+kotoba+'</text>';
-      s+='<text x="'+(W-R)+'" y="14" text-anchor="end" font-size="10" fill="rgba(255,255,255,.65)">基準 2026日本選手権</text>';
     }
     // 折れ線
     if(pts.length>1){
@@ -3435,48 +3336,17 @@
     var fin=races.filter(function(r){ return String(r.round||'')==='決勝'; });
     var n=Math.min(Number($('progRecentN').value)||5, races.length);
     var recent=races.slice(0, n);
-    // 動きが苦手な設定(視差効果を減らす)がオンかどうか
-    var ugokiOK = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    var junban = 0;  // カードの入場順(順に少しずつ遅らせる)
     function row(label, val, note){
-      var d=document.createElement('div'); d.className='prog-row prog-anim';
-      var matsu=junban*0.3;            // 前の一枚が出終わってから自分の番(0.3秒ずつ)
-      d.style.animationDelay=matsu+'s'; junban++;
+      var d=document.createElement('div'); d.className='prog-row';
       var l=document.createElement('span'); l.className='prog-label'; l.textContent=label;
       var v=document.createElement('span'); v.className='prog-val'; v.textContent=val;
       var t=document.createElement('span'); t.className='prog-note'; t.textContent=note||'';
       d.appendChild(l); d.appendChild(v); d.appendChild(t);
       box.appendChild(d);
-      // タイムの数字は、本当の値より0.6秒手前から駆け上がってピタッと止まる
-      // 例: 23.78なら、23.18から始まって23.78で止まる
-      var target=parseT(val);
-      if(ugokiOK && target!=null){
-        var hajimari=Math.max(0, target-0.6);   // 出発点(目標の0.6秒手前)
-        v.textContent=fmt(hajimari);
-        var t0=null;
-        var step=function(ts){
-          if(t0===null) t0=ts;
-          var p=Math.min(1, (ts-t0)/600);
-          p=1-Math.pow(1-p, 3);   // 最後ほどゆっくり止まる味付け
-          v.textContent=fmt(hajimari + (target-hajimari)*p);
-          if(p<1) requestAnimationFrame(step);
-          else v.textContent=fmt(target);
-        };
-        // 自分のカードが現れるのを待ってから駆け上がりを始める
-        setTimeout(function(){ requestAnimationFrame(step); }, matsu*1000);
-      }
-      return { hako:d, namae:l, kazu:v };
     }
     var b=progBest(races);
-    var bestRow=row('ベストタイム', fmt(parseT(b.finalTime)),
+    row('ベストタイム', fmt(parseT(b.finalTime)),
         [(b.meetDate||''),(b.meetName||'')].filter(function(x){return x;}).join('　'));
-    // ベストが一番あたらしい大会で出たものなら、更新したてのお祝いを出す
-    if(b && races[0] && String(b.meetDate) && String(b.meetDate)===String(races[0].meetDate)){
-      bestRow.hako.classList.add('pb');
-      var iwai=document.createElement('span'); iwai.className='pb-badge';
-      iwai.textContent='自己ベスト更新!';
-      bestRow.namae.appendChild(iwai);
-    }
     var bp=progBest(pre);
     row('予選ベスト', bp? fmt(parseT(bp.finalTime)) : 'まだなし', bp? (bp.meetDate||'') : '');
     var bf=progBest(fin);
@@ -3485,49 +3355,6 @@
     row('予選平均', pre.length? fmt(progAvg(pre)) : 'まだなし', pre.length? pre.length+'本' : '');
     row('決勝平均', fin.length? fmt(progAvg(fin)) : 'まだなし', fin.length? fin.length+'本' : '');
     row('直近'+n+'レース平均', fmt(progAvg(recent)), '新しい順に'+n+'本');
-    // ===== 全国基準メーター: ベストタイムが次の目標ラインまでどれだけ近いか =====
-    if(typeof progKijun==='function'){
-      var kj=progKijun();
-      var bestT=parseT(b.finalTime);
-      if(kj && bestT!=null){
-        var lines=[
-          { t:kj.nipponichi, m:'日本一' },
-          { t:kj.nyusho,     m:'入賞ライン' },
-          { t:kj.kessho,     m:'決勝ライン' },
-          { t:kj.bkessho,    m:'B決勝ライン' },
-          { t:kj.saigo,      m:'全国出場ライン' }
-        ].filter(function(l){ return l.t!=null; });
-        var mokuhyou=null, deppatsu=null;
-        lines.forEach(function(l){
-          if(l.t<bestT && (mokuhyou===null||l.t>mokuhyou.t)) mokuhyou=l;   // 次にこえる線
-          if(l.t>=bestT && (deppatsu===null||l.t<deppatsu.t)) deppatsu=l;  // もうこえた線
-        });
-        var card=document.createElement('div'); card.className='kj-meter prog-anim';
-        var mMatsu=junban*0.3;
-        card.style.animationDelay=mMatsu+'s'; junban++;
-        var wari, kotoba;
-        if(!mokuhyou){
-          wari=100; kotoba='日本一のタイムを超えています！';
-        }else{
-          kotoba='次の目標：'+mokuhyou.m+'まで あと'+fmt(bestT-mokuhyou.t)+'秒';
-          wari = deppatsu
-            ? Math.round((deppatsu.t-bestT)/(deppatsu.t-mokuhyou.t)*100)
-            : 4;
-          wari=Math.max(4, Math.min(100, wari));
-        }
-        card.innerHTML='<div class="t1">全国基準メーター</div>'
-          +'<div class="t2">'+kotoba+'</div>'
-          +'<div class="kj-track"><div class="kj-fill"></div></div>'
-          +'<div class="t2" style="margin:6px 0 0">基準 2026日本選手権</div>';
-        box.appendChild(card);
-        var fill=card.querySelector('.kj-fill');
-        if(ugokiOK){
-          setTimeout(function(){ fill.style.width=wari+'%'; }, mMatsu*1000+300);
-        }else{
-          fill.style.width=wari+'%';
-        }
-      }
-    }
     // タイムのうつりかわりのグラフ（古い順にならべて、調子の流れを絵にする）
     var subG=document.createElement('div'); subG.className='prog-sub';
     subG.textContent='タイムの うつりかわり（左が古い　右が新しい。上にいくほど速い）';
@@ -3699,7 +3526,16 @@
       if(v.perStroke) tempo.push({ x:(Number(p[0])+Number(p[1]))/2, y:Number(v.perStroke) });
     });
     tempo.sort(function(a,b){ return a.x-b.x; });
-    return { laps:laps, speed:speed, tempo:tempo };
+    // かき数：1本ごとの回数のならび（[34,41] なら 1本目34回・2本目41回）
+    var strokes=[];
+    if(Object.prototype.toString.call(d.strokes)==='[object Array]' && d.strokes.length){
+      var lapLen=(Number(d.raceDist)||0)/d.strokes.length;
+      d.strokes.forEach(function(v,i){
+        if(v==null || v==='' || !(Number(v)>0)) return;
+        strokes.push({ x: lapLen*(i+0.5), y:Number(v) });   // 本のまん中に置く
+      });
+    }
+    return { laps:laps, speed:speed, tempo:tempo, strokes:strokes };
   }
   // 二色の折れ線グラフ。横じくは距離。長いレースは横に広く描いて、めくって見る
   function cmp2Chart(ptsA, ptsB, raceDist, opts){
@@ -3774,61 +3610,23 @@
       }
     }, 0);
   }
-  // 局面ごとの棒グラフ。青がAサン、黄がBサン。棒が短いほど速い。
-  function cmp2Phases(box, lapsA, lapsB, dist, naA, naB){
-    naA=naA||'A'; naB=naB||'B';
-    var wrap=document.createElement('div');
-    var note=document.createElement('div'); note.className='ph-note';
-    note.textContent='青が'+naA+'、黄が'+naB+'。局面ごとの区間タイム。棒が短いほど速い。';
-    wrap.appendChild(note);
-    var bmap={}; (lapsB||[]).forEach(function(p){ bmap[p.x]=p.y; });
-    var maxT=0;
-    (lapsA||[]).forEach(function(p){
-      if(p.y>maxT) maxT=p.y;
-      if(bmap[p.x]!=null && bmap[p.x]>maxT) maxT=bmap[p.x];
-    });
-    if(!maxT){ box.appendChild(wrap); return; }
-    var prev=0;
-    (lapsA||[]).forEach(function(p){
-      var name = prev===0 ? ('スタート 0-'+p.x+'m')
-               : (p.x===dist ? (prev+'-'+p.x+'m ゴール') : (prev+'-'+p.x+'m'));
-      var tb=bmap[p.x];
-      var row=document.createElement('div'); row.className='ph-row';
-      var diff='';
-      if(tb!=null){
-        var d=p.y-tb;
-        if(Math.abs(d)<0.005) diff='<span class="ph-diff same">同じ</span>';
-        else if(d<0) diff='<span class="ph-diff awin">'+naA+'が '+(-d).toFixed(2)+'秒 速い</span>';
-        else diff='<span class="ph-diff bwin">'+naB+'が '+d.toFixed(2)+'秒 速い</span>';
-      }
-      var naka='<div class="ph-head"><span class="ph-name">'+name+'</span>'+diff+'</div>'
-        +'<div class="ph-bar a" style="width:'+(p.y/maxT*100).toFixed(1)+'%">'+p.y.toFixed(2)+'</div>';
-      naka += (tb!=null)
-        ? '<div class="ph-bar b" style="width:'+(tb/maxT*100).toFixed(1)+'%">'+tb.toFixed(2)+'</div>'
-        : '<div class="ph-none">'+naB+'は この区間の記録が ありません。</div>';
-      row.innerHTML=naka;
-      wrap.appendChild(row);
-      prev=p.x;
-    });
-    box.appendChild(wrap);
-  }
-  // 押したときだけ中身を見せる ボタンつきの入れ物
-  function cmp2Toggle(box, namae, tsukuru){
-    var btn=document.createElement('button'); btn.type='button'; btn.className='cmp-toggle';
-    btn.textContent=namae+' を見る';
-    var naka=document.createElement('div'); naka.className='hide';
-    var dekita=false;
-    btn.onclick=function(){
-      if(naka.classList.contains('hide')){
-        if(!dekita){ tsukuru(naka); dekita=true; }
-        naka.classList.remove('hide');
-        btn.textContent=namae+' を隠す';
-      }else{
-        naka.classList.add('hide');
-        btn.textContent=namae+' を見る';
-      }
-    };
-    box.appendChild(btn); box.appendChild(naka);
+  // どの札がえらばれているか（ラップが最初）
+  var cmp2Metric='laps';
+  var CMP2_TABS=[
+    ['laps',   'ラップ',   'ラップ（区間タイム・秒。上にいくほど速い）',        { invert:true,  decimals:2, pad:0.6 }],
+    ['speed',  'スピード', 'スピード（メートル毎秒。上ほど速い）',              { invert:false, decimals:2, pad:0.2 }],
+    ['tempo',  'テンポ',   'テンポ（1かきの秒数。小さいほど回転が速い）',       { invert:false, decimals:2, pad:0.2 }],
+    ['strokes','かき数',   'かき数（1本ごとの回数。少ないほど ひとかきで進む）', { invert:false, decimals:0, pad:4 }]
+  ];
+  var cmp2SA=null, cmp2SB=null, cmp2DistVal=50;
+  // えらばれた札のグラフを一枚だけ、大きく描く
+  function cmp2DrawMetric(){
+    var area=$('cmp2ChartArea'); if(!area) return;
+    area.innerHTML='';
+    var def=null;
+    CMP2_TABS.forEach(function(t){ if(t[0]===cmp2Metric) def=t; });
+    if(!def || !cmp2SA || !cmp2SB) return;
+    cmp2Section(area, def[2], cmp2SA[def[0]]||[], cmp2SB[def[0]]||[], cmp2DistVal, def[3]);
   }
   function cmp2Render(){
     var box=$('cmp2Body'); box.innerHTML='';
@@ -3849,29 +3647,31 @@
         box.innerHTML='<div class="df-empty">レースの中身を 取り寄せられませんでした。電波を確かめて、もう一度えらび直してください。</div>';
         return;
       }
-      var dist=Number($('cmp2Dist').value)||50;
+      cmp2SA=sA; cmp2SB=sB;
+      cmp2DistVal=Number($('cmp2Dist').value)||50;
+      var lg=document.createElement('div'); lg.className='prog-legend';
       var aName=$('cmpA').options[$('cmpA').selectedIndex].textContent;
       var bName=$('cmpB').options[$('cmpB').selectedIndex].textContent;
-      // 選び終わったので、選択欄をたたんで まとめに変える
-      var tA=String($('cmpRaceA').options[$('cmpRaceA').selectedIndex].textContent).trim().split(/\s+/)[0];
-      var tB=String($('cmpRaceB').options[$('cmpRaceB').selectedIndex].textContent).trim().split(/\s+/)[0];
-      var naA=String(aName).trim().split(/\s+/)[0];   // 名字だけ(例 中野由基)
-      var naB=String(bName).trim().split(/\s+/)[0];
-      $('cmp2SumText').innerHTML=
-        '<div>'+dist+'m'+$('cmp2Stroke').value+'</div>'+
-        '<div><span style="color:#7dd3fc">'+naA+' '+tA+'</span> vs '+
-        '<span style="color:#fcd34d">'+naB+' '+tB+'</span></div>';
-      $('cmp2Cond').classList.add('hide');
-      $('cmp2Sum').classList.remove('hide');
-      // 主役: 局面ごとの棒グラフ
-      cmp2Phases(box, sA.laps, sB.laps, dist, naA, naB);
-      // わき役: ボタンを押したときだけ見えるグラフ
-      cmp2Toggle(box, 'スピードのグラフ', function(naka){
-        cmp2Section(naka, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });
+      lg.textContent='青が Aサン（'+aName+'）、黄色が Bサン（'+bName+'）。見たいグラフの札を押してください。';
+      box.appendChild(lg);
+      // 四つの札：押した札のグラフだけを下に大きく出す
+      var tabs=document.createElement('div'); tabs.className='cmp-tabs';
+      CMP2_TABS.forEach(function(t){
+        var b=document.createElement('button'); b.type='button';
+        b.textContent=t[1];
+        if(t[0]===cmp2Metric) b.className='on';
+        b.onclick=function(){
+          cmp2Metric=t[0];
+          [].slice.call(tabs.children).forEach(function(c){ c.className=''; });
+          b.className='on';
+          cmp2DrawMetric();
+        };
+        tabs.appendChild(b);
       });
-      cmp2Toggle(box, 'テンポのグラフ', function(naka){
-        cmp2Section(naka, 'テンポ（1かきの秒数。小さいほど回転が速い）', sA.tempo, sB.tempo, dist, { invert:false, decimals:2, pad:0.2 });
-      });
+      box.appendChild(tabs);
+      var area=document.createElement('div'); area.id='cmp2ChartArea';
+      box.appendChild(area);
+      cmp2DrawMetric();
     });
   }
   $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
@@ -3880,10 +3680,6 @@
   $('cmp2Dist').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
   $('cmpRaceA').onchange=function(){ cmp2Render(); };
   $('cmpRaceB').onchange=function(){ cmp2Render(); };
-  $('cmp2Edit').onclick=function(){
-    $('cmp2Cond').classList.remove('hide');
-    $('cmp2Sum').classList.add('hide');
-  };
 
   // ===== データを比較（体型・年齢・性別でしぼってランキング） =====
   var cmpAll=null;  // サーバーから取った全レース（選手の性別・生年月日つき）
@@ -4530,7 +4326,7 @@
   $('cmpAge').onchange=cmpRender;
   $('cmpRange').oninput=cmpRender;
 
-  // ===== 記録をさがす（条件で絞り込み） =====
+  // ===== データを呼び出す（条件で絞り込み） =====
   var dfRaces=[];   // チーム：えらんだ選手の全レース
   var dfWhRows=[];  // 大会データ：いまえらんでいる種目シートの全行
   function openFindModal(){
@@ -5376,8 +5172,8 @@
   }
 
   // ========== コマ送り ==========
-  // もどる・すすむ：押すたびに1コマ。長押しすると、押しているあいだ30秒ずつ移動しつづける
-  function bindStepBtn(el, dir){
+  // 押しボタンの共通部品：1回押すと tapFrames、長押しすると holdFrames ずつ進みつづける
+  function bindHoldBtn(el, tapFrames, holdFrames, holdEveryMs){
     var longTimer=null;    // 長押しを見はる時計
     var repTimer=null;     // 長押し中に くり返すための時計
     var longFired=false;   // 長押しがもう働いたか
@@ -5388,25 +5184,26 @@
       stopAll();
       longTimer=setTimeout(function(){
         longFired=true;
-        step(dir*Math.round(30*FPS));            // まず30秒
+        step(holdFrames);                        // まず一歩
         repTimer=setInterval(function(){
-          step(dir*Math.round(30*FPS));          // 押しているあいだ、30秒ずつくり返す
-        }, 600);
-      }, 700);
+          step(holdFrames);                      // 押しているあいだ、同じ歩幅でくり返す
+        }, holdEveryMs);
+      }, 600);
     });
     el.addEventListener('pointerup', function(){
       stopAll();
-      if(!longFired) step(dir*1);                // ふつうに押したら、その場で1コマ
+      if(!longFired) step(tapFrames);            // ふつうに押したら、その場でひと押しぶん
     });
     el.addEventListener('pointerleave', stopAll);
     el.addEventListener('pointercancel', stopAll);
     el.addEventListener('contextmenu', function(e){ e.preventDefault(); });  // 長押しメニューを出さない
   }
-  bindStepBtn($('bBack'), -1);
-  bindStepBtn($('bFwd'), 1);
-  // 調整ボタン：1回おすと1.0秒
-  $('bAdjBack').onclick=function(){ step(-Math.round(1.0*FPS)); };
-  $('bAdjFwd').onclick=function(){ step(Math.round(1.0*FPS)); };
+  // もどる・すすむ：1回で1コマ、長押しで10コマずつ
+  bindHoldBtn($('bBack'), -1, -10, 300);
+  bindHoldBtn($('bFwd'),   1,  10, 300);
+  // 調整ボタン：1回で1.0秒、長押しで10秒ずつ
+  bindHoldBtn($('bAdjBack'), -Math.round(1.0*FPS), -Math.round(10*FPS), 600);
+  bindHoldBtn($('bAdjFwd'),   Math.round(1.0*FPS),  Math.round(10*FPS), 600);
   $('bPlay').onclick=function(){
     if(!isVideoReady()){ toast('さきに動画をひらいてね'); return; }
     if(videoEl.paused) videoEl.play(); else videoEl.pause();
@@ -5522,7 +5319,7 @@
     // 新しいコマ送りボタンの使い方を、はじめての1回だけ シャッチーくんが教える
     if(!localStorage.getItem('swimiq_tut_stepbtn2')){
       localStorage.setItem('swimiq_tut_stepbtn2','1');
-      shacchiSay('コマ送りボタンの使い方だッチ。◀◀と▶▶は、押すたびに1コマ、長押しで30秒ずつ移動するッチ。りょうはしの「1.0秒」は、1回おすと1秒うごく調整ボタンだッチ。', 18000);
+      shacchiSay('コマ送りボタンの使い方だッチ。◀◀と▶▶は、押すたびに1コマ、長押しで10コマずつ動くッチ。りょうはしの「1.0秒」は、1回で1秒、長押しで10秒ずつ動く調整ボタンだッチ。', 18000);
     }
   });
 
@@ -5623,11 +5420,11 @@
     ['#strokeChip','50mごとのかき数をとうろくするッチ。あとから直せるッチ。'],
     ['#lineChip','黄色い通過ラインを引くボタンだッチ。おしてから、手前の赤い目印、おくの赤い目印のじゅんにタップすると線が出るッチ。ななめから撮った動画でも、頭が線を通った瞬間で正しく判定できるッチ。もう一度おすと引き直せるッチ。'],
     ['#tempoFinish','1つずつはかったテンポをここでしめくくるッチ。'],
-    ['#bAdjBack','調整ボタンだッチ。1回おすと 1秒もどるッチ。'],
-    ['#bBack','もどるボタンだッチ。押すたびに1コマ、長押しすると 30秒ずつ もどりつづけるッチ。'],
+    ['#bAdjBack','調整ボタンだッチ。1回おすと 1秒、長押しすると 10秒ずつ もどるッチ。'],
+    ['#bBack','もどるボタンだッチ。押すたびに1コマ、長押しすると 10コマずつ もどりつづけるッチ。'],
     ['#bPlay','再生と一時停止だッチ。'],
-    ['#bFwd','すすむボタンだッチ。押すたびに1コマ、長押しすると 30秒ずつ すすみつづけるッチ。'],
-    ['#bAdjFwd','調整ボタンだッチ。1回おすと 1秒すすむッチ。'],
+    ['#bFwd','すすむボタンだッチ。押すたびに1コマ、長押しすると 10コマずつ すすみつづけるッチ。'],
+    ['#bAdjFwd','調整ボタンだッチ。1回おすと 1秒、長押しすると 10秒ずつ すすむッチ。'],
     ['#menuBtn','ズームした動画をもとの大きさにもどすッチ。'],
     ['#timeHud','スタートからの経過時間だッチ。コマ送りにあわせてかわるッチ。'],
     ['#smBackVideo','分析のつづきに もどるボタンだッチ。動画も記録も そのまま残っているッチ。'],

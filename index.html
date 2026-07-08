@@ -3927,7 +3927,9 @@
       if(v.perStroke) tempo.push({ x:(Number(p[0])+Number(p[1]))/2, y:Number(v.perStroke) });
     });
     tempo.sort(function(a,b){ return a.x-b.x; });
-    return { laps:laps, speed:speed, tempo:tempo };
+    // 50mごとのかき数（未入力はnull）
+    var strokes=(d.strokes||[]).map(function(v){ return (v==null||v==='')? null : Number(v); });
+    return { laps:laps, speed:speed, tempo:tempo, strokes:strokes };
   }
   // 二色の折れ線グラフ。横じくは距離。長いレースは横に広く描いて、めくって見る
   function cmp2Chart(ptsA, ptsB, raceDist, opts){
@@ -4053,6 +4055,49 @@
       }
     }); });
   }
+  // ストローク数のくらべ。50mごとに青と黄の棒。少ない多いで判定する
+  function cmp2Strokes(box, stA, stB, naA, naB){
+    stA=stA||[]; stB=stB||[];
+    var honsuu=Math.max(stA.length, stB.length);
+    // 両方とも未入力なら、何も出さない
+    var aru=false;
+    for(var i=0;i<honsuu;i++){ if(stA[i]!=null || stB[i]!=null) aru=true; }
+    if(!honsuu || !aru) return;
+    var wrap=document.createElement('div');
+    var note=document.createElement('div'); note.className='ph-note';
+    note.textContent='ストローク数(50mごと)。少ないほど一かきが大きい泳ぎ。テンポと合わせて見ます。';
+    wrap.appendChild(note);
+    var maxN=0;
+    for(var k=0;k<honsuu;k++){
+      if(stA[k]!=null && stA[k]>maxN) maxN=stA[k];
+      if(stB[k]!=null && stB[k]>maxN) maxN=stB[k];
+    }
+    if(!maxN){ return; }
+    for(var i2=0;i2<honsuu;i2++){
+      var a=stA[i2], b=stB[i2];
+      if(a==null && b==null) continue;
+      var name = honsuu===1 ? 'ストローク数'
+               : (i2===0 ? '最初の50m' : (i2===honsuu-1 ? '最後の50m' : (i2+1)+'本目の50m'));
+      var row=document.createElement('div'); row.className='ph-row';
+      var diff='';
+      if(a!=null && b!=null){
+        var d=a-b;
+        if(d===0) diff='<span class="ph-diff same">同じ</span>';
+        else if(d<0) diff='<span class="ph-diff awin">'+naA+'が '+(-d)+'回 少ない</span>';
+        else diff='<span class="ph-diff bwin">'+naB+'が '+d+'回 少ない</span>';
+      }
+      var naka='<div class="ph-head"><span class="ph-name">'+name+'</span>'+diff+'</div>';
+      naka += (a!=null)
+        ? '<div class="ph-bar a" style="width:'+(a/maxN*100).toFixed(1)+'%">'+a+'回</div>'
+        : '<div class="ph-none">'+naA+'は かき数の記録が ありません。</div>';
+      naka += (b!=null)
+        ? '<div class="ph-bar b" style="width:'+(b/maxN*100).toFixed(1)+'%">'+b+'回</div>'
+        : '<div class="ph-none">'+naB+'は かき数の記録が ありません。</div>';
+      row.innerHTML=naka;
+      wrap.appendChild(row);
+    }
+    box.appendChild(wrap);
+  }
   // 押したときだけ中身を見せる ボタンつきの入れ物
   function cmp2Toggle(box, namae, tsukuru){
     var btn=document.createElement('button'); btn.type='button'; btn.className='cmp-toggle';
@@ -4106,6 +4151,8 @@
       $('cmp2Sum').classList.remove('hide');
       // 主役: 局面ごとの棒グラフ
       cmp2Phases(box, sA.laps, sB.laps, dist, naA, naB);
+      // ストローク数のくらべ(記録があるときだけ出る)
+      cmp2Strokes(box, sA.strokes, sB.strokes, naA, naB);
       // わき役: ボタンを押したときだけ見えるグラフ
       cmp2Toggle(box, 'スピードのグラフ', function(naka){
         cmp2Section(naka, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });

@@ -695,6 +695,13 @@
   #cmp2Modal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #cmp2Modal.hide{ display:none; }
+  /* レース再生の対戦カードも、同じかぶせ表示（中身が長いので巻ける） */
+  #vsPlayModal{ position:fixed; inset:0; z-index:32; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.85); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #vsPlayModal.hide{ display:none; }
+  #vsPlayModal .modal-card{ max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .cmp-vs-btn{ flex:none; margin:2px 0 4px; padding:11px; border-radius:12px; border:1.5px solid var(--line);
+    background:linear-gradient(135deg,#22c55e,#0ea5e9); color:#fff; font-weight:800; font-size:14px; cursor:pointer; }
   /* 横に長いグラフは、指でスワイプかボタンでめくる */
   .cmp-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; background:rgba(255,255,255,.06);
     border-radius:12px; padding:8px 4px 2px; flex:none; }  /* 縮まない札。押しつぶされ防止 */
@@ -1218,7 +1225,7 @@
       <span id="cmpRangeLabel">±3%</span>
     </div>
     <div id="cmpCount"></div>
-    <div id="cmpVs" class="hide"></div>
+
     <div id="cmpList" class="df-list"></div>
     <div class="stroke-btns"><button id="cmpClose">とじる</button></div>
   </div>
@@ -1303,6 +1310,15 @@
     <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
     <div id="cmp2Body" class="df-list"></div>
     <div class="stroke-btns"><button id="cmp2Close">とじる</button></div>
+  </div>
+</div>
+
+<!-- レース再生（2人がおよぐ対戦カード）：新しい比較からひらく -->
+<div id="vsPlayModal" class="hide">
+  <div class="modal-card df-card">
+    <h2>レース再生・対戦カード</h2>
+    <div id="cmpVs" class="hide"></div>
+    <div class="stroke-btns"><button id="vsPlayClose">とじる</button></div>
   </div>
 </div>
 
@@ -3717,11 +3733,32 @@
         tabs.appendChild(b);
       });
       box.appendChild(tabs);
+      // 苦心の作、2人がプールをおよぐレース再生への扉
+      var btnVs=document.createElement('button'); btnVs.type='button'; btnVs.className='cmp-vs-btn';
+      btnVs.textContent='レース再生（2人が およぐ 対戦カード）';
+      btnVs.onclick=cmp2OpenVs;
+      box.appendChild(btnVs);
       var area=document.createElement('div'); area.id='cmp2ChartArea';
       box.appendChild(area);
       cmp2DrawMetric();
     });
   }
+  function cmp2FindRace(id){
+    var hit=null;
+    (cmpAll||[]).forEach(function(r){ if(String(r.raceId)===String(id)) hit=r; });
+    return hit;
+  }
+  function cmp2OpenVs(){
+    var ra=cmp2FindRace($('cmpRaceA').value), rb=cmp2FindRace($('cmpRaceB').value);
+    if(!ra || !rb){ toast('AサンとBサンのレースを えらんでください'); return; }
+    function mk(r){
+      return { name:String(r.name||''), time:parseT(r.finalTime), raceId:r.raceId,
+               height:Number(r.height||0)||null, weight:Number(r.weight||0)||null };
+    }
+    $('vsPlayModal').classList.remove('hide');
+    renderVs(mk(ra), mk(rb));   // 昔ながらの対戦カード（再生とめくりページ）を呼び出す
+  }
+  $('vsPlayClose').onclick=function(){ $('vsPlayModal').classList.add('hide'); };
   $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
   $('cmpB').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
   $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
@@ -5451,7 +5488,9 @@
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
-    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
+    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポ・かき数をグラフで見くらべる機能だッチ。緑のボタンで、2人がプールをおよぐレース再生も見られるッチ。'],
+    ['.cmp-vs-btn','2人がプールをおよぐレース再生と、横にめくるくらべページがひらくッチ。'],
+    ['#cmpVs','2人の対戦カードだッチ。下のページは横にめくれるッチ。'],
     ['#newsBar','きょうの水泳ニュースだッチ。押すと元の記事がひらくッチ。つぎに開くと 新しい見出しに かわるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],

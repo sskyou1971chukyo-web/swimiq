@@ -2423,7 +2423,10 @@
     sel.appendChild(o0);
     sortedMeets().forEach(function(m){
       var o=document.createElement('option');
-      o.value=m.name; o.textContent=m.name;
+      o.value=m.name;
+      // 見える文字は「2026年4月11日　津田チャンピオンズカップ」の形。
+      // 内部の値(o.value)は試合名のままにして、復元や自動選択を壊さない
+      o.textContent=m.start ? (hiJa(m.start)+'　'+m.name) : m.name;
       o.dataset.start=m.start||''; o.dataset.end=m.end||''; o.dataset.course=m.course||'';
       sel.appendChild(o);
     });
@@ -2473,10 +2476,16 @@
     var course=opt.dataset.course||'';
     if(course.indexOf('短')>=0) $('svCourse').value='短水路';
     else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
-  // 試合の日程を読みやすい文字にする(例 日程 2026-07-04 〜 2026-07-06　名古屋)
+  // 「2026-04-11」を「2026年4月11日」の書き方にする
+  function hiJa(s){
+    var m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(!m) return String(s||'');
+    return m[1]+'年'+Number(m[2])+'月'+Number(m[3])+'日';
+  }
+  // 試合の日程を読みやすい文字にする(例 日程 2026年7月4日 〜 2026年7月6日　名古屋)
   function meetDateMoji(m){
     if(!m) return '';
-    var hi = m.start ? (m.end && m.end!==m.start ? m.start+' 〜 '+m.end : m.start) : '';
+    var hi = m.start ? (m.end && m.end!==m.start ? hiJa(m.start)+' 〜 '+hiJa(m.end) : hiJa(m.start)) : '';
     var moji = [hi, m.place].filter(function(x){ return x; }).join('　');
     return moji ? ('日程 '+moji) : '';
   }
@@ -3460,8 +3469,24 @@
   // 種目ごとの基準タイム(秒)。nipponichi=優勝 nyusho=決勝8位
   // kessho=決勝ライン(予選8位) bkessho=B決勝ライン(予選16位)
   // chuo=出場者の真ん中 saigo=出場者の最後尾
+  // 全国基準のデータが「何年の日本選手権」のものかを、ここ一か所で持つ。
+  // 来年、新しい大会のデータに入れ替えるときは、この年と下の数字を更新する。
+  var ZENKOKU_KIJUN_NEN = '2026';
   var ZENKOKU_KIJUN = {"女子 50mバタフライ": {"nipponichi": 25.85, "nyusho": 26.98, "kessho": 26.86, "bkessho": 27.2, "chuo": 27.51, "saigo": 28.66}, "女子 50m平泳ぎ": {"nipponichi": 30.39, "nyusho": 32.38, "kessho": 32.06, "bkessho": 32.58, "chuo": 32.78, "saigo": 34.28}, "女子 50m背泳ぎ": {"nipponichi": 28.03, "nyusho": 29.06, "kessho": 28.9, "bkessho": 29.49, "chuo": 29.46, "saigo": 31.26}, "女子 50m自由形": {"nipponichi": 25.21, "nyusho": 25.74, "kessho": 25.81, "bkessho": 26.08, "chuo": 26.3, "saigo": 27.03}, "男子 50mバタフライ": {"nipponichi": 23.28, "nyusho": 23.55, "kessho": 23.64, "bkessho": 23.94, "chuo": 24.31, "saigo": 25.04}, "男子 50m平泳ぎ": {"nipponichi": 26.84, "nyusho": 27.72, "kessho": 27.73, "bkessho": 28.01, "chuo": 28.37, "saigo": 29.67}, "男子 50m背泳ぎ": {"nipponichi": 24.96, "nyusho": 25.68, "kessho": 25.59, "bkessho": 25.83, "chuo": 26.26, "saigo": 27.76}, "男子 50m自由形": {"nipponichi": 22.12, "nyusho": 22.46, "kessho": 22.52, "bkessho": 22.77, "chuo": 22.96, "saigo": 24.55}, "女子 100mバタフライ": {"nipponichi": 57.6, "nyusho": 59.69, "kessho": 59.55, "bkessho": 60.26, "chuo": 60.55, "saigo": 62.83}, "女子 100m平泳ぎ": {"nipponichi": 65.87, "nyusho": 69.44, "kessho": 69.85, "bkessho": 70.68, "chuo": 70.92, "saigo": 74.4}, "女子 100m背泳ぎ": {"nipponichi": 60.25, "nyusho": 62.02, "kessho": 61.69, "bkessho": 62.65, "chuo": 62.56, "saigo": 64.92}, "女子 100m自由形": {"nipponichi": 54.79, "nyusho": 56.1, "kessho": 56.08, "bkessho": 56.74, "chuo": 57.14, "saigo": 58.69}, "男子 100mバタフライ": {"nipponichi": 51.31, "nyusho": 52.01, "kessho": 52.28, "bkessho": 53.17, "chuo": 53.95, "saigo": 57.96}, "男子 100m平泳ぎ": {"nipponichi": 59.11, "nyusho": 60.85, "kessho": 60.84, "bkessho": 61.71, "chuo": 61.78, "saigo": 63.58}, "男子 100m背泳ぎ": {"nipponichi": 53.85, "nyusho": 54.82, "kessho": 54.79, "bkessho": 55.34, "chuo": 55.52, "saigo": 57.69}, "男子 100m自由形": {"nipponichi": 48.55, "nyusho": 49.59, "kessho": 49.74, "bkessho": 50.24, "chuo": 50.66, "saigo": 53.06}, "女子 200mバタフライ": {"nipponichi": 128.17, "nyusho": 132.08, "kessho": 132.47, "bkessho": 134.1, "chuo": 134.2, "saigo": 139.34}, "女子 200m個人メドレー": {"nipponichi": 130.25, "nyusho": 136.92, "kessho": 135.99, "bkessho": 137.76, "chuo": 137.83, "saigo": 142.17}, "女子 200m平泳ぎ": {"nipponichi": 144.79, "nyusho": 151.38, "kessho": 149.71, "bkessho": 150.76, "chuo": 151.54, "saigo": 157.46}, "女子 200m背泳ぎ": {"nipponichi": 129.82, "nyusho": 133.4, "kessho": 132.93, "bkessho": 134.74, "chuo": 135.18, "saigo": 144.39}, "女子 200m自由形": {"nipponichi": 119.13, "nyusho": 121.83, "kessho": 121.31, "bkessho": 122.87, "chuo": 122.75, "saigo": 126.09}, "男子 200mバタフライ": {"nipponichi": 115.03, "nyusho": 117.88, "kessho": 117.69, "bkessho": 118.93, "chuo": 120.48, "saigo": 125.75}, "男子 200m個人メドレー": {"nipponichi": 117.28, "nyusho": 120.74, "kessho": 120.93, "bkessho": 123.7, "chuo": 122.24, "saigo": 126.35}, "男子 200m平泳ぎ": {"nipponichi": 127.31, "nyusho": 132.84, "kessho": 131.49, "bkessho": 132.8, "chuo": 133.64, "saigo": 147.6}, "男子 200m背泳ぎ": {"nipponichi": 115.62, "nyusho": 119.76, "kessho": 119.7, "bkessho": 121.21, "chuo": 122.06, "saigo": 126.55}, "男子 200m自由形": {"nipponichi": 105.65, "nyusho": 108.9, "kessho": 108.91, "bkessho": 109.99, "chuo": 110.3, "saigo": 115.94}, "女子 400m個人メドレー": {"nipponichi": 275.16, "nyusho": 283.05, "kessho": 284.35, "bkessho": 289.83, "chuo": 289.83, "saigo": 303.56}, "女子 400m自由形": {"nipponichi": 248.14, "nyusho": 254.14, "kessho": 254.51, "bkessho": 258.52, "chuo": 258.79, "saigo": 271.21}, "男子 400m個人メドレー": {"nipponichi": 248.66, "nyusho": 259.28, "kessho": 257.98, "bkessho": 259.66, "chuo": 263.25, "saigo": 272.56}, "男子 400m自由形": {"nipponichi": 226.11, "nyusho": 232.9, "kessho": 232.8, "bkessho": 234.14, "chuo": 234.87, "saigo": 239.36}, "女子 800m自由形": {"nipponichi": 513.16, "nyusho": 534.53, "kessho": 528.61, "bkessho": 536.75, "chuo": 532.48, "saigo": 550.51}, "男子 800m自由形": {"nipponichi": 468.56, "nyusho": 486.37, "kessho": 486.37, "bkessho": 497.67, "chuo": 495.67, "saigo": 505.13}, "女子 1500m自由形": {"nipponichi": 993.98, "nyusho": 1020.52, "kessho": 1020.52, "bkessho": null, "chuo": 1018.21, "saigo": 1034.62}, "男子 1500m自由形": {"nipponichi": 895.04, "nyusho": 929.86, "kessho": 923.28, "bkessho": 940.11, "chuo": 940.35, "saigo": 979.86}};
+  // ========== 全国基準をシートから読む(空なら内蔵の2026年が予備) ==========
+  var kijunCache=null;   // シートから読んだ全国基準(まだならnull)
+  function kijunLoad(cb){
+    if(kijunCache){ if(cb) cb(kijunCache); return; }
+    api({action:'kijunList'}).then(function(res){
+      var recs=(res && res.ok && res.records)? res.records : [];
+      // あとで探しやすいよう、種目の合言葉(例 男子 50m自由形)を付けておく
+      recs.forEach(function(r){ r.key=r.sex+' '+r.dist+'m'+r.stroke; });
+      kijunCache=recs;
+      if(cb) cb(kijunCache);
+    }).catch(function(){ kijunCache=[]; if(cb) cb(kijunCache); });
+  }
   // いま進捗画面で選ばれている選手と種目に合う全国基準を返す(無ければnull)
+  // シートに複数の年度があれば一番新しい年度を使い、シートに無ければ内蔵の2026年を使う
   function progKijun(){
     try{
       var aid=$('progAthlete').value;
@@ -3474,7 +3499,24 @@
       var ev=String($('progEvent').value||'').split('|');
       if(ev.length<2 || !ev[1]) return null;
       var key=(sex==='男'?'男子':'女子')+' '+ev[0]+'m'+ev[1];
-      return ZENKOKU_KIJUN[key]||null;
+      // まずシートから(一番新しい年度)
+      if(kijunCache && kijunCache.length){
+        var best=null;
+        kijunCache.forEach(function(r){
+          if(r.key===key && (!best || Number(r.year)>Number(best.year))) best=r;
+        });
+        if(best){
+          return { nipponichi:best.nipponichi, nyusho:best.nyusho,
+                   kessho:best.kessho, bkessho:best.bkessho,
+                   chuo:best.chuo, saigo:best.saigo, nen:String(best.year) };
+        }
+      }
+      // シートに無ければ、内蔵の2026年を予備に使う
+      var moto=ZENKOKU_KIJUN[key];
+      if(!moto) return null;
+      return { nipponichi:moto.nipponichi, nyusho:moto.nyusho,
+               kessho:moto.kessho, bkessho:moto.bkessho,
+               chuo:moto.chuo, saigo:moto.saigo, nen:ZENKOKU_KIJUN_NEN };
     }catch(e){ return null; }
   }
   function progChart(chron){
@@ -3538,7 +3580,7 @@
         s+='<text x="'+L+'" y="14" font-size="12" font-weight="700" fill="#fbbf24">'+kotoba+'</text>';
       }
       if(kj){
-        s+='<text x="'+(W-R)+'" y="14" text-anchor="end" font-size="10" fill="rgba(255,255,255,.65)">基準 2026日本選手権</text>';
+        s+='<text x="'+(W-R)+'" y="14" text-anchor="end" font-size="10" fill="rgba(255,255,255,.65)">基準 '+((kj&&kj.nen)||ZENKOKU_KIJUN_NEN)+'年 日本選手権</text>';
       }
     }
     // 折れ線
@@ -3752,6 +3794,9 @@
     if(stdCache===null){
       stdLoad(function(){ try{ progRender(); }catch(e){} });
     }
+    if(kijunCache===null){
+      kijunLoad(function(){ try{ progRender(); }catch(e){} });
+    }
     // レースの水路(短水路か長水路)に合わせた標準記録をさがす
     var stdRec=stdFind(races[0] && races[0].course);
     if(stdRec){
@@ -3803,7 +3848,7 @@
         card.innerHTML='<div class="t1">全国基準メーター</div>'
           +'<div class="t2">'+kotoba+'</div>'
           +'<div class="kj-track"><div class="kj-fill"></div></div>'
-          +'<div class="t2" style="margin:6px 0 0">基準 2026日本選手権</div>';
+          +'<div class="t2" style="margin:6px 0 0">基準 '+((kj&&kj.nen)||ZENKOKU_KIJUN_NEN)+'年 日本選手権</div>';
         box.appendChild(card);
         var fill=card.querySelector('.kj-fill');
         if(ugokiOK){

@@ -788,9 +788,10 @@
   #stdCheck{ white-space:pre-wrap; max-height:180px; overflow:auto; }
   #stdCheck .warn{ color:#fca5a5; font-weight:800; }
   #stdCheck.hide, #stdSaveBtn.hide{ display:none; }
-  /* 一枚目のきろく画面で、押して直せる場所の目印 */
-  .rec .t, .rec .lap-edit{ cursor:pointer; text-decoration:underline;
-    text-decoration-color:rgba(255,255,255,.35); text-underline-offset:2px; }
+  /* 一枚目のきろく画面で、押して直せる場所の目印(横向き画面と縦向き画面の両方) */
+  .rec .t, .rec .lap-edit, .dv-tap{ cursor:pointer; text-decoration:underline;
+    text-decoration-color:rgba(255,255,255,.45); text-underline-offset:3px;
+    text-decoration-thickness:2px; }
   .rec .lap-edit{ font-weight:700; }
   /* 試合名をえらんだ瞬間に出る日程の行 */
   #riMeetDateNote, #svMeetDateNote{ color:#7dd3fc; font-weight:800; margin:2px 0 6px; }
@@ -5560,8 +5561,10 @@
     var rtRow=document.createElement('div');
     rtRow.className='dv-row';
     var rtText=(rtTime!=null)?rtTime.toFixed(2):'-';
-    rtRow.innerHTML='<span class="dv-d">R.T</span><span class="dv-t">'+rtText+'</span>'+
+    rtRow.innerHTML='<span class="dv-d">R.T</span><span class="dv-t dv-tap">'+rtText+'</span>'+
                     '<span class="dv-l">-</span><span class="dv-p"></span>';
+    // R.Tの数字をタップするとリアクションタイムの入力画面をひらく
+    rtRow.querySelector('.dv-t').onclick=function(){ openRtModal(); };
     body.appendChild(rtRow);
     // テンポ行（区間の値なので、行と行のあいだに挟む）
     var usedTempo={};
@@ -5574,12 +5577,13 @@
           var row=document.createElement('div');
           row.className='dv-row tempo';
           row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                        '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+          (function(kk){ row.querySelector('.dv-p').onclick=function(){ openTempoModal(kk); }; })(k);
           body.appendChild(row);
         }
       });
     }
-    var prevSplit=0;
+    var prevSplit=0, prevD=0;
     dists.forEach(function(d){
       var split=passOf(d, origin);
       var isOff=(officialTimes[d]!=null);
@@ -5587,10 +5591,15 @@
       tempoRowsEndingAt(d);   // この地点で終わる区間のテンポを、行の手前に挟む
       var row=document.createElement('div');
       row.className='dv-row';
-      row.innerHTML='<span class="dv-d">'+d+'m</span><span class="dv-t'+(isOff?' toff':'')+'">'+fmt(split)+'</span>'+
-                    '<span class="dv-l">'+fmt(lap)+'</span><span class="dv-p"></span>';
+      row.innerHTML='<span class="dv-d">'+d+'m</span><span class="dv-t dv-tap'+(isOff?' toff':'')+'">'+fmt(split)+'</span>'+
+                    '<span class="dv-l dv-tap">'+fmt(lap)+'</span><span class="dv-p"></span>';
+      // タイムを押すと 正式タイムの入力画面、区間を押すと 区間だけ直せる画面
+      (function(dd, pd, ps, lp){
+        row.querySelector('.dv-t').onclick=function(){ openOfficialModal(dd); };
+        row.querySelector('.dv-l').onclick=function(){ openLapModal(dd, pd, ps, lp); };
+      })(d, prevD, prevSplit, lap);
       body.appendChild(row);
-      prevSplit=split;
+      prevD=d; prevSplit=split;
     });
     // 終点のタイムが未記録の区間テンポは、最後にまとめて出す
     tempoKeys.filter(function(k){ return !usedTempo[k]; })

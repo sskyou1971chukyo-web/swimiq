@@ -788,6 +788,9 @@
   #stdCheck{ white-space:pre-wrap; max-height:180px; overflow:auto; }
   #stdCheck .warn{ color:#fca5a5; font-weight:800; }
   #stdCheck.hide, #stdSaveBtn.hide{ display:none; }
+  /* 試合名をえらんだ瞬間に出る日程の行 */
+  #riMeetDateNote, #svMeetDateNote{ color:#7dd3fc; font-weight:800; margin:2px 0 6px; }
+  #riMeetDateNote.hide, #svMeetDateNote.hide{ display:none; }
   .mine-name{ display:block; width:100%; padding:14px; margin-bottom:8px; cursor:pointer;
     border:1.5px solid var(--line); border-radius:14px;
     background:rgba(255,255,255,.09); color:#fff; font-size:17px; font-weight:900; text-align:left;
@@ -1198,6 +1201,7 @@
       <span>体重kg</span><input id="svWeight" type="number" inputmode="decimal" placeholder="任意"></div>
     <div class="sv-row"><span>試合名</span><select id="svMeetSel" aria-label="試合名をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
     <div class="sv-row" id="svMeetFreeRow"><span></span><input id="svMeet" type="text" placeholder="例 学生選手権"></div>
+    <p class="note hide" id="svMeetDateNote"></p>
     <div class="sv-row"><span>試合日</span><input id="svDate" type="date"></div>
     <div class="sv-row"><span>動画リンク</span><input id="svVideo" type="url" placeholder="Googleドライブの共有リンク（任意）"><button id="svFolderBtn" type="button" aria-label="動画フォルダをひらく">📂</button></div>
     <div class="sv-row"><span></span><button id="svUploadBtn" type="button">⬆️ いまの動画を ドライブへ送る</button></div>
@@ -1429,6 +1433,7 @@
       <option>バタフライ</option><option>個人メドレー</option></select></div>
     <div class="sv-row"><span>試合名</span><select id="riMeetSel" aria-label="試合名をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
     <div class="sv-row" id="riMeetFreeRow"><span></span><input id="riMeet" type="text" placeholder="例 学生選手権（練習なら空欄でOK）"></div>
+    <p class="note hide" id="riMeetDateNote"></p>
     <button id="riJasf" type="button">🏁 正式レース結果を ひらく</button>
     <div class="stroke-btns">
       <button id="riStart">はじめる</button>
@@ -2467,8 +2472,27 @@
     var course=opt.dataset.course||'';
     if(course.indexOf('短')>=0) $('svCourse').value='短水路';
     else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
+  // 試合の日程を読みやすい文字にする(例 日程 2026-07-04 〜 2026-07-06　名古屋)
+  function meetDateMoji(m){
+    if(!m) return '';
+    var hi = m.start ? (m.end && m.end!==m.start ? m.start+' 〜 '+m.end : m.start) : '';
+    var moji = [hi, m.place].filter(function(x){ return x; }).join('　');
+    return moji ? ('日程 '+moji) : '';
+  }
+  // えらんだ試合の日程を、えらぶ部品の下に出す
+  function meetDateMise(selId, noteId){
+    var note=$(noteId); if(!note) return;
+    var erabi=$(selId).value;
+    var m=(erabi && erabi!=='__free__') ?
+      meetList.filter(function(x){ return x.name===erabi; })[0] : null;
+    var moji=meetDateMoji(m);
+    note.textContent=moji;
+    note.classList.toggle('hide', !moji);
+  }
+
   }
   $('svMeetSel').onchange=function(){
+      meetDateMise('svMeetSel', 'svMeetDateNote');
       // えらんだ試合の日程(開始日)を、試合日に自動で入れる。
       // 人が手で入れた日付は消さない(空か、前回の自動入力のままのときだけ入れる)
       try{
@@ -2512,7 +2536,7 @@
     $('riMeetFreeRow').style.display='none';
     $('riMeet').value=sel.value;
   }
-  $('riMeetSel').onchange=function(){ riMeetTouched=true; applyRiMeetChoice(true); };
+  $('riMeetSel').onchange=function(){ riMeetTouched=true; applyRiMeetChoice(true); meetDateMise('riMeetSel', 'riMeetDateNote'); };
   // 一覧の読み込み：まず携帯のおぼえ書きで即表示、そのあと最新版をもらって入れ替える
   function refreshMeets(){
     meetList=meetCache();

@@ -356,6 +356,11 @@
     background:rgba(16,44,74,.97); border:2px solid var(--accent2); border-radius:18px; padding:12px 14px;
     box-shadow:0 14px 40px rgba(0,20,40,.55); }
   #guide.hide{ display:none; }
+  /* 低い画面(横向きの小さいスマホ)では、吹き出しを上に小さく出して操作の邪魔をしない */
+  @media (max-height: 460px){
+    #guide{ bottom:auto; top:8px; width:min(58vw,430px); padding:8px 10px;
+      font-size:13px; }
+  }
   .g-orca{ flex:none; width:60px; height:60px; animation:swim 3s ease-in-out infinite; }
   .g-body{ flex:1; min-width:0; }
   .g-name{ font-size:12px; font-weight:900; color:#7dd3fc; margin-bottom:3px; display:flex; align-items:center; gap:8px; }
@@ -2463,7 +2468,22 @@
     if(course.indexOf('短')>=0) $('svCourse').value='短水路';
     else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
   }
-  $('svMeetSel').onchange=function(){ svMeetTouched=true; applyMeetChoice(true); };
+  $('svMeetSel').onchange=function(){
+      // えらんだ試合の日程(開始日)を、試合日に自動で入れる。
+      // 人が手で入れた日付は消さない(空か、前回の自動入力のままのときだけ入れる)
+      try{
+        var erabi=$('svMeetSel').value;
+        if(erabi && erabi!=='__free__'){
+          var m=meetList.filter(function(x){ return x.name===erabi; })[0];
+          if(m && m.start){
+            var d=$('svDate');
+            if(!d.value || d.value===($('svDate').dataset.auto||'')){
+              d.value=m.start;
+              d.dataset.auto=m.start;
+            }
+          }
+        }
+      }catch(e){} svMeetTouched=true; applyMeetChoice(true); };
   // ----- はじめの「レースの じょうほう」画面のメニュー -----
   var riMeetTouched=false;   // 人が一度でも手でえらんだら true。以後、機械は自動でえらばない
   function fillRiMeetSelect(){
@@ -5307,11 +5327,13 @@
           updateAim();
           toast('①合図を きろく。つぎは ②足ばなれの瞬間で もう一回');
           guideStep();
-          shacchiSay('つぎは②足ばなれだッチ。足が台からはなれた瞬間にコマ送りで合わせて、もう一回「ここを きろく」をおすッチ。', 15000);
+          shacchiSay('つぎは②足ばなれだッチ。足がはなれて見えた最初のコマに合わせて「ここを きろく」だッチ。一コマ前を自動で採用するから、見えたコマでおして大丈夫だッチ。', 15000);
           return;
         }
         if(rtStep===2){
-          var v=now-rtMark1;
+          // 足がはなれて「見えた」コマは、実際にはなれた瞬間の一コマあと。
+          // だから一コマぶん(1/FPS秒)だけ前を、はなれた瞬間として採用する。
+          var v=(now - 1/FPS) - rtMark1;
           if(v<=0){ toast('②は ①より あとの場面に してね'); return; }
           if(rtBySound){
             // ①を音で決めたときは、音のおくれ0.15秒を自動で足す
@@ -5956,6 +5978,11 @@
   function shacchiOff(){ try{ return localStorage.getItem('swimiq_shacchi')==='off'; }catch(e){ return false; } }
   // シャッチーくんが一言だけしゃべる（数秒で消える）
   // 「出さない」設定のときは、解説モード中いがい なにも言わない
+  // 吹き出しはタップでいつでも閉じられる(解説モード中はページ送りがあるので除く)
+  (function(){
+    var g=$('guide');
+    if(g){ g.addEventListener('click', function(){ if(!guideMode) hideGuide(); }); }
+  })();
   function shacchiSay(text, ms){
     if(!guideMode && shacchiOff()) return;
     $('gMode').style.display = guideMode ? '' : 'none';

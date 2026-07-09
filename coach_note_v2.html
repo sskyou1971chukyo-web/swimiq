@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>コーチノート v2 選手メモ分析</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #ffffff;
+    --pool: #005a9c;
+    --pool-dark: #003e6b;
+    --line: #c8c8c8;
+    --ok: #1a7a1a;
+    --ng: #b00020;
+    --soft: #f2f6fa;
+    --tag: #e8f1f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+    font-size: 19px;
+    line-height: 1.8;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  header { background: var(--pool); color: #fff; padding: 16px; }
+  header h1 { margin: 0; font-size: 24px; }
+  header p { margin: 4px 0 0; font-size: 15px; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  section {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 20px 0;
+    background: var(--paper);
+  }
+  h2 {
+    font-size: 21px;
+    margin: 0 0 12px;
+    color: var(--pool-dark);
+    border-bottom: 2px solid var(--pool);
+    padding-bottom: 6px;
+  }
+  h3 { font-size: 19px; margin: 18px 0 6px; color: var(--pool-dark); }
+  label { display: block; font-weight: bold; margin-bottom: 6px; }
+  input[type="text"], input[type="password"], textarea {
+    width: 100%;
+    font-size: 19px;
+    padding: 12px;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+  }
+  textarea { min-height: 140px; }
+  input:focus, textarea:focus, button:focus {
+    outline: 4px solid var(--pool);
+    outline-offset: 2px;
+  }
+  button {
+    font-size: 19px;
+    font-family: inherit;
+    padding: 14px 20px;
+    min-height: 52px;
+    border: none;
+    border-radius: 8px;
+    background: var(--pool);
+    color: #fff;
+    cursor: pointer;
+    margin: 8px 8px 0 0;
+  }
+  button.secondary { background: #555; }
+  button:disabled { background: #999; cursor: wait; }
+  button.athlete {
+    background: var(--soft);
+    color: var(--pool-dark);
+    border: 2px solid var(--pool);
+    font-weight: bold;
+  }
+  button.athlete[aria-pressed="true"] {
+    background: var(--pool);
+    color: #fff;
+  }
+  button.tag {
+    background: var(--tag);
+    color: var(--pool-dark);
+    border: 2px solid var(--pool);
+    border-radius: 24px;
+    min-height: 48px;
+    padding: 8px 18px;
+  }
+  #status {
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--soft);
+    min-height: 24px;
+  }
+  #status.ok { color: var(--ok); }
+  #status.ng { color: var(--ng); }
+  ul.memoList { list-style: none; padding: 0; margin: 0; }
+  ul.memoList li {
+    border-left: 5px solid var(--pool);
+    background: var(--soft);
+    padding: 10px 12px;
+    margin: 10px 0;
+    border-radius: 6px;
+  }
+  ul.memoList li .date { font-size: 15px; color: #444; display: block; }
+  ul.memoList li .tags { font-size: 15px; color: var(--pool-dark); display: block; }
+  .result p { margin: 4px 0 14px; }
+  .hidden { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    button { transition: background 0.15s; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>コーチノート</h1>
+  <p>選手との会話メモを貯めて、指導のヒントをAIが整理します</p>
+</header>
+
+<main>
+
+<div id="status" role="status" aria-live="polite">準備中です。</div>
+
+<section id="secAthletes">
+  <h2>選手一覧</h2>
+  <p id="currentAthlete">まだ選手を選んでいません。</p>
+  <div id="athleteButtons"><p>読み込み中です。</p></div>
+  <button class="secondary" id="deleteModeBtn" onclick="toggleDeleteMode()">削除モードに切り替える</button>
+  <h3>新しい選手を追加</h3>
+  <label for="newAthlete">選手名（例 小島ゆき）</label>
+  <input type="text" id="newAthlete" autocomplete="off">
+  <label for="newGrade">学年（例 2 や OB。省略可）</label>
+  <input type="text" id="newGrade" autocomplete="off">
+  <label for="newEvent">種目（例 Br や FrSP。省略可）</label>
+  <input type="text" id="newEvent" autocomplete="off">
+  <button onclick="addAthlete()">この選手を追加して選ぶ</button>
+</section>
+
+<section id="secWrite">
+  <h2>メモを書く</h2>
+  <p>会話した内容、様子、気になったことを話し言葉のままで大丈夫です。保存するとAIがキーワードの札を自動で付けます。</p>
+  <label for="memoText">メモ本文</label>
+  <textarea id="memoText" placeholder="例 今日はタイムが出ず落ち込んでいた。大会前に細かい指示をされるのは嫌だと言っていた。"></textarea>
+  <button id="micBtn" onclick="toggleMic()">マイクで音声入力を始める</button>
+  <button onclick="saveMemo()">メモを保存する</button>
+</section>
+
+<section id="secKeywords">
+  <h2>キーワード一覧</h2>
+  <p>札をタップすると、その話題が出たときのメモが日付つきで表示されます。</p>
+  <div id="keywordButtons"><p>選手を選ぶとここに札が並びます。</p></div>
+  <div id="keywordMemos"></div>
+</section>
+
+<section id="secList">
+  <h2>これまでのメモ</h2>
+  <button id="toggleMemoBtn" onclick="toggleMemos()" aria-expanded="false">メモを表示する</button>
+  <div id="memoArea" class="hidden"></div>
+</section>
+
+<section id="secAnalyze">
+  <h2>AI分析</h2>
+  <p>貯まったメモをもとに、求めているもの、嫌なこと、弱点、持たせたい思考、声かけ例を整理します。</p>
+  <label for="pdfFile">参考PDFを付ける場合はここで選ぶ（省略可）</label>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <button id="analyzeBtn" onclick="analyze()">この選手を分析する</button>
+  <div id="resultArea" class="result"></div>
+</section>
+
+<section id="secKey">
+  <h2>合言葉の設定</h2>
+  <p>初回だけ合言葉を入れてください。この端末に記憶されます。</p>
+  <label for="appKey">合言葉</label>
+  <input type="password" id="appKey" autocomplete="off">
+  <button onclick="saveKey()">合言葉を保存する</button>
+</section>
+
+<section id="secUpdate">
+  <h2>アップデート</h2>
+  <p id="versionInfo">いまの版を確認しています。</p>
+  <button onclick="updateApp()">最新版に更新する</button>
+</section>
+
+</main>
+
+<script>
+// アプリの版番号。中身を直したら、この数字をひとつ上げてからGitHubに上げてください。
+const APP_VERSION = "2.2";
+
+// ここに自分のGASデプロイURLを貼り付けてください
+const GAS_URL = "ここにGASのURLを貼る";
+
+const statusEl = document.getElementById("status");
+let selectedAthlete = "";
+let memoCache = []; // いま選んでいる選手のメモ一覧
+
+function setStatus(msg, kind) {
+  statusEl.textContent = msg;
+  statusEl.className = kind || "";
+}
+
+function getKey() { return localStorage.getItem("coachNoteKey") || ""; }
+
+function saveKey() {
+  const v = document.getElementById("appKey").value.trim();
+  if (!v) { setStatus("合言葉が空です。", "ng"); return; }
+  localStorage.setItem("coachNoteKey", v);
+  document.getElementById("secKey").classList.add("hidden");
+  setStatus("合言葉を保存しました。", "ok");
+  loadAthletes();
+}
+
+async function callGas(payload) {
+  payload.key = getKey();
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// 選手一覧
+let athleteCache = []; // 名簿（学年、種目、名前）
+let deleteMode = false;
+
+function gradeLabel(a) {
+  const parts = [];
+  if (a.grade) parts.push(/^[0-9]+$/.test(a.grade) ? a.grade + "年" : a.grade);
+  if (a.event) parts.push(a.event);
+  return parts.length ? "（" + parts.join(" ") + "）" : "";
+}
+
+async function loadAthletes() {
+  const box = document.getElementById("athleteButtons");
+  try {
+    const data = await callGas({ action: "listAthletes" });
+    athleteCache = data.athletes || [];
+    renderAthletes();
+    setStatus("準備ができました。選手を選んでください。", "ok");
+  } catch (e) {
+    box.innerHTML = "<p>読み込めませんでした。</p>";
+    setStatus("接続できませんでした。" + e.message, "ng");
+  }
+}
+
+function renderAthletes() {
+  const box = document.getElementById("athleteButtons");
+  box.innerHTML = "";
+  if (athleteCache.length === 0) {
+    box.innerHTML = "<p>まだ選手がいません。下の欄から追加してください。</p>";
+    return;
+  }
+  athleteCache.forEach(a => {
+    const b = document.createElement("button");
+    b.className = "athlete";
+    if (deleteMode) {
+      b.textContent = a.name + " さんを削除";
+      b.onclick = () => deleteAthlete(a.name);
+    } else {
+      b.textContent = a.name + gradeLabel(a);
+      b.setAttribute("aria-pressed", a.name === selectedAthlete ? "true" : "false");
+      b.onclick = () => selectAthlete(a.name);
+    }
+    box.appendChild(b);
+  });
+}
+
+function toggleDeleteMode() {
+  deleteMode = !deleteMode;
+  const btn = document.getElementById("deleteModeBtn");
+  btn.textContent = deleteMode ? "削除モードをやめる" : "削除モードに切り替える";
+  renderAthletes();
+  setStatus(deleteMode
+    ? "削除モードです。名前を押すとその選手を一覧から外します。メモは消えません。"
+    : "通常モードに戻りました。", "ok");
+}
+
+async function deleteAthlete(name) {
+  const yes = confirm(name + " さんを一覧から削除しますか。過去のメモは消えません。");
+  if (!yes) return;
+  setStatus("削除しています。");
+  try {
+    await callGas({ action: "deleteAthlete", athlete: name });
+    if (selectedAthlete === name) {
+      selectedAthlete = "";
+      document.getElementById("currentAthlete").textContent = "まだ選手を選んでいません。";
+    }
+    await loadAthletes();
+    setStatus(name + " さんを一覧から削除しました。", "ok");
+  } catch (e) {
+    setStatus("削除に失敗しました。" + e.message, "ng");
+  }
+}
+
+async function addAthlete() {
+  const name = document.getElementById("newAthlete").value.trim();
+  if (!name) { setStatus("選手名を入れてください。", "ng"); return; }
+  const grade = document.getElementById("newGrade").value.trim();
+  const event = document.getElementById("newEvent").value.trim();
+  setStatus("追加しています。");
+  try {
+    await callGas({ action: "addAthlete", athlete: name, grade: grade, event: event });
+    document.getElementById("newAthlete").value = "";
+    document.getElementById("newGrade").value = "";
+    document.getElementById("newEvent").value = "";
+    await loadAthletes();
+    selectAthlete(name);
+  } catch (e) {
+    setStatus("追加に失敗しました。" + e.message, "ng");
+  }
+}
+
+async function selectAthlete(name) {
+  selectedAthlete = name;
+  memoCache = [];
+  document.getElementById("currentAthlete").textContent = "いま選んでいる選手は " + name + " さんです。";
+  renderAthletes();
+  document.getElementById("memoArea").classList.add("hidden");
+  document.getElementById("memoArea").innerHTML = "";
+  const tb = document.getElementById("toggleMemoBtn");
+  tb.textContent = "メモを表示する";
+  tb.setAttribute("aria-expanded", "false");
+  document.getElementById("keywordMemos").innerHTML = "";
+  document.getElementById("resultArea").innerHTML = "";
+  setStatus(name + " さんを選びました。キーワードを読み込んでいます。");
+  await loadMemosToCache();
+  renderKeywords();
+}
+
+function needAthlete() {
+  if (!selectedAthlete) {
+    setStatus("先に選手一覧から選手を選んでください。", "ng");
+    return false;
+  }
+  return true;
+}
+
+// メモ
+async function saveMemo() {
+  if (!needAthlete()) return;
+  const text = document.getElementById("memoText").value.trim();
+  if (!text) { setStatus("メモが空です。", "ng"); return; }
+  setStatus("保存してキーワードを付けています。少しお待ちください。");
+  try {
+    const data = await callGas({ action: "saveMemo", athlete: selectedAthlete, text: text });
+    document.getElementById("memoText").value = "";
+    const kw = (data.keywords || []).join("、");
+    setStatus(selectedAthlete + " さんのメモを保存しました。付いた札は " + (kw || "なし") + " です。", "ok");
+    await loadMemosToCache();
+    renderKeywords();
+    loadAthletes();
+  } catch (e) {
+    setStatus("保存に失敗しました。" + e.message, "ng");
+  }
+}
+
+async function loadMemosToCache() {
+  try {
+    const data = await callGas({ action: "listMemos", athlete: selectedAthlete });
+    memoCache = data.memos || [];
+  } catch (e) {
+    memoCache = [];
+    setStatus("メモの読み込みに失敗しました。" + e.message, "ng");
+  }
+}
+
+function buildMemoList(memos) {
+  const ul = document.createElement("ul");
+  ul.className = "memoList";
+  memos.forEach(m => {
+    const li = document.createElement("li");
+    const d = document.createElement("span");
+    d.className = "date";
+    d.textContent = m.date;
+    const p = document.createElement("span");
+    p.textContent = m.text;
+    li.appendChild(d);
+    li.appendChild(p);
+    if (m.keywords && m.keywords.length) {
+      const t = document.createElement("span");
+      t.className = "tags";
+      t.textContent = "札 " + m.keywords.join("、");
+      li.appendChild(t);
+    }
+    ul.appendChild(li);
+  });
+  return ul;
+}
+
+function toggleMemos() {
+  if (!needAthlete()) return;
+  const area = document.getElementById("memoArea");
+  const btn = document.getElementById("toggleMemoBtn");
+  if (area.classList.contains("hidden")) {
+    area.innerHTML = "";
+    if (memoCache.length === 0) {
+      area.innerHTML = "<p>" + selectedAthlete + " さんのメモはまだありません。</p>";
+    } else {
+      area.appendChild(buildMemoList(memoCache));
+    }
+    area.classList.remove("hidden");
+    btn.textContent = "メモを隠す";
+    btn.setAttribute("aria-expanded", "true");
+    setStatus(selectedAthlete + " さんのメモを " + memoCache.length + " 件表示しました。", "ok");
+  } else {
+    area.classList.add("hidden");
+    btn.textContent = "メモを表示する";
+    btn.setAttribute("aria-expanded", "false");
+    setStatus("メモを隠しました。", "ok");
+  }
+}
+
+// キーワード
+function renderKeywords() {
+  const box = document.getElementById("keywordButtons");
+  box.innerHTML = "";
+  const counts = {};
+  memoCache.forEach(m => {
+    (m.keywords || []).forEach(k => { counts[k] = (counts[k] || 0) + 1; });
+  });
+  const words = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  if (words.length === 0) {
+    box.innerHTML = "<p>まだ札がありません。メモを保存すると自動で付きます。</p>";
+    return;
+  }
+  words.forEach(w => {
+    const b = document.createElement("button");
+    b.className = "tag";
+    b.textContent = w + " " + counts[w] + "件";
+    b.onclick = () => showKeywordMemos(w);
+    box.appendChild(b);
+  });
+}
+
+function showKeywordMemos(word) {
+  const area = document.getElementById("keywordMemos");
+  area.innerHTML = "";
+  const hits = memoCache.filter(m => (m.keywords || []).includes(word));
+  const h = document.createElement("h3");
+  h.textContent = "「" + word + "」が出たメモ " + hits.length + "件";
+  area.appendChild(h);
+  area.appendChild(buildMemoList(hits));
+  setStatus("「" + word + "」のメモを " + hits.length + " 件表示しました。", "ok");
+}
+
+// AI分析
+async function analyze() {
+  if (!needAthlete()) return;
+  const btn = document.getElementById("analyzeBtn");
+  btn.disabled = true;
+  setStatus("分析しています。30秒ほどお待ちください。");
+  const resultArea = document.getElementById("resultArea");
+  resultArea.innerHTML = "";
+  try {
+    let pdfData = "";
+    const file = document.getElementById("pdfFile").files[0];
+    if (file) pdfData = await fileToBase64(file);
+    const data = await callGas({ action: "analyze", athlete: selectedAthlete, pdfData: pdfData });
+    const r = data.result;
+    addResult(resultArea, selectedAthlete + " さんの分析結果", "");
+    addResult(resultArea, "この選手が求めているもの", r.motomeru);
+    addResult(resultArea, "嫌なこと 避けたい関わり方", r.iya);
+    addResult(resultArea, "弱点 課題", r.jakuten);
+    addResult(resultArea, "持たせたい思考", r.shiko);
+    addResult(resultArea, "具体的な声かけ例", (r.koekake || []).join("。 "));
+    addResult(resultArea, "指導方針のまとめ", r.hoshin);
+    setStatus("分析が終わりました。結果はスプレッドシートにも保存済みです。", "ok");
+  } catch (e) {
+    setStatus("分析に失敗しました。" + e.message, "ng");
+  }
+  btn.disabled = false;
+}
+
+function addResult(area, title, body) {
+  const h = document.createElement("h3");
+  h.textContent = title;
+  area.appendChild(h);
+  if (body) {
+    const p = document.createElement("p");
+    p.textContent = body;
+    area.appendChild(p);
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(",")[1]);
+    r.onerror = () => reject(new Error("PDFの読み込みに失敗しました"));
+    r.readAsDataURL(file);
+  });
+}
+
+// マイク音声入力
+let recog = null;
+let micOn = false;
+
+function toggleMic() {
+  const btn = document.getElementById("micBtn");
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setStatus("このブラウザはマイク入力に対応していません。キーボードの音声入力をお使いください。", "ng");
+    return;
+  }
+  if (micOn) { recog.stop(); return; }
+  recog = new SR();
+  recog.lang = "ja-JP";
+  recog.continuous = true;
+  recog.interimResults = false;
+  recog.onresult = (e) => {
+    const ta = document.getElementById("memoText");
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) ta.value += e.results[i][0].transcript;
+    }
+  };
+  recog.onend = () => {
+    micOn = false;
+    btn.textContent = "マイクで音声入力を始める";
+    setStatus("音声入力を止めました。", "ok");
+  };
+  recog.onerror = () => {
+    setStatus("音声入力でエラーが出ました。もう一度お試しください。", "ng");
+  };
+  recog.start();
+  micOn = true;
+  btn.textContent = "音声入力を止める";
+  setStatus("音声入力中です。話してください。");
+}
+
+// アップデート確認
+async function checkUpdate() {
+  const info = document.getElementById("versionInfo");
+  info.textContent = "いまの版は " + APP_VERSION + " です。";
+  try {
+    const url = location.origin + location.pathname;
+    const res = await fetch(url, { cache: "no-store" });
+    const html = await res.text();
+    const m = html.match(/APP_VERSION = "([^"]+)"/);
+    if (m && m[1] !== APP_VERSION) {
+      info.textContent = "いまの版は " + APP_VERSION + " です。新しい版 " + m[1] + " があります。下のボタンで更新してください。";
+      setStatus("新しい版 " + m[1] + " があります。一番下のアップデートボタンで更新できます。", "ok");
+    }
+  } catch (e) {
+    // 確認できなくても普段の利用には影響しないので何もしない
+  }
+}
+
+function updateApp() {
+  setStatus("最新版を取り直しています。");
+  location.replace(location.origin + location.pathname + "?v=" + Date.now());
+}
+
+// 起動時
+window.addEventListener("load", () => {
+  if (getKey()) {
+    document.getElementById("secKey").classList.add("hidden");
+    loadAthletes();
+  } else {
+    setStatus("初回です。一番下の欄で合言葉を入力してください。");
+  }
+  checkUpdate();
+});
+</script>
+
+</body>
+</html>

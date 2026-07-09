@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>コーチノート 選手メモ分析</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --paper: #ffffff;
+    --pool: #005a9c;
+    --pool-dark: #003e6b;
+    --line: #c8c8c8;
+    --ok: #1a7a1a;
+    --ng: #b00020;
+    --soft: #f2f6fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+    font-size: 19px;
+    line-height: 1.8;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  header {
+    background: var(--pool);
+    color: #fff;
+    padding: 16px;
+  }
+  header h1 { margin: 0; font-size: 24px; }
+  header p { margin: 4px 0 0; font-size: 15px; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  section {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 20px 0;
+    background: var(--paper);
+  }
+  h2 {
+    font-size: 21px;
+    margin: 0 0 12px;
+    color: var(--pool-dark);
+    border-bottom: 2px solid var(--pool);
+    padding-bottom: 6px;
+  }
+  h3 { font-size: 19px; margin: 18px 0 6px; color: var(--pool-dark); }
+  label { display: block; font-weight: bold; margin-bottom: 6px; }
+  input[type="text"], input[type="password"], textarea, select {
+    width: 100%;
+    font-size: 19px;
+    padding: 12px;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+  }
+  textarea { min-height: 140px; }
+  input:focus, textarea:focus, select:focus, button:focus {
+    outline: 4px solid var(--pool);
+    outline-offset: 2px;
+  }
+  button {
+    font-size: 19px;
+    font-family: inherit;
+    padding: 14px 20px;
+    min-height: 52px;
+    border: none;
+    border-radius: 8px;
+    background: var(--pool);
+    color: #fff;
+    cursor: pointer;
+    margin: 8px 8px 0 0;
+  }
+  button.secondary { background: #555; }
+  button:disabled { background: #999; cursor: wait; }
+  #status {
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--soft);
+    min-height: 24px;
+  }
+  #status.ok { color: var(--ok); }
+  #status.ng { color: var(--ng); }
+  ul.memoList { list-style: none; padding: 0; margin: 0; }
+  ul.memoList li {
+    border-left: 5px solid var(--pool);
+    background: var(--soft);
+    padding: 10px 12px;
+    margin: 10px 0;
+    border-radius: 6px;
+  }
+  ul.memoList li .date { font-size: 15px; color: #444; display: block; }
+  .result p { margin: 4px 0 14px; }
+  .hidden { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    button { transition: background 0.15s; }
+    button:hover { background: var(--pool-dark); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>コーチノート</h1>
+  <p>選手との会話メモを貯めて、指導のヒントをAIが整理します</p>
+</header>
+
+<main>
+
+<div id="status" role="status" aria-live="polite">準備中です。</div>
+
+<section id="secKey">
+  <h2>合言葉の入力</h2>
+  <p>初回だけ合言葉を入れてください。この端末に記憶されます。</p>
+  <label for="appKey">合言葉</label>
+  <input type="password" id="appKey" autocomplete="off">
+  <button onclick="saveKey()">合言葉を保存する</button>
+</section>
+
+<section id="secAthlete">
+  <h2>選手の選択</h2>
+  <label for="athleteName">選手名（例 小島ゆき）</label>
+  <input type="text" id="athleteName" list="athleteList" autocomplete="off">
+  <datalist id="athleteList"></datalist>
+  <button onclick="loadMemos()">この選手のメモを開く</button>
+</section>
+
+<section id="secWrite">
+  <h2>メモを書く</h2>
+  <p>会話した内容、様子、気になったことを話し言葉のままで大丈夫です。</p>
+  <label for="memoText">メモ本文</label>
+  <textarea id="memoText" placeholder="例 今日はタイムが出ず落ち込んでいた。大会前に細かい指示をされるのは嫌だと言っていた。"></textarea>
+  <button id="micBtn" onclick="toggleMic()">マイクで音声入力を始める</button>
+  <button onclick="saveMemo()">メモを保存する</button>
+</section>
+
+<section id="secList">
+  <h2>これまでのメモ</h2>
+  <div id="memoArea"><p>選手を選んでメモを開いてください。</p></div>
+</section>
+
+<section id="secAnalyze">
+  <h2>AI分析</h2>
+  <p>貯まったメモをもとに、求めているもの、嫌なこと、弱点、持たせたい思考、声かけ例を整理します。</p>
+  <label for="pdfFile">参考PDFを付ける場合はここで選ぶ（省略可）</label>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <button id="analyzeBtn" onclick="analyze()">この選手を分析する</button>
+  <div id="resultArea" class="result"></div>
+</section>
+
+</main>
+
+<script>
+// ここに自分のGASデプロイURLを貼り付けてください
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyBkK1n3hCMz1ZrtGJ_s7YhLDR2ydCQ55zvyQZifnFI_938DLuUVnxcn7elf2-LALNwug/exec";
+
+const statusEl = document.getElementById("status");
+
+function setStatus(msg, kind) {
+  statusEl.textContent = msg;
+  statusEl.className = kind || "";
+}
+
+function getKey() { return localStorage.getItem("coachNoteKey") || ""; }
+
+function saveKey() {
+  const v = document.getElementById("appKey").value.trim();
+  if (!v) { setStatus("合言葉が空です。", "ng"); return; }
+  localStorage.setItem("coachNoteKey", v);
+  setStatus("合言葉を保存しました。", "ok");
+  loadAthletes();
+}
+
+async function callGas(payload) {
+  payload.key = getKey();
+  const res = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function loadAthletes() {
+  try {
+    const data = await callGas({ action: "listAthletes" });
+    const dl = document.getElementById("athleteList");
+    dl.innerHTML = "";
+    (data.athletes || []).forEach(name => {
+      const op = document.createElement("option");
+      op.value = name;
+      dl.appendChild(op);
+    });
+    setStatus("準備ができました。選手名を入れてください。", "ok");
+  } catch (e) {
+    setStatus("接続できませんでした。" + e.message, "ng");
+  }
+}
+
+function currentAthlete() {
+  const name = document.getElementById("athleteName").value.trim();
+  if (!name) { setStatus("選手名を入れてください。", "ng"); return null; }
+  return name;
+}
+
+async function saveMemo() {
+  const name = currentAthlete();
+  if (!name) return;
+  const text = document.getElementById("memoText").value.trim();
+  if (!text) { setStatus("メモが空です。", "ng"); return; }
+  setStatus("保存しています。");
+  try {
+    await callGas({ action: "saveMemo", athlete: name, text: text });
+    document.getElementById("memoText").value = "";
+    setStatus(name + " さんのメモを保存しました。", "ok");
+    loadMemos();
+  } catch (e) {
+    setStatus("保存に失敗しました。" + e.message, "ng");
+  }
+}
+
+async function loadMemos() {
+  const name = currentAthlete();
+  if (!name) return;
+  const area = document.getElementById("memoArea");
+  area.innerHTML = "<p>読み込んでいます。</p>";
+  try {
+    const data = await callGas({ action: "listMemos", athlete: name });
+    const memos = data.memos || [];
+    if (memos.length === 0) {
+      area.innerHTML = "<p>" + name + " さんのメモはまだありません。</p>";
+      setStatus(name + " さんのページを開きました。メモは0件です。", "ok");
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "memoList";
+    memos.forEach(m => {
+      const li = document.createElement("li");
+      const d = document.createElement("span");
+      d.className = "date";
+      d.textContent = m.date;
+      const p = document.createElement("span");
+      p.textContent = m.text;
+      li.appendChild(d);
+      li.appendChild(p);
+      ul.appendChild(li);
+    });
+    area.innerHTML = "";
+    area.appendChild(ul);
+    setStatus(name + " さんのメモを " + memos.length + " 件読み込みました。", "ok");
+  } catch (e) {
+    area.innerHTML = "<p>読み込みに失敗しました。</p>";
+    setStatus("読み込みに失敗しました。" + e.message, "ng");
+  }
+}
+
+async function analyze() {
+  const name = currentAthlete();
+  if (!name) return;
+  const btn = document.getElementById("analyzeBtn");
+  btn.disabled = true;
+  setStatus("分析しています。30秒ほどお待ちください。");
+  const resultArea = document.getElementById("resultArea");
+  resultArea.innerHTML = "";
+  try {
+    let pdfData = "";
+    const file = document.getElementById("pdfFile").files[0];
+    if (file) pdfData = await fileToBase64(file);
+    const data = await callGas({ action: "analyze", athlete: name, pdfData: pdfData });
+    const r = data.result;
+    resultArea.innerHTML = "";
+    addResult(resultArea, name + " さんの分析結果", "");
+    addResult(resultArea, "この選手が求めているもの", r.motomeru);
+    addResult(resultArea, "嫌なこと 避けたい関わり方", r.iya);
+    addResult(resultArea, "弱点 課題", r.jakuten);
+    addResult(resultArea, "持たせたい思考", r.shiko);
+    addResult(resultArea, "具体的な声かけ例", (r.koekake || []).join("。 "));
+    addResult(resultArea, "指導方針のまとめ", r.hoshin);
+    setStatus("分析が終わりました。結果はスプレッドシートにも保存済みです。", "ok");
+  } catch (e) {
+    setStatus("分析に失敗しました。" + e.message, "ng");
+  }
+  btn.disabled = false;
+}
+
+function addResult(area, title, body) {
+  const h = document.createElement("h3");
+  h.textContent = title;
+  area.appendChild(h);
+  if (body) {
+    const p = document.createElement("p");
+    p.textContent = body;
+    area.appendChild(p);
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(",")[1]);
+    r.onerror = () => reject(new Error("PDFの読み込みに失敗しました"));
+    r.readAsDataURL(file);
+  });
+}
+
+// マイク音声入力
+let recog = null;
+let micOn = false;
+
+function toggleMic() {
+  const btn = document.getElementById("micBtn");
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setStatus("このブラウザはマイク入力に対応していません。キーボードの音声入力をお使いください。", "ng");
+    return;
+  }
+  if (micOn) {
+    recog.stop();
+    return;
+  }
+  recog = new SR();
+  recog.lang = "ja-JP";
+  recog.continuous = true;
+  recog.interimResults = false;
+  recog.onresult = (e) => {
+    const ta = document.getElementById("memoText");
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) ta.value += e.results[i][0].transcript;
+    }
+  };
+  recog.onend = () => {
+    micOn = false;
+    btn.textContent = "マイクで音声入力を始める";
+    setStatus("音声入力を止めました。", "ok");
+  };
+  recog.onerror = () => {
+    setStatus("音声入力でエラーが出ました。もう一度お試しください。", "ng");
+  };
+  recog.start();
+  micOn = true;
+  btn.textContent = "音声入力を止める";
+  setStatus("音声入力中です。話してください。");
+}
+
+// 起動時
+window.addEventListener("load", () => {
+  if (getKey()) {
+    document.getElementById("secKey").classList.add("hidden");
+    loadAthletes();
+  } else {
+    setStatus("初回です。合言葉を入力してください。");
+  }
+});
+</script>
+
+</body>
+</html>

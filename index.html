@@ -1832,6 +1832,14 @@
     var fin = addDelay ? (v+SOUND_DELAY) : v;
     // ②足ばなれの瞬間は、レースの0m（スタート）そのもの。
     // ここを0mとして自動で記録しておくと、通過タイムの基準が正しくなる。
+    // ただし、すでに記録済みの地点と順番が矛盾するときは止める。
+    var conflict=checkStampOrder(0, rtMark1+v);
+    if(conflict){
+      rtStep=0; rtBySound=false; rtPendingV=null;
+      toast(conflict);
+      shacchiSay(conflict+'ッチ。R.Tを測る場面が正しいか、コマ送りでたしかめてほしいッチ。', 13000);
+      return;
+    }
     splitTimes[0]=rtMark1+v;
     rtTime=fin; rtStep=0; rtBySound=false; rtPendingV=null;
     selDist=0; updateAim(); buildScale(); renderRecords();
@@ -2288,6 +2296,14 @@
         rtTime=v; rtStep=0; rtBySound=false;
         buildScale(); renderRecords();
         toast('R.T '+v.toFixed(2)+'秒 を とうろくしました');
+        // 数字で入れたときは0m（足ばなれ）の場面がまだ無い。
+        // 0mが無いとタイムの基準（原点）が作れないので、続けて動画で記録してもらう。
+        if(splitTimes[0]==null){
+          if(mode!=='time') setMode('time');
+          selDist=0; selFrom=null; selTo=null;
+          updateAim(); buildScale();
+          shacchiSay('R.Tを数字で入れたときは、つぎに 0m（足が台をはなれた瞬間）を動画で記録するッチ。足ばなれのコマに合わせて「ここを きろく」だッチ。これが全部のタイムの基準になるッチ！', 16000);
+        }
       },
       (rtTime!=null)? function(){
         rtTime=null; rtStep=0;
@@ -5466,7 +5482,16 @@
       if(splitTimes[selDist]!=null){
         if(!confirm(selDist+'m は すでに記録があります。今の場面で 上書きしますか？')) return;
       }
-      splitTimes[selDist]=getStampTime();
+      // 順番の点検：距離が長い地点ほど、動画の時刻もあとでなければおかしい。
+      // ここで止めないと、ありえないタイム（例 15mが25mよりあと）が保存されてしまう。
+      var stamp=getStampTime();
+      var conflict=checkStampOrder(selDist, stamp);
+      if(conflict){
+        toast(conflict);
+        shacchiSay(conflict+'ッチ。動画をコマ送りで正しい場面に合わせてから、もう一度おすッチ。', 13000);
+        return;
+      }
+      splitTimes[selDist]=stamp;
       buildScale(); renderRecords();
       toast(selDist+'m を きろくしました');
       // 0m（スタート）が無いと通過タイムの基準が作れないので、気づかせる
@@ -5576,6 +5601,23 @@
     if(splitTimes[0]!=null) return splitTimes[0];
     var ts=Object.keys(splitTimes).map(function(k){return splitTimes[k];});
     return ts.length ? Math.min.apply(null, ts) : 0;
+  }
+  // 地点の順番点検：記録しようとしている場面が、前後の地点と矛盾していないか調べる。
+  // 矛盾があれば、その理由を日本語で返す。問題なければ空文字を返す。
+  function checkStampOrder(d, stamp){
+    var ks=Object.keys(splitTimes).map(Number);
+    for(var i=0;i<ks.length;i++){
+      var k=ks[i];
+      if(k===Number(d) || splitTimes[k]==null) continue;
+      var name=(k===0)?'0m（スタート）':(k+'m');
+      if(k<Number(d) && stamp<=splitTimes[k]){
+        return 'この場面は '+name+' の記録より前です。'+d+'m は もっとあとの場面のはずです';
+      }
+      if(k>Number(d) && stamp>=splitTimes[k]){
+        return 'この場面は '+name+' の記録よりあとです。'+d+'m は もっと前の場面のはずです';
+      }
+    }
+    return '';
   }
   // たて画面用：データ一覧を組み立てる。
   // 先頭にR.T（リアクションタイム）、距離ごとにタイムと区間、
@@ -5856,8 +5898,11 @@
       var lap=split-prevSplit;
       var row=document.createElement('div');
       row.className='rec';
+      // 区間がマイナス＝地点の順番がおかしい記録。赤い警告を付けて気づかせる
+      var lapWarn=(lap<0)?'⚠ ':'';
+      var lapNote=(lap<0)?'<div class="lap" style="color:#fca5a5;font-weight:800;">順番がおかしい記録です。'+d+'m を正しい場面で 上書きしてください</div>':'';
       row.innerHTML='<div class="top"><span class="d">'+d+'m</span><span class="t'+(isOff?' toff':'')+'">'+fmt(split)+'</span></div>'+
-                    '<div class="lap"><span class="lap-edit" data-d="'+d+'" data-pd="'+prevD+'" data-ps="'+prevSplit+'" data-lap="'+lap+'">区間 '+prevD+'→'+d+'m ： '+fmt(lap)+'</span>'+(isOff?'　正式':'')+'</div>';
+                    '<div class="lap"><span class="lap-edit" data-d="'+d+'" data-pd="'+prevD+'" data-ps="'+prevSplit+'" data-lap="'+lap+'">'+lapWarn+'区間 '+prevD+'→'+d+'m ： '+fmt(lap)+'</span>'+(isOff?'　正式':'')+'</div>'+lapNote;
       // 通過タイムを押すと 正式タイムの画面。区間タイムを押すと 区間だけ直せる画面。
       row.querySelector('.t').onclick=function(){ openOfficialModal(d); };
       var le=row.querySelector('.lap-edit');

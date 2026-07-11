@@ -2793,10 +2793,30 @@
         // 泳ぐ人の名前が選手一覧にあれば、えらんでおく
         var selA=$('svAthlete');
         var target=raceInfo.swimmer.replace(/[\s\u3000]+/g,'');
+        var atatta=false;
         for(var ai=0; ai<selA.options.length; ai++){
           if(String(selA.options[ai].textContent).replace(/[\s\u3000]+/g,'').indexOf(target)===0){
-            selA.selectedIndex=ai; break;
+            selA.selectedIndex=ai; atatta=true; break;
           }
+        }
+        // この携帯に無ければ、部の名簿からさがして同じ選手に統一する。
+        // ここで統一しないと、同じ選手が二重登録されてデータが分裂してしまう。
+        if(!atatta){
+          api({action:'roster'}).then(function(res){
+            if(!(res && res.ok && res.athletes)) return;
+            var hit=null;
+            for(var ri=0; ri<res.athletes.length; ri++){
+              var nm=String(res.athletes[ri].name||'').replace(/[\s\u3000]+/g,'');
+              if(nm && (nm.indexOf(target)===0 || target.indexOf(nm)===0)){ hit=res.athletes[ri]; break; }
+            }
+            if(!hit) return;   // 名簿にも無ければ、あたらしい選手のままでよい
+            var o=document.createElement('option');
+            o.value=hit.id; o.textContent=hit.name;
+            selA.appendChild(o);
+            selA.value=hit.id;
+            if(selA.onchange) selA.onchange();   // あたらしい選手の欄をとじるなどの表示更新
+            toast('名簿の '+hit.name+' さんに統一しました');
+          }).catch(function(){});
         }
       }
     }
@@ -5799,7 +5819,7 @@
     tempoValues[selFrom+'-'+selTo]={ method:tempoMethod, strokes:strokes, perStroke:perStroke, spm:spm };
     tempoMarks=[];
     updateTempoUI(); renderRecords();
-    toast(selFrom+'〜'+selTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき（'+total.toFixed(2)+'秒÷'+strokes+'）');
+    toast(selFrom+'〜'+selTo+'m ストロークタイム '+perStroke.toFixed(2)+'秒／かき（'+total.toFixed(2)+'秒÷'+strokes+'）　テンポ 毎分'+Math.round(spm)+'かき');
   }
 
   // テンポの状態表示と、ラップボタン・確定ボタンの文字を更新
@@ -5826,7 +5846,7 @@
         var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
         if(n>=2){
           var strokes=n-1, total=marks[n-1]-marks[0], per=total/strokes, spm=60/per;
-          st.textContent='1つずつ ： '+n+'回記録　'+per.toFixed(2)+'秒／かき　毎分'+Math.round(spm)+'かき';
+          st.textContent='1つずつ ： '+n+'回記録　ストロークタイム '+per.toFixed(2)+'秒　テンポ 毎分'+Math.round(spm)+'かき';
         } else {
           st.textContent='1つずつ ： 入水①を記録ずみ。次を記録';
         }
@@ -5936,7 +5956,7 @@
           var row=document.createElement('div');
           row.className='dv-row tempo';
           row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'秒/かき<small>テンポ 毎分'+Math.round(v.spm)+'かき</small></span>';
           (function(kk){ row.querySelector('.dv-p').onclick=function(){ openTempoModal(kk); }; })(k);
           body.appendChild(row);
         }
@@ -5968,7 +5988,7 @@
         var row=document.createElement('div');
         row.className='dv-row tempo';
         row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>テンポ 毎分'+Math.round(v.spm)+'かき</small></span>';
         body.appendChild(row);
       });
     // かき数：登録画面で入れた50mごとの値と合計を出す
@@ -6093,7 +6113,7 @@
           seconds: mae.seconds || null
         };
         renderRecords();
-        toast(key+'m のテンポを '+v.toFixed(2)+'秒／かきに なおしました');
+        toast(key+'m のストロークタイムを '+v.toFixed(2)+'秒／かきに なおしました');
       },
       function(){
         delete tempoValues[key];
@@ -6186,7 +6206,7 @@
         var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
         var spm=(v.spm!=null)?Math.round(v.spm):'-';
         row.innerHTML='<div class="top"><span class="d">'+o.k.replace('-','〜')+'m</span><span class="t">'+per+'</span></div>'+
-                      '<div class="lap">テンポ '+per+'秒／かき　毎分'+spm+'かき</div>';
+                      '<div class="lap">ストロークタイム '+per+'秒／かき　テンポ 毎分'+spm+'かき</div>';
         var kk=o.k;
         row.querySelector('.t').onclick=function(){ openTempoModal(kk); };
         box.appendChild(row);
@@ -6449,7 +6469,7 @@
     ['#saveBtn','タイムやテンポをスプレッドシートにほぞんするッチ。はじめてのときだけ選手登録があるッチ。'],
     ['#loadBtn','ほぞんした記録をよびもどすッチ。過去のレースが一覧で出てくるッチ。'],
     ['#mtTime','地点の通過タイムをはかるモードだッチ。まず目盛りで地点をえらぶッチ。'],
-    ['#mtTempo','区間のテンポをはかるモードにかわるッチ。目盛りで区間をえらぶッチ。'],
+    ['#mtTempo','区間のテンポをはかるモードだッチ。1かきにかかった時間（秒）を「ストロークタイム」とよぶッチ。1かきだけだと誤差が大きいから、3かき分の時間をはかって3で割るのが 3ストローク法だッチ。それを1分あたりの回数になおしたものが「ストロークテンポ（回/分）」だッチ！'],
     ['#tm3','入水を4回おして、3かき分の時間からテンポを出すはかり方だッチ。'],
     ['#tmEach','入水のたびにおして、さいごに確定ボタンでしめくくるはかり方だッチ。かき数もかぞえられるッチ。'],
     ['#lapBtn','いちばん大事なボタンだッチ。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするッチ。'],

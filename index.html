@@ -3664,6 +3664,13 @@
     }
     $('progList').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
     loadAllRaces().then(function(){
+      // 標準記録と全国基準も先にそろえてから、1回だけ描く。
+      // （以前は届くたびに描き直していたので、同じ画面が3回くり返して見えていた）
+      var matsu=[];
+      if(stdCache===null) matsu.push(new Promise(function(ok){ stdLoad(function(){ ok(); }); }));
+      if(kijunCache===null) matsu.push(new Promise(function(ok){ kijunLoad(function(){ ok(); }); }));
+      return Promise.all(matsu);
+    }).then(function(){
       progFillAthletes();
       progFillEvents();
       progRender();
@@ -4082,12 +4089,7 @@
       bestRow.namae.appendChild(iwai);
     }
     // ===== 標準記録: ベストタイムのすぐ下に表示する =====
-    if(stdCache===null){
-      stdLoad(function(){ try{ progRender(); }catch(e){} });
-    }
-    if(kijunCache===null){
-      kijunLoad(function(){ try{ progRender(); }catch(e){} });
-    }
+    // （標準記録と全国基準は、openProgressが画面を開くときに先にそろえてある）
     // レースの水路(短水路か長水路)に合わせた標準記録をさがす
     var stdRec=stdFind(races[0] && races[0].course);
     if(stdRec){

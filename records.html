@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>記録一覧 | SwimIQ</title>
+<style>
+  /* ============ 配色とデザインの基本設定 ============ */
+  :root {
+    --navy: #081F33;        /* 背景の濃紺（プールの深み） */
+    --navy-light: #10314E;  /* カードの紺 */
+    --white: #F2F8FC;       /* 文字の白 */
+    --aqua: #3FD8E8;        /* アクセントの水色 */
+    --muted: #9DBDD1;       /* 補助的な文字色 */
+    --focus: #FFDD57;       /* キーボード操作時の目印（黄色） */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    padding: 16px;
+  }
+
+  .container { max-width: 640px; margin: 0 auto; }
+
+  /* ============ ヘッダー（レーンロープ風の飾り線） ============ */
+  header { margin-bottom: 20px; }
+
+  .lane-rope {
+    height: 8px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--aqua) 0 24px,
+      var(--white) 24px 32px
+    );
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .subtitle { color: var(--muted); font-size: 15px; margin-top: 4px; }
+
+  /* ============ 切り替えボタン ============ */
+  .btn-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-group[role="group"] { width: 100%; }
+
+  .toggle-btn {
+    flex: 1;
+    min-height: 56px;
+    min-width: 90px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--white);
+    background: var(--navy-light);
+    border: 2px solid var(--aqua);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  .toggle-btn[aria-pressed="true"] {
+    background: var(--aqua);
+    color: var(--navy);
+  }
+
+  .toggle-btn:focus-visible {
+    outline: 4px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* ============ 記録の表 ============ */
+  .card {
+    background: var(--navy-light);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 8px;
+  }
+
+  .updated { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  caption {
+    text-align: left;
+    font-size: 20px;
+    font-weight: 800;
+    padding-bottom: 12px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 6px 4px;
+    border-bottom: 2px solid var(--aqua);
+  }
+
+  th.time-col, td.time { text-align: right; }
+
+  td {
+    padding: 12px 4px;
+    border-bottom: 1px solid rgba(157, 189, 209, 0.25);
+    font-size: 17px;
+  }
+
+  td.time {
+    font-size: 22px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    vertical-align: top;
+  }
+
+  .event-name { font-weight: 700; }
+
+  .detail {
+    display: block;
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .mark-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--navy);
+    background: var(--aqua);
+    border-radius: 6px;
+    padding: 2px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* ============ 状態表示 ============ */
+  .status {
+    text-align: center;
+    padding: 32px 16px;
+    font-size: 18px;
+  }
+
+  .retry-btn {
+    display: block;
+    margin: 16px auto 0;
+    min-height: 56px;
+    padding: 0 32px;
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--navy);
+    background: var(--aqua);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  .retry-btn:focus-visible {
+    outline: 4px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* ============ トップに戻る ============ */
+  .back-link {
+    display: inline-block;
+    margin-top: 24px;
+    color: var(--aqua);
+    font-size: 17px;
+    font-weight: 700;
+    text-decoration: underline;
+    min-height: 44px;
+  }
+
+  .back-link:focus-visible {
+    outline: 4px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  footer {
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="lane-rope" aria-hidden="true"></div>
+    <h1>記録一覧</h1>
+    <p class="subtitle">世界・日本・アジアの競泳公式記録</p>
+  </header>
+
+  <!-- 記録の種類（世界・日本・アジア） -->
+  <div class="btn-group" role="group" aria-label="記録の種類を選ぶ">
+    <button type="button" class="toggle-btn" data-category="world" aria-pressed="true">世界記録</button>
+    <button type="button" class="toggle-btn" data-category="japan" aria-pressed="false">日本記録</button>
+    <button type="button" class="toggle-btn" data-category="asia" aria-pressed="false">アジア記録</button>
+  </div>
+
+  <!-- 水路の切り替え -->
+  <div class="btn-group" role="group" aria-label="水路を選ぶ">
+    <button type="button" class="toggle-btn" data-course="long" aria-pressed="true">長水路 50m</button>
+    <button type="button" class="toggle-btn" data-course="short" aria-pressed="false">短水路 25m</button>
+  </div>
+
+  <!-- 性別の切り替え -->
+  <div class="btn-group" role="group" aria-label="性別を選ぶ">
+    <button type="button" class="toggle-btn" data-gender="男子" aria-pressed="true">男子</button>
+    <button type="button" class="toggle-btn" data-gender="女子" aria-pressed="false">女子</button>
+    <button type="button" class="toggle-btn" data-gender="混合" aria-pressed="false">混合</button>
+  </div>
+
+  <!-- 記録の表示エリア -->
+  <div class="card">
+    <div id="content" aria-live="polite">
+      <p class="status">記録を読み込んでいます…</p>
+    </div>
+  </div>
+
+  <a class="back-link" href="index.html">SwimIQトップに戻る</a>
+
+  <footer>
+    <p>出典: Wikipedia「競泳の世界記録一覧」「競泳の日本記録一覧」「競泳のアジア記録一覧」</p>
+  </footer>
+
+</div>
+
+<script>
+// 記録データベース用GASのデプロイURL（設定済み）
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbxzCOmcAN8wUHQ6P6bRuceFNpSg06nJctvh-CdchHr-cNILOKtOVxULLARdCK985sV0/exec';
+
+// いま選ばれている状態
+var state = { category: 'world', course: 'long', gender: '男子' };
+
+// 取得したデータの置き場所（最初に1回だけ通信し、あとはここから表示する）
+var allData = null;
+
+var content = document.getElementById('content');
+
+// ============ データの読み込み ============
+function loadData() {
+  if (GAS_URL.indexOf('http') !== 0) {
+    content.innerHTML = '<p class="status">設定がまだ完了していません。records.htmlの中のGAS_URLに、デプロイしたGASのURLを貼り付けてください。</p>';
+    return;
+  }
+
+  content.innerHTML = '<p class="status">記録を読み込んでいます…</p>';
+
+  fetch(GAS_URL)
+    .then(function (res) { return res.json(); })
+    .then(function (json) {
+      allData = json;
+      render();
+    })
+    .catch(function () {
+      content.innerHTML =
+        '<p class="status">記録を読み込めませんでした。電波の状態を確認して、もう一度お試しください。</p>' +
+        '<button type="button" class="retry-btn" onclick="loadData()">もう一度読み込む</button>';
+    });
+}
+
+// ============ 画面の描画 ============
+function render() {
+  if (!allData || !allData.records) return;
+
+  var categoryData = allData.records[state.category];
+  if (!categoryData) return;
+
+  var courseData = categoryData[state.course];
+  var courseLabel = (state.course === 'long') ? '長水路' : '短水路';
+  var title = categoryData.label + '（' + state.gender + '・' + courseLabel + '）';
+
+  // 選んだ性別の記録だけを取り出す
+  var items = [];
+  for (var i = 0; i < courseData.items.length; i++) {
+    if (courseData.items[i].gender === state.gender) {
+      items.push(courseData.items[i]);
+    }
+  }
+
+  if (items.length === 0) {
+    content.innerHTML = '<p class="status">' + title + ' の記録はありません。</p>';
+    return;
+  }
+
+  var html = '';
+  if (courseData.updatedAt) {
+    html += '<p class="updated">データ取得日時: ' + courseData.updatedAt + '</p>';
+  }
+
+  html += '<table><caption>' + title + '</caption>';
+  html += '<thead><tr><th scope="col">種目</th><th scope="col" class="time-col">記録</th></tr></thead><tbody>';
+
+  for (var j = 0; j < items.length; j++) {
+    var it = items[j];
+
+    // 種目名の下に、選手・国籍・樹立日などの詳細を小さく表示する
+    var line1 = it.swimmer || '';
+    if (it.nation) line1 += '（' + it.nation + '）';
+
+    var line2parts = [];
+    if (it.date) line2parts.push(it.date);
+    if (it.meet) line2parts.push(it.meet);
+    if (it.venue) line2parts.push(it.venue);
+    var line2 = line2parts.join('　');
+
+    // WRやASなどの記号はタイムの横に小さなバッジで表示する
+    var badge = it.mark ? '<span class="mark-badge">' + it.mark + '</span>' : '';
+
+    html += '<tr><td>';
+    html += '<span class="event-name">' + it.event + '</span>';
+    if (line1) html += '<span class="detail">' + line1 + '</span>';
+    if (line2) html += '<span class="detail">' + line2 + '</span>';
+    html += '</td><td class="time">' + it.display + badge + '</td></tr>';
+  }
+
+  html += '</tbody></table>';
+  content.innerHTML = html;
+}
+
+// ============ ボタンの動き ============
+function setupButtons(attr, stateKey) {
+  var buttons = document.querySelectorAll('[data-' + attr + ']');
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener('click', function () {
+      state[stateKey] = this.getAttribute('data-' + attr);
+      for (var k = 0; k < buttons.length; k++) {
+        buttons[k].setAttribute('aria-pressed', buttons[k] === this ? 'true' : 'false');
+      }
+      render();
+    });
+  }
+}
+
+setupButtons('category', 'category');
+setupButtons('course', 'course');
+setupButtons('gender', 'gender');
+
+// ページを開いたら読み込み開始
+loadData();
+</script>
+</body>
+</html>

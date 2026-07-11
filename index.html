@@ -103,6 +103,10 @@
   #startMenu .logo{ font-size:clamp(30px,7vw,46px); font-weight:900; letter-spacing:.04em;
     text-shadow:var(--shadow); margin-bottom:4px; }
   #startMenu .logo span{ color:var(--accent2); }
+  /* きょうの登録件数バッジ。GASが件数を返すようになると自動で現れる */
+  #todayCount{ background:rgba(34,197,94,.2); border:1.5px solid var(--accent); color:#bbf7d0;
+    border-radius:999px; padding:4px 16px; font-size:14px; font-weight:800; text-shadow:none; }
+  #todayCount.hide{ display:none; }
   #startMenu button, #startMenu label{ display:flex; align-items:center; justify-content:flex-start; gap:12px;
     width:min(230px,59vw); height:56px; padding:0 22px; cursor:pointer; text-align:left;
     border:none; border-radius:16px;
@@ -1038,6 +1042,7 @@
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
     <div class="logo">Swim<span>IQ</span></div>
+    <div id="todayCount" class="hide" aria-live="polite">きょうの登録 0件</div>
     <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
     <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
@@ -2445,7 +2450,13 @@
   function showNewsBar(){
     var bar=$('newsBar');
     var c=newsCache();
-    if(!c || !c.list || !c.list.length){ bar.classList.remove('show'); return; }
+    if(!c || !c.list || !c.list.length){
+      // 見出しがまだ届いていなくても、入り口は消さない。押すとSwimSwamがそのままひらく
+      $('newsText').textContent='水泳ニュースをひらく（SwimSwam）';
+      bar.onclick=function(){ window.open('https://swimswam.com/', '_blank'); };
+      bar.classList.add('show');
+      return;
+    }
     var len=c.list.length;
     if(newsShownI==null){
       newsShownI=(Number(localStorage.getItem('swimiq_news_i'))||0) % len;
@@ -2471,6 +2482,20 @@
     }).catch(function(){});
   }
   refreshNews();
+
+  // ========== きょうの登録件数（ホームにリアルタイム表示） ==========
+  // GASに「きょう何件登録された？」と聞いて出す。
+  // GASがまだこの質問に未対応なら、静かに隠れたままで害はない。
+  function refreshTodayCount(){
+    api({action:'todayCount'}).then(function(res){
+      if(res && res.ok && res.count!=null){
+        $('todayCount').textContent='きょうの登録 '+res.count+'件';
+        $('todayCount').classList.remove('hide');
+      }
+    }).catch(function(){});
+  }
+  refreshTodayCount();
+  setInterval(refreshTodayCount, 2*60*1000);   // 2分ごとに数え直す
 
   // ========== 試合名を スプレッドシートから えらぶ ==========
   // スプレッドシートの「試合名」シート（試合名・日程開始・日程終了・場所・水路）から
@@ -2824,6 +2849,7 @@
         lastSaved={ key:[payload.athleteId, payload.meetDate, payload.raceDist, payload.stroke, payload.round].join('|'),
                     raceId: res.raceId || payload.replaceId || '' };
         $('saveModal').classList.add('hide');
+        refreshTodayCount();   // ほぞん直後に、きょうの登録件数を数え直す
         done(payload.replaceId
           ? (silent ? '前のほぞんを 新しい内容に 上書きしました' : '上書きして ほぞんしました')
           : 'スプレッドシートに ほぞんしました');

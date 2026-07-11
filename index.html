@@ -740,6 +740,15 @@
   /* 進捗：成績表の行。低視力でも読めるよう、数字は大きく */
   .prog-row{ display:flex; align-items:baseline; gap:10px; background:rgba(255,255,255,.08);
     border-radius:12px; padding:12px; margin-bottom:8px; }
+  /* 成長グラフ（進捗のいちばん下） */
+  .pg-charts{ margin-top:14px; }
+  .pg-head{ font-size:14px; font-weight:900; margin-bottom:4px; }
+  .pg-chart{ background:rgba(255,255,255,.06); border:1px solid rgba(157,189,209,.3);
+    border-radius:12px; padding:8px 8px 2px; margin-top:10px; }
+  .pg-chart svg{ display:block; width:100%; height:auto; }
+  .pg-title{ font-size:13px; font-weight:800; }
+  .pg-title small{ margin-left:8px; font-size:10px; font-weight:700; color:#9dbdd1; }
+  .pg-note{ font-size:11px; font-weight:700; color:#9dbdd1; padding:8px 2px; }
   .prog-label{ font-size:14px; font-weight:800; opacity:.9; flex:0 0 8.5em; }
   .prog-val{ font-size:22px; font-weight:800; letter-spacing:.5px; }
   .prog-note{ font-size:12px; opacity:.75; margin-left:auto; text-align:right; }
@@ -4199,6 +4208,98 @@
       t2.textContent=[(r.meetDate||''),(r.meetName||'')].filter(function(x){return x;}).join('　');
       s.appendChild(t1); s.appendChild(t2); d.appendChild(s);
       box.appendChild(d);
+    });
+    progRenderCharts(box, recent);   // 一番下に、成長グラフ（上にのびる折れ線）を足す
+  }
+  // ===== 成長グラフ（小学生でもわかる、上にのびる折れ線） =====
+  // ルール：線は一種類だけ・点の上に数字をそのまま書く・全部のグラフで「上に行くほど良い」。
+  // タイムとかき数は数字が小さいほど良いので、グラフの向きをひっくり返して上にのびるようにする。
+  var progChartSeq=0;
+  var raceDataCache={};   // レースの中身（かき数・テンポ）を一度よみこんだら覚えておく
+  function progRenderCharts(box, recent){
+    var seq=++progChartSeq;
+    var races=recent.slice().reverse();   // 左が古い→右が新しい
+    if(!races.length) return;
+    var waku=document.createElement('div');
+    waku.className='pg-charts';
+    waku.innerHTML='<div class="pg-note">成長グラフを よみこみ中…</div>';
+    box.appendChild(waku);
+    // それぞれのレースの中身を取り寄せる（よみこみ済みのレースは通信しない）
+    Promise.all(races.map(function(r){
+      if(raceDataCache[r.raceId]) return Promise.resolve();
+      return api({action:'load', raceId:r.raceId}).then(function(res){
+        if(res && res.ok) raceDataCache[r.raceId]=res.data||{};
+      }).catch(function(){});
+    })).then(function(){
+      if(seq!==progChartSeq) return;   // そのあいだに選手や種目が切り替わっていたら描かない
+      waku.innerHTML='<div class="pg-head">成長グラフ　上に行くほど 良い</div>';
+      function nakami(r){ return raceDataCache[r.raceId]||{}; }
+      // かき数の合計と、かき数が記録されている距離（50mごと）
+      function kakiInfo(d){
+        var st=d.strokes||[]; var sum=0, cnt=0;
+        for(var i=0;i<st.length;i++){ var s=Number(st[i]); if(s>0){ sum+=s; cnt++; } }
+        return cnt? { sum:sum, cnt:cnt } : null;
+      }
+      // テンポ（毎分のかき数）の平均
+      function spmAvg(d){
+        var t=d.tempo||{}; var ks=Object.keys(t); var s=0,c=0;
+        ks.forEach(function(k){ var v=Number((t[k]||{}).spm||0); if(v>0){ s+=v; c++; } });
+        return c? s/c : null;
+      }
+      // 4つのグラフの点を用意する
+      var tPts=[], lenPts=[], spmPts=[], kzPts=[];
+      races.forEach(function(r){
+        var d=nakami(r);
+        var tv=parseT(r.finalTime);
+        if(tv!=null) tPts.push({ x:r.meetDate, v:tv, disp:fmt(tv) });
+        var k=kakiInfo(d);
+        if(k){
+          var nagasa=(k.cnt*50)/k.sum;   // ひとかきで すすんだ きょり
+          lenPts.push({ x:r.meetDate, v:nagasa, disp:nagasa.toFixed(2)+'m' });
+          var hon=k.sum/k.cnt;           // 50mあたりの かき数
+          kzPts.push({ x:r.meetDate, v:hon, disp:(Math.round(hon*10)/10)+'' });
+        }
+        var sp=spmAvg(d);
+        if(sp!=null) spmPts.push({ x:r.meetDate, v:sp, disp:String(Math.round(sp)) });
+      });
+      // グラフを1枚描く部品。invert=true なら「小さいほど上」にひっくり返す
+      function tanju(title, note, pts, invert, iro){
+        var d=document.createElement('div'); d.className='pg-chart';
+        var h='<div class="pg-title">'+title+'<small>'+note+'</small></div>';
+        if(pts.length<2){
+          h+='<div class="pg-note">'+(pts.length===1
+            ? 'あと1レース きろくが ふえると 線になります'
+            : 'かき数やテンポを きろくすると ここに出ます（記録の修正から あとで入れられます）')+'</div>';
+          d.innerHTML=h; waku.appendChild(d); return;
+        }
+        var W=320, H=118, L=16, R=16, T=26, B=20;
+        var lo=Math.min.apply(null, pts.map(function(p){return p.v;}));
+        var hi=Math.max.apply(null, pts.map(function(p){return p.v;}));
+        if(hi-lo<0.0001){ hi=lo+1; lo=lo-1; }
+        var pad=(hi-lo)*0.2; lo-=pad; hi+=pad;
+        function X(i){ return L+(W-L-R)*(pts.length===1? 0.5 : i/(pts.length-1)); }
+        function Y(v){
+          var n=(v-lo)/(hi-lo);
+          if(invert) n=1-n;               // 小さいほど上（速い・少ない＝良い）
+          return T+(H-T-B)*(1-n);
+        }
+        var line=pts.map(function(p,i){ return X(i)+','+Y(p.v); }).join(' ');
+        var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+title+'。'+note+'">';
+        svg+='<polyline points="'+line+'" fill="none" stroke="'+iro+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+        pts.forEach(function(p,i){
+          svg+='<circle cx="'+X(i)+'" cy="'+Y(p.v)+'" r="5" fill="#fff" stroke="'+iro+'" stroke-width="3"/>';
+          svg+='<text x="'+X(i)+'" y="'+(Y(p.v)-10)+'" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+p.disp+'</text>';
+          var hizuke=String(p.x||'').slice(5).replace('-','/');
+          svg+='<text x="'+X(i)+'" y="'+(H-5)+'" text-anchor="middle" font-size="10" fill="#9dbdd1">'+hizuke+'</text>';
+        });
+        svg+='</svg>';
+        d.innerHTML=h+svg;
+        waku.appendChild(d);
+      }
+      tanju('タイム', '上ほど はやい', tPts, true, '#22d3ee');
+      tanju('ひとかきで すすむ きょり', '上ほど のびている', lenPts, false, '#4ade80');
+      tanju('テンポ（毎分のかき数）', '上ほど はやい回転', spmPts, false, '#fbbf24');
+      tanju('かき数（50mあたり）', '上ほど 少ないかき数', kzPts, true, '#f472b6');
     });
   }
   $('progAthlete').onchange=function(){ progFillEvents(); progRender(); };

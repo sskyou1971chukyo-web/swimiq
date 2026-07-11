@@ -469,6 +469,18 @@
   #findModal, #anaModal, #cmpInfoModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #findModal.hide, #anaModal.hide, #cmpInfoModal.hide{ display:none; }
+  /* 記録の修正モーダル（一覧と編集画面） */
+  #editModal, #editFormModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #editModal.hide, #editFormModal.hide{ display:none; }
+  #edClose, #edfClose{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:15px; font-weight:800; }
+  #edfSave{ padding:11px 20px; border-radius:12px; cursor:pointer; border:none;
+    background:var(--accent); color:#04263f; font-size:15px; font-weight:900; }
+  #edAthlete{ flex:1; padding:9px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:15px; font-weight:700; }
+  #edfStrokes input, #edfRt{ width:110px; padding:9px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:16px; font-weight:800; text-align:right; }
   .df-card{ width:min(560px, 94vw); max-height:88vh; display:flex; flex-direction:column; }
   .df-filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .df-filters label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:800; color:#bfe3ff; flex:1 1 45%; }
@@ -1458,6 +1470,26 @@
     </div>
     <div id="cmp2Body" class="df-list"></div>
     <div class="stroke-btns"><button id="cmp2Close">とじる</button></div>
+  </div>
+</div>
+
+<!-- 記録の修正：一覧からえらんで、その場で直す -->
+<div id="editModal" class="hide">
+  <div class="modal-card df-card">
+    <h2>記録の修正</h2>
+    <p class="note">直したいレースを えらんでください。かき数とR.Tを その場で直せます。</p>
+    <div class="sv-row"><span>選手</span><select id="edAthlete" aria-label="選手をえらぶ"></select></div>
+    <div id="edList" class="df-list"></div>
+    <div class="stroke-btns"><button id="edClose">とじる</button></div>
+  </div>
+</div>
+<div id="editFormModal" class="hide">
+  <div class="modal-card">
+    <h2 id="edfTitle">記録の修正</h2>
+    <p class="note">数字を直して「上書きしてほぞん」。ほかの項目（タイムなど）は そのまま守られます。</p>
+    <div class="sv-row"><span>R.T（秒）</span><input id="edfRt" type="number" inputmode="decimal" step="0.01" min="0" max="9.99" placeholder="例 0.65"></div>
+    <div id="edfStrokes"></div>
+    <div class="stroke-btns"><button id="edfClose">やめる</button><button id="edfSave">上書きして ほぞん</button></div>
   </div>
 </div>
 
@@ -2927,12 +2959,111 @@
 
   // ========== 左上メニュー：記録をさがす・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
-  // 記録の修正：保存ずみのレースをよびだして直し、上書き保存する入り口。
-  // マネージャーが通過タイムを一次情報として保存 → 選手があとで かき数などを追記する使い方
-  $('smEdit').onclick=function(){
-    openFindModal();
-    shacchiSay('直したいレースを よびだすッチ。かき数の追記や タイムの測り直しをしたら、「ほぞん」をおすッチ。同じレースだと気づいて「上書き」をえらべるようにするから、記録は二重にならないッチ！', 16000);
+  // ========== 記録の修正（一覧からえらんで、その場で直す） ==========
+  // マネージャーが通過タイムを一次情報として保存 → 選手があとで かき数やR.Tを追記する使い方。
+  // 直した項目だけ書き換わり、タイムなどほかの項目は元のまま守られる。
+  var edCtx=null;   // いま直しているレースの中身一式
+  function openEditModal(){
+    var sel=$('edAthlete'); sel.innerHTML='<option value="">よみこみ中…</option>';
+    $('edList').innerHTML='';
+    $('editModal').classList.remove('hide');
+    api({action:'roster'}).then(function(res){
+      var list=(res.ok && res.athletes)? res.athletes : [];
+      if(!list.length) list=getAthletes();
+      sel.innerHTML='';
+      list.forEach(function(a){
+        var o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o);
+      });
+      if(!list.length){ $('edList').innerHTML='<div class="df-empty">名簿を取得できませんでした。電波を確認してね。</div>'; return; }
+      if(myId()) sel.value=myId();
+      if(!sel.value) sel.selectedIndex=0;
+      edLoadList();
+    }).catch(function(){
+      $('edList').innerHTML='<div class="df-empty">名簿を取得できませんでした。電波を確認してね。</div>';
+    });
+  }
+  function edLoadList(){
+    var box=$('edList'); box.innerHTML='<div class="df-empty">記録を よみこみ中…</div>';
+    api({action:'list', athleteId:$('edAthlete').value}).then(function(res){
+      box.innerHTML='';
+      var races=(res.ok && res.races)? res.races : [];
+      if(!races.length){ box.innerHTML='<div class="df-empty">この選手の記録は まだありません。</div>'; return; }
+      races.forEach(function(r){
+        var row=document.createElement('button'); row.type='button'; row.className='df-race';
+        row.innerHTML='<span class="di"><span class="dn">'+r.raceDist+'m '+(r.stroke||'')+'　'+(r.finalTime||'')+'</span>'+
+          '<span class="ds">'+[(r.meetName||''),(r.meetDate||'')].filter(function(x){return x;}).join('　')+'</span></span>';
+        row.onclick=function(){ edOpenForm(r); };
+        box.appendChild(row);
+      });
+    }).catch(function(){ box.innerHTML='<div class="df-empty">よみこめませんでした。電波を確認してね。</div>'; });
+  }
+  $('edAthlete').onchange=edLoadList;
+  $('edClose').onclick=function(){ $('editModal').classList.add('hide'); };
+  // レースをえらんだら、中身を取り寄せて編集画面をひらく
+  function edOpenForm(r){
+    api({action:'load', raceId:r.raceId}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'読み込めませんでした');
+      edCtx={ r:r, res:res };
+      $('edfTitle').textContent=[(r.meetDate||''), r.raceDist+'m '+(r.stroke||'')].filter(function(x){return x;}).join('　');
+      var d=res.data||{};
+      $('edfRt').value=(d.rt!=null)? d.rt : '';
+      // かき数の行：50mごとに1行
+      var n=Math.max(1, Math.round(Number(res.raceDist||r.raceDist||50)/50));
+      var st=d.strokes||[];
+      var box=$('edfStrokes'); box.innerHTML='';
+      for(var i=0;i<n;i++){
+        var row=document.createElement('div'); row.className='sv-row';
+        row.innerHTML='<span>'+(i*50)+'〜'+((i+1)*50)+'m かき数</span>'+
+          '<input type="number" inputmode="numeric" min="0" max="99" data-i="'+i+'" value="'+(st[i]!=null?st[i]:'')+'">';
+        box.appendChild(row);
+      }
+      $('editModal').classList.add('hide');
+      $('editFormModal').classList.remove('hide');
+    }).catch(function(err){ toast('よみこみ失敗： '+err.message); });
+  }
+  $('edfClose').onclick=function(){ $('editFormModal').classList.add('hide'); $('editModal').classList.remove('hide'); };
+  $('edfSave').onclick=function(){
+    if(!edCtx) return;
+    var btn=this; btn.disabled=true; btn.textContent='送信中…';
+    function fin(msg){ btn.disabled=false; btn.textContent='上書きして ほぞん'; if(msg) toast(msg); }
+    var r=edCtx.r, res=edCtx.res;
+    // 元のデータを丸ごと引き継ぎ、直した項目だけ入れかえる
+    var d=JSON.parse(JSON.stringify(res.data||{}));
+    var st=[];
+    var inputs=$('edfStrokes').querySelectorAll('input');
+    for(var i=0;i<inputs.length;i++){
+      var v=inputs[i].value;
+      st[Number(inputs[i].dataset.i)]=(v==='')? null : Number(v);
+    }
+    d.strokes=st;
+    var rtv=$('edfRt').value;
+    d.rt=(rtv==='')? null : Number(rtv);
+    var sel=$('edAthlete');
+    var aName=(sel.options[sel.selectedIndex]||{}).textContent||'';
+    var pick=function(a,b){ return (a!=null && a!=='')? a : (b!=null? b : ''); };
+    var payload={ action:'save', deviceId:deviceId(),
+      measurer:(riProfile().name||''),
+      athleteId: pick(res.athleteId, sel.value),
+      athleteName: pick(res.athleteName, aName),
+      meetName: pick(res.meetName, r.meetName),
+      meetDate: pick(res.meetDate, r.meetDate),
+      stroke: pick(res.stroke, r.stroke),
+      raceDist: pick(res.raceDist, r.raceDist),
+      course: pick(res.course, r.course),
+      round: pick(res.round, r.round),
+      height: pick(res.height, r.height),
+      weight: pick(res.weight, r.weight),
+      videoUrl: pick(res.videoUrl, r.videoUrl),
+      finalTime: pick(res.finalTime, r.finalTime),
+      data:d, replaceId:r.raceId };
+    api(payload).then(function(res2){
+      if(!res2.ok) throw new Error(res2.error||'ほぞんできませんでした');
+      $('editFormModal').classList.add('hide');
+      refreshTodayCount();
+      fin('上書きして ほぞんしました');
+    }).catch(function(err){ fin('失敗： '+err.message); });
   };
+  $('smEdit').onclick=function(){ openEditModal(); };
 
   // ========== レースの じょうほう（距離のあとに聞く画面） ==========
   // 自分の名前・生年月日・身長・体重は、一度入れると携帯が覚えて、次からの初期値になる。
@@ -6237,7 +6368,7 @@
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
-    ['#smEdit','ほぞんずみのレースを よびだして直せるッチ。マネージャーが測ったタイムに、選手があとから かき数を追記する、なんて使い方ができるッチ。'],
+    ['#smEdit','ほぞんずみのレースを その場で直せるッチ。えらんで、かき数やR.Tを入れて、上書きするだけッチ。タイムなどほかの項目は そのまま守られるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
     ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],

@@ -113,6 +113,7 @@
     filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
   #smOpen{ background:linear-gradient(135deg,#f97316,#fbbf24); }
   #smFind{ background:linear-gradient(135deg,#818cf8,#6366f1); }
+  #smEdit{ background:linear-gradient(135deg,#14b8a6,#0ea5e9); }
   #smAnalyze{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
   #smCompare{ background:linear-gradient(135deg,#f97316,#fbbf24); }
   #smRecords{ background:linear-gradient(135deg,#eab308,#f59e0b); }
@@ -274,6 +275,11 @@
     background:rgba(8,145,178,.85); border:1px solid #fff; border-radius:12px;
     font-size:10px; font-weight:800; text-shadow:var(--shadow); white-space:nowrap;
     text-align:center; }
+  /* テンポ計測中のストップウォッチ。入水①からの経過秒を大きく出す */
+  #tempoWatch{ background:rgba(6,24,42,.85); border:2px solid var(--yellow); color:var(--yellow);
+    font-size:26px; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:.03em;
+    text-align:center; border-radius:12px; padding:2px 16px; text-shadow:none; }
+  #tempoWatch.hide{ display:none; }
   #app.hasvideo.tempomode #tempoStatus{ display:flex; }
 
   /* 1つずつ測定の確定ボタン（記録ボタンの左どなり・出るときだけ） */
@@ -1036,6 +1042,7 @@
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
     <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
     <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
+    <button id="smEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l11-11a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg><span>記録の修正</span></button>
     <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
     <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
     <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
@@ -1071,6 +1078,7 @@
   <!-- 右下の操作ドック：テンポ状態→狙い→（確定・R.T・記録ボタン）が縦に積み上がる。
        決め打ちの位置指定をやめたので、どの画面サイズでも重ならない -->
   <div id="dock">
+    <div id="tempoWatch" class="hide">0.00</div>
     <div id="tempoStatus"></div>
     <div id="aim"><span id="aimText">50m を きろく</span></div>
   </div>
@@ -1567,6 +1575,21 @@
     if(!isVideoReady()) return;
     var val=fmt(elapsed(getStampTime()));
     var hud=$('bigTimeHud'); if(hud) hud.textContent=val;
+    tempoWatchPaint();   // テンポ計測中のストップウォッチも毎コマ更新する
+  }
+  // ===== テンポ計測のストップウォッチ表示 =====
+  // 入水①を押した瞬間から動きだし、いま何秒たったかを大きく出す。
+  // 「3.30」あたりで止めれば3かき目、と時間から見当がつけられる。
+  function tempoWatchShow(on){
+    var el=$('tempoWatch'); if(!el) return;
+    el.classList.toggle('hide', !on);
+    tempoWatchPaint();
+  }
+  function tempoWatchPaint(){
+    var el=$('tempoWatch'); if(!el || el.classList.contains('hide')) return;
+    if(!tempoMarks.length){ el.textContent='0.00'; return; }
+    var v=getStampTime()-tempoMarks[0];
+    el.textContent=(v<0?0:v).toFixed(2);
   }
   function step(frames){
     if(!isVideoReady())return;
@@ -1803,6 +1826,7 @@
     if(m==='time'){ lb.className='time'; $('lapBtnMain').innerHTML='ここを<br>きろく'; }
     else { lb.className='tempo'; }   // テンポの文字は updateTempoUI で決める
     if(m==='tempo'){ tempoMarks=[]; updateTempoUI(); }
+    else { tempoWatchShow(false); }   // テンポ以外のモードではストップウォッチを隠す
     updateAim(); updateRtChip();
   }
   $('mtTime').onclick=function(){ setMode('time'); toast('記録モード（地点タイム）'); guideStep(); };
@@ -2877,6 +2901,12 @@
 
   // ========== 左上メニュー：記録をさがす・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
+  // 記録の修正：保存ずみのレースをよびだして直し、上書き保存する入り口。
+  // マネージャーが通過タイムを一次情報として保存 → 選手があとで かき数などを追記する使い方
+  $('smEdit').onclick=function(){
+    openFindModal();
+    shacchiSay('直したいレースを よびだすッチ。かき数の追記や タイムの測り直しをしたら、「ほぞん」をおすッチ。同じレースだと気づいて「上書き」をえらべるようにするから、記録は二重にならないッチ！', 16000);
+  };
 
   // ========== レースの じょうほう（距離のあとに聞く画面） ==========
   // 自分の名前・生年月日・身長・体重は、一度入れると携帯が覚えて、次からの初期値になる。
@@ -5527,12 +5557,13 @@
       // 入水の瞬間を1つ記録する
       tempoMarks.push(now);
       if(tempoMethod==='3stroke'){
-        // 3ストローク法：1つ目＝始点、4つ目＝3かき目の入水で完了（3かき）
-        if(tempoMarks.length>=4){
+        // 3ストローク法：入水（1かき目）でスタート、3かき目の入水でストップの2回押し。
+        // かかった時間÷3が 1かきのテンポになる
+        if(tempoMarks.length>=2){
           finalizeTempo();
         } else {
           updateTempoUI();
-          toast('入水 '+tempoMarks.length+' を記録');
+          toast('ストップウォッチ開始。3かき目の入水で もう一度おしてね');
         }
       } else {
         // 1つずつ：押すたびに記録。2つ以上たまれば途中経過も出す。
@@ -5546,14 +5577,22 @@
   function finalizeTempo(){
     if(tempoMarks.length<2){ toast('もう1回 入水を記録してね'); return; }
     var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
-    var strokes=marks.length-1;                 // かき数＝間隔の数
     var total=marks[marks.length-1]-marks[0];   // 全体の時間
+    if(total<=0){
+      tempoMarks.pop();   // 止めた場面が始めた場面より前なら、その記録は取り消してやり直し
+      toast('ストップは スタートより あとの場面で おしてね');
+      updateTempoUI();
+      return;
+    }
+    // 3ストローク法は 1かき目→3かき目の入水なので、かき数は3で固定。
+    // 1つずつ法は 押した回数−1 がかき数。
+    var strokes=(tempoMethod==='3stroke') ? 3 : (marks.length-1);
     var perStroke=total/strokes;                // 1かきの秒数
     var spm=perStroke>0 ? (60/perStroke) : 0;   // 毎分かき数
     tempoValues[selFrom+'-'+selTo]={ method:tempoMethod, strokes:strokes, perStroke:perStroke, spm:spm };
     tempoMarks=[];
     updateTempoUI(); renderRecords();
-    toast(selFrom+'〜'+selTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき');
+    toast(selFrom+'〜'+selTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき（'+total.toFixed(2)+'秒÷'+strokes+'）');
   }
 
   // テンポの状態表示と、ラップボタン・確定ボタンの文字を更新
@@ -5563,16 +5602,16 @@
     var lb=$('lapBtnMain');
     var n=tempoMarks.length;
     if(tempoMethod==='3stroke'){
-      // 3ストローク法：1つ目→始点、2・3→途中、4つ目→完了
-      var steps=['入水①（始点）を記録','入水②を記録','入水③を記録','入水④（3かき目）で完了'];
-      st.textContent='3ストローク法 ： '+(n<4?steps[n]:'完了');
-      lb.textContent = (n===0)?'入水① を記録' : (n<3?('入水'+'②③'.charAt(n-1)+' を記録'):'入水④ で完了');
-      // 分かりやすく作り直し
-      if(n===0) lb.textContent='入水① を記録';
-      else if(n===1) lb.textContent='入水② を記録';
-      else if(n===2) lb.textContent='入水③ を記録';
-      else lb.textContent='入水④ で完了';
+      // 3ストローク法：入水（1かき目）でスタート、3かき目の入水でストップ
+      if(n===0){
+        st.textContent='3ストローク法 ： 入水（1かき目）で スタート';
+        lb.textContent='入水① で スタート';
+      } else {
+        st.textContent='3ストローク法 ： 計測中。3かき目の入水で ストップ';
+        lb.textContent='3かき目の入水で ストップ';
+      }
       showTempoFinishBtn(false);
+      tempoWatchShow(n>=1);
     } else {
       // 1つずつ：途中経過を出し、確定ボタンで終える
       if(n===0){ st.textContent='1つずつ ： 入水①から記録'; lb.textContent='入水① を記録'; }
@@ -5587,6 +5626,7 @@
         lb.textContent='入水'+(n+1)+' を記録';
       }
       showTempoFinishBtn(n>=2);
+      tempoWatchShow(n>=1);
     }
   }
   // 1つずつ測定の確定ボタンを出し入れ
@@ -6171,6 +6211,7 @@
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
+    ['#smEdit','ほぞんずみのレースを よびだして直せるッチ。マネージャーが測ったタイムに、選手があとから かき数を追記する、なんて使い方ができるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
     ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],

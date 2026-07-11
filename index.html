@@ -116,6 +116,17 @@
     color:#fff; font-size:17px; font-weight:800; text-shadow:var(--shadow);
     box-shadow:0 4px 0 rgba(0,0,0,.2); }
   #startMenu button:active, #startMenu label:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  /* ホームのカテゴリー分け：見出し＋2列のボタン */
+  #startMenu .sm-group{ width:min(300px,84vw); display:flex; flex-direction:column; gap:8px; }
+  #startMenu .sm-gtitle{ font-size:12px; font-weight:800; color:#9dbdd1; letter-spacing:.18em; padding-left:6px; }
+  #startMenu .sm-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
+  #startMenu .sm-grid button{ width:100%; height:52px; padding:0 10px; justify-content:center;
+    gap:7px; font-size:14px; }
+  #startMenu .sm-grid button svg{ width:18px; height:18px; flex:0 0 18px; }
+  /* 3つ目のボタンは横いっぱいに広げる（2列の残り半分が空かないように） */
+  #startMenu .sm-grid button:last-child:nth-child(odd){ grid-column:1 / -1; }
+  /* ニュースはカテゴリーの中で横いっぱい */
+  #startMenu .sm-group #newsBar{ width:100%; }
   #startMenu button svg, #startMenu label svg{ width:22px; height:22px; flex:0 0 22px;
     filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
   #smOpen{ background:linear-gradient(135deg,#f97316,#fbbf24); }
@@ -1069,15 +1080,30 @@
     <div id="todayCount" class="hide" aria-live="polite">きょうの登録 0件</div>
     <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
-    <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
-    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
-    <button id="smEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l11-11a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg><span>記録の修正</span></button>
-    <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
-    <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
-    <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
-    <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
-    <button id="smRecords" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 2.9M17 6h2.5a2.5 2.5 0 0 1-2.6 2.9"/></svg><span>世界・日本記録</span></button>
-    <button id="newsBar" type="button" aria-label="きょうの水泳ニュース。押すと元の記事がひらきます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h8M8 16.5h5"/></svg><span id="newsText">きょうの水泳ニュース</span></button>
+    <div class="sm-group">
+      <div class="sm-gtitle">きろく</div>
+      <div class="sm-grid">
+        <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
+        <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
+        <button id="smEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l11-11a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg><span>記録の修正</span></button>
+      </div>
+    </div>
+    <div class="sm-group">
+      <div class="sm-gtitle">ぶんせき</div>
+      <div class="sm-grid">
+        <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
+        <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
+        <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
+      </div>
+    </div>
+    <div class="sm-group">
+      <div class="sm-gtitle">じょうほう</div>
+      <div class="sm-grid">
+        <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
+        <button id="smRecords" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 2.9M17 6h2.5a2.5 2.5 0 0 1-2.6 2.9"/></svg><span>世界・日本記録</span></button>
+      </div>
+      <button id="newsBar" type="button" aria-label="きょうの水泳ニュース。押すと元の記事がひらきます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h8M8 16.5h5"/></svg><span id="newsText">きょうの水泳ニュース</span></button>
+    </div>
     <button id="smSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9.5" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>

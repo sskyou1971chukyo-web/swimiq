@@ -498,6 +498,16 @@
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #findModal.hide, #anaModal.hide, #cmpInfoModal.hide{ display:none; }
   /* 記録の修正モーダル（一覧と編集画面） */
+  /* くらべ方えらび */
+  #cmpModePanel.hide{ display:none; }
+  .cm-gtitle{ font-size:12px; font-weight:800; color:#9dbdd1; letter-spacing:.15em; margin:12px 0 6px; }
+  .cm-mode{ display:block; width:100%; text-align:left; margin-top:8px; padding:12px 14px;
+    border-radius:14px; border:1.5px solid var(--line); background:rgba(14,58,92,.6);
+    color:#fff; font-size:16px; font-weight:900; cursor:pointer; }
+  .cm-mode small{ display:block; margin-top:3px; font-size:11px; font-weight:700; color:#9dbdd1; }
+  #cmpModeBack{ margin-bottom:6px; padding:8px 12px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#bfe3ff; font-size:13px; font-weight:800; cursor:pointer; }
+  .cm-note{ font-size:12px; font-weight:700; color:#9dbdd1; margin-bottom:8px; }
   #editModal, #editFormModal, #manualModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #editModal.hide, #editFormModal.hide, #manualModal.hide{ display:none; }
@@ -1526,9 +1536,19 @@
 <div id="cmp2Modal" class="hide">
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
-    <div id="cmp2Cond">
+    <div id="cmpModePanel">
+      <div class="cm-gtitle">じぶんと くらべる</div>
+      <button type="button" class="cm-mode" data-mode="self-best">ベストタイムと比較<small>じぶんのベスト × じぶんの他のレース</small></button>
+      <button type="button" class="cm-mode" data-mode="self-race">レース比較<small>じぶんの レースどうし</small></button>
+      <div class="cm-gtitle">ほかの人と くらべる</div>
+      <button type="button" class="cm-mode" data-mode="other-best">ベストタイムと比較<small>じぶんのベスト × あいてのベスト</small></button>
+      <button type="button" class="cm-mode" data-mode="other-race">レース比較<small>じぶんのレース × あいてのレース</small></button>
+    </div>
+    <div id="cmp2Cond" class="hide">
+      <button type="button" id="cmpModeBack">← くらべ方を えらびなおす</button>
+      <div class="cm-note" id="cmpModeNote"></div>
       <div class="sv-row"><span>Aさん</span><select id="cmpA" aria-label="Aさんをえらぶ"></select></div>
-      <div class="sv-row"><span>Bさん</span><select id="cmpB" aria-label="Bさんをえらぶ"></select></div>
+      <div class="sv-row" id="cmpRowB"><span>Bさん</span><select id="cmpB" aria-label="Bさんをえらぶ"></select></div>
       <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
       <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
       <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
@@ -4492,17 +4512,72 @@
   var cmp2DataCache={};   // 記録ID → レースの中身（一度取り寄せたら覚える）
   var CMP_A_COL='#38bdf8', CMP_B_COL='#fbbf24';
   $('cmp2Close').onclick=function(){ $('cmp2Modal').classList.add('hide'); };
+  var cmp2Mode='other-race';   // えらんだ くらべ方
   function openCmp2Modal(){
     $('cmp2Modal').classList.remove('hide');
+    // まず、くらべ方をえらんでもらう
+    $('cmpModePanel').classList.remove('hide');
+    $('cmp2Cond').classList.add('hide');
+    $('cmp2Sum').classList.add('hide');
     $('cmp2Body').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
     loadAllRaces().then(function(){
       cmp2FillPeople();
       cmp2FillEvents();
       cmp2FillRaces();
-      cmp2Render();
+      $('cmp2Body').innerHTML='<div class="df-empty">上から くらべ方を えらんでください。</div>';
     }).catch(function(err){
       $('cmp2Body').innerHTML='<div class="df-empty">読み込みに失敗しました： '+err.message+'</div>';
     });
+  }
+  // くらべ方のボタン
+  (function(){
+    var setumei={
+      'self-best':'じぶんのベスト（A）と、じぶんの他のレース（B）をくらべます。',
+      'self-race':'じぶんのレースどうしを、自由にえらんで くらべます。',
+      'other-best':'じぶんのベスト（A）と、あいてのベスト（B）をくらべます。',
+      'other-race':'じぶんのレース（A）と、あいてのレース（B）を自由にえらんで くらべます。'
+    };
+    var btns=document.querySelectorAll('#cmpModePanel .cm-mode');
+    for(var i=0;i<btns.length;i++){
+      btns[i].onclick=function(){
+        cmp2Mode=this.dataset.mode;
+        $('cmpModePanel').classList.add('hide');
+        $('cmp2Cond').classList.remove('hide');
+        $('cmpModeNote').textContent=setumei[cmp2Mode]||'';
+        // じぶんどうしのモードでは、Bさんの人えらびは出さない（Aと同じ人になる）
+        var selfMode=(cmp2Mode==='self-best'||cmp2Mode==='self-race');
+        $('cmpRowB').classList.toggle('hide', selfMode);
+        cmp2RefreshAll();
+      };
+    }
+    $('cmpModeBack').onclick=function(){
+      $('cmp2Cond').classList.add('hide');
+      $('cmp2Sum').classList.add('hide');
+      $('cmpModePanel').classList.remove('hide');
+      $('cmp2Body').innerHTML='<div class="df-empty">上から くらべ方を えらんでください。</div>';
+    };
+  })();
+  // ベストのモードでは、レースを一番はやいもの（一覧の先頭）に固定する
+  function cmp2ApplyBestLocks(){
+    var bestA=(cmp2Mode==='self-best'||cmp2Mode==='other-best');
+    var bestB=(cmp2Mode==='other-best');
+    var ra=$('cmpRaceA'), rb=$('cmpRaceB');
+    ra.disabled=bestA; if(bestA && ra.options.length) ra.selectedIndex=0;
+    rb.disabled=bestB; if(bestB && rb.options.length) rb.selectedIndex=0;
+  }
+  // 人・種目がかわったとき（じぶんモードならBさんをAと同じ人にそろえる）
+  function cmp2RefreshAll(){
+    if(cmp2Mode==='self-best'||cmp2Mode==='self-race'){ $('cmpB').value=$('cmpA').value; }
+    cmp2FillEvents();
+    cmp2FillRaces();
+    cmp2ApplyBestLocks();
+    cmp2Render();
+  }
+  // 距離だけがかわったとき
+  function cmp2RefreshRaces(){
+    cmp2FillRaces();
+    cmp2ApplyBestLocks();
+    cmp2Render();
   }
   function cmp2People(){
     var seen={}, people=[];
@@ -4874,7 +4949,9 @@
   function cmp2Render(){
     var box=$('cmp2Body'); box.innerHTML='';
     if(!$('cmpB').value){
-      box.innerHTML='<div class="df-empty">Bさんを えらんでください。Aさんは ふつうは自分です。</div>';
+      box.innerHTML='<div class="df-empty">'+((cmp2Mode==='self-best'||cmp2Mode==='self-race')
+        ? '選手（Aさん）を えらんでください。'
+        : 'Bさんを えらんでください。Aさんは ふつうは自分です。')+'</div>';
       return;
     }
     var rA=$('cmpRaceA').value, rB=$('cmpRaceB').value;
@@ -4917,10 +4994,10 @@
       });
     });
   }
-  $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
-  $('cmpB').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
-  $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
-  $('cmp2Dist').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
+  $('cmpA').onchange=cmp2RefreshAll;
+  $('cmpB').onchange=cmp2RefreshAll;
+  $('cmp2Stroke').onchange=cmp2RefreshAll;
+  $('cmp2Dist').onchange=cmp2RefreshRaces;
   $('cmpRaceA').onchange=function(){ cmp2Render(); };
   $('cmpRaceB').onchange=function(){ cmp2Render(); };
   $('cmp2Edit').onclick=function(){
@@ -6799,7 +6876,7 @@
     ['#smInput','動画がなくても記録を打ちこめるッチ。きょりをえらぶと、分析と同じ地点の表（50mならR.T・15m・25m・35m・45m・50m）が出て、通過タイムを入れられるッチ。ゴールのタイムだけでもOKだッチ！'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
-    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
+    ['#smCompare','くらべ方は4つあるッチ。じぶんのベストと他のレース、じぶんのレースどうし、じぶんとあいてのベストどうし、じぶんとあいてのレース。えらぶだけで はじまるッチ！'],
     ['#newsBar','きょうの水泳ニュースだッチ。押すと元の記事がひらくッチ。つぎに開くと 新しい見出しに かわるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],

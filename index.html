@@ -420,6 +420,15 @@
     font-size:15px; font-weight:900; text-shadow:var(--shadow);
     box-shadow:0 3px 0 rgba(0,0,0,.2); }
   #dvLoadBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  /* 記録の修正モード：動画がなくても きろくデータ画面をひらく */
+  #app.editview #dataView{ display:flex; }
+  #app.editview #homeBtn{ display:flex; }
+  #dvSaveBtn{ display:none; width:100%; margin:0 0 12px; padding:12px;
+    border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#4ade80,#16a34a); color:#06351c;
+    font-size:15px; font-weight:900; box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  #dvSaveBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
+  #app.editview #dvSaveBtn{ display:block; }
   .dv-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
     display:flex; flex-direction:column; gap:6px; }
   .dv-row{ display:grid; grid-template-columns:62px 1fr 1fr 1.4fr; align-items:center; gap:6px;
@@ -442,16 +451,16 @@
   .dv-foot .dv-srow{ display:flex; justify-content:space-between; padding:2px 4px; font-size:13px; font-weight:700; }
   .dv-foot .dv-srow.total{ border-top:1px solid rgba(255,255,255,.3); margin-top:5px; padding-top:6px; font-weight:900; font-size:15px; }
   .dv-empty{ font-size:14px; font-weight:600; opacity:.75; text-align:center; padding:40px 10px; line-height:1.8; }
-  /* 縦画面の登録者プロフィールカード */
+  /* 縦画面の登録者プロフィールカード（文字はひかえめの大きさ） */
   .dv-prof{ margin:10px 0 4px; background:rgba(14,58,92,.6); border:1.5px solid rgba(255,255,255,.35);
-    border-radius:14px; padding:12px 14px; }
-  .dv-prof-head{ font-size:13px; font-weight:800; color:#bfe3ff; margin-bottom:6px; }
-  .dv-prof-grid{ display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-size:16px; font-weight:800; }
-  .dv-prof-grid span:nth-child(odd){ color:#9dbdd1; font-size:13px; font-weight:700; align-self:center; }
-  .dv-prof-row{ display:flex; align-items:center; gap:10px; margin-top:12px; }
-  .dv-prof-row label{ font-size:13px; font-weight:800; color:#bfe3ff; white-space:nowrap; }
-  .dv-prof-row input{ flex:1; min-height:44px; padding:8px 10px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:16px; font-weight:700; }
+    border-radius:14px; padding:10px 12px; }
+  .dv-prof-head{ font-size:11px; font-weight:800; color:#bfe3ff; margin-bottom:4px; }
+  .dv-prof-grid{ display:grid; grid-template-columns:auto 1fr; gap:2px 12px; font-size:13px; font-weight:800; }
+  .dv-prof-grid span:nth-child(odd){ color:#9dbdd1; font-size:11px; font-weight:700; align-self:center; }
+  .dv-prof-row{ display:flex; align-items:center; gap:10px; margin-top:8px; }
+  .dv-prof-row label{ font-size:11px; font-weight:800; color:#bfe3ff; white-space:nowrap; }
+  .dv-prof-row input{ flex:1; min-height:38px; padding:6px 10px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:700; }
   @media (orientation: portrait){
     #app.hasvideo #timeHud, #app.hasvideo #recPanel, #app.hasvideo #toolsBtn,
     #app.hasvideo #changeBtn, #app.hasvideo #distBtn, #app.hasvideo #scale,
@@ -1129,6 +1138,7 @@
     <div class="dv-head">きろく データ</div>
     <div class="dv-note">よこ向きにすると 測定にもどります</div>
     <button id="dvLoadBtn">📂 ほぞんした きろくを よびだす</button>
+    <button id="dvSaveBtn" type="button">💾 直した内容を ほぞん（上書き）</button>
     <div id="dvProfile" class="dv-prof">
       <div class="dv-prof-head">登録者</div>
       <div class="dv-prof-grid">
@@ -2958,7 +2968,11 @@
     renderLoadList($('ldAthlete').value);
   }
   $('loadBtn').addEventListener('click', openLoadModal);
-  $('dvLoadBtn').addEventListener('click', openLoadModal);  // 縦画面からも同じ呼び出し画面をひらく
+  $('dvLoadBtn').addEventListener('click', function(){
+    // 記録の修正モードでは名簿から選ぶ画面、ふだんはこの携帯の呼び出し画面
+    if(app.classList.contains('editview')) openEditModal(); else openLoadModal();
+  });
+  $('dvSaveBtn').addEventListener('click', function(){ edQuickSave(); });   // 直した内容を元のレースに上書きする
 
   // ========== 左上メニュー：記録をさがす・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
@@ -3002,71 +3016,57 @@
   }
   $('edAthlete').onchange=edLoadList;
   $('edClose').onclick=function(){ $('editModal').classList.add('hide'); };
-  // レースをえらんだら、中身を取り寄せて編集画面をひらく
+  // レースをえらんだら、中身を取り寄せて きろくデータ画面に読み込む
   function edOpenForm(r){
     api({action:'load', raceId:r.raceId}).then(function(res){
       if(!res.ok) throw new Error(res.error||'読み込めませんでした');
       edCtx={ r:r, res:res };
-      $('edfTitle').textContent=[(r.meetDate||''), r.raceDist+'m '+(r.stroke||'')].filter(function(x){return x;}).join('　');
-      var d=res.data||{};
-      $('edfRt').value=(d.rt!=null)? d.rt : '';
-      // かき数の行：50mごとに1行
-      var n=Math.max(1, Math.round(Number(res.raceDist||r.raceDist||50)/50));
-      var st=d.strokes||[];
-      var box=$('edfStrokes'); box.innerHTML='';
-      for(var i=0;i<n;i++){
-        var row=document.createElement('div'); row.className='sv-row';
-        row.innerHTML='<span>'+(i*50)+'〜'+((i+1)*50)+'m かき数</span>'+
-          '<input type="number" inputmode="numeric" min="0" max="99" data-i="'+i+'" value="'+(st[i]!=null?st[i]:'')+'">';
-        box.appendChild(row);
-      }
+      applyLoadedRace(res);   // きろくデータ画面に そのまま表示される
       $('editModal').classList.add('hide');
-      $('editFormModal').classList.remove('hide');
+      toast((r.meetName||'記録')+' を よびだしました。数字をタップで直せます');
+      shacchiSay('R.Tやタイムは数字をタップ、かき数は下のかき数の欄をタップで直せるッチ。直したら 緑の「直した内容を ほぞん」だッチ！', 14000);
     }).catch(function(err){ toast('よみこみ失敗： '+err.message); });
   }
   $('edfClose').onclick=function(){ $('editFormModal').classList.add('hide'); $('editModal').classList.remove('hide'); };
-  $('edfSave').onclick=function(){
-    if(!edCtx) return;
-    var btn=this; btn.disabled=true; btn.textContent='送信中…';
-    function fin(msg){ btn.disabled=false; btn.textContent='上書きして ほぞん'; if(msg) toast(msg); }
+  // 記録の修正モードの上書き保存：
+  // いま画面で直した内容（タイム・R.T・かき数・テンポ）を、元のレースに書き戻す。
+  // 試合名・水路・ラウンドなど、直していない項目は元のまま守られる。
+  function edQuickSave(){
+    if(!edCtx){ toast('先に「ほぞんした きろくを よびだす」で 直したいレースを えらんでください'); return; }
+    var btn=$('dvSaveBtn');
+    btn.disabled=true; btn.textContent='送信中…';
+    function fin(msg){ btn.disabled=false; btn.textContent='💾 直した内容を ほぞん（上書き）'; if(msg) toast(msg); }
     var r=edCtx.r, res=edCtx.res;
-    // 元のデータを丸ごと引き継ぎ、直した項目だけ入れかえる
-    var d=JSON.parse(JSON.stringify(res.data||{}));
-    var st=[];
-    var inputs=$('edfStrokes').querySelectorAll('input');
-    for(var i=0;i<inputs.length;i++){
-      var v=inputs[i].value;
-      st[Number(inputs[i].dataset.i)]=(v==='')? null : Number(v);
-    }
-    d.strokes=st;
-    var rtv=$('edfRt').value;
-    d.rt=(rtv==='')? null : Number(rtv);
-    var sel=$('edAthlete');
-    var aName=(sel.options[sel.selectedIndex]||{}).textContent||'';
     var pick=function(a,b){ return (a!=null && a!=='')? a : (b!=null? b : ''); };
+    var ft=passOf(raceDist, originTime());
     var payload={ action:'save', deviceId:deviceId(),
       measurer:(riProfile().name||''),
-      athleteId: pick(res.athleteId, sel.value),
-      athleteName: pick(res.athleteName, aName),
+      athleteId: pick(res.athleteId, $('edAthlete').value),
+      athleteName: pick(res.athleteName, (($('edAthlete').options[$('edAthlete').selectedIndex]||{}).textContent||'')),
       meetName: pick(res.meetName, r.meetName),
       meetDate: pick(res.meetDate, r.meetDate),
       stroke: pick(res.stroke, r.stroke),
-      raceDist: pick(res.raceDist, r.raceDist),
+      raceDist: raceDist,
       course: pick(res.course, r.course),
       round: pick(res.round, r.round),
       height: pick(res.height, r.height),
       weight: pick(res.weight, r.weight),
       videoUrl: pick(res.videoUrl, r.videoUrl),
-      finalTime: pick(res.finalTime, r.finalTime),
-      data:d, replaceId:r.raceId };
+      finalTime: (ft!=null? fmt(ft) : pick(res.finalTime, r.finalTime)),
+      data: buildRaceData(),
+      replaceId: r.raceId };
     api(payload).then(function(res2){
       if(!res2.ok) throw new Error(res2.error||'ほぞんできませんでした');
-      $('editFormModal').classList.add('hide');
       refreshTodayCount();
       fin('上書きして ほぞんしました');
     }).catch(function(err){ fin('失敗： '+err.message); });
+  }
+  $('smEdit').onclick=function(){
+    // 記録の修正：動画なしで きろくデータ画面をひらき、名簿から選ぶ画面へ
+    app.classList.remove('homeover');
+    app.classList.add('editview');
+    openEditModal();
   };
-  $('smEdit').onclick=function(){ openEditModal(); };
 
   // ========== レースの じょうほう（距離のあとに聞く画面） ==========
   // 自分の名前・生年月日・身長・体重は、一度入れると携帯が覚えて、次からの初期値になる。
@@ -5937,11 +5937,12 @@
         lines+='<div class="dv-srow"><span>'+(i+1)+'回目 '+from+'〜'+to+'m</span><span>'+(v!=null? v+' かき':'-')+'</span></div>';
         if(v!=null) total+=v;
       });
-      foot.innerHTML='<div class="dv-shead">かき数（50mごと）</div>'+lines+
+      foot.innerHTML='<div class="dv-shead">かき数（50mごと）　タップで直せます</div>'+lines+
                      '<div class="dv-srow total"><span>合計</span><span>'+total+' かき</span></div>';
     } else {
-      foot.textContent='かき数： まだ登録がありません。よこ画面の「かき数」ボタンから入れられます。';
+      foot.textContent='かき数： まだ登録がありません。ここをタップして入れられます。';
     }
+    foot.onclick=openStrokeModal;   // 縦画面からも かき数を直せる
     body.appendChild(foot);
   }
   // その距離の表示タイム。正式タイムがあればそれを、なければ動画からの計測を使う。
@@ -6335,6 +6336,7 @@
     videoEl.src=URL.createObjectURL(f); videoEl.load();
     app.classList.add('hasvideo');
     app.classList.remove('homeover');   // ホームの重ね掛けが残っていたら片づける
+    app.classList.remove('editview');   // 記録の修正モードも終わりにする（測定にもどる）
     vScale=1; vTx=0; vTy=0; applyT();
     // 距離をきく
     setTimeout(openDistModal, 200);

@@ -429,6 +429,16 @@
   .dv-foot .dv-srow{ display:flex; justify-content:space-between; padding:2px 4px; font-size:13px; font-weight:700; }
   .dv-foot .dv-srow.total{ border-top:1px solid rgba(255,255,255,.3); margin-top:5px; padding-top:6px; font-weight:900; font-size:15px; }
   .dv-empty{ font-size:14px; font-weight:600; opacity:.75; text-align:center; padding:40px 10px; line-height:1.8; }
+  /* 縦画面の登録者プロフィールカード */
+  .dv-prof{ margin:10px 0 4px; background:rgba(14,58,92,.6); border:1.5px solid rgba(255,255,255,.35);
+    border-radius:14px; padding:12px 14px; }
+  .dv-prof-head{ font-size:13px; font-weight:800; color:#bfe3ff; margin-bottom:6px; }
+  .dv-prof-grid{ display:grid; grid-template-columns:auto 1fr; gap:4px 14px; font-size:16px; font-weight:800; }
+  .dv-prof-grid span:nth-child(odd){ color:#9dbdd1; font-size:13px; font-weight:700; align-self:center; }
+  .dv-prof-row{ display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .dv-prof-row label{ font-size:13px; font-weight:800; color:#bfe3ff; white-space:nowrap; }
+  .dv-prof-row input{ flex:1; min-height:44px; padding:8px 10px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:16px; font-weight:700; }
   @media (orientation: portrait){
     #app.hasvideo #timeHud, #app.hasvideo #recPanel, #app.hasvideo #toolsBtn,
     #app.hasvideo #changeBtn, #app.hasvideo #distBtn, #app.hasvideo #scale,
@@ -1091,6 +1101,20 @@
     <div class="dv-head">きろく データ</div>
     <div class="dv-note">よこ向きにすると 測定にもどります</div>
     <button id="dvLoadBtn">📂 ほぞんした きろくを よびだす</button>
+    <div id="dvProfile" class="dv-prof">
+      <div class="dv-prof-head">登録者</div>
+      <div class="dv-prof-grid">
+        <span>名前</span><span id="dvpName">—</span>
+        <span>生年月日</span><span id="dvpBirth">—</span>
+        <span>身長</span><span id="dvpHeight">—</span>
+        <span>体重</span><span id="dvpWeight">—</span>
+        <span>BMI</span><span id="dvpBmi">—</span>
+      </div>
+      <div class="dv-prof-row">
+        <label for="dvSwimmer">分析したい選手</label>
+        <input id="dvSwimmer" type="text" list="swimmerList" placeholder="ふつうは 登録者のまま">
+      </div>
+    </div>
     <div id="dvBody" class="dv-body"></div>
   </div>
 
@@ -2986,6 +3010,7 @@
     rememberSwimmerInfo(raceInfo.swimmer, { birth:$('riSwBirth').value,
       height:$('riSwHeight').value, weight:$('riSwWeight').value });   // からだメモ帳にも覚える
     $('riModal').classList.add('hide');
+    dvRenderProfile();   // 縦画面の登録者カードも、いま入れた内容で更新する
     toast((raceInfo.swimmer||'')+' の '+raceDist+'m '+raceInfo.stroke+' を 測ります');
   
     showTut('まずは リアクションタイムを\n測定しよう！\n\n下の「R.T」ボタンから はじめられるよ');
@@ -5555,7 +5580,35 @@
   // たて画面用：データ一覧を組み立てる。
   // 先頭にR.T（リアクションタイム）、距離ごとにタイムと区間、
   // テンポは区間の値なので、行と行のあいだに挟んで表示する。
+  // 縦画面のプロフィールカード：登録者の情報を出し、分析したい選手の名前をきく
+  // 名前欄の最初の中身は登録者本人。書きかえると、ほぞんのときの選手名にも流れる
+  function dvRenderProfile(){
+    var box=$('dvProfile'); if(!box) return;
+    var p=riProfile();
+    $('dvpName').textContent  = p.name  || '—';
+    $('dvpBirth').textContent = p.birth ? hiJa(p.birth) : '—';
+    $('dvpHeight').textContent= p.height? (p.height+' cm') : '—';
+    $('dvpWeight').textContent= p.weight? (p.weight+' kg') : '—';
+    var h=Number(p.height), w=Number(p.weight);
+    $('dvpBmi').textContent   = (h>0 && w>0) ? (w/Math.pow(h/100,2)).toFixed(1) : '—';
+    var inp=$('dvSwimmer');
+    // 人が打ちこんでいる最中や、一度自分で書きかえたあとは、機械が上書きしない
+    if(document.activeElement!==inp && !inp.dataset.touched){
+      inp.value=(raceInfo && raceInfo.swimmer) ? raceInfo.swimmer : (p.name||'');
+    }
+  }
+  $('dvSwimmer').addEventListener('change', function(){
+    this.dataset.touched='1';
+    var name=this.value.trim();
+    if(!name) return;
+    if(raceInfo) raceInfo.swimmer=name;
+    else raceInfo={ swimmer:name };
+    rememberSwimmer(name);   // 名前ちょうに入れて、次から候補に出す
+    fillSwimmerList();
+    toast(name+' さんのレースとして分析します');
+  });
   function renderDataView(){
+    dvRenderProfile();
     var body=$('dvBody'); if(!body) return;
     body.innerHTML='';
     var dists=allDists();

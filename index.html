@@ -504,6 +504,9 @@
   /* 記録の入力の表 */
   #manualModal .modal-card{ max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
   .mn-row{ display:grid; grid-template-columns:3.2em 1fr 1fr 1fr; gap:6px; align-items:center; margin-top:6px; }
+  .mn-row.mn-2{ grid-template-columns:4.5em 1fr; }
+  #mnSt, #mnSpm{ flex:1; min-height:40px; padding:6px 10px; border-radius:10px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:800; }
   .mn-row.mn-head{ font-size:11px; font-weight:800; color:#9dbdd1; margin-top:12px; }
   .mn-row .mn-d{ font-size:14px; font-weight:900; }
   .mn-row input{ width:100%; min-height:40px; padding:6px; border-radius:10px; border:1.5px solid var(--line);
@@ -1544,7 +1547,7 @@
 <div id="manualModal" class="hide">
   <div class="modal-card df-card">
     <h2>記録の入力</h2>
-    <p class="note">タイム・かき数・テンポを 表に入れて ほぞんできます。数字を入れた きょりだけが ほぞんされます。</p>
+    <p class="note">きょりをえらぶと、分析と同じ地点の表が出ます。ゴールのタイムだけでも ほぞんできます。</p>
     <div class="sv-row"><span>選手</span><select id="mnAthlete" aria-label="選手をえらぶ"></select></div>
     <div class="sv-row"><span>試合名</span><select id="mnMeetSel" aria-label="試合をえらぶ"></select></div>
     <div class="sv-row" id="mnMeetFreeRow"><span></span><input id="mnMeet" type="text" maxlength="60" placeholder="試合名を 入力"></div>
@@ -1552,8 +1555,11 @@
     <div class="sv-row"><span>泳法</span><select id="mnStroke"><option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option><option>バタフライ</option><option>個人メドレー</option></select></div>
     <div class="sv-row"><span>水路</span><select id="mnCourse"><option>長水路</option><option>短水路</option></select></div>
     <div class="sv-row"><span>ラウンド</span><select id="mnRound"><option>予選</option><option>準決勝</option><option>決勝</option><option>タイムレース</option></select></div>
-    <div class="mn-row mn-head"><span>きょり</span><span>タイム</span><span>かき数/50m</span><span>テンポ/分</span></div>
+    <div class="sv-row"><span>きょり</span><select id="mnDist" aria-label="きょりをえらぶ"><option>50</option><option>100</option><option>200</option><option>400</option><option>800</option><option>1500</option></select></div>
+    <div class="mn-row mn-head mn-2"><span>地点</span><span>タイム（スタートからの通過）</span></div>
     <div id="mnRows"></div>
+    <div class="sv-row"><span>かき数</span><input id="mnSt" type="number" inputmode="decimal" min="1" max="99" step="0.1" placeholder="50mあたりの平均（任意）" aria-label="かき数 50mあたりの平均"></div>
+    <div class="sv-row"><span>テンポ</span><input id="mnSpm" type="number" inputmode="numeric" min="10" max="120" placeholder="毎分のかき数（任意）" aria-label="テンポ 毎分のかき数"></div>
     <div class="stroke-btns"><button id="mnClose">とじる</button><button id="mnSave">ほぞんする</button></div>
   </div>
 </div>
@@ -3167,21 +3173,28 @@
       fin('上書きして ほぞんしました');
     }).catch(function(err){ fin('失敗： '+err.message); });
   }
-  // ========== 記録の入力（動画なしで、表にまとめて手入力） ==========
-  var MN_DISTS=[50,100,200,400,800,1500];
+  // ========== 記録の入力（動画なしで、分析と同じ地点の表に手入力） ==========
+  function mnBuildRows(){
+    var dist=Number($('mnDist').value)||50;
+    var box=$('mnRows'); box.innerHTML='';
+    // 先頭はR.T（なくてもよい）
+    var r0=document.createElement('div'); r0.className='mn-row mn-2';
+    r0.innerHTML='<span class="mn-d">R.T</span>'+
+      '<input type="text" inputmode="decimal" data-k="rt" placeholder="例 0.65（あいてもOK）" aria-label="リアクションタイム">';
+    box.appendChild(r0);
+    // 分析画面と同じ地点（RACE_POINTS）をならべる
+    pointsFor(dist).forEach(function(p){
+      if(p.d===0) return;
+      var r=document.createElement('div'); r.className='mn-row mn-2';
+      r.innerHTML='<span class="mn-d">'+p.d+'m</span>'+
+        '<input type="text" inputmode="decimal" data-k="pt" data-d="'+p.d+'" data-official="'+(p.official?1:0)+'"'+
+        ' placeholder="'+(p.d===dist? 'ゴール（ここは必須）':'とちゅう（あいてもOK）')+'" aria-label="'+p.d+'mの通過タイム">';
+      box.appendChild(r);
+    });
+  }
   function openManualModal(){
-    // 表の行は最初の一回だけ作る
-    var box=$('mnRows');
-    if(!box.children.length){
-      MN_DISTS.forEach(function(dd){
-        var r=document.createElement('div'); r.className='mn-row';
-        r.innerHTML='<span class="mn-d">'+dd+'m</span>'+
-          '<input type="text" inputmode="decimal" data-k="time" data-d="'+dd+'" placeholder="'+(dd>=100?'1:02.34':'26.54')+'" aria-label="'+dd+'mのタイム">'+
-          '<input type="number" inputmode="decimal" min="1" max="99" step="0.1" data-k="st" data-d="'+dd+'" aria-label="'+dd+'mのかき数 50mあたり">'+
-          '<input type="number" inputmode="numeric" min="10" max="120" data-k="spm" data-d="'+dd+'" aria-label="'+dd+'mのテンポ 毎分">';
-        box.appendChild(r);
-      });
-    }
+    mnBuildRows();
+    $('mnSt').value=''; $('mnSpm').value='';
     // 選手：部の名簿から。初期値は登録者（自分）
     var sel=$('mnAthlete'); sel.innerHTML='<option value="">よみこみ中…</option>';
     api({action:'roster'}).then(function(res){
@@ -3195,6 +3208,7 @@
     if(!$('mnDate').value) $('mnDate').value=todayStr();
     $('manualModal').classList.remove('hide');
   }
+  $('mnDist').onchange=mnBuildRows;
   // 試合名のえらぶ式メニュー（自由入力もえらべる）
   function mnFillMeets(){
     var sel=$('mnMeetSel'); var keep=sel.value;
@@ -3235,63 +3249,67 @@
     var sel=$('mnAthlete');
     if(!sel.value){ toast('選手を えらんでください'); return; }
     var aName=(sel.options[sel.selectedIndex]||{}).textContent||'';
-    var meet=$('mnMeet').value.trim();
-    // 数字が入っている行だけを集めて、先に検品する
-    var rows=[], warui='';
-    MN_DISTS.forEach(function(dd){
-      function q(k){ var el=$('mnRows').querySelector('input[data-k="'+k+'"][data-d="'+dd+'"]'); return el? el.value.trim() : ''; }
-      var tv=q('time'), st=q('st'), spm=q('spm');
-      if(!tv && !st && !spm) return;
-      if(!tv){ warui=warui||(dd+'m はタイムも入れてください（かき数やテンポだけでは ほぞんできません）'); return; }
-      var sec=parseT(tv);
-      if(sec==null){ warui=warui||(dd+'m のタイムの形が正しくありません（例 26.54 / 1:52.34）'); return; }
-      rows.push({ dd:dd, sec:sec, st: st? Number(st):null, spm: spm? Number(spm):null });
-    });
-    if(warui){ toast(warui); return; }
-    if(!rows.length){ toast('数字を なにも入れていません'); return; }
-    var btn=this; btn.disabled=true; btn.textContent='送信中…';
-    var okCnt=0, ngMsg='';
-    var p=Promise.resolve();
-    rows.forEach(function(r){
-      p=p.then(function(){
-        // レース1本ぶんの中身を組み立てる
-        var data={ splits:{}, official:{}, tempo:{}, strokes:[], rt:null };
-        data.splits[0]=0; data.splits[r.dd]=r.sec;
-        data.official[r.dd]=r.sec;   // 手入力のタイムは 正式あつかい
-        if(r.st){
-          var n=Math.max(1, Math.round(r.dd/50));
-          for(var i=0;i<n;i++) data.strokes.push(r.st);   // 50mごとの平均として記録
-        }
-        if(r.spm){
-          data.tempo['0-'+r.dd]={ method:'manual', strokes:null, perStroke:60/r.spm, spm:r.spm };
-        }
-        var payload={ action:'save', deviceId:deviceId(), measurer:(riProfile().name||''),
-          athleteId:sel.value, athleteName:aName,
-          meetName:meet, meetDate:$('mnDate').value,
-          stroke:$('mnStroke').value, raceDist:r.dd,
-          course:$('mnCourse').value, round:$('mnRound').value,
-          height:'', weight:'', videoUrl:'',
-          finalTime: fmt(r.sec),
-          data:data };
-        return api(payload).then(function(res){
-          if(res && res.ok) okCnt++;
-          else ngMsg=ngMsg||(r.dd+'m： '+((res&&res.error)||'ほぞんできませんでした'));
-        }).catch(function(){ ngMsg=ngMsg||(r.dd+'m： 通信できませんでした'); });
-      });
-    });
-    p.then(function(){
-      btn.disabled=false; btn.textContent='ほぞんする';
-      refreshTodayCount();
-      if(okCnt && !ngMsg){
-        toast(okCnt+'件 ほぞんしました');
-        // 数字の欄だけ空にして、つづけて次の選手を入れられるようにする
-        var inputs=$('mnRows').querySelectorAll('input');
-        for(var i=0;i<inputs.length;i++) inputs[i].value='';
-      } else if(okCnt){
-        toast(okCnt+'件 ほぞんしました。しっぱい： '+ngMsg);
-      } else {
-        toast('ほぞんできませんでした。'+ngMsg);
+    var dist=Number($('mnDist').value)||50;
+    // 地点タイムを上から順に集めて、その場で検品する
+    var els=$('mnRows').querySelectorAll('input[data-k="pt"]');
+    var pts=[], mae=0, maeD=0, warui='';
+    for(var i=0;i<els.length;i++){
+      var dd=Number(els[i].dataset.d);
+      var tv=els[i].value.trim();
+      if(!tv){
+        if(dd===dist) warui='ゴール（'+dist+'m）のタイムは 必須です';
+        continue;
       }
+      var sec=parseT(tv);
+      if(sec==null){ warui=dd+'m のタイムの形が正しくありません（例 26.54 / 1:52.34）'; break; }
+      if(sec<=mae){ warui=dd+'m のタイムが '+maeD+'m より小さくなっています。通過タイムは 先に行くほど大きくなります'; break; }
+      pts.push({ d:dd, sec:sec, official: els[i].dataset.official==='1' });
+      mae=sec; maeD=dd;
+    }
+    if(warui){ toast(warui); return; }
+    if(!pts.length){ toast('タイムを なにも入れていません'); return; }
+    // R.T（あれば）
+    var data={ splits:{ 0:0 }, official:{}, tempo:{}, strokes:[], rt:null };
+    var rtEl=$('mnRows').querySelector('input[data-k="rt"]');
+    var rtv=rtEl? rtEl.value.trim() : '';
+    if(rtv){
+      var rv=Number(rtv);
+      if(!(rv>0 && rv<10)){ toast('R.Tは 10秒みまんの数で 入れてください（例 0.65）'); return; }
+      data.rt=rv;
+    }
+    pts.forEach(function(p){
+      data.splits[p.d]=p.sec;
+      if(p.official) data.official[p.d]=p.sec;   // 50mきざみの地点は 正式あつかい
+    });
+    var stv=$('mnSt').value.trim();
+    if(stv){
+      var n=Math.max(1, Math.round(dist/50));
+      for(var si=0; si<n; si++) data.strokes.push(Number(stv));   // 50mごとの平均として記録
+    }
+    var spv=$('mnSpm').value.trim();
+    if(spv){
+      data.tempo['0-'+dist]={ method:'manual', strokes:null, perStroke:60/Number(spv), spm:Number(spv) };
+    }
+    var goal=data.splits[dist];
+    var btn=this; btn.disabled=true; btn.textContent='送信中…';
+    var payload={ action:'save', deviceId:deviceId(), measurer:(riProfile().name||''),
+      athleteId:sel.value, athleteName:aName,
+      meetName:$('mnMeet').value.trim(), meetDate:$('mnDate').value,
+      stroke:$('mnStroke').value, raceDist:dist,
+      course:$('mnCourse').value, round:$('mnRound').value,
+      height:'', weight:'', videoUrl:'',
+      finalTime: fmt(goal),
+      data:data };
+    api(payload).then(function(res){
+      btn.disabled=false; btn.textContent='ほぞんする';
+      if(!(res && res.ok)) throw new Error((res&&res.error)||'ほぞんできませんでした');
+      refreshTodayCount();
+      toast(aName+' の '+dist+'m を ほぞんしました');
+      mnBuildRows();   // 表を空にして、つづけて次を入れられるようにする
+      $('mnSt').value=''; $('mnSpm').value='';
+    }).catch(function(err){
+      btn.disabled=false; btn.textContent='ほぞんする';
+      toast('失敗： '+err.message);
     });
   };
   $('smInput').onclick=function(){ openManualModal(); };
@@ -6778,7 +6796,7 @@
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smEdit','ほぞんずみのレースを その場で直せるッチ。えらんで、かき数やR.Tを入れて、上書きするだけッチ。タイムなどほかの項目は そのまま守られるッチ。'],
-    ['#smInput','動画がなくても、タイム・かき数・テンポを表に打ちこんで ほぞんできるッチ。50mから1500mまで、数字を入れた きょりだけが ほぞんされるッチ！'],
+    ['#smInput','動画がなくても記録を打ちこめるッチ。きょりをえらぶと、分析と同じ地点の表（50mならR.T・15m・25m・35m・45m・50m）が出て、通過タイムを入れられるッチ。ゴールのタイムだけでもOKだッチ！'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
     ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],

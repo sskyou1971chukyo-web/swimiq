@@ -6646,7 +6646,14 @@
     if(!videoEl.paused) videoEl.pause();   // 動画はいったん止めるだけ。とじない
     app.classList.add('homeover');
   }
-  $('homeBtn').onclick=function(){ openHomeOver(); homeNyujo(); };
+  $('homeBtn').onclick=function(){
+    // 記録の修正モード（動画なし）のときは、モードを終えてホームにもどる
+    if(app.classList.contains('editview') && !app.classList.contains('hasvideo')){
+      app.classList.remove('editview');
+      return;
+    }
+    openHomeOver(); homeNyujo();
+  };
   $('smBackVideo').onclick=function(){ app.classList.remove('homeover'); };
   // 起動したときに、すべての画面の下に「前に戻る」と「『動画を開く』に戻る」を置く
   document.querySelectorAll('.modal-card').forEach(function(card){

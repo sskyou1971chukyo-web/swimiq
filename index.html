@@ -3055,7 +3055,8 @@
         var o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o);
       });
       if(!list.length){ $('edList').innerHTML='<div class="df-empty">名簿を取得できませんでした。電波を確認してね。</div>'; return; }
-      if(myId()) sel.value=myId();
+      var jid=jibunIdIn(list);
+      if(jid) sel.value=jid;
       if(!sel.value) sel.selectedIndex=0;
       edLoadList();
     }).catch(function(){
@@ -3716,10 +3717,16 @@
       o.textContent=p.name+(p.group? '　'+p.group:'');
       sel.appendChild(o);
     });
-    if(keep) sel.value=keep;                                   // えらび直しはそのまま
-    if(!sel.value && myId()) sel.value=myId();                 // ふつうは じぶん
-    if(!sel.value && getAthletes().length) sel.value=getAthletes()[0].id;  // この携帯の選手
-    if(!sel.value && people.length) sel.value=people[0].id;    // それも無ければ先頭の人
+    // 前に自分でえらんだ人がいればそれを尊重し、いなければ登録者（自分）を最初からえらぶ
+    var keepAri=false;
+    if(keep){
+      for(var oi=0; oi<sel.options.length; oi++){
+        if(sel.options[oi].value===keep){ keepAri=true; break; }
+      }
+    }
+    var jibun=jibunIdIn(people);
+    if(keepAri) sel.value=keep;
+    else if(jibun) sel.value=jibun;
   }
   // 種目のえらび：その選手が泳いだ種目を、新しい順にならべる
   function progFillEvents(){
@@ -4228,6 +4235,29 @@
     return people;
   }
   // Aさん（ふつうは自分）とBさんのえらび
+  // 一覧の中から「登録者（自分）」をさがす共通の部品。
+  // 順番：じぶんの記録で設定したID → この携帯のプロフィールの名前 → この携帯で登録した選手
+  function jibunIdIn(people){
+    if(myId()){
+      for(var i=0; i<people.length; i++){
+        if(String(people[i].id)===String(myId())) return people[i].id;
+      }
+    }
+    var jibun=(riProfile().name||'').replace(/[\s\u3000]+/g,'');
+    if(jibun){
+      for(var j=0; j<people.length; j++){
+        var nm=String(people[j].name||'').replace(/[\s\u3000]+/g,'');
+        if(nm && (nm.indexOf(jibun)===0 || jibun.indexOf(nm)===0)) return people[j].id;
+      }
+    }
+    var mine=getAthletes();
+    for(var g=0; g<mine.length; g++){
+      for(var k=0; k<people.length; k++){
+        if(String(people[k].id)===String(mine[g].id)) return people[k].id;
+      }
+    }
+    return '';
+  }
   function cmp2FillPeople(){
     var people=cmp2People();
     // 先に「自分（登録者）」をさがしておく。

@@ -466,16 +466,16 @@
   .dv-foot .dv-srow{ display:flex; justify-content:space-between; padding:2px 4px; font-size:13px; font-weight:700; }
   .dv-foot .dv-srow.total{ border-top:1px solid rgba(255,255,255,.3); margin-top:5px; padding-top:6px; font-weight:900; font-size:15px; }
   .dv-empty{ font-size:14px; font-weight:600; opacity:.75; text-align:center; padding:40px 10px; line-height:1.8; }
-  /* 縦画面の登録者プロフィールカード（文字はひかえめの大きさ） */
-  .dv-prof{ margin:10px 0 4px; background:rgba(14,58,92,.6); border:1.5px solid rgba(255,255,255,.35);
-    border-radius:14px; padding:10px 12px; }
-  .dv-prof-head{ font-size:11px; font-weight:800; color:#bfe3ff; margin-bottom:4px; }
-  .dv-prof-grid{ display:grid; grid-template-columns:auto 1fr; gap:2px 12px; font-size:13px; font-weight:800; }
-  .dv-prof-grid span:nth-child(odd){ color:#9dbdd1; font-size:11px; font-weight:700; align-self:center; }
-  .dv-prof-row{ display:flex; align-items:center; gap:10px; margin-top:8px; }
-  .dv-prof-row label{ font-size:11px; font-weight:800; color:#bfe3ff; white-space:nowrap; }
-  .dv-prof-row input{ flex:1; min-height:38px; padding:6px 10px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:700; }
+  /* 縦画面の登録者プロフィールカード（文字は小さめ・3分の2サイズ） */
+  .dv-prof{ margin:8px 0 4px; background:rgba(14,58,92,.6); border:1.5px solid rgba(255,255,255,.35);
+    border-radius:12px; padding:8px 10px; }
+  .dv-prof-head{ font-size:8px; font-weight:800; color:#bfe3ff; margin-bottom:3px; }
+  .dv-prof-grid{ display:grid; grid-template-columns:auto 1fr; gap:1px 10px; font-size:9px; font-weight:800; }
+  .dv-prof-grid span:nth-child(odd){ color:#9dbdd1; font-size:8px; font-weight:700; align-self:center; }
+  .dv-prof-row{ display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .dv-prof-row label{ font-size:8px; font-weight:800; color:#bfe3ff; white-space:nowrap; }
+  .dv-prof-row input{ flex:1; min-height:32px; padding:4px 8px; border-radius:8px; border:1.5px solid var(--line);
+    background:rgba(10,32,55,.9); color:#fff; font-size:10px; font-weight:700; }
   @media (orientation: portrait){
     #app.hasvideo #timeHud, #app.hasvideo #recPanel, #app.hasvideo #toolsBtn,
     #app.hasvideo #changeBtn, #app.hasvideo #distBtn, #app.hasvideo #scale,
@@ -1495,13 +1495,13 @@
   </div>
 </div>
 
-<!-- くらべる（新）：AサンとBサンのレースをグラフで見くらべる -->
+<!-- くらべる（新）：AさんとBさんのレースをグラフで見くらべる -->
 <div id="cmp2Modal" class="hide">
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
     <div id="cmp2Cond">
-      <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
-      <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
+      <div class="sv-row"><span>Aさん</span><select id="cmpA" aria-label="Aさんをえらぶ"></select></div>
+      <div class="sv-row"><span>Bさん</span><select id="cmpB" aria-label="Bさんをえらぶ"></select></div>
       <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
       <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
       <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
@@ -4198,7 +4198,7 @@
   $('progEvent').onchange=function(){ progRender(); };
   $('progRecentN').onchange=function(){ progRender(); };
 
-  // ========== くらべる（Aサン・Bサンのグラフ比較） ==========
+  // ========== くらべる（Aさん・Bさんのグラフ比較） ==========
   // 選手をふたりえらび、同じ種目・距離のレースを一本ずつ取り寄せて、
   // ラップ・スピード・テンポを二色の折れ線でならべる。
   // 横に長いレース（200m以上など）は、指のスワイプかボタンで横にめくって見る。
@@ -4227,7 +4227,7 @@
     people.sort(function(a,b){ return a.name<b.name? -1:1; });
     return people;
   }
-  // Aサン（ふつうは自分）とBサンのえらび
+  // Aさん（ふつうは自分）とBさんのえらび
   function cmp2FillPeople(){
     var people=cmp2People();
     [['cmpA', myId()], ['cmpB', '']].forEach(function(pair){
@@ -4245,7 +4245,16 @@
       if(!sel.value && pair[1]) sel.value=pair[1];
     });
     if(!$('cmpA').value){
-      if(getAthletes().length) $('cmpA').value=getAthletes()[0].id;
+      // 登録者（この携帯のプロフィールの名前）を名簿からさがして、自分を初期値にする
+      var jibun=(riProfile().name||'').replace(/[\s\u3000]+/g,'');
+      if(jibun){
+        var ppl=cmp2People();
+        for(var pi=0; pi<ppl.length; pi++){
+          var nm=String(ppl[pi].name||'').replace(/[\s\u3000]+/g,'');
+          if(nm && (nm.indexOf(jibun)===0 || jibun.indexOf(nm)===0)){ $('cmpA').value=ppl[pi].id; break; }
+        }
+      }
+      if(!$('cmpA').value && getAthletes().length) $('cmpA').value=getAthletes()[0].id;
       var people2=cmp2People();
       if(!$('cmpA').value && people2.length) $('cmpA').value=people2[0].id;
     }
@@ -4387,8 +4396,8 @@
         s+='<text class="anim-txt" style="animation-delay:'+dl+'s" x="'+cx+'" y="'+(above? cy-11 : cy+21).toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="'+col+'">'+p.y.toFixed(opts.decimals)+'</text>';
       });
     }
-    draw(ptsA, CMP_A_COL, true, 0.15);    // Aサンの線が先に走る
-    draw(ptsB, CMP_B_COL, false, 0.55);   // Bサンの線が追いかける
+    draw(ptsA, CMP_A_COL, true, 0.15);    // Aさんの線が先に走る
+    draw(ptsB, CMP_B_COL, false, 0.55);   // Bさんの線が追いかける
     s+='</svg>';
     var wrap=document.createElement('div'); wrap.className='cmp-scroll';
     wrap.innerHTML=s;
@@ -4420,7 +4429,7 @@
       }
     }, 0);
   }
-  // 局面ごとの棒グラフ。青がAサン、黄がBサン。棒が短いほど速い。
+  // 局面ごとの棒グラフ。青がAさん、黄がBさん。棒が短いほど速い。
   function cmp2Phases(box, lapsA, lapsB, dist, naA, naB){
     naA=naA||'A'; naB=naB||'B';
     var wrap=document.createElement('div');
@@ -4534,12 +4543,12 @@
   function cmp2Render(){
     var box=$('cmp2Body'); box.innerHTML='';
     if(!$('cmpB').value){
-      box.innerHTML='<div class="df-empty">Bサンを えらんでください。Aサンは ふつうは自分です。</div>';
+      box.innerHTML='<div class="df-empty">Bさんを えらんでください。Aさんは ふつうは自分です。</div>';
       return;
     }
     var rA=$('cmpRaceA').value, rB=$('cmpRaceB').value;
     if(!rA || !rB){
-      box.innerHTML='<div class="df-empty">'+(!rA? 'Aサン':'Bサン')+'には この種目・距離のレースが ありません。</div>';
+      box.innerHTML='<div class="df-empty">'+(!rA? 'Aさん':'Bさん')+'には この種目・距離のレースが ありません。</div>';
       return;
     }
     box.innerHTML='<div class="df-empty">レースの中身を 取り寄せ中…</div>';

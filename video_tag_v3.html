@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>動画タグ帳 共有版</title>
+<style>
+  :root {
+    --bg: #0d1321;
+    --panel: #1a2236;
+    --panel2: #232e4a;
+    --text: #f5f7ff;
+    --sub: #b9c4e0;
+    --accent: #ffd34d;
+    --accent-text: #1a1500;
+    --danger: #ff6b6b;
+    --ok: #5dd39e;
+    --line: #3a4a72;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 18px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    line-height: 1.7;
+    -webkit-text-size-adjust: 100%;
+  }
+  header { padding: 20px 16px 12px; border-bottom: 3px solid var(--accent); }
+  h1 { margin: 0; font-size: 1.5rem; letter-spacing: 0.06em; }
+  header p { margin: 4px 0 0; color: var(--sub); font-size: 0.95rem; }
+  main { padding: 16px; max-width: 760px; margin: 0 auto; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  h2 { margin: 0 0 12px; font-size: 1.2rem; color: var(--accent); }
+  label { display: block; font-size: 1rem; margin-bottom: 6px; color: var(--sub); }
+  input[type="text"], input[type="search"], input[type="password"], textarea {
+    width: 100%;
+    min-height: 56px;
+    font-size: 1.1rem;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 2px solid var(--line);
+    background: var(--panel2);
+    color: var(--text);
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  input:focus, textarea:focus, button:focus, a:focus {
+    outline: 4px solid var(--accent);
+    outline-offset: 2px;
+  }
+  button {
+    min-height: 56px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-text); width: 100%; }
+  .btn-secondary { background: var(--panel2); color: var(--text); border: 2px solid var(--line); }
+  .tag-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .tag-row input { flex: 1; }
+  .tag-row button { flex-shrink: 0; }
+  ul.tags {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  ul.tags li { margin: 0; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel2);
+    border: 2px solid var(--accent);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 8px 8px 8px 16px;
+    font-size: 1.05rem;
+  }
+  .chip button {
+    min-height: 44px; min-width: 44px;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--danger);
+    font-size: 1.3rem;
+    padding: 0; border: none;
+  }
+  .quick { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+  .quick button {
+    min-height: 48px;
+    background: transparent;
+    border: 2px dashed var(--line);
+    color: var(--sub);
+    font-weight: 400;
+    border-radius: 999px;
+    padding: 8px 16px;
+  }
+  #status, #listStatus {
+    min-height: 32px;
+    margin: 8px 0 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ok);
+  }
+  #status.error, #listStatus.error { color: var(--danger); }
+  .video {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    background: var(--panel2);
+  }
+  .video h3 { margin: 0 0 6px; font-size: 1.05rem; word-break: break-all; }
+  .video .date { color: var(--sub); font-size: 0.9rem; margin: 0 0 8px; }
+  .video .vtags { margin: 0 0 8px; font-size: 1.05rem; }
+  .video .vtags span {
+    display: inline-block;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 2px 12px;
+    margin: 0 6px 6px 0;
+  }
+  .video .memo { margin: 0 0 12px; white-space: pre-wrap; }
+  .video-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .video-actions a, .video-actions button { flex: 1; min-width: 130px; }
+  a.btn-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 56px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 12px;
+    text-decoration: none;
+    padding: 12px 20px;
+    text-align: center;
+  }
+  .empty { color: var(--sub); }
+  .file-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 72px;
+    width: 100%;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 1.2rem;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+  #uploadFileInput {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  #uploadStatus {
+    min-height: 32px;
+    margin: 8px 0 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ok);
+  }
+  #uploadStatus.error { color: var(--danger); }
+  #editSection[hidden] { display: none; }
+  .editing-name { font-size: 1.1rem; word-break: break-all; margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>動画タグ帳 共有版</h1>
+  <p>みんなのドライブの動画をタグで探せます</p>
+</header>
+<main>
+
+<section aria-labelledby="h-search">
+  <h2 id="h-search">動画をさがす</h2>
+  <label for="searchInput">タグや動画名やメモで検索 見るのはだれでもできます</label>
+  <input type="search" id="searchInput" placeholder="例 平泳ぎ" autocomplete="off">
+  <div class="quick" id="quickFilters" aria-label="よく使われているタグで絞り込み"></div>
+  <p id="listStatus" role="status" aria-live="polite"></p>
+  <button type="button" class="btn-secondary" id="reloadBtn">一覧を読み直す</button>
+  <div id="videoList" style="margin-top:14px"></div>
+</section>
+
+<section aria-labelledby="h-upload">
+  <h2 id="h-upload">動画を投稿する</h2>
+  <p class="empty">あいことばを知っている人だけが投稿できます。</p>
+  <label class="file-btn" for="uploadFileInput">投稿する動画を選ぶ</label>
+  <input type="file" id="uploadFileInput" accept="video/*">
+  <p class="editing-name" id="uploadFileName">まだ動画が選ばれていません</p>
+  <label for="uploadPassword">あいことば</label>
+  <input type="password" id="uploadPassword" autocomplete="current-password">
+  <button type="button" class="btn-primary" id="uploadBtn" style="margin-top:12px">この動画を投稿する</button>
+  <p id="uploadProgress" aria-hidden="true" style="min-height:32px;margin:8px 0 0;font-size:1.05rem;color:var(--sub)"></p>
+  <p id="uploadStatus" role="status" aria-live="polite"></p>
+</section>
+
+<section id="editSection" aria-labelledby="h-edit" hidden>
+  <h2 id="h-edit">タグを付ける</h2>
+  <p class="editing-name" id="editingName"></p>
+
+  <label for="tagInput">タグを入力して追加ボタンを押す</label>
+  <div class="tag-row">
+    <input type="text" id="tagInput" placeholder="例 自由形 田中 決勝" autocomplete="off">
+    <button type="button" class="btn-secondary" id="addTagBtn">追加</button>
+  </div>
+  <div class="quick" id="quickTags" aria-label="よく使うタグ"></div>
+  <ul class="tags" id="tagList" aria-label="この動画に付けるタグ"></ul>
+
+  <label for="memoInput">メモ 任意</label>
+  <textarea id="memoInput" placeholder="気づいたことを自由に書けます"></textarea>
+
+  <label for="passwordInput" style="margin-top:12px">あいことば タグを保存できる人だけが知っています</label>
+  <input type="password" id="passwordInput" autocomplete="current-password">
+
+  <button type="button" class="btn-primary" id="saveBtn" style="margin-top:12px">タグを保存する</button>
+  <button type="button" class="btn-secondary" id="cancelBtn" style="margin-top:10px;width:100%">閉じる</button>
+  <p id="status" role="status" aria-live="polite"></p>
+</section>
+
+</main>
+<script>
+(function () {
+  "use strict";
+
+  var GAS_URL = "https://script.google.com/macros/s/AKfycbyPKu9W5wRxK70iZOw6J4YEjztdzFc3_nNZK_Jl0R4yUY9QaDBG3mF8zsOzQq6Rg0OW/exec";
+  var PW_KEY = "videoTagShared:password";
+
+  var searchInput = document.getElementById("searchInput");
+  var quickFilters = document.getElementById("quickFilters");
+  var listStatus = document.getElementById("listStatus");
+  var reloadBtn = document.getElementById("reloadBtn");
+  var videoList = document.getElementById("videoList");
+
+  var editSection = document.getElementById("editSection");
+  var editingName = document.getElementById("editingName");
+  var tagInput = document.getElementById("tagInput");
+  var addTagBtn = document.getElementById("addTagBtn");
+  var quickTags = document.getElementById("quickTags");
+  var tagList = document.getElementById("tagList");
+  var memoInput = document.getElementById("memoInput");
+  var passwordInput = document.getElementById("passwordInput");
+  var saveBtn = document.getElementById("saveBtn");
+  var cancelBtn = document.getElementById("cancelBtn");
+  var statusEl = document.getElementById("status");
+
+  var allVideos = [];
+  var activeFilter = "";
+  var editingVideo = null;
+  var currentTags = [];
+
+  function setListStatus(msg, isError) {
+    listStatus.textContent = msg;
+    listStatus.className = isError ? "error" : "";
+  }
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.className = isError ? "error" : "";
+  }
+
+  function gasReady() {
+    return GAS_URL.indexOf("https://") === 0;
+  }
+
+  function loadList() {
+    if (!gasReady()) {
+      setListStatus("設定が終わっていません。GASのURLをこのファイルに貼り付ける必要があります。", true);
+      return;
+    }
+    setListStatus("読み込み中です しばらくお待ちください");
+    fetch(GAS_URL + "?action=list")
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || "error");
+        allVideos = data.videos || [];
+        setListStatus("動画 " + allVideos.length + " 本を読み込みました");
+        renderQuickFilters();
+        renderList();
+        renderQuickTags();
+      })
+      .catch(function () {
+        setListStatus("読み込みに失敗しました。電波の状態を確認して、一覧を読み直すボタンを押してください。", true);
+      });
+  }
+
+  function popularTags() {
+    var count = {};
+    allVideos.forEach(function (v) {
+      (v.tags || []).forEach(function (t) {
+        count[t] = (count[t] || 0) + 1;
+      });
+    });
+    return Object.keys(count).sort(function (a, b) { return count[b] - count[a]; });
+  }
+
+  function renderQuickFilters() {
+    quickFilters.innerHTML = "";
+    popularTags().slice(0, 8).forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = t;
+      b.setAttribute("aria-pressed", activeFilter === t ? "true" : "false");
+      b.setAttribute("aria-label", "タグ " + t + " で絞り込む");
+      if (activeFilter === t) {
+        b.style.borderColor = "var(--accent)";
+        b.style.color = "var(--text)";
+      }
+      b.addEventListener("click", function () {
+        activeFilter = activeFilter === t ? "" : t;
+        renderQuickFilters();
+        renderList();
+      });
+      quickFilters.appendChild(b);
+    });
+  }
+
+  function renderQuickTags() {
+    quickTags.innerHTML = "";
+    popularTags().slice(0, 8).forEach(function (t) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = t;
+      b.setAttribute("aria-label", "よく使うタグ " + t + " を追加");
+      b.addEventListener("click", function () { addTag(t); });
+      quickTags.appendChild(b);
+    });
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    return d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日";
+  }
+
+  function renderList() {
+    var q = searchInput.value.trim().toLowerCase();
+    var shown = allVideos.filter(function (v) {
+      if (activeFilter && (v.tags || []).indexOf(activeFilter) === -1) return false;
+      if (!q) return true;
+      var hay = (v.name + " " + (v.tags || []).join(" ") + " " + (v.memo || "")).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+
+    videoList.innerHTML = "";
+    if (shown.length === 0) {
+      var p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = allVideos.length === 0
+        ? "動画がまだありません。ドライブの共有フォルダに動画を入れると、ここに並びます。"
+        : "検索に合う動画が見つかりませんでした。";
+      videoList.appendChild(p);
+      return;
+    }
+
+    shown.forEach(function (v) {
+      var div = document.createElement("div");
+      div.className = "video";
+
+      var h3 = document.createElement("h3");
+      h3.textContent = v.name;
+      div.appendChild(h3);
+
+      var date = document.createElement("p");
+      date.className = "date";
+      date.textContent = "追加 " + formatDate(v.created);
+      div.appendChild(date);
+
+      if (v.tags && v.tags.length) {
+        var tp = document.createElement("p");
+        tp.className = "vtags";
+        v.tags.forEach(function (t) {
+          var s = document.createElement("span");
+          s.textContent = t;
+          tp.appendChild(s);
+        });
+        div.appendChild(tp);
+      }
+
+      if (v.memo) {
+        var mp = document.createElement("p");
+        mp.className = "memo";
+        mp.textContent = v.memo;
+        div.appendChild(mp);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "video-actions";
+
+      var openLink = document.createElement("a");
+      openLink.className = "btn-link";
+      openLink.href = "https://drive.google.com/file/d/" + encodeURIComponent(v.id) + "/view";
+      openLink.target = "_blank";
+      openLink.rel = "noopener";
+      openLink.textContent = "動画を開く";
+      openLink.setAttribute("aria-label", v.name + " をドライブで開く 再生と保存ができます");
+      actions.appendChild(openLink);
+
+      var editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "btn-secondary";
+      editBtn.textContent = "タグを付ける";
+      editBtn.setAttribute("aria-label", v.name + " にタグを付ける あいことばが必要です");
+      editBtn.addEventListener("click", function () { openEditor(v); });
+      actions.appendChild(editBtn);
+
+      div.appendChild(actions);
+      videoList.appendChild(div);
+    });
+  }
+
+  function renderTags() {
+    tagList.innerHTML = "";
+    currentTags.forEach(function (tag, i) {
+      var li = document.createElement("li");
+      var span = document.createElement("span");
+      span.className = "chip";
+      span.appendChild(document.createTextNode(tag));
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.setAttribute("aria-label", "タグ " + tag + " を削除");
+      btn.addEventListener("click", function () {
+        currentTags.splice(i, 1);
+        renderTags();
+      });
+      span.appendChild(btn);
+      li.appendChild(span);
+      tagList.appendChild(li);
+    });
+  }
+
+  function addTag(raw) {
+    var t = String(raw || "").trim();
+    if (!t) return;
+    if (t.indexOf(",") !== -1) {
+      setStatus("タグにカンマは使えません", true);
+      return;
+    }
+    if (currentTags.indexOf(t) !== -1) {
+      setStatus("同じタグがすでにあります", true);
+      return;
+    }
+    currentTags.push(t);
+    renderTags();
+    setStatus("");
+  }
+
+  function openEditor(v) {
+    editingVideo = v;
+    currentTags = (v.tags || []).slice();
+    memoInput.value = v.memo || "";
+    editingName.textContent = "対象の動画 " + v.name;
+    try {
+      var savedPw = localStorage.getItem(PW_KEY);
+      if (savedPw) passwordInput.value = savedPw;
+    } catch (e) {}
+    renderTags();
+    setStatus("");
+    editSection.hidden = false;
+    if (editSection.scrollIntoView) editSection.scrollIntoView();
+    tagInput.focus();
+  }
+
+  function closeEditor() {
+    editSection.hidden = true;
+    editingVideo = null;
+  }
+
+  function saveTags() {
+    if (!editingVideo) return;
+    var pw = passwordInput.value;
+    if (!pw) {
+      setStatus("あいことばを入力してください", true);
+      return;
+    }
+    if (currentTags.length === 0 && !memoInput.value.trim()) {
+      setStatus("タグかメモをひとつ以上入れてください", true);
+      return;
+    }
+    setStatus("保存中です しばらくお待ちください");
+    saveBtn.disabled = true;
+    fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "save",
+        videoId: editingVideo.id,
+        name: editingVideo.name,
+        tags: currentTags,
+        memo: memoInput.value.trim(),
+        password: pw
+      })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        saveBtn.disabled = false;
+        if (!data.ok) {
+          if (data.error === "password") {
+            setStatus("あいことばが違います", true);
+          } else if (data.error === "password_not_set") {
+            setStatus("GAS側にあいことばがまだ設定されていません。管理者に連絡してください。", true);
+          } else {
+            setStatus("保存に失敗しました " + (data.error || ""), true);
+          }
+          return;
+        }
+        try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
+        editingVideo.tags = data.tags || currentTags.slice();
+        editingVideo.memo = data.memo || memoInput.value.trim();
+        setStatus("保存しました " + editingVideo.name);
+        renderList();
+        renderQuickFilters();
+        renderQuickTags();
+      })
+      .catch(function () {
+        saveBtn.disabled = false;
+        setStatus("通信に失敗しました。電波の状態を確認してもう一度お試しください。", true);
+      });
+  }
+
+  searchInput.addEventListener("input", renderList);
+
+  var uploadFileInput = document.getElementById("uploadFileInput");
+  var uploadFileName = document.getElementById("uploadFileName");
+  var uploadPassword = document.getElementById("uploadPassword");
+  var uploadBtn = document.getElementById("uploadBtn");
+  var uploadProgress = document.getElementById("uploadProgress");
+  var uploadStatus = document.getElementById("uploadStatus");
+  var uploadFile = null;
+
+  function setUploadStatus(msg, isError) {
+    uploadStatus.textContent = msg;
+    uploadStatus.className = isError ? "error" : "";
+  }
+
+  try {
+    var savedPw2 = localStorage.getItem(PW_KEY);
+    if (savedPw2) uploadPassword.value = savedPw2;
+  } catch (e) {}
+
+  uploadFileInput.addEventListener("change", function () {
+    if (uploadFileInput.files && uploadFileInput.files[0]) {
+      uploadFile = uploadFileInput.files[0];
+      var mb = Math.round(uploadFile.size / 1024 / 1024 * 10) / 10;
+      uploadFileName.textContent = "選択中 " + uploadFile.name + " およそ " + mb + " MB";
+      setUploadStatus("");
+    }
+  });
+
+  function putVideo(uploadUrl, file) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("PUT", uploadUrl);
+      xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+      xhr.upload.onprogress = function (ev) {
+        if (ev.lengthComputable) {
+          var pct = Math.floor(ev.loaded / ev.total * 100);
+          uploadProgress.textContent = "送信中 " + pct + " パーセント";
+        }
+      };
+      xhr.onload = function () {
+        if (xhr.status === 200 || xhr.status === 201) {
+          try { resolve(JSON.parse(xhr.responseText)); }
+          catch (err) { resolve({}); }
+        } else {
+          reject(new Error("status " + xhr.status));
+        }
+      };
+      xhr.onerror = function () { reject(new Error("network")); };
+      xhr.send(file);
+    });
+  }
+
+  function startUpload() {
+    if (!uploadFile) {
+      setUploadStatus("先に投稿する動画を選んでください", true);
+      return;
+    }
+    var pw = uploadPassword.value;
+    if (!pw) {
+      setUploadStatus("あいことばを入力してください", true);
+      return;
+    }
+    uploadBtn.disabled = true;
+    uploadProgress.textContent = "";
+    setUploadStatus("投稿の準備をしています しばらくお待ちください");
+    fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "upload_url",
+        name: uploadFile.name,
+        mimeType: uploadFile.type || "video/mp4",
+        password: pw
+      })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          if (data.error === "password") throw new Error("PW");
+          if (data.error === "password_not_set") throw new Error("PWSET");
+          if (data.error === "not_video") throw new Error("NOTVIDEO");
+          throw new Error(data.error || "prepare");
+        }
+        try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
+        setUploadStatus("動画を送信しています 長い動画は時間がかかります");
+        return putVideo(data.uploadUrl, uploadFile);
+      })
+      .then(function (fileInfo) {
+        uploadBtn.disabled = false;
+        uploadProgress.textContent = "";
+        setUploadStatus("投稿が完了しました " + uploadFile.name + " 続けてタグを付けられます");
+        var newVideo = {
+          id: fileInfo.id || "",
+          name: fileInfo.name || uploadFile.name,
+          created: new Date().toISOString(),
+          tags: [],
+          memo: "",
+          updated: ""
+        };
+        allVideos.unshift(newVideo);
+        renderList();
+        uploadFile = null;
+        uploadFileInput.value = "";
+        uploadFileName.textContent = "まだ動画が選ばれていません";
+        if (newVideo.id) openEditor(newVideo);
+      })
+      .catch(function (err) {
+        uploadBtn.disabled = false;
+        uploadProgress.textContent = "";
+        if (err && err.message === "PW") {
+          setUploadStatus("あいことばが違います", true);
+        } else if (err && err.message === "PWSET") {
+          setUploadStatus("GAS側にあいことばがまだ設定されていません。管理者に連絡してください。", true);
+        } else if (err && err.message === "NOTVIDEO") {
+          setUploadStatus("動画ファイルではないため投稿できません", true);
+        } else {
+          setUploadStatus("投稿に失敗しました。電波の良い場所でもう一度お試しください。", true);
+        }
+      });
+  }
+
+  uploadBtn.addEventListener("click", startUpload);
+
+  reloadBtn.addEventListener("click", loadList);
+  addTagBtn.addEventListener("click", function () {
+    addTag(tagInput.value);
+    tagInput.value = "";
+    tagInput.focus();
+  });
+  tagInput.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      addTag(tagInput.value);
+      tagInput.value = "";
+    }
+  });
+  saveBtn.addEventListener("click", saveTags);
+  cancelBtn.addEventListener("click", closeEditor);
+
+  loadList();
+})();
+</script>
+</body>
+</html>

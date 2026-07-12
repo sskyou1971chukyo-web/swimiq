@@ -583,10 +583,10 @@
           try { resolve(JSON.parse(xhr.responseText)); }
           catch (err) { resolve({}); }
         } else {
-          reject(new Error("status " + xhr.status));
+          reject(new Error("SEND:番号" + xhr.status + " " + String(xhr.responseText || "").slice(0, 200)));
         }
       };
-      xhr.onerror = function () { reject(new Error("network")); };
+      xhr.onerror = function () { reject(new Error("SEND:通信遮断 ブラウザが送信を止めた可能性があります")); };
       xhr.send(file);
     });
   }
@@ -620,7 +620,7 @@
           if (data.error === "password") throw new Error("PW");
           if (data.error === "password_not_set") throw new Error("PWSET");
           if (data.error === "not_video") throw new Error("NOTVIDEO");
-          throw new Error(data.error || "prepare");
+          throw new Error("PREP:" + (data.error || "不明") + " " + String(data.detail || "").slice(0, 200));
         }
         try { localStorage.setItem(PW_KEY, pw); } catch (e) {}
         setUploadStatus("動画を送信しています 長い動画は時間がかかります");
@@ -654,6 +654,10 @@
           setUploadStatus("GAS側にあいことばがまだ設定されていません。管理者に連絡してください。", true);
         } else if (err && err.message === "NOTVIDEO") {
           setUploadStatus("動画ファイルではないため投稿できません", true);
+        } else if (err && err.message && err.message.indexOf("PREP:") === 0) {
+          setUploadStatus("準備の段階で失敗しました 理由 " + err.message.slice(5), true);
+        } else if (err && err.message && err.message.indexOf("SEND:") === 0) {
+          setUploadStatus("送信の段階で失敗しました 理由 " + err.message.slice(5), true);
         } else {
           setUploadStatus("投稿に失敗しました。電波の良い場所でもう一度お試しください。", true);
         }

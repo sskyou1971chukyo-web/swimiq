@@ -68,6 +68,10 @@ header{ background:var(--white); padding:18px 24px 14px; }
 .tab.red{ border-color:var(--red); color:var(--red); }
 .tab.red[aria-selected="true"]{ background:var(--red); color:var(--white); }
 .tab:focus-visible{ outline:4px solid var(--gold); outline-offset:2px; }
+/* タブの大きさの比率 入力:見る:設定 = 2:6:2 */
+.tabs .tab:nth-child(1){ flex:2; }
+.tabs .tab:nth-child(2){ flex:6; }
+.tabs .tab:nth-child(3){ flex:2; }
 
 main{ max-width:1180px; margin:0 auto; padding:20px 24px 80px; }
 
@@ -204,8 +208,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   .brand img.logo{ height:46px; }
   main{ padding:14px 12px 60px; }
   .tabs{ padding:12px 12px 0; gap:8px; }
-  .tab{ font-size:1.02rem; min-height:56px; }
-  .tabs .tab:last-child{ flex:0 1 90px; }
+  .tab{ font-size:.95rem; min-height:56px; padding:4px 2px; }
   .modes{ grid-template-columns:repeat(2,1fr); gap:8px; }
   .mode{ min-height:56px; font-size:.98rem; }
   .card{ padding:14px; border-radius:12px; }
@@ -240,7 +243,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 <div class="tabs" role="tablist" aria-label="画面の切りかえ">
   <button class="tab red" id="tabInput" role="tab" aria-selected="true" onclick="showTab('input')">記録を入力する</button>
   <button class="tab" id="tabView" role="tab" aria-selected="false" onclick="showTab('view')">記録を見る</button>
-  <button class="tab" id="tabAdmin" role="tab" aria-selected="false" onclick="showTab('admin')" style="flex:0 1 200px">設定</button>
+  <button class="tab" id="tabAdmin" role="tab" aria-selected="false" onclick="showTab('admin')">設定</button>
 </div>
 
 <main>
@@ -276,7 +279,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.13.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.13.3';  // アプリを更新するたびにこの番号を変えます
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -862,6 +865,7 @@ function viewName(autoName){
         <div class="legendline">
           <span><span class="sw" style="border-color:var(--red)"></span>日本選手権 標準記録</span>
           <span><span class="sw" style="border-color:var(--blue)"></span>ジャパンオープン 標準記録</span>
+          <span><span class="sw" style="border-color:var(--green)"></span>インカレ 標準記録</span>
           <span style="color:var(--gray)">上に行くほど速いタイムです</span>
         </div>
       </div>
@@ -1047,10 +1051,8 @@ function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
   ).sort((a,b)=>a.stamp-b.stamp);
   if(rows.length===0) return;
   const sex = (INIT.roster.find(x=>x.name===p.name)||{}).sex==='女'?'女子':'男子';
-  const std = stdFor(stroke, dist, sex);
-  const lines = [];
-  if(std.japan) lines.push({axis:'y', value:std.japan, color:'#E5372E', label:'日本選手権 '+std.japanStr});
-  if(std.open)  lines.push({axis:'y', value:std.open,  color:'#1663C7', label:'Jオープン '+std.openStr});
+  const std = stdFor(stroke, dist, sex, course);
+  const lines = stdLineList(std, 'y');
   const bestSec = Math.min(...rows.map(r=>r.sec));
   document.getElementById(boxId).hidden = false;
   document.getElementById(titleId).textContent =
@@ -1084,11 +1086,31 @@ function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
   document.getElementById(boxId).scrollIntoView({behavior:'smooth'});
 }
 
-function stdFor(stroke, dist, sex){
-  const s = (INIT.standards||{})[dist+stroke+'_'+sex];
-  if(!s) return {open:null, japan:null};
-  return { open: toSec(s.open), japan: toSec(s.japan),
-           openStr: s.open, japanStr: s.japan };
+// 標準記録をさがす。標準記録シートを最優先にして、
+// なければ大会シート由来の値(長水路のみ)で補う
+function stdFor(stroke, dist, sex, course){
+  course = course || '長水路';
+  const ev = dist + stroke;
+  const all = INIT.standardsAll || {};
+  let japanStr = all['日本選手権_'+course+'_'+sex+'_'+ev] || null;
+  let openStr  = all['ジャパンオープン_'+course+'_'+sex+'_'+ev] || null;
+  const incStr = all['インカレ_'+course+'_'+sex+'_'+ev] || null;
+  if(course === '長水路'){
+    const s = (INIT.standards||{})[ev+'_'+sex];
+    if(!japanStr && s) japanStr = s.japan || null;
+    if(!openStr && s)  openStr  = s.open || null;
+  }
+  return { japan:toSec(japanStr), japanStr,
+           open:toSec(openStr),  openStr,
+           inc:toSec(incStr),    incStr };
+}
+// グラフに引く標準記録のライン一式を作る (赤=日本選手権 青=Jオープン 緑=インカレ)
+function stdLineList(std, axis){
+  const L = [];
+  if(std.japan) L.push({axis, value:std.japan, color:'#E5372E', label:'日本選手権 '+std.japanStr});
+  if(std.open)  L.push({axis, value:std.open,  color:'#1663C7', label:'Jオープン '+std.openStr});
+  if(std.inc)   L.push({axis, value:std.inc,   color:'#17934A', label:'インカレ '+std.incStr});
+  return L;
 }
 
 /* ============================================================
@@ -1134,6 +1156,7 @@ function viewRank(){
         <div class="legendline">
           <span><span class="sw" style="border-color:var(--red)"></span>日本選手権 標準記録</span>
           <span><span class="sw" style="border-color:var(--blue)"></span>ジャパンオープン 標準記録</span>
+          <span><span class="sw" style="border-color:var(--green)"></span>インカレ 標準記録</span>
         </div>
       </div>
       <div id="rkOut" style="margin-top:16px"></div>
@@ -1172,12 +1195,10 @@ function viewRank(){
     });
     out.innerHTML = html + '</table></div>';
     // 横棒グラフ + 標準記録の縦ライン
-    const std = stdFor(cur.stroke, cur.dist, cur.sex);
+    const std = stdFor(cur.stroke, cur.dist, cur.sex, cur.course);
     const colors = ranked.map((_,i)=>
       i===0?'#F5B301': i===1?'#94A7BC': i===2?'#C77B3F':'#1663C7');
-    const lines = [];
-    if(std.japan) lines.push({axis:'x', value:std.japan, color:'#E5372E', label:'日本選手権 '+std.japanStr});
-    if(std.open)  lines.push({axis:'x', value:std.open,  color:'#1663C7', label:'Jオープン '+std.openStr});
+    const lines = stdLineList(std, 'x');
     const secs = ranked.map(r=>r.sec).concat(lines.map(L=>L.value));
     const min = Math.min(...secs), max = Math.max(...secs), padPx=(max-min)*0.08||1;
     newChart(document.getElementById('rkChart'), {
@@ -1255,7 +1276,7 @@ function viewLegend(){
     const ranked = Object.values(bestMap).sort((a,b)=>a.sec-b.sec).slice(0,10);
     const out = document.getElementById('lgOut');
     if(ranked.length===0){ out.innerHTML='<p class="hint">この条件の記録はまだありません。</p>'; return; }
-    const std = stdFor(cur.stroke, cur.dist, cur.sex);
+    const std = stdFor(cur.stroke, cur.dist, cur.sex, cur.course);
     let html = `<div class="tablewrap"><table><tr><th>順位</th><th>名前</th><th>記録</th><th>備考</th></tr>`;
     ranked.forEach((r,i)=>{
       const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
@@ -1263,6 +1284,7 @@ function viewLegend(){
       let badge = '';
       if(std.japan && r.sec <= std.japan) badge = ' <span class="pbtag">日本選手権突破</span>';
       else if(std.open && r.sec <= std.open) badge = ' <span class="pbtag" style="background:var(--blue)">Jオープン突破</span>';
+      else if(std.inc && r.sec <= std.inc) badge = ' <span class="pbtag" style="background:var(--green)">インカレ突破</span>';
       html += `<tr class="${cls}"><td>${medal}</td><td>${esc(r.name)}</td>
         <td class="num" style="font-weight:800">${toStr(r.sec)}${badge}</td>
         <td style="color:var(--gray); font-size:.92rem">${esc(r.note)}</td></tr>`;
@@ -1303,23 +1325,42 @@ function viewLegend(){
 ============================================================ */
 function viewStd(){
   const body = document.getElementById('viewBody');
-  let html = `<div class="card"><h2>標準記録の一覧</h2>
-    <p class="hint">赤い列が日本選手権、青い列がジャパンオープンの突破標準記録です。大会シートに入っているいちばん新しい値を表示しています。</p>
-    <div class="tablewrap"><table>
-    <tr><th>種目</th>
-      <th style="background:var(--red)">男子 日本選手権</th><th>男子 Jオープン</th>
-      <th style="background:var(--red)">女子 日本選手権</th><th>女子 Jオープン</th></tr>`;
-  STROKES.forEach(s=>{
-    s.dists.forEach(d=>{
-      const m = (INIT.standards||{})[d+s.code+'_男子'] || {};
-      const f = (INIT.standards||{})[d+s.code+'_女子'] || {};
-      if(!m.open && !f.open) return;
-      html += `<tr><td>${d}m ${s.ja}</td>
-        <td class="num" style="background:var(--red-pale)">${esc(m.japan||'-')}</td><td class="num">${esc(m.open||'-')}</td>
-        <td class="num" style="background:var(--red-pale)">${esc(f.japan||'-')}</td><td class="num">${esc(f.open||'-')}</td></tr>`;
+  body.innerHTML = `
+    <div class="card"><h2>標準記録の一覧</h2>
+      <div class="stack" style="align-items:end">
+        <label class="fld">男女<select id="sdSex"><option>男子</option><option>女子</option></select></label>
+        <label class="fld">水路<select id="sdCourse"><option>長水路</option><option>短水路</option></select></label>
+      </div>
+      <p class="hint" style="margin-top:10px">赤い列が日本選手権、青い列がジャパンオープン、緑の列がインカレ(日本学生選手権)の突破標準記録です。</p>
+      <div id="sdOut" style="margin-top:10px"></div>
+    </div>`;
+  function draw(){
+    const sex = document.getElementById('sdSex').value;
+    const course = document.getElementById('sdCourse').value;
+    let html = `<div class="tablewrap"><table>
+      <tr><th>種目</th>
+        <th style="background:var(--red)">日本選手権</th>
+        <th>ジャパンオープン</th>
+        <th style="background:var(--green)">インカレ</th></tr>`;
+    let any = false;
+    STROKES.forEach(s=>{
+      s.dists.forEach(d=>{
+        const std = stdFor(s.code, d, sex, course);
+        if(!std.japanStr && !std.openStr && !std.incStr) return;
+        any = true;
+        html += `<tr><td style="font-weight:700">${d}m ${s.ja}</td>
+          <td class="num" style="background:var(--red-pale)">${esc(std.japanStr||'-')}</td>
+          <td class="num">${esc(std.openStr||'-')}</td>
+          <td class="num" style="background:#E8F6EE">${esc(std.incStr||'-')}</td></tr>`;
+      });
     });
-  });
-  body.innerHTML = html + '</table></div></div>';
+    document.getElementById('sdOut').innerHTML = any
+      ? html + '</table></div>'
+      : '<p class="hint">この条件の標準記録はまだ登録されていません。設定画面のスクショ取り込みか、GASのseedStandardsで登録できます。</p>';
+  }
+  document.getElementById('sdSex').onchange = draw;
+  document.getElementById('sdCourse').onchange = draw;
+  draw();
 }
 
 /* ============================================================
@@ -1353,6 +1394,7 @@ function viewGraph(){
         <div class="legendline">
           <span><span class="sw" style="border-color:var(--red)"></span>日本選手権 標準記録</span>
           <span><span class="sw" style="border-color:var(--blue)"></span>ジャパンオープン 標準記録</span>
+          <span><span class="sw" style="border-color:var(--green)"></span>インカレ 標準記録</span>
           <span style="color:var(--gray)">上に行くほど速いタイムです</span>
         </div>
       </div>`;
@@ -1471,6 +1513,17 @@ function renderAdmin(){
         <button class="btn solid" onclick="adminSaveEvents()">種目の設定を保存する</button>
       </div>
       <div id="aeMsg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card"><h2>標準記録の取り込み(スクショから)</h2>
+      <p class="hint">日本水泳連盟などのページの標準記録の表をスクショして選ぶと、AIが表を読み取って標準記録シートに登録します。長水路・短水路の両方が写った表に対応しています。</p>
+      <div class="stack" style="align-items:end">
+        <label class="fld">標準記録の種類
+          <select id="asKind"><option>日本選手権</option><option>ジャパンオープン</option><option>インカレ</option></select></label>
+        <label class="fld">スクショ画像<input type="file" id="asFile" accept="image/*" style="min-height:58px; padding:12px"></label>
+        <button class="btn solid" onclick="adminImportStd()">読み取って登録する</button>
+      </div>
+      <div id="asMsg" style="margin-top:10px"></div>
     </div>
 
     <div class="stack"><button class="btn ghost" onclick="ADMIN_PW=''; sessionStorage.removeItem('cust_admin_pw'); startAdmin()">設定画面から出る</button></div>`;
@@ -1620,6 +1673,32 @@ async function adminSaveEvents(){
     STROKES = ADMIN_EVENTS.map(e=>({code:e.code, ja:e.ja, dists:e.dists.slice()}));
     msg.innerHTML = '<div class="okmsg">種目の設定を保存しました。入力画面と閲覧画面に反映されています。</div>';
   }catch(err){ msg.innerHTML = '<div class="errmsg">保存できませんでした: '+esc(err.message)+'</div>'; }
+}
+
+// ----- 標準記録のスクショ取り込み -----
+async function adminImportStd(){
+  const msg = document.getElementById('asMsg');
+  const file = document.getElementById('asFile').files[0];
+  if(!file){ msg.innerHTML='<div class="errmsg">スクショ画像を選んでください。</div>'; return; }
+  const kind = document.getElementById('asKind').value;
+  msg.innerHTML = '<div class="loading">AIが表を読み取っています。30秒ほどかかることがあります…</div>';
+  try{
+    // 画像をbase64の文字列にする
+    const b64 = await new Promise((ok, ng)=>{
+      const r = new FileReader();
+      r.onload = ()=>ok(String(r.result).split(',')[1]);
+      r.onerror = ()=>ng(new Error('画像が読めませんでした'));
+      r.readAsDataURL(file);
+    });
+    const res = await apiSave({ action:'importStandards', password:ADMIN_PW,
+      kind:kind, image:b64, mime:file.type||'image/png' });
+    INIT = null; localStorage.removeItem('cust_rec_cache');
+    await loadInit();
+    msg.innerHTML = `<div class="okmsg">${esc(kind)}の標準記録を${res.count}件登録しました。閲覧の標準記録画面で確認できます。</div>`;
+    document.getElementById('asFile').value='';
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">取り込めませんでした: '+esc(err.message)+'</div>';
+  }
 }
 
 /* ============================================================

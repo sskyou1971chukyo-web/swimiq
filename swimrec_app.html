@@ -280,6 +280,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
       <button class="mode" data-m="rank"  role="tab" onclick="showMode('rank')">ランキング</button>
       <button class="mode" data-m="best"  role="tab" onclick="showMode('best')">歴代ランキング</button>
       <button class="mode" data-m="std"   role="tab" onclick="showMode('std')">標準記録</button>
+      <button class="mode" data-m="records" role="tab" onclick="showMode('records')">記録一覧</button>
       <button class="mode" data-m="graph" role="tab" onclick="showMode('graph')">グラフ</button>
     </div>
     <div id="viewBody"><div class="loading">読み込みの準備をしています…</div></div>
@@ -290,7 +291,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.14.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.14.15';  // アプリを更新するたびにこの番号を変えます
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -438,6 +439,7 @@ function showMode(m){
     if(m==='rank') viewRank();
     if(m==='best') viewLegend();
     if(m==='std') viewStd();
+    if(m==='records') viewRecords();
     if(m==='graph') viewGraph();
   }).catch(err=>{
     body.innerHTML = '<div class="errmsg">読み込めませんでした: '+esc(err.message)+
@@ -449,8 +451,9 @@ function showMode(m){
    選手を探す共通部品
    学年・男女・五十音・文字検索(音声入力もOK)で絞り込みます
 ============================================================ */
-function makeFinder(container, onPick, multiDone){
-  const state = { grade:'', sex:'', row:'', text:'' };
+function makeFinder(container, onPick, multiDone, preselected){
+  // 学年・男女・行は複数選べる(空っぽのときは絞り込みなし)
+  const state = { grade:new Set(), sex:new Set(), row:new Set(), text:'' };
   const grades = [...new Set(INIT.roster.map(r=>r.grade).filter(Boolean))];
 
   container.innerHTML = `
@@ -468,6 +471,7 @@ function makeFinder(container, onPick, multiDone){
       <div class="athlist" role="list"></div>
     </div>`;
   const selected = new Map();
+  (preselected||[]).forEach(p=>selected.set(p.name, p));
   function paintSel(){
     if(!multiDone) return;
     container.querySelector('.selcount').textContent = '選択中: '+selected.size+'人';
@@ -482,14 +486,20 @@ function makeFinder(container, onPick, multiDone){
     box.innerHTML = '';
     const all = document.createElement('button');
     all.className = 'chip on'; all.textContent = 'すべて'; all.type='button';
-    all.onclick = ()=>{ state[k]=''; render(); };
+    all.onclick = ()=>{ state[k].clear(); render(); };
     box.appendChild(all);
     items.forEach(v=>{
       const b = document.createElement('button');
       b.className = 'chip'; b.type='button';
       b.textContent = v.label!==undefined? v.label : v;
-      b.onclick = ()=>{ state[k]= (v.value!==undefined? v.value:v); render(); };
-      b.dataset.v = v.value!==undefined? v.value:v;
+      const val = v.value!==undefined? v.value : v;
+      // 押すたびに追加と取り消しが切り替わる
+      b.onclick = ()=>{
+        if(state[k].has(val)) state[k].delete(val);
+        else state[k].add(val);
+        render();
+      };
+      b.dataset.v = val;
       box.appendChild(b);
     });
   }
@@ -504,6 +514,7 @@ function makeFinder(container, onPick, multiDone){
   container.querySelector('input[data-k="text"]').addEventListener('input', e=>{
     state.text = e.target.value.trim(); render();
   });
+  paintSel();
 
   function kanaRow(kana){
     const c = (kana||'')[0];
@@ -511,18 +522,18 @@ function makeFinder(container, onPick, multiDone){
     return '';
   }
   function render(){
-    // チップの見た目を今の状態にそろえる
+    // チップの見た目を今の状態にそろえる(すべて=なにも選んでいないとき)
     ['grade','sex','row'].forEach(k=>{
       container.querySelectorAll(`.chips[data-k="${k}"] .chip`).forEach((b,i)=>{
-        const on = i===0 ? state[k]==='' : b.dataset.v===state[k];
+        const on = i===0 ? state[k].size===0 : state[k].has(b.dataset.v);
         b.classList.toggle('on', on);
       });
     });
     const list = container.querySelector('.athlist');
     let people = INIT.roster.slice();
-    if(state.grade) people = people.filter(p=>p.grade===state.grade);
-    if(state.sex)   people = people.filter(p=>(p.sex||'').startsWith(state.sex));
-    if(state.row)   people = people.filter(p=>kanaRow(p.kana)===state.row);
+    if(state.grade.size) people = people.filter(p=>state.grade.has(p.grade));
+    if(state.sex.size)   people = people.filter(p=>Array.from(state.sex).some(v=>(p.sex||'').startsWith(v)));
+    if(state.row.size)   people = people.filter(p=>state.row.has(kanaRow(p.kana)));
     if(state.text)  people = people.filter(p=>p.name.includes(state.text)||p.kana.includes(state.text));
     people.sort((a,b)=>(a.kana||a.name).localeCompare(b.kana||b.name,'ja'));
     list.innerHTML = '';
@@ -556,7 +567,7 @@ function makeFinder(container, onPick, multiDone){
 /* ============================================================
    入力画面: 大会 → 種目 → 選手(複数可) → 一覧表に打ち込み
 ============================================================ */
-const IN = { meet:null, course:'', stroke:null, dist:null, list:[] };
+const IN = { meet:null, course:'', stroke:null, dist:null, list:[], times:{}, saved:{}, date:'' };
 const STEP_NAMES = ['大会を選ぶ','種目を選ぶ','選手を選ぶ','記録を打ち込む'];
 
 function drawSteps(now){
@@ -586,14 +597,17 @@ async function startInput(){
 function stepMeet(){
   drawSteps(0);
   const body = document.getElementById('inBody');
-  const recent = INIT.meets.slice(0,8);
   body.innerHTML = `
     <div class="card redline">
       <h2>どの大会の記録ですか</h2>
-      <p class="hint">最近の大会から選ぶか、新しい大会名を入れてください。</p>
-      <div class="stack" id="meetBtns"></div>
+      <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。試合名を選ぶと次に進みます。</p>
+      <div class="stack" style="align-items:end">
+        <label class="fld">年<select id="meetYear"></select></label>
+        <label class="fld">月<select id="meetMonth"></select></label>
+        <label class="fld" style="flex:1; min-width:260px">試合名<select id="meetName"></select></label>
+      </div>
       <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
-        <label class="fld" style="flex:1; min-width:240px;">新しい大会名
+        <label class="fld" style="flex:1; min-width:240px;">一覧にないときは 新しい大会名
           <input type="text" id="newMeet" placeholder="例: 三重とこわか2026">
         </label>
         <label class="fld">水路
@@ -602,14 +616,56 @@ function stepMeet(){
         <button class="btn solid" onclick="pickNewMeet()">この大会にする</button>
       </div>
     </div>`;
-  const box = document.getElementById('meetBtns');
-  recent.forEach(m=>{
-    const b = document.createElement('button');
-    b.className = 'btn';
-    b.textContent = `${m.meet} (${m.year}年${m.month}月 ${m.course||''})`;
-    b.onclick = ()=>{ IN.meet = m.meet; IN.course = m.course||'長水路'; stepEvent(); };
-    box.appendChild(b);
-  });
+
+  const ySel = document.getElementById('meetYear');
+  const mSel = document.getElementById('meetMonth');
+  const nSel = document.getElementById('meetName');
+  const years = [...new Set(INIT.meets.map(m=>m.year).filter(y=>y>0))].sort((a,b)=>b-a);
+
+  function fillYears(){
+    ySel.innerHTML = '';
+    years.forEach(y=>{
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y+'年';
+      ySel.appendChild(o);
+    });
+  }
+  function fillMonths(){
+    const y = Number(ySel.value);
+    const months = [...new Set(INIT.meets.filter(m=>m.year===y).map(m=>m.month).filter(m=>m>0))]
+      .sort((a,b)=>b-a);
+    mSel.innerHTML = '<option value="0">すべての月</option>';
+    months.forEach(mo=>{
+      const o = document.createElement('option');
+      o.value = mo; o.textContent = mo+'月';
+      mSel.appendChild(o);
+    });
+  }
+  function fillNames(){
+    const y = Number(ySel.value);
+    const mo = Number(mSel.value);
+    const hits = INIT.meets.filter(m=>m.year===y && (mo===0 || m.month===mo));
+    nSel.innerHTML = '<option value="">試合を選んでください</option>';
+    hits.forEach((m)=>{
+      const o = document.createElement('option');
+      o.value = INIT.meets.indexOf(m);
+      o.textContent = `${m.month}月 ${m.meet} ${m.course||''}${m.ref?'(参考)':''}`;
+      nSel.appendChild(o);
+    });
+    if(hits.length===0){
+      nSel.innerHTML = '<option value="">この年月の試合はありません</option>';
+    }
+  }
+  ySel.onchange = ()=>{ fillMonths(); fillNames(); };
+  mSel.onchange = fillNames;
+  nSel.onchange = ()=>{
+    if(nSel.value==='') return;
+    const m = INIT.meets[Number(nSel.value)];
+    IN.meet = m.meet;
+    IN.course = m.course || '長水路';
+    stepEvent();
+  };
+  fillYears(); fillMonths(); fillNames();
 }
 function pickNewMeet(){
   const v = document.getElementById('newMeet').value.trim();
@@ -643,7 +699,10 @@ function stepEvent(){
       const b = document.createElement('button');
       b.className = 'btn big red';
       b.textContent = d + 'm';
-      b.onclick = ()=>{ IN.dist = d; stepAthletes(); };
+      b.onclick = ()=>{
+        if(IN.dist !== d){ IN.list = []; IN.times = {}; IN.saved = {}; IN.date = ''; }
+        IN.dist = d; stepAthletes();
+      };
       db.appendChild(b);
     });
   } else {
@@ -664,7 +723,7 @@ function stepAthletes(){
   makeFinder(document.getElementById('finderBox'), null, list=>{
     IN.list = list;
     stepTable();
-  });
+  }, IN.list);
 }
 
 // その選手・種目のいちばん速い記録を探す(ベスト比較用)
@@ -685,31 +744,39 @@ function stepTable(){
   let rowsHtml = '';
   IN.list.forEach((p,i)=>{
     const best = findBest(p.name, IN.stroke, IN.dist, IN.course);
-    rowsHtml += `<tr data-i="${i}">
+    const d = IN.times[p.name] || '';
+    const isSaved = !!IN.saved[p.name];
+    rowsHtml += `<tr data-i="${i}" data-name="${esc(p.name)}">
       <td style="font-weight:700; font-size:1.1rem">${esc(p.name)}</td>
       <td class="num">${best!=null? toStr(best) : '-'}</td>
       <td><input class="rowtime" inputmode="numeric" autocomplete="off"
-        aria-label="${esc(p.name)}のタイム" placeholder="15483"></td>
-      <td class="stcell"></td></tr>`;
+        aria-label="${esc(p.name)}のタイム" placeholder="15483"
+        value="${d? digitsToTime(d):''}" data-d="${d}" ${isSaved?'disabled':''}></td>
+      <td class="stcell">${isSaved?'<span class="rowdone">保存済み</span>':''}</td>
+      <td>${isSaved?'' : `<button type="button" class="btn ghost rowdel" style="min-height:44px" aria-label="${esc(p.name)}を一覧から外す">外す</button>`}</td></tr>`;
   });
   body.innerHTML = `
     <div class="card redline">
       <h2>${esc(IN.meet)}　${IN.dist}m${strokeJa(IN.stroke)}(${esc(IN.course)}) の記録を打ち込む</h2>
+      <div class="stack" style="align-items:end; margin-bottom:10px">
+        <label class="fld">この種目の実施日
+          <input type="date" id="btDate" value="${IN.date || new Date().toISOString().slice(0,10)}">
+        </label>
+      </div>
       <p class="hint">数字だけを打ちます。例: 1分54秒83 は 15483。区切りは自動で入ります。日本語入力のままの全角数字でも大丈夫です。改行キーで次の選手に移ります。空欄の選手は保存されません。</p>
       <div class="tablewrap"><table id="batchTable">
-        <tr><th>選手</th><th>これまでのベスト</th><th>今回の記録</th><th></th></tr>
+        <tr><th>選手</th><th>これまでのベスト</th><th>今回の記録</th><th></th><th></th></tr>
         ${rowsHtml}
       </table></div>
       <div class="stack" style="margin-top:16px">
         <button class="btn big red solid" onclick="saveBatchGo()">まとめて保存する</button>
-        <button class="btn" onclick="stepAthletes()">選手を選び直す</button>
+        <button class="btn" onclick="captureTable(); stepAthletes()">選手を追加・削除する</button>
         <button class="btn ghost" onclick="stepEvent()">種目に戻る</button>
       </div>
       <div id="btMsg" style="margin-top:12px"></div>
     </div>`;
   // タイム欄: 数字だけを受け付けて、打つそばから 1:54.83 の形に整える
   // 日本語入力がオンで全角の１５４８３になっても、自動で半角に直します
-  const inputs = Array.from(document.querySelectorAll('#batchTable .rowtime'));
   function formatRow(inp){
     const half = inp.value.replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
     const d = half.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,6);
@@ -718,19 +785,43 @@ function stepTable(){
     inp.classList.remove('ok','bad');
     if(d) inp.classList.add(digitsValid(d)? 'ok' : 'bad');
   }
-  inputs.forEach((inp, idx)=>{
-    // 変換中はさわらず、確定した瞬間に整える
+  document.querySelectorAll('#batchTable .rowtime').forEach(inp=>{
+    if(inp.dataset.d) formatRow(inp);
     inp.addEventListener('input', e=>{ if(!e.isComposing) formatRow(inp); });
     inp.addEventListener('compositionend', ()=>formatRow(inp));
     inp.addEventListener('keydown', e=>{
       if(e.key==='Enter' && !e.isComposing){
         e.preventDefault();
-        const next = inputs[idx+1];
+        // その時点で入力できる欄の中から、次の欄へ移る
+        const list = Array.from(document.querySelectorAll('#batchTable .rowtime:not(:disabled)'));
+        const next = list[list.indexOf(inp)+1];
         if(next) next.focus();
       }
     });
   });
-  if(inputs[0]) inputs[0].focus();
+  // 外すボタン: タイムを保ったまま、その選手だけ一覧から外す
+  document.querySelectorAll('#batchTable .rowdel').forEach(btn=>{
+    btn.onclick = ()=>{
+      const tr = btn.closest('tr');
+      const name = tr.dataset.name;
+      captureTable();
+      IN.list = IN.list.filter(p=>p.name!==name);
+      delete IN.times[name];
+      stepTable();
+    };
+  });
+  document.getElementById('btDate').onchange = e=>{ IN.date = e.target.value; };
+  const first = document.querySelector('#batchTable .rowtime:not(:disabled)');
+  if(first) first.focus();
+}
+
+// 表に打ち込んだタイムを覚えておく(選手の追加・削除で表を作り直すときに使う)
+function captureTable(){
+  document.querySelectorAll('#batchTable tr[data-name]').forEach(tr=>{
+    const name = tr.dataset.name;
+    const d = tr.querySelector('.rowtime').dataset.d || '';
+    if(d) IN.times[name] = d; else delete IN.times[name];
+  });
 }
 
 async function saveBatchGo(){
@@ -758,8 +849,9 @@ async function saveBatchGo(){
   if(!confirm(entries.length+'人の記録を '+IN.meet+' の '+IN.dist+'m'+strokeJa(IN.stroke)+' として保存します。よろしいですか。')) return;
   msg.innerHTML = '<div class="loading">'+entries.length+'件を保存しています…</div>';
   try{
+    IN.date = document.getElementById('btDate').value;
     await apiSave({
-      action:'saveBatch', meet: IN.meet, course: IN.course,
+      action:'saveBatch', meet: IN.meet, course: IN.course, date: IN.date,
       records: entries.map(e=>({ name:e.p.name, event: IN.dist+IN.stroke, time:e.time }))
     });
     localStorage.removeItem('cust_rec_cache');
@@ -767,14 +859,18 @@ async function saveBatchGo(){
       const best = findBest(e.p.name, IN.stroke, IN.dist, IN.course);
       const sec = toSec(e.time);
       const pb = (best!=null && sec!=null && sec<best);
+      IN.saved[e.p.name] = true;
+      IN.times[e.p.name] = e.tr.querySelector('.rowtime').dataset.d || '';
       e.tr.querySelector('.stcell').innerHTML =
         '<span class="rowdone">保存済み</span>' + (pb? ' <span class="pbtag">ベスト更新</span>':'');
       e.tr.querySelector('.rowtime').disabled = true;
+      const del = e.tr.querySelector('.rowdel');
+      if(del) del.remove();
     });
     msg.innerHTML = `<div class="okmsg">${entries.length}件を保存しました。</div>
       <div class="stack" style="margin-top:12px; justify-content:center">
         <button class="btn big solid" onclick="IN.stroke=null; IN.dist=null; stepEvent()">同じ大会の別の種目へ</button>
-        <button class="btn big" onclick="stepAthletes()">同じ種目で選手を追加</button>
+        <button class="btn big" onclick="captureTable(); stepAthletes()">同じ種目で選手を追加</button>
         <button class="btn big ghost" onclick="stepMeet()">最初に戻る</button>
       </div>`;
   }catch(err){
@@ -790,23 +886,63 @@ function viewMeet(){
   body.innerHTML = `
     <div class="card">
       <h2>試合で探す</h2>
-      <label class="fld" style="max-width:480px">大会を選ぶ
-        <select id="meetSel"></select>
-      </label>
+      <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。</p>
+      <div class="stack" style="align-items:end">
+        <label class="fld">年<select id="vmYear"></select></label>
+        <label class="fld">月<select id="vmMonth"></select></label>
+        <label class="fld" style="flex:1; min-width:260px">試合名<select id="vmName"></select></label>
+      </div>
       <div id="meetOut" style="margin-top:16px"></div>
     </div>`;
-  const sel = document.getElementById('meetSel');
-  DATA.meets.slice().map((m,i)=>({m,i}))
-    .sort((a,b)=>(b.m.year*100+b.m.month)-(a.m.year*100+a.m.month))
-    .forEach(({m,i})=>{
+
+  const ySel = document.getElementById('vmYear');
+  const mSel = document.getElementById('vmMonth');
+  const nSel = document.getElementById('vmName');
+  const years = [...new Set(DATA.meets.map(m=>m.year).filter(y=>y>0))].sort((a,b)=>b-a);
+
+  function fillYears(){
+    ySel.innerHTML = '';
+    years.forEach(y=>{
       const o = document.createElement('option');
-      o.value = i;
-      o.textContent = `${m.year}年${m.month}月 ${m.meet} ${m.course||''}${m.ref?'(参考)':''}`;
-      sel.appendChild(o);
+      o.value = y; o.textContent = y+'年';
+      ySel.appendChild(o);
     });
-  sel.onchange = draw; draw();
+  }
+  function fillMonths(){
+    const y = Number(ySel.value);
+    const months = [...new Set(DATA.meets.filter(m=>m.year===y).map(m=>m.month).filter(m=>m>0))]
+      .sort((a,b)=>b-a);
+    mSel.innerHTML = '<option value="0">すべての月</option>';
+    months.forEach(mo=>{
+      const o = document.createElement('option');
+      o.value = mo; o.textContent = mo+'月';
+      mSel.appendChild(o);
+    });
+  }
+  function fillNames(){
+    const y = Number(ySel.value);
+    const mo = Number(mSel.value);
+    const hits = DATA.meets
+      .map((m,i)=>({m,i}))
+      .filter(x=>x.m.year===y && (mo===0 || x.m.month===mo))
+      .sort((a,b)=>(b.m.year*100+b.m.month)-(a.m.year*100+a.m.month));
+    nSel.innerHTML = '';
+    hits.forEach(x=>{
+      const o = document.createElement('option');
+      o.value = x.i;
+      o.textContent = `${x.m.month}月 ${x.m.meet} ${x.m.course||''}${x.m.ref?'(参考)':''}`;
+      nSel.appendChild(o);
+    });
+    if(hits.length===0){
+      nSel.innerHTML = '<option value="">この年月の試合はありません</option>';
+      document.getElementById('meetOut').innerHTML = '';
+      return;
+    }
+    draw();  // いちばん新しい試合を自動で表示する
+  }
   function draw(){
-    const idx = Number(sel.value);
+    if(nSel.value==='') return;
+    const idx = Number(nSel.value);
     const rows = DATA.records.map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     const out = document.getElementById('meetOut');
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
@@ -822,13 +958,17 @@ function viewMeet(){
       html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue)">${esc(k)}</h3>
         <div class="tablewrap"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th><th></th></tr>`;
       g.forEach(r=>{
-        html += `<tr><td>${esc(r.name)}</td><td class="num">${esc(r.time)}</td><td class="num">${esc(r.best)}</td>
+        html += `<tr><td>${esc(r.name)}</td><td class="num">${esc(r.time)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td><td class="num">${esc(r.best)}</td>
           <td>${r.pb?'<span class="pbtag">ベスト更新</span>':''}</td></tr>`;
       });
       html += '</table></div>';
     });
     out.innerHTML = html;
   }
+  ySel.onchange = ()=>{ fillMonths(); fillNames(); };
+  mSel.onchange = fillNames;
+  nSel.onchange = draw;
+  fillYears(); fillMonths(); fillNames();
 }
 
 /* ============================================================
@@ -892,7 +1032,7 @@ function viewName(autoName){
     Object.values(evs).sort((a,b)=>a.dist-b.dist).forEach(r=>{
       const cs = r.meet.course || '長水路';
       html += `<tr><td>${r.dist}m${strokeJa(r.stroke)}</td><td>${esc(cs)}</td>
-        <td class="num">${esc(toStr(r.sec)||r.time)}</td>
+        <td class="num">${esc(toStr(r.sec)||r.time)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, cs)}</td>
         <td>${esc(r.meet.meet)} (${r.meet.year}年${r.meet.month}月)</td>
         <td><button class="btn" style="min-height:46px"
           onclick="nameGraph('${r.stroke}',${r.dist},'${esc(cs)}')">グラフ</button></td></tr>`;
@@ -912,7 +1052,7 @@ function viewName(autoName){
       <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th><th></th></tr>`;
     rows.forEach(r=>{
       html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(r.meet.course||'')}</td>
-        <td>${r.dist}m${strokeJa(r.stroke)}</td><td class="num">${esc(r.time)}</td>
+        <td>${r.dist}m${strokeJa(r.stroke)}</td><td class="num">${esc(r.time)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
         <td>${r.pb?'<span class="pbtag">ベスト更新</span>':''}</td></tr>`;
     });
     html += '</table></div></div>';
@@ -973,7 +1113,7 @@ function eventPicker(box, onChange, withCourse){
 }
 
 /* ============================================================
-   標準記録のライン (赤=日本選手権 / 青=ジャパンオープン)
+   標準記録のライン (赤=日本選手権 / 緑=インカレ)
    をグラフに描きこむ道具
 ============================================================ */
 const stdLinePlugin = {
@@ -1000,11 +1140,11 @@ const stdLinePlugin = {
       ctx.fillStyle = L.color;
       ctx.font = "700 15px 'BIZ UDPGothic', sans-serif";
       if(L.axis==='x'){
-        // ラベルは1本目と2本目で高さをずらして、重ならないようにする
-        const y = chartArea.top + 20 + i*26;
+        // ラベルは棒と重ならないよう、グラフの上の余白に出す
+        const y = chartArea.top - 10 - (lines.length - 1 - i) * 22;
         const rightSide = px > (chartArea.left + chartArea.right) / 2;
         ctx.textAlign = rightSide ? 'right' : 'left';
-        ctx.fillText(L.label, rightSide ? px - 8 : px + 8, y);
+        ctx.fillText(L.label, rightSide ? px - 8 : px + 8, Math.max(y, 14));
       } else {
         const y2 = px - 8 - i*20;   // 縦グラフ用も同じくずらす
         ctx.textAlign = 'left';
@@ -1132,18 +1272,18 @@ function stdFor(stroke, dist, sex, course){
   const ev = dist + stroke;
   const all = INIT.standardsAll || {};
   let japanStr = all['日本選手権_'+course+'_'+sex+'_'+ev] || null;
-  let openStr  = all['ジャパンオープン_'+course+'_'+sex+'_'+ev] || null;
+  // ジャパンオープンは標準記録シートに登録された年だけ表示される
+  const openStr = all['ジャパンオープン_'+course+'_'+sex+'_'+ev] || null;
   const incStr = all['インカレ_'+course+'_'+sex+'_'+ev] || null;
-  if(course === '長水路'){
+  if(course === '長水路' && !japanStr){
     const s = (INIT.standards||{})[ev+'_'+sex];
-    if(!japanStr && s) japanStr = s.japan || null;
-    if(!openStr && s)  openStr  = s.open || null;
+    if(s) japanStr = s.japan || null;
   }
   return { japan:toSec(japanStr), japanStr,
            open:toSec(openStr),  openStr,
            inc:toSec(incStr),    incStr };
 }
-// グラフに引く標準記録のライン一式を作る (赤=日本選手権 青=Jオープン 緑=インカレ)
+// グラフに引く標準記録のライン一式を作る (赤=日本選手権 緑=インカレ)
 function stdLineList(std, axis){
   const L = [];
   if(std.japan) L.push({axis, value:std.japan, color:'#E5372E', label:'日本選手権 '+std.japanStr});
@@ -1172,7 +1312,7 @@ function viewEvent(){
       <div class="tablewrap"><table><tr><th>大会</th><th>名前</th><th>記録</th><th></th></tr>`;
     rows.forEach(r=>{
       html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td>
-        <td>${esc(r.name)}</td><td class="num">${esc(r.time)}</td>
+        <td>${esc(r.name)}</td><td class="num">${esc(r.time)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
         <td>${r.pb?'<span class="pbtag">ベスト更新</span>':''}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
@@ -1229,7 +1369,7 @@ function viewRank(){
       const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
       const medal = i<3? `<span class="medal m${i+1}">${i+1}位</span>` : `${i+1}位`;
       html += `<tr class="${cls}"><td>${medal}</td><td>${esc(r.name)}</td>
-        <td class="num">${toStr(r.sec)}</td>
+        <td class="num">${toStr(r.sec)}${recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course)}</td>
         <td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
@@ -1246,6 +1386,7 @@ function viewRank(){
         datasets:[{ data: ranked.map(r=>r.sec), backgroundColor: colors, borderRadius:8 }] },
       options:{
         indexAxis:'y', responsive:true, stdLines:lines, barValues:true,
+        layout:{ padding:{ top: 10 + lines.length*22 } },
         plugins:{ legend:{display:false},
           tooltip:{ callbacks:{ label:c=>' '+toStr(c.parsed.x) } } },
         scales:{
@@ -1286,7 +1427,7 @@ function viewLegend(){
   let cur = null;
   eventPicker(document.getElementById('lgPick'), st=>{ cur = st; drawLegend(cur); }, true);
 
-  window.drawLegend = function(st){
+  function drawLegend(st){
     cur = st || cur; if(!cur) return;
     // 現役・過去の大会記録: 選手ごとにいちばん速いもの
     const bestMap = {};
@@ -1320,16 +1461,16 @@ function viewLegend(){
     ranked.forEach((r,i)=>{
       const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
       const medal = i<3? `<span class="medal m${i+1}">${i+1}位</span>` : `${i+1}位`;
-      let badge = '';
-      if(std.japan && r.sec <= std.japan) badge = ' <span class="pbtag">日本選手権突破</span>';
-      else if(std.open && r.sec <= std.open) badge = ' <span class="pbtag" style="background:var(--blue)">Jオープン突破</span>';
-      else if(std.inc && r.sec <= std.inc) badge = ' <span class="pbtag" style="background:var(--green)">インカレ突破</span>';
+      let badge = recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course);
+      if(std.japan && r.sec <= std.japan) badge += ' <span class="pbtag">日本選手権突破</span>';
+      else if(std.open && r.sec <= std.open) badge += ' <span class="pbtag" style="background:var(--blue)">Jオープン突破</span>';
+      else if(std.inc && r.sec <= std.inc) badge += ' <span class="pbtag" style="background:var(--green)">インカレ突破</span>';
       html += `<tr class="${cls}"><td>${medal}</td><td>${esc(r.name)}</td>
         <td class="num" style="font-weight:800">${toStr(r.sec)}${badge}</td>
         <td style="color:var(--gray); font-size:.92rem">${esc(r.note)}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
-  };
+  }
 
   window.saveLegacy = async function(){
     const msg = document.getElementById('lgMsg');
@@ -1370,7 +1511,7 @@ function viewStd(){
         <label class="fld">男女<select id="sdSex"><option>男子</option><option>女子</option></select></label>
         <label class="fld">水路<select id="sdCourse"><option>長水路</option><option>短水路</option></select></label>
       </div>
-      <p class="hint" style="margin-top:10px">赤い列が日本選手権、青い列がジャパンオープン、緑の列がインカレ(日本学生選手権)の突破標準記録です。</p>
+      <p class="hint" style="margin-top:10px">赤い列が日本選手権、青い列がジャパンオープン、緑の列がインカレの突破標準記録です。発表されていない年の欄はハイフンになります。</p>
       <div id="sdOut" style="margin-top:10px"></div>
     </div>`;
   function draw(){
@@ -1403,8 +1544,81 @@ function viewStd(){
 }
 
 /* ============================================================
+   記録のふだ (WR=世界記録 AS=アジア記録 NR=日本記録 UR=学生記録)
+   タイムが記録に届いていたら、しるしを返します
+============================================================ */
+const RECORD_KINDS = [
+  ['世界記録','WR','#0D2B52'],
+  ['アジア記録','AS','#7B2D8B'],
+  ['日本記録','NR','#E5372E'],
+  ['学生記録','UR','#17934A']
+];
+function recordBadges(sec, stroke, dist, sex, course){
+  if(sec==null) return '';
+  const all = INIT.standardsAll || {};
+  const ev = dist + stroke;
+  let out = '';
+  RECORD_KINDS.forEach(k=>{
+    const t = toSec(all[k[0]+'_'+(course||'長水路')+'_'+sex+'_'+ev]);
+    if(t!=null && sec<=t){
+      out += ` <span class="pbtag" style="background:${k[2]}">${k[1]}</span>`;
+    }
+  });
+  return out;
+}
+
+/* ============================================================
+   閲覧: 記録一覧 (世界記録・アジア記録・日本記録・学生記録)
+============================================================ */
+function viewRecords(){
+  const body = document.getElementById('viewBody');
+  body.innerHTML = `
+    <div class="card"><h2>記録一覧</h2>
+      <div class="stack" style="align-items:end">
+        <label class="fld">記録の種類
+          <select id="rcKind"><option>世界記録</option><option>アジア記録</option><option>日本記録</option><option>学生記録</option></select></label>
+        <label class="fld">男女<select id="rcSex"><option>男子</option><option>女子</option></select></label>
+        <label class="fld">水路<select id="rcCourse"><option>長水路</option><option>短水路</option></select></label>
+      </div>
+      <p class="hint" style="margin-top:10px">設定画面の取り込みで登録した記録を表示します。Wikipediaなどの記録一覧ページの文字を貼り付けて取り込めます。</p>
+      <div id="rcOut" style="margin-top:10px"></div>
+    </div>`;
+  function draw(){
+    const kind = document.getElementById('rcKind').value;
+    const sex = document.getElementById('rcSex').value;
+    const course = document.getElementById('rcCourse').value;
+    const all = INIT.standardsAll || {};
+    const info = INIT.standardsInfo || {};
+    let html = `<div class="tablewrap"><table>
+      <tr><th>種目</th><th>記録</th><th>選手</th><th>所属</th><th>樹立日</th><th>大会</th><th>場所</th></tr>`;
+    let any = false;
+    STROKES.forEach(s=>{
+      s.dists.forEach(d=>{
+        const key = kind+'_'+course+'_'+sex+'_'+d+s.code;
+        const t = all[key];
+        if(!t) return;
+        any = true;
+        const f = info[key] || {};
+        html += `<tr><td style="font-weight:700">${d}m ${s.ja}</td>
+          <td class="num" style="font-weight:800; font-size:1.1rem">${esc(t)}</td>
+          <td>${esc(f.holder||'-')}</td>
+          <td>${esc(f.team||'-')}</td>
+          <td>${esc(f.date||'-')}</td>
+          <td>${esc(f.meet||'-')}</td>
+          <td>${esc(f.place||'-')}</td></tr>`;
+      });
+    });
+    document.getElementById('rcOut').innerHTML = any
+      ? html + '</table></div>'
+      : '<p class="hint">この条件の記録はまだ登録されていません。設定画面の記録の自動取得ボタンで取り込んでください。</p>';
+  }
+  ['rcKind','rcSex','rcCourse'].forEach(id=>document.getElementById(id).onchange = draw);
+  draw();
+}
+
+/* ============================================================
    閲覧 6: グラフ (選手×種目の記録の推移)
-   上にいくほど速い。赤=日本選手権 青=Jオープンの標準ライン
+   距離・種目・水路は、その選手が出場したものだけ選べます
 ============================================================ */
 function viewGraph(){
   const body = document.getElementById('viewBody');
@@ -1413,20 +1627,28 @@ function viewGraph(){
     <div id="gStage"></div>`;
   makeFinder(document.getElementById('gFinder'), p=>{
     const stage = document.getElementById('gStage');
-    // その選手が持っている種目だけボタンにする
+    // 出場した種目だけをあつめる (泳法_距離_水路 → 記録の一覧)
     const evs = {};
     DATA.records.map(rec).forEach(r=>{
       if(r.name!==p.name || r.sec==null) return;
       const k = r.stroke+'_'+r.dist+'_'+(r.meet.course||'長水路');
       (evs[k]=evs[k]||[]).push(r);
     });
-    const keys = Object.keys(evs).filter(k=>evs[k].length>=1)
-      .sort((a,b)=>Number(a.split('_')[1])-Number(b.split('_')[1]));
+    const keys = Object.keys(evs);
     if(keys.length===0){
       stage.innerHTML = `<div class="card"><p class="hint">${esc(p.name)}さんの記録はまだありません。</p></div>`;
       return;
     }
-    let html = `<div class="card redline"><h2>${esc(p.name)} さん どの種目をグラフにしますか</h2><div class="stack" id="gEvBtns"></div></div>
+    stage.innerHTML = `
+      <div class="card redline"><h2>${esc(p.name)} さん どの種目をグラフにしますか</h2>
+        <p class="hint">出場したことのある距離と種目だけが選べます。</p>
+        <div class="stack" style="align-items:end">
+          <label class="fld">距離<select id="gDist"></select></label>
+          <label class="fld">種目<select id="gStroke"></select></label>
+          <label class="fld">水路<select id="gCourse"></select></label>
+          <span id="gCount" style="font-weight:800; font-size:1.2rem; padding-bottom:14px" aria-live="polite"></span>
+        </div>
+      </div>
       <div class="chartbox" id="gChartBox" hidden>
         <h2 id="gTitle" style="font-size:1.15rem; margin-bottom:8px"></h2>
         <canvas id="gChart" height="120"></canvas>
@@ -1437,24 +1659,57 @@ function viewGraph(){
           <span style="color:var(--gray)">上に行くほど速いタイムです</span>
         </div>
       </div>`;
-    stage.innerHTML = html;
-    const btnBox = document.getElementById('gEvBtns');
-    keys.forEach(k=>{
-      const [st, d, cs] = k.split('_');
-      const b = document.createElement('button');
-      b.className = 'btn';
-      b.textContent = `${d}m${strokeJa(st)} (${cs}) ${evs[k].length}本`;
-      b.onclick = ()=>drawG(p, st, Number(d), cs, evs[k], b);
-      btnBox.appendChild(b);
-    });
+
+    const dSel = document.getElementById('gDist');
+    const sSel = document.getElementById('gStroke');
+    const cSel = document.getElementById('gCourse');
+    const parts = k => { const a=k.split('_'); return {stroke:a[0], dist:Number(a[1]), course:a[2]}; };
+
+    function fillDist(){
+      const dists = [...new Set(keys.map(k=>parts(k).dist))].sort((a,b)=>a-b);
+      dSel.innerHTML = '';
+      dists.forEach(d=>{
+        const o = document.createElement('option');
+        o.value = d; o.textContent = d+'m';
+        dSel.appendChild(o);
+      });
+    }
+    function fillStroke(){
+      const d = Number(dSel.value);
+      const strokes = [...new Set(keys.filter(k=>parts(k).dist===d).map(k=>parts(k).stroke))];
+      // 種目の並びはいつもの順 (自由形→背→平→バタフライ→個メ)
+      strokes.sort((a,b)=>STROKES.findIndex(s=>s.code===a)-STROKES.findIndex(s=>s.code===b));
+      sSel.innerHTML = '';
+      strokes.forEach(st=>{
+        const o = document.createElement('option');
+        o.value = st; o.textContent = strokeJa(st);
+        sSel.appendChild(o);
+      });
+    }
+    function fillCourse(){
+      const d = Number(dSel.value), st = sSel.value;
+      const courses = [...new Set(keys.filter(k=>parts(k).dist===d && parts(k).stroke===st).map(k=>parts(k).course))]
+        .sort();
+      cSel.innerHTML = '';
+      courses.forEach(cs=>{
+        const o = document.createElement('option');
+        o.value = cs; o.textContent = cs;
+        cSel.appendChild(o);
+      });
+    }
+    function draw(){
+      const d = Number(dSel.value), st = sSel.value, cs = cSel.value;
+      const rows = evs[st+'_'+d+'_'+cs] || [];
+      document.getElementById('gCount').textContent = rows.length + '本';
+      if(rows.length===0) return;
+      renderProgress('gChart', 'gTitle', 'gChartBox', p, st, d, cs);
+    }
+    dSel.onchange = ()=>{ fillStroke(); fillCourse(); draw(); };
+    sSel.onchange = ()=>{ fillCourse(); draw(); };
+    cSel.onchange = draw;
+    fillDist(); fillStroke(); fillCourse(); draw();
     stage.scrollIntoView({behavior:'smooth'});
   });
-
-  function drawG(p, stroke, dist, course, rows, btn){
-    document.querySelectorAll('#gEvBtns .btn').forEach(b=>b.classList.remove('on'));
-    btn.classList.add('on');
-    renderProgress('gChart', 'gTitle', 'gChartBox', p, stroke, dist, course);
-  }
 }
 
 /* ============================================================
@@ -1554,15 +1809,28 @@ function renderAdmin(){
       <div id="aeMsg" style="margin-top:10px"></div>
     </div>
 
-    <div class="card"><h2>標準記録の取り込み(スクショから)</h2>
-      <p class="hint">日本水泳連盟などのページの標準記録の表をスクショして選ぶと、AIが表を読み取って標準記録シートに登録します。長水路・短水路の両方が写った表に対応しています。</p>
+    <div class="card"><h2>標準記録の取り込み</h2>
+      <p class="hint">おすすめはページの文字の貼り付けです。日本水泳連盟の標準記録ページを開き、コマンドとAで全選択、コマンドとCでコピーして、下の欄に貼り付けてください。スクショ画像でも取り込めます。長水路・短水路の両方に対応しています。</p>
       <div class="stack" style="align-items:end">
         <label class="fld">標準記録の種類
-          <select id="asKind"><option>日本選手権</option><option>ジャパンオープン</option><option>インカレ</option></select></label>
-        <label class="fld">スクショ画像<input type="file" id="asFile" accept="image/*" style="min-height:58px; padding:12px"></label>
+          <select id="asKind"><option>日本選手権</option><option>ジャパンオープン</option><option>インカレ</option><option>世界記録</option><option>アジア記録</option><option>日本記録</option><option>学生記録</option></select></label>
+      </div>
+      <label class="fld" style="margin-top:10px">ページの文字を貼り付け(おすすめ)
+        <textarea id="asText" rows="4" style="font-family:inherit; font-size:1rem; padding:12px; border:2.5px solid var(--line); border-radius:12px;" placeholder="ここにページ全体の文字を貼り付けます"></textarea>
+      </label>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld">またはスクショ画像<input type="file" id="asFile" accept="image/*" style="min-height:58px; padding:12px"></label>
         <button class="btn solid" onclick="adminImportStd()">読み取って登録する</button>
       </div>
       <div id="asMsg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card"><h2>記録の自動取得(Wikipedia)</h2>
+      <p class="hint">世界記録・アジア記録・日本記録・学生記録の4種類を、Wikipediaから自動で取得して登録します。1種類ずつAIが読み取るので、全部で2〜3分かかります。記録が塗り替えられたころに、ときどき押し直してください。</p>
+      <div class="stack">
+        <button class="btn red solid big" id="awBtn" onclick="adminWikiAll()">4種類をまとめて自動取得する</button>
+      </div>
+      <div id="awMsg" style="margin-top:10px" aria-live="polite"></div>
     </div>
 
     <div class="stack"><button class="btn ghost" onclick="ADMIN_PW=''; sessionStorage.removeItem('cust_admin_pw'); startAdmin()">設定画面から出る</button></div>`;
@@ -1714,27 +1982,62 @@ async function adminSaveEvents(){
   }catch(err){ msg.innerHTML = '<div class="errmsg">保存できませんでした: '+esc(err.message)+'</div>'; }
 }
 
+// ----- Wikipediaからの記録の自動取得 -----
+async function adminWikiAll(){
+  const msg = document.getElementById('awMsg');
+  const btn = document.getElementById('awBtn');
+  const kinds = ['世界記録','アジア記録','日本記録','学生記録'];
+  btn.disabled = true;
+  const results = [];
+  for(let i=0; i<kinds.length; i++){
+    const k = kinds[i];
+    msg.innerHTML = `<div class="loading">${i+1}件目 ${esc(k)} を取得してAIが読み取っています… (${i+1}/4)</div>`;
+    try{
+      const res = await apiSave({ action:'importStandardsWiki', password:ADMIN_PW, kind:k });
+      results.push(`${k} ${res.count}件`);
+    }catch(err){
+      results.push(`${k} 失敗(${err.message})`);
+    }
+  }
+  btn.disabled = false;
+  INIT = null; localStorage.removeItem('cust_rec_cache');
+  try{ await loadInit(); }catch(e){}
+  msg.innerHTML = `<div class="okmsg">自動取得が終わりました。${esc(results.join('、'))}。閲覧の記録一覧で確認できます。</div>`;
+}
+
 // ----- 標準記録のスクショ取り込み -----
 async function adminImportStd(){
   const msg = document.getElementById('asMsg');
-  const file = document.getElementById('asFile').files[0];
-  if(!file){ msg.innerHTML='<div class="errmsg">スクショ画像を選んでください。</div>'; return; }
   const kind = document.getElementById('asKind').value;
+  const pasted = document.getElementById('asText').value.trim();
+  const file = document.getElementById('asFile').files[0];
+  if(!pasted && !file){
+    msg.innerHTML='<div class="errmsg">ページの文字を貼り付けるか、スクショ画像を選んでください。</div>';
+    return;
+  }
   msg.innerHTML = '<div class="loading">AIが表を読み取っています。30秒ほどかかることがあります…</div>';
   try{
-    // 画像をbase64の文字列にする
-    const b64 = await new Promise((ok, ng)=>{
-      const r = new FileReader();
-      r.onload = ()=>ok(String(r.result).split(',')[1]);
-      r.onerror = ()=>ng(new Error('画像が読めませんでした'));
-      r.readAsDataURL(file);
-    });
-    const res = await apiSave({ action:'importStandards', password:ADMIN_PW,
-      kind:kind, image:b64, mime:file.type||'image/png' });
+    let res;
+    if(pasted){
+      // 文字の貼り付け方式(精度が高いのでこちらを優先)
+      res = await apiSave({ action:'importStandardsText', password:ADMIN_PW,
+        kind:kind, text:pasted });
+    } else {
+      // スクショ画像方式
+      const b64 = await new Promise((ok, ng)=>{
+        const r = new FileReader();
+        r.onload = ()=>ok(String(r.result).split(',')[1]);
+        r.onerror = ()=>ng(new Error('画像が読めませんでした'));
+        r.readAsDataURL(file);
+      });
+      res = await apiSave({ action:'importStandards', password:ADMIN_PW,
+        kind:kind, image:b64, mime:file.type||'image/png' });
+    }
     INIT = null; localStorage.removeItem('cust_rec_cache');
     await loadInit();
     msg.innerHTML = `<div class="okmsg">${esc(kind)}の標準記録を${res.count}件登録しました。閲覧の標準記録画面で確認できます。</div>`;
     document.getElementById('asFile').value='';
+    document.getElementById('asText').value='';
   }catch(err){
     msg.innerHTML = '<div class="errmsg">取り込めませんでした: '+esc(err.message)+'</div>';
   }

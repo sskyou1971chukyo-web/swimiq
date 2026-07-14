@@ -291,7 +291,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.14.15';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.14.17';  // アプリを更新するたびにこの番号を変えます
+// 今回の更新内容。アプリを更新するたびに書きかえます
+const APP_NEWS = '起動が速くなりました。記録一覧(世界記録・日本記録など)、Wikipediaからの自動取得、実施日の入力が加わりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -372,6 +374,8 @@ async function apiGet(action){
   return json;
 }
 async function apiSave(payload){
+  // 保存でデータが変わるので、おぼえていた初期データは捨てて次回読み直す
+  localStorage.removeItem('cust_init_cache');
   const res = await fetch(GAS_URL, {
     method:'POST',
     headers:{ 'Content-Type':'text/plain;charset=utf-8' },  // GASの決まりごと
@@ -383,7 +387,15 @@ async function apiSave(payload){
 }
 async function loadInit(){
   if(INIT) return INIT;
-  INIT = await apiGet('init');
+  // 10分以内に開き直したときは、おぼえておいたデータで即はじめる
+  try{
+    const c = JSON.parse(localStorage.getItem('cust_init_cache')||'null');
+    if(c && Date.now()-c.at < 10*60*1000){ INIT = c.data; }
+  }catch(e){}
+  if(!INIT){
+    INIT = await apiGet('init');
+    try{ localStorage.setItem('cust_init_cache', JSON.stringify({at:Date.now(), data:INIT})); }catch(e){}
+  }
   // 設定画面で種目が登録されていれば、そちらを使う
   if(INIT.events && INIT.events.length) STROKES = INIT.events;
   return INIT;
@@ -1590,7 +1602,7 @@ function viewRecords(){
     const all = INIT.standardsAll || {};
     const info = INIT.standardsInfo || {};
     let html = `<div class="tablewrap"><table>
-      <tr><th>種目</th><th>記録</th><th>選手 (押すと詳細)</th></tr>`;
+      <tr><th>種目</th><th>記録</th><th>選手</th><th>所属</th><th>樹立日</th><th>大会</th><th>場所</th></tr>`;
     let any = false;
     STROKES.forEach(s=>{
       s.dists.forEach(d=>{
@@ -1599,30 +1611,18 @@ function viewRecords(){
         if(!t) return;
         any = true;
         const f = info[key] || {};
-        const rid = 'rcd_' + d + s.code;
         html += `<tr><td style="font-weight:700">${d}m ${s.ja}</td>
           <td class="num" style="font-weight:800; font-size:1.1rem">${esc(t)}</td>
-          <td><button type="button" class="rcbtn" data-target="${rid}" aria-expanded="false"
-            style="background:none; border:none; padding:8px 4px; font:inherit; color:inherit; text-decoration:underline; cursor:pointer; min-height:44px; text-align:left">${esc(f.holder||'-')}</button></td></tr>
-        <tr id="${rid}" hidden><td colspan="3" style="padding:10px 14px">
-          所属 ${esc(f.team||'-')}<br>
-          樹立日 ${esc(f.date||'-')}<br>
-          大会 ${esc(f.meet||'-')}<br>
-          場所 ${esc(f.place||'-')}</td></tr>`;
+          <td>${esc(f.holder||'-')}</td>
+          <td>${esc(f.team||'-')}</td>
+          <td>${esc(f.date||'-')}</td>
+          <td>${esc(f.meet||'-')}</td>
+          <td>${esc(f.place||'-')}</td></tr>`;
       });
     });
     document.getElementById('rcOut').innerHTML = any
       ? html + '</table></div>'
       : '<p class="hint">この条件の記録はまだ登録されていません。設定画面の記録の自動取得ボタンで取り込んでください。</p>';
-    document.querySelectorAll('#rcOut .rcbtn').forEach(btn=>{
-      btn.onclick = ()=>{
-        const detail = document.getElementById(btn.dataset.target);
-        if(!detail) return;
-        const open = detail.hidden;
-        detail.hidden = !open;
-        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      };
-    });
   }
   ['rcKind','rcSex','rcCourse'].forEach(id=>document.getElementById(id).onchange = draw);
   draw();
@@ -2208,6 +2208,16 @@ function checkMeetNews(){
   localStorage.setItem(key, JSON.stringify(nowList));
 }
 
+// 新しい版を初めて開いたときに、更新内容を一度だけ知らせる
+function announceAppNews(){
+  const key = 'cust_seen_version';
+  const seen = localStorage.getItem(key);
+  if(seen && seen !== APP_VERSION){
+    banner('アプリが新しくなりました。' + APP_NEWS, 'ok');
+  }
+  localStorage.setItem(key, APP_VERSION);
+}
+
 // GitHub上のアプリが新しくなっていたら更新ボタンを出す
 async function checkAppUpdate(){
   if(location.protocol === 'file:') return;  // 手元で開いたときは確認しない
@@ -2238,6 +2248,7 @@ async function boot(){
   }
   checkMeetNews();
   checkAppUpdate();
+  announceAppNews();
   const my = myProfile();
   if(my && my.staff){
     inputBuilt = true; startInput(); showTabBare('input');

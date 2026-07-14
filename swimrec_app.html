@@ -136,6 +136,17 @@ label.fld{ display:flex; flex-direction:column; gap:6px; font-weight:700; font-s
 .ath .nm{ font-size:1.15rem; font-weight:700; display:block; }
 .ath .kn{ color:var(--gray); font-size:.85rem; }
 .ath:focus-visible{ outline:4px solid var(--gold); outline-offset:2px; }
+.ath.sel{ border-color:var(--red); background:var(--red-pale); }
+.ath.sel .nm::after{ content:" 選択中"; color:var(--red); font-size:.8rem; }
+.selbar{ display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-top:10px;
+  padding:10px 14px; background:var(--blue-pale); border-radius:12px; }
+/* 一覧表のタイム入力欄 */
+.rowtime{ font-family:"M PLUS 1",sans-serif; font-variant-numeric:tabular-nums;
+  font-size:1.35rem; font-weight:800; min-height:56px; width:150px;
+  border:2.5px solid var(--line); border-radius:10px; padding:6px 10px; text-align:right; }
+.rowtime.ok{ border-color:var(--green); background:#F2FBF5; }
+.rowtime.bad{ border-color:var(--red); background:var(--red-pale); }
+.rowdone{ color:var(--green); font-weight:700; }
 
 /* ---------- 入力の進みぐあい ---------- */
 .steps{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
@@ -279,7 +290,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.13.3';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.14.2';  // アプリを更新するたびにこの番号を変えます
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -438,7 +449,7 @@ function showMode(m){
    選手を探す共通部品
    学年・男女・五十音・文字検索(音声入力もOK)で絞り込みます
 ============================================================ */
-function makeFinder(container, onPick){
+function makeFinder(container, onPick, multiDone){
   const state = { grade:'', sex:'', row:'', text:'' };
   const grades = [...new Set(INIT.roster.map(r=>r.grade).filter(Boolean))];
 
@@ -450,8 +461,21 @@ function makeFinder(container, onPick){
       <label class="fld">名前で検索(音声入力もつかえます)
         <input type="text" data-k="text" placeholder="例: やまもと">
       </label>
+      ${multiDone? `<div class="selbar">
+        <span class="selcount" style="font-weight:700">選択中: 0人</span>
+        <button type="button" class="btn red solid" data-k="done" disabled>選んだ選手で一覧を作る</button>
+      </div>`:''}
       <div class="athlist" role="list"></div>
     </div>`;
+  const selected = new Map();
+  function paintSel(){
+    if(!multiDone) return;
+    container.querySelector('.selcount').textContent = '選択中: '+selected.size+'人';
+    container.querySelector('[data-k="done"]').disabled = selected.size===0;
+  }
+  if(multiDone){
+    container.querySelector('[data-k="done"]').onclick = ()=>multiDone(Array.from(selected.values()));
+  }
 
   function chips(k, items){
     const box = container.querySelector(`.chips[data-k="${k}"]`);
@@ -511,7 +535,18 @@ function makeFinder(container, onPick){
       b.className='ath'; b.type='button'; b.setAttribute('role','listitem');
       const sub = [p.kana, [p.grade, p.sex].filter(Boolean).join('・')].filter(Boolean).join('　');
       b.innerHTML = `<span class="nm">${esc(p.name)}</span><span class="kn">${esc(sub)}</span>`;
-      b.onclick = ()=>onPick(p);
+      if(multiDone){
+        if(selected.has(p.name)) b.classList.add('sel');
+        b.setAttribute('aria-pressed', selected.has(p.name));
+        b.onclick = ()=>{
+          if(selected.has(p.name)){ selected.delete(p.name); b.classList.remove('sel'); }
+          else { selected.set(p.name, p); b.classList.add('sel'); }
+          b.setAttribute('aria-pressed', selected.has(p.name));
+          paintSel();
+        };
+      } else {
+        b.onclick = ()=>onPick(p);
+      }
       list.appendChild(b);
     });
   }
@@ -519,11 +554,10 @@ function makeFinder(container, onPick){
 }
 
 /* ============================================================
-   入力画面: 5つのステップで1件を保存します
-   1 大会 → 2 選手 → 3 種目 → 4 タイム → 5 確認
+   入力画面: 大会 → 種目 → 選手(複数可) → 一覧表に打ち込み
 ============================================================ */
-const IN = { meet:null, course:'', athlete:null, stroke:null, dist:null, digits:'' };
-const STEP_NAMES = ['大会を選ぶ','選手を選ぶ','種目を選ぶ','タイムを入力','確認して保存'];
+const IN = { meet:null, course:'', stroke:null, dist:null, list:[] };
+const STEP_NAMES = ['大会を選ぶ','種目を選ぶ','選手を選ぶ','記録を打ち込む'];
 
 function drawSteps(now){
   const box = document.getElementById('inSteps');
@@ -573,7 +607,7 @@ function stepMeet(){
     const b = document.createElement('button');
     b.className = 'btn';
     b.textContent = `${m.meet} (${m.year}年${m.month}月 ${m.course||''})`;
-    b.onclick = ()=>{ IN.meet = m.meet; IN.course = m.course||'長水路'; stepAthlete(); };
+    b.onclick = ()=>{ IN.meet = m.meet; IN.course = m.course||'長水路'; stepEvent(); };
     box.appendChild(b);
   });
 }
@@ -582,30 +616,18 @@ function pickNewMeet(){
   if(!v){ alert('大会名を入れてください'); return; }
   IN.meet = v;
   IN.course = document.getElementById('newCourse').value;
-  stepAthlete();
+  stepEvent();
 }
 
-function stepAthlete(){
+function stepEvent(){
   drawSteps(1);
   const body = document.getElementById('inBody');
   body.innerHTML = `
     <div class="card redline">
-      <h2>誰の記録ですか　<span class="hint" style="font-weight:400">大会: ${esc(IN.meet)} ${esc(IN.course)}</span></h2>
-      <div id="finderBox"></div>
-      <div style="margin-top:14px"><button class="btn ghost" onclick="stepMeet()">← 大会に戻る</button></div>
-    </div>`;
-  makeFinder(document.getElementById('finderBox'), p=>{ IN.athlete = p; stepEvent(); });
-}
-
-function stepEvent(){
-  drawSteps(2);
-  const body = document.getElementById('inBody');
-  body.innerHTML = `
-    <div class="card redline">
-      <h2>種目を選ぶ　<span class="hint" style="font-weight:400">${esc(IN.athlete.name)} さん</span></h2>
+      <h2>種目を選ぶ　<span class="hint" style="font-weight:400">大会: ${esc(IN.meet)} ${esc(IN.course)}</span></h2>
       <div id="strokeBtns" class="stack" style="margin-bottom:14px"></div>
       <div id="distBtns" class="stack"></div>
-      <div style="margin-top:14px"><button class="btn ghost" onclick="stepAthlete()">← 選手に戻る</button></div>
+      <div style="margin-top:14px"><button class="btn ghost" onclick="stepMeet()">← 大会に戻る</button></div>
     </div>`;
   const sb = document.getElementById('strokeBtns');
   STROKES.forEach(s=>{
@@ -621,7 +643,7 @@ function stepEvent(){
       const b = document.createElement('button');
       b.className = 'btn big red';
       b.textContent = d + 'm';
-      b.onclick = ()=>{ IN.dist = d; IN.digits=''; stepTime(); };
+      b.onclick = ()=>{ IN.dist = d; stepAthletes(); };
       db.appendChild(b);
     });
   } else {
@@ -629,59 +651,27 @@ function stepEvent(){
   }
 }
 
-function stepTime(){
-  drawSteps(3);
+function stepAthletes(){
+  drawSteps(2);
   const body = document.getElementById('inBody');
   body.innerHTML = `
-    <div class="card redline padwrap">
-      <h2>タイムを入力　<span class="hint" style="font-weight:400">${esc(IN.athlete.name)}・${IN.dist}m${strokeJa(IN.stroke)}</span></h2>
-      <p class="hint">数字を左から順に押すだけです。例: 1分54秒83 なら 1 5 4 8 3 と押します。区切りは自動で入ります。</p>
-      <div class="timeview num" id="timeView" aria-live="polite"></div>
-      <div class="pad" id="pad"></div>
-      <button class="btn big red solid" id="goConfirm" disabled onclick="stepConfirm()">このタイムで確認画面へ</button>
-      <div style="margin-top:14px; text-align:center"><button class="btn ghost" onclick="stepEvent()">← 種目に戻る</button></div>
+    <div class="card redline">
+      <h2>この種目を泳いだ選手を選ぶ　<span class="hint" style="font-weight:400">${IN.dist}m${strokeJa(IN.stroke)}</span></h2>
+      <p class="hint">何人でも選べます。押すたびに選択と取り消しが切り替わります。選び終わったら赤いボタンで一覧表を作ります。</p>
+      <div id="finderBox"></div>
+      <div style="margin-top:14px"><button class="btn ghost" onclick="stepEvent()">← 種目に戻る</button></div>
     </div>`;
-  const pad = document.getElementById('pad');
-  const keys = ['1','2','3','4','5','6','7','8','9','1つ消す','0','全部消す'];
-  keys.forEach(k=>{
-    const b = document.createElement('button');
-    b.className = 'key' + (isNaN(k)?' fn':'');
-    b.textContent = k; b.type='button';
-    b.onclick = ()=>{
-      if(k==='1つ消す') IN.digits = IN.digits.slice(0,-1);
-      else if(k==='全部消す') IN.digits = '';
-      else if(IN.digits.length<6) IN.digits += k;
-      paintTime();
-    };
-    pad.appendChild(b);
+  makeFinder(document.getElementById('finderBox'), null, list=>{
+    IN.list = list;
+    stepTable();
   });
-  // キーボードでも打てるように
-  document.onkeydown = e=>{
-    if(currentTab!=='input') return;
-    if(/^[0-9]$/.test(e.key) && IN.digits.length<6){ IN.digits+=e.key; paintTime(); }
-    if(e.key==='Backspace'){ IN.digits=IN.digits.slice(0,-1); paintTime(); }
-    if(e.key==='Enter' && digitsValid(IN.digits)) stepConfirm();
-  };
-  paintTime();
-}
-function paintTime(){
-  const v = document.getElementById('timeView');
-  if(!v) return;
-  if(IN.digits.length===0){
-    v.innerHTML = '<span class="ph">ここにタイムが出ます</span>';
-  } else {
-    v.textContent = digitsToTime(IN.digits);
-  }
-  const ok = digitsValid(IN.digits);
-  document.getElementById('goConfirm').disabled = !ok;
 }
 
 // その選手・種目のいちばん速い記録を探す(ベスト比較用)
 function findBest(name, stroke, dist, course){
   if(!DATA) return null;
   let best = null;
-  DATA.records.forEach(raw=>{
-    const r = rec(raw);
+  DATA.records.map(rec).forEach(r=>{
     if(r.name!==name || r.stroke!==stroke || r.dist!==dist) return;
     if(course && r.meet.course && r.meet.course!==course) return;
     if(r.sec!=null && (best==null || r.sec<best)) best = r.sec;
@@ -689,57 +679,106 @@ function findBest(name, stroke, dist, course){
   return best;
 }
 
-function stepConfirm(){
-  drawSteps(4);
-  document.onkeydown = null;
-  const t = digitsToTime(IN.digits);
-  const sec = toSec(t);
-  const best = findBest(IN.athlete.name, IN.stroke, IN.dist, IN.course);
-  let cmp = '<span class="down">この種目のこれまでの記録は見つかりませんでした</span>';
-  if(best!=null && sec!=null){
-    const diff = sec - best;
-    if(diff < 0){
-      cmp = `<span class="up">ベスト更新! これまでのベスト ${toStr(best)} より ${Math.abs(diff).toFixed(2)} 秒速い</span>`;
-    } else {
-      cmp = `<span class="down">これまでのベスト ${toStr(best)} まで あと ${diff.toFixed(2)} 秒</span>`;
-    }
-  }
+function stepTable(){
+  drawSteps(3);
   const body = document.getElementById('inBody');
+  let rowsHtml = '';
+  IN.list.forEach((p,i)=>{
+    const best = findBest(p.name, IN.stroke, IN.dist, IN.course);
+    rowsHtml += `<tr data-i="${i}">
+      <td style="font-weight:700; font-size:1.1rem">${esc(p.name)}</td>
+      <td class="num">${best!=null? toStr(best) : '-'}</td>
+      <td><input class="rowtime" inputmode="numeric" autocomplete="off"
+        aria-label="${esc(p.name)}のタイム" placeholder="15483"></td>
+      <td class="stcell"></td></tr>`;
+  });
   body.innerHTML = `
-    <div class="board" role="group" aria-label="保存する内容の確認">
-      <div class="who">${esc(IN.athlete.name)}</div>
-      <div class="what">${esc(IN.meet)}　${esc(IN.course)}　${IN.dist}m ${strokeJa(IN.stroke)}</div>
-      <div class="time num">${t}</div>
-      <div class="cmp">${cmp}</div>
-    </div>
-    <div class="confirmbtns">
-      <button class="btn big solid" onclick="doSave()">この内容で保存する</button>
-      <button class="btn big" onclick="stepTime()">戻って直す</button>
+    <div class="card redline">
+      <h2>${esc(IN.meet)}　${IN.dist}m${strokeJa(IN.stroke)}(${esc(IN.course)}) の記録を打ち込む</h2>
+      <p class="hint">数字だけを打ちます。例: 1分54秒83 は 15483。区切りは自動で入ります。日本語入力のままの全角数字でも大丈夫です。改行キーで次の選手に移ります。空欄の選手は保存されません。</p>
+      <div class="tablewrap"><table id="batchTable">
+        <tr><th>選手</th><th>これまでのベスト</th><th>今回の記録</th><th></th></tr>
+        ${rowsHtml}
+      </table></div>
+      <div class="stack" style="margin-top:16px">
+        <button class="btn big red solid" onclick="saveBatchGo()">まとめて保存する</button>
+        <button class="btn" onclick="stepAthletes()">選手を選び直す</button>
+        <button class="btn ghost" onclick="stepEvent()">種目に戻る</button>
+      </div>
+      <div id="btMsg" style="margin-top:12px"></div>
     </div>`;
+  // タイム欄: 数字だけを受け付けて、打つそばから 1:54.83 の形に整える
+  // 日本語入力がオンで全角の１５４８３になっても、自動で半角に直します
+  const inputs = Array.from(document.querySelectorAll('#batchTable .rowtime'));
+  function formatRow(inp){
+    const half = inp.value.replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+    const d = half.replace(/[^0-9]/g,'').replace(/^0+/,'').slice(0,6);
+    inp.dataset.d = d;
+    inp.value = d? digitsToTime(d) : '';
+    inp.classList.remove('ok','bad');
+    if(d) inp.classList.add(digitsValid(d)? 'ok' : 'bad');
+  }
+  inputs.forEach((inp, idx)=>{
+    // 変換中はさわらず、確定した瞬間に整える
+    inp.addEventListener('input', e=>{ if(!e.isComposing) formatRow(inp); });
+    inp.addEventListener('compositionend', ()=>formatRow(inp));
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter' && !e.isComposing){
+        e.preventDefault();
+        const next = inputs[idx+1];
+        if(next) next.focus();
+      }
+    });
+  });
+  if(inputs[0]) inputs[0].focus();
 }
 
-async function doSave(){
-  const body = document.getElementById('inBody');
-  const t = digitsToTime(IN.digits);
-  body.innerHTML = '<div class="loading">保存しています…</div>';
+async function saveBatchGo(){
+  const msg = document.getElementById('btMsg');
+  const rows = Array.from(document.querySelectorAll('#batchTable tr[data-i]'));
+  const entries = [];
+  const badNames = [];
+  rows.forEach(tr=>{
+    const p = IN.list[Number(tr.dataset.i)];
+    const inp = tr.querySelector('.rowtime');
+    const d = inp.dataset.d || '';
+    if(tr.querySelector('.stcell').textContent.indexOf('保存済み')>=0) return; // 二重保存を防ぐ
+    if(!d) return;
+    if(!digitsValid(d)){ badNames.push(p.name); return; }
+    entries.push({ p, tr, time: digitsToTime(d) });
+  });
+  if(badNames.length>0){
+    msg.innerHTML = `<div class="errmsg">タイムの形がおかしい選手がいます: ${esc(badNames.join('、'))}。秒は59までです。</div>`;
+    return;
+  }
+  if(entries.length===0){
+    msg.innerHTML = '<div class="errmsg">保存する記録がありません。タイムを入れてください。</div>';
+    return;
+  }
+  if(!confirm(entries.length+'人の記録を '+IN.meet+' の '+IN.dist+'m'+strokeJa(IN.stroke)+' として保存します。よろしいですか。')) return;
+  msg.innerHTML = '<div class="loading">'+entries.length+'件を保存しています…</div>';
   try{
     await apiSave({
-      meet: IN.meet, course: IN.course,
-      name: IN.athlete.name,
-      event: IN.dist + IN.stroke,
-      time: t
+      action:'saveBatch', meet: IN.meet, course: IN.course,
+      records: entries.map(e=>({ name:e.p.name, event: IN.dist+IN.stroke, time:e.time }))
     });
-    localStorage.removeItem('cust_rec_cache'); // 次に見るとき新しいデータを読む
-    body.innerHTML = `
-      <div class="okmsg">保存しました。${esc(IN.athlete.name)}さん ${IN.dist}m${strokeJa(IN.stroke)} ${t}</div>
-      <div class="confirmbtns">
-        <button class="btn big solid" onclick="IN.digits=''; stepEvent()">同じ選手の別の種目</button>
-        <button class="btn big" onclick="IN.digits=''; IN.stroke=null; stepAthlete()">次の選手を入力</button>
+    localStorage.removeItem('cust_rec_cache');
+    entries.forEach(e=>{
+      const best = findBest(e.p.name, IN.stroke, IN.dist, IN.course);
+      const sec = toSec(e.time);
+      const pb = (best!=null && sec!=null && sec<best);
+      e.tr.querySelector('.stcell').innerHTML =
+        '<span class="rowdone">保存済み</span>' + (pb? ' <span class="pbtag">ベスト更新</span>':'');
+      e.tr.querySelector('.rowtime').disabled = true;
+    });
+    msg.innerHTML = `<div class="okmsg">${entries.length}件を保存しました。</div>
+      <div class="stack" style="margin-top:12px; justify-content:center">
+        <button class="btn big solid" onclick="IN.stroke=null; IN.dist=null; stepEvent()">同じ大会の別の種目へ</button>
+        <button class="btn big" onclick="stepAthletes()">同じ種目で選手を追加</button>
         <button class="btn big ghost" onclick="stepMeet()">最初に戻る</button>
       </div>`;
   }catch(err){
-    body.innerHTML = `<div class="errmsg">保存できませんでした: ${esc(err.message)}</div>
-      <div class="confirmbtns"><button class="btn big" onclick="stepConfirm()">もどる</button></div>`;
+    msg.innerHTML = '<div class="errmsg">保存できませんでした: '+esc(err.message)+'</div>';
   }
 }
 

@@ -306,9 +306,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.15';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.16';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'グラフの選手選びを、一人ずつ選ぶかんたんな形にしました。';
+const APP_NEWS = 'ランキングに県大会の記録も反映されるようになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -1513,7 +1513,7 @@ function viewRank(){
   body.innerHTML = `
     <div class="card redline"><h2>ランキング</h2>
       <div id="rkPick"></div>
-      <p class="hint" style="margin-top:10px">今の部員(現役の学生)だけのランキングです。卒業・引退した選手の記録は、歴代記録の画面で見られます。</p>
+      <p class="hint" style="margin-top:10px">今の部員(現役の学生)だけのランキングです。県大会の記録も含まれます。卒業・引退した選手の記録は、歴代記録の画面で見られます。</p>
       <div class="stack" style="margin-top:14px">
         <button type="button" class="btn red solid big" id="rkShow" disabled>グラフを全画面で見る</button>
       </div>
@@ -1524,14 +1524,37 @@ function viewRank(){
   const activeNames = new Set(INIT.roster.filter(p=>p.grade && p.grade!=='OB' && p.grade!=='OG').map(p=>p.name));
   function draw(st){
     cur = st || cur; if(!cur) return;
-    // 選手ごとのベストを出す
+    // 選手ごとのベストを出す (名前・秒数・出した大会の文字、の形にそろえる)
     const bestMap = {};
     DATA.records.map(rec).forEach(r=>{
       if(r.stroke!==cur.stroke || r.dist!==cur.dist || r.sex!==cur.sex) return;
       if(cur.course && (r.meet.course||'')!==cur.course) return;
       if(r.sec==null) return;
       if(!activeNames.has(r.name)) return;
-      if(!bestMap[r.name] || r.sec < bestMap[r.name].sec) bestMap[r.name] = r;
+      if(!bestMap[r.name] || r.sec < bestMap[r.name].sec){
+        bestMap[r.name] = { name:r.name, sec:r.sec,
+          meetText:`${r.meet.year}年${r.meet.month}月 ${r.meet.meet}` };
+      }
+    });
+    // 県大会の記録も合流させる(現役の学生のみ)。
+    // 男女は名簿から名前で引き当てる。水路は大会名に25mとあるものだけ短水路、それ以外は長水路とみなす
+    const sexMap = {};
+    INIT.roster.forEach(p=>{ if(p.sex) sexMap[p.name] = p.sex==='女' ? '女子' : '男子'; });
+    KENTAI.forEach(k=>{
+      const name = k[2];
+      if(!activeNames.has(name)) return;
+      if(sexMap[name] !== cur.sex) return;
+      const m = String(k[4]).match(/^(\d+)([A-Za-z]+)$/);
+      if(!m || Number(m[1])!==cur.dist || m[2]!==cur.stroke) return;
+      const course = String(k[1]).includes('25m') ? '短水路' : '長水路';
+      if(cur.course && course!==cur.course) return;
+      const sec = toSec(k[6]);
+      if(sec==null) return;
+      const dm = String(k[0]).match(/^(\d{4})\/(\d{1,2})/);
+      const meetText = (dm ? Number(dm[1])+'年'+Number(dm[2])+'月 ' : '') + kentaiMeetLabel(k[1]) + ' (県大会)';
+      if(!bestMap[name] || sec < bestMap[name].sec){
+        bestMap[name] = { name:name, sec:sec, meetText:meetText };
+      }
     });
     const ranked = Object.values(bestMap).sort((a,b)=>a.sec-b.sec).slice(0,15);
     const out = document.getElementById('rkOut');
@@ -1549,7 +1572,7 @@ function viewRank(){
       html += `<tr class="${cls}"><td class="nw">${medal}</td><td class="nw">${esc(r.name)}</td>
         <td class="num nw"><button type="button" class="ktcell rktime" data-i="${i}" aria-expanded="false"
           aria-label="${toStr(r.sec)}。押すと出した大会が出ます">${toStr(r.sec)}</button>${recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course)}</td></tr>
-      <tr class="ktdetail rkdetail" data-i="${i}" hidden><td colspan="3">大会: ${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td></tr>`;
+      <tr class="ktdetail rkdetail" data-i="${i}" hidden><td colspan="3">大会: ${esc(r.meetText)}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
     out.querySelectorAll('button.rktime').forEach(b=>{

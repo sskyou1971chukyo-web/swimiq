@@ -197,6 +197,11 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
   color:var(--white); font-weight:800; margin-right:6px; }
 .medal.m1{ background:var(--gold); } .medal.m2{ background:var(--silver); } .medal.m3{ background:var(--bronze); }
 .pbtag{ color:var(--white); background:var(--red); border-radius:8px; padding:2px 8px; font-size:.85rem; font-weight:700; white-space:nowrap; }
+.nw{ white-space:nowrap; }
+.ktcell{ background:none; border:none; color:var(--blue); text-decoration:underline;
+  font:inherit; font-weight:700; padding:8px 2px; min-height:44px; cursor:pointer; white-space:nowrap; }
+.ktcell:focus-visible{ outline:4px solid var(--gold); outline-offset:2px; }
+.ktdetail td{ background:#EEF4FF; font-size:.98rem; }
 .tablewrap{ max-height:560px; overflow:auto; border:1.5px solid var(--line); border-radius:12px; }
 
 /* ---------- グラフ ---------- */
@@ -297,9 +302,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.9';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.10';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'グラフが全画面で見やすくなりました。歴代記録の打ち込みは設定画面に移りました。';
+const APP_NEWS = '携帯でも折り返しなしで見やすくなりました。ランキングは現役の学生だけになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -343,6 +348,18 @@ function toSec(str){
   m = s.match(/^(\d{1,2})\.(\d{1,2})$/);                 // 秒.コンマ
   if(m) return Number(m[1]) + Number('0.'+m[2]);
   return null;
+}
+// 記録の文字を、100分の1の位まで必ずある形に整える (46.4 → 46.40、26 → 26.00)
+function fmtTime(t){
+  if(t==null || t==='' ) return t;
+  const s = String(t).trim();
+  const sec = toSec(s);
+  if(sec!=null) return toStr(sec);
+  let m = s.match(/^(\d+):(\d{1,2})(?:\.(\d{1,2}))?$/);   // 2:01 や 2:01.4
+  if(m) return m[1]+':'+m[2].padStart(2,'0')+'.'+(m[3]||'').padEnd(2,'0');
+  m = s.match(/^(\d+)(?:\.(\d{1,2}))?$/);                  // 26 や 46.4
+  if(m) return m[1]+'.'+(m[2]||'').padEnd(2,'0');
+  return s;
 }
 // 秒数を "1:54.83" の形にもどす
 function toStr(sec){
@@ -1373,9 +1390,9 @@ function stdFor(stroke, dist, sex, course){
 // グラフに引く標準記録のライン一式を作る (赤=日本選手権 緑=インカレ)
 function stdLineList(std, axis){
   const L = [];
-  if(std.japan) L.push({axis, value:std.japan, color:'#E5372E', label:'日本選手権 '+std.japanStr});
-  if(std.open)  L.push({axis, value:std.open,  color:'#1663C7', label:'Jオープン '+std.openStr});
-  if(std.inc)   L.push({axis, value:std.inc,   color:'#17934A', label:'インカレ '+std.incStr});
+  if(std.japan) L.push({axis, value:std.japan, color:'#E5372E', label:'日本選手権 '+fmtTime(std.japanStr)});
+  if(std.open)  L.push({axis, value:std.open,  color:'#1663C7', label:'Jオープン '+fmtTime(std.openStr)});
+  if(std.inc)   L.push({axis, value:std.inc,   color:'#17934A', label:'インカレ '+fmtTime(std.incStr)});
   return L;
 }
 
@@ -1415,28 +1432,24 @@ function viewRank(){
   body.innerHTML = `
     <div class="card redline"><h2>ランキング</h2>
       <div id="rkPick"></div>
-      <label style="display:flex; gap:8px; align-items:center; margin-top:10px; font-weight:700;">
-        <input type="checkbox" id="rkOB" style="width:26px; height:26px;"> OB・OGも含める
-      </label>
+      <p class="hint" style="margin-top:10px">今の部員(現役の学生)だけのランキングです。卒業・引退した選手の記録は、歴代記録の画面で見られます。</p>
       <div class="stack" style="margin-top:14px">
         <button type="button" class="btn red solid big" id="rkShow" disabled>グラフを全画面で見る</button>
       </div>
       <div id="rkOut" style="margin-top:16px"></div>
     </div>`;
   let cur = null;
-  const obNames = new Set(INIT.roster.filter(p=>p.grade==='OB'||p.grade==='OG').map(p=>p.name));
-  const rosterNames = new Set(INIT.roster.map(p=>p.name));
+  // ランキングは現役の学生だけ。名簿で学年が入っていて、OB・OGでない人が対象
+  const activeNames = new Set(INIT.roster.filter(p=>p.grade && p.grade!=='OB' && p.grade!=='OG').map(p=>p.name));
   function draw(st){
     cur = st || cur; if(!cur) return;
-    const includeOB = document.getElementById('rkOB').checked;
     // 選手ごとのベストを出す
     const bestMap = {};
     DATA.records.map(rec).forEach(r=>{
       if(r.stroke!==cur.stroke || r.dist!==cur.dist || r.sex!==cur.sex) return;
       if(cur.course && (r.meet.course||'')!==cur.course) return;
       if(r.sec==null) return;
-      const isOB = obNames.has(r.name) || !rosterNames.has(r.name);
-      if(!includeOB && isOB) return;
+      if(!activeNames.has(r.name)) return;
       if(!bestMap[r.name] || r.sec < bestMap[r.name].sec) bestMap[r.name] = r;
     });
     const ranked = Object.values(bestMap).sort((a,b)=>a.sec-b.sec).slice(0,15);
@@ -1451,9 +1464,9 @@ function viewRank(){
     ranked.forEach((r,i)=>{
       const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
       const medal = i<3? `<span class="medal m${i+1}">${i+1}位</span>` : `${i+1}位`;
-      html += `<tr class="${cls}"><td>${medal}</td><td>${esc(r.name)}</td>
-        <td class="num">${toStr(r.sec)}${recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course)}</td>
-        <td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td></tr>`;
+      html += `<tr class="${cls}"><td class="nw">${medal}</td><td class="nw">${esc(r.name)}</td>
+        <td class="num nw">${toStr(r.sec)}${recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course)}</td>
+        <td class="nw">${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
     // グラフは全画面表示ボタンから開く(小さな画面での重なりをなくすため)
@@ -1492,7 +1505,6 @@ function viewRank(){
     };
   }
   eventPicker(document.getElementById('rkPick'), draw, true);
-  document.getElementById('rkOB').onchange = ()=>draw();
 }
 
 /* ============================================================
@@ -1524,8 +1536,7 @@ function viewLegend(){
       if(r.sec==null) return;
       if(obNames.has(r.name) || !activeNames.has(r.name)) return;
       if(!bestMap[r.name] || r.sec < bestMap[r.name].sec){
-        bestMap[r.name] = { name:r.name, sec:r.sec,
-          note:`${r.meet.year}年${r.meet.month}月 ${r.meet.meet}` };
+        bestMap[r.name] = { name:r.name, sec:r.sec, note:`${r.meet.year}年` };
       }
     });
     // 手で打ち込んだ歴代記録も合わせる(同じ人は速いほうを残す)
@@ -1537,8 +1548,7 @@ function viewLegend(){
       const sec = toSec(L.time);
       if(sec==null) return;
       if(!bestMap[L.name] || sec < bestMap[L.name].sec){
-        bestMap[L.name] = { name:L.name, sec:sec,
-          note: (L.year? L.year+'年 ' : '') + '歴代記録として登録' };
+        bestMap[L.name] = { name:L.name, sec:sec, note: L.year? L.year+'年' : '' };
       }
     });
     const ranked = Object.values(bestMap).sort((a,b)=>a.sec-b.sec).slice(0,10);
@@ -1551,9 +1561,9 @@ function viewLegend(){
       // 歴代記録には、世界記録・アジア記録・日本記録・学生記録の札だけを付ける
       // (日本選手権突破などの現役向けの札は、昔の記録には出さない)
       const badge = recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course);
-      html += `<tr class="${cls}"><td>${medal}</td><td>${esc(r.name)}</td>
-        <td class="num" style="font-weight:800">${toStr(r.sec)}${badge}</td>
-        <td style="color:var(--gray); font-size:.92rem">${esc(r.note)}</td></tr>`;
+      html += `<tr class="${cls}"><td class="nw">${medal}</td><td class="nw">${esc(r.name)}</td>
+        <td class="num nw" style="font-weight:800">${toStr(r.sec)}${badge}</td>
+        <td class="nw" style="color:var(--gray); font-size:.92rem">${esc(r.note)}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
   }
@@ -1588,10 +1598,10 @@ function viewStd(){
         const std = stdFor(s.code, d, sex, course);
         if(!std.japanStr && !std.openStr && !std.incStr) return;
         any = true;
-        html += `<tr><td style="font-weight:700">${d}m ${s.ja}</td>
-          <td class="num" style="background:var(--red-pale)">${esc(std.japanStr||'-')}</td>
-          <td class="num">${esc(std.openStr||'-')}</td>
-          <td class="num" style="background:#E8F6EE">${esc(std.incStr||'-')}</td></tr>`;
+        html += `<tr><td class="nw" style="font-weight:700">${d}m ${s.ja}</td>
+          <td class="num nw" style="background:var(--red-pale)">${std.japanStr? esc(fmtTime(std.japanStr)):'-'}</td>
+          <td class="num nw">${std.openStr? esc(fmtTime(std.openStr)):'-'}</td>
+          <td class="num nw" style="background:#E8F6EE">${std.incStr? esc(fmtTime(std.incStr)):'-'}</td></tr>`;
       });
     });
     document.getElementById('sdOut').innerHTML = any
@@ -1664,10 +1674,10 @@ function viewRecords(){
           ? `所属: ${esc(f.team||'-')}　樹立日: ${esc(f.date||'-')}　大会: ${esc(f.meet||'-')}　場所: ${esc(f.place||'-')}`
           : '詳しい情報は登録されていません。';
         html += `<tr class="rcrow">
-          <td style="font-weight:700">${d}m ${s.ja}</td>
-          <td class="num" style="font-weight:800; font-size:1.1rem">${esc(t)}</td>
+          <td class="nw" style="font-weight:700">${d}m ${s.ja}</td>
+          <td class="num nw" style="font-weight:800; font-size:1.1rem">${esc(fmtTime(t))}</td>
           <td><button type="button" class="btn ghost rcname" aria-expanded="false"
-            style="min-height:48px; text-align:left">${esc(f.holder||'-')}</button></td></tr>
+            style="min-height:48px; text-align:left; white-space:nowrap">${esc(f.holder||'-')}</button></td></tr>
           <tr class="rcdetail" hidden><td colspan="3"
             style="background:var(--blue-pale); font-size:.98rem">${detail}</td></tr>`;
       });
@@ -1753,7 +1763,7 @@ function viewKentai(){
   body.innerHTML = `
     <div class="card">
       <h2>県大会の記録</h2>
-      <p class="hint">県選手権などの記録、全${KENTAI.length}件が見られます。地図やプルダウンでしぼりこめます。</p>
+      <p class="hint">県選手権などの記録が見られます。はじめは今年の分だけ表示しています。地図やプルダウンでしぼりこめます。</p>
       <button type="button" class="btn ghost" id="ktMapBtn" aria-expanded="false"
         style="min-height:48px; margin-bottom:10px">地図(地方ブロック)から選ぶ</button>
       <div id="ktMap" hidden>
@@ -1814,9 +1824,12 @@ function viewKentai(){
     mSel.appendChild(o);
   });
 
-  [...new Set(KENTAI.map(r=>r[0].slice(0,4)))].sort((a,b)=>b.localeCompare(a)).forEach(y=>{
+  const ktYears = [...new Set(KENTAI.map(r=>r[0].slice(0,4)))].sort((a,b)=>b.localeCompare(a));
+  ktYears.forEach(y=>{
     const o = document.createElement('option'); o.value = y; o.textContent = y + '年'; ySel.appendChild(o);
   });
+  // はじめは、いちばん新しい年(今年)だけを表示する
+  if(ktYears.length) ySel.value = ktYears[0];
 
   // 簡易日本地図。地方ブロックのボタンを日本の並びで置く。データのない地方は押せない
   const blocksWithData = new Set(meetList.map(x=>x.block).filter(Boolean));
@@ -1912,22 +1925,40 @@ function viewKentai(){
     }).slice().sort((a,b)=> b[0].localeCompare(a[0]));
     const pt = placeText();
     document.getElementById('ktStatus').textContent =
-      (pt? pt + 'で ' : '') + rows.length + '件の記録が見つかりました。新しい日付から順に並んでいます。';
+      (pt? pt + 'で ' : '') + (year? year + '年の' : '') + rows.length +
+      '件の記録が見つかりました。新しい日付から順に並んでいます。大会名を押すと日付と正式な大会名、種目名を押すとラウンドや順位が出ます。';
     const out = document.getElementById('ktOut');
     if(rows.length===0){ out.innerHTML = '<p class="hint">この条件の記録はありません。</p>'; return; }
     let html = '<div class="tablewrap"><table>' +
-      '<tr><th>日付</th><th>大会</th><th>名前</th><th>種目</th><th>ラウンド</th><th>記録</th><th>順位</th><th>備考</th></tr>';
-    rows.forEach(r=>{
+      '<tr><th>大会</th><th>名前</th><th>種目</th><th>記録</th></tr>';
+    rows.forEach((r,idx)=>{
       const grade = r[3] ? '('+esc(r[3])+')' : '';
       const time = r[6] ? esc(r[6]) : '-';
       const best = r[8] ? ' <span class="pbtag">ベスト</span>' : '';
-      html += `<tr><td class="num">${esc(r[0])}</td><td>${esc(kentaiMeetLabel(r[1]))}</td>` +
-        `<td style="font-weight:700">${esc(r[2])}${grade}</td>` +
-        `<td>${esc(kentaiEventJa(r[4]))}</td><td>${esc(r[5])}</td>` +
-        `<td class="num">${time}${best}</td><td>${esc(r[7])}</td><td>${esc(r[9])}</td></tr>`;
+      html += `<tr>
+        <td><button type="button" class="ktcell" data-i="${idx}" data-k="meet" aria-expanded="false"
+          aria-label="${esc(kentaiMeetLabel(r[1]))}。押すと日付と大会名が出ます">${esc(kentaiMeetLabel(r[1]))}</button></td>
+        <td class="nw" style="font-weight:700">${esc(r[2])}${grade}</td>
+        <td><button type="button" class="ktcell" data-i="${idx}" data-k="ev" aria-expanded="false"
+          aria-label="${esc(kentaiEventJa(r[4]))}。押すとラウンドと順位が出ます">${esc(kentaiEventJa(r[4]))}</button></td>
+        <td class="num nw">${time}${best}</td></tr>
+      <tr class="ktdetail" data-i="${idx}" hidden><td colspan="4">
+        <div class="ktd-meet" hidden>日付: ${esc(r[0])}　大会: ${esc(r[1])}</div>
+        <div class="ktd-ev" hidden>ラウンド: ${esc(r[5]||'-')}　順位: ${esc(r[7]||'-')}　備考: ${esc(r[9]||'-')}</div>
+      </td></tr>`;
     });
     html += '</table></div>';
     out.innerHTML = html;
+    // 大会名や種目名を押すと、そのすぐ下に詳しい情報がひらいたり閉じたりする
+    out.querySelectorAll('button.ktcell').forEach(b=>{
+      b.onclick = ()=>{
+        const det = out.querySelector(`tr.ktdetail[data-i="${b.dataset.i}"]`);
+        const box = det.querySelector(b.dataset.k==='meet' ? '.ktd-meet' : '.ktd-ev');
+        box.hidden = !box.hidden;
+        b.setAttribute('aria-expanded', String(!box.hidden));
+        det.hidden = det.querySelector('.ktd-meet').hidden && det.querySelector('.ktd-ev').hidden;
+      };
+    });
   }
   nSel.onchange = draw;
   ySel.onchange = draw;

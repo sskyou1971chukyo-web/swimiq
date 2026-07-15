@@ -45,7 +45,7 @@ body{
   background:var(--bg); color:var(--ink); line-height:1.7;
   -webkit-font-smoothing:antialiased;
 }
-.num{ font-family:"M PLUS 1","BIZ UDPGothic",sans-serif; font-variant-numeric:tabular-nums; }
+.num{ font-family:"M PLUS 1","BIZ UDPGothic",sans-serif; font-variant-numeric:tabular-nums; text-align:right; }
 
 /* ---------- ヘッダーとコースロープ ---------- */
 header{ background:var(--white); padding:18px 24px 14px; }
@@ -198,6 +198,9 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
 .medal.m1{ background:var(--gold); } .medal.m2{ background:var(--silver); } .medal.m3{ background:var(--bronze); }
 .pbtag{ color:var(--white); background:var(--red); border-radius:8px; padding:2px 8px; font-size:.85rem; font-weight:700; white-space:nowrap; }
 .nw{ white-space:nowrap; }
+.pick2{ display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:end; }
+.pick2 .fld{ min-width:0; }
+.pick2 .wide{ grid-column:1/-1; }
 .ktcell{ background:none; border:none; color:var(--blue); text-decoration:underline;
   font:inherit; font-weight:700; padding:8px 2px; min-height:44px; cursor:pointer; white-space:nowrap; }
 .ktcell:focus-visible{ outline:4px solid var(--gold); outline-offset:2px; }
@@ -302,9 +305,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.11';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.13';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '種目は50mFRのような短い表記になり、タイムを押すと出した大会が見られます。';
+const APP_NEWS = 'タイムは右ぞろえになり、選ぶ欄が2列のすっきりした並びになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -493,22 +496,21 @@ function showMode(m){
    選手を探す共通部品
    学年・男女・五十音・文字検索(音声入力もOK)で絞り込みます
 ============================================================ */
-function makeFinder(container, onPick, multiDone, preselected){
-  // 学年・男女・行は複数選べる(空っぽのときは絞り込みなし)
-  const state = { grade:new Set(), sex:new Set(), row:new Set(), text:'' };
+function makeFinder(container, onPick, multiDone, preselected, doneLabel){
+  // 学年・男女は複数選べる(空っぽのときは絞り込みなし)
+  const state = { grade:new Set(), sex:new Set(), text:'' };
   const grades = [...new Set(INIT.roster.map(r=>r.grade).filter(Boolean))];
 
   container.innerHTML = `
     <div class="finder">
       <div class="chips" data-k="grade" role="group" aria-label="学年で絞る"></div>
       <div class="chips" data-k="sex" role="group" aria-label="男女で絞る"></div>
-      <div class="chips" data-k="row" role="group" aria-label="名前の行で絞る"></div>
       <label class="fld">名前で検索(音声入力もつかえます)
         <input type="text" data-k="text" placeholder="例: やまもと">
       </label>
       ${multiDone? `<div class="selbar">
         <span class="selcount" style="font-weight:700">選択中: 0人</span>
-        <button type="button" class="btn red solid" data-k="done" disabled>選んだ選手で一覧を作る</button>
+        <button type="button" class="btn red solid" data-k="done" disabled>${esc(doneLabel||'選んだ選手で一覧を作る')}</button>
       </div>`:''}
       <div class="athlist" role="list"></div>
     </div>`;
@@ -547,25 +549,14 @@ function makeFinder(container, onPick, multiDone, preselected){
   }
   chips('grade', grades);
   chips('sex', ['男','女']);
-  const hasKana = INIT.roster.some(r=>r.kana);
-  if(hasKana){
-    chips('row', GOJUON.map(g=>({label:g[0]+'行', value:g[0]})));
-  } else {
-    container.querySelector('.chips[data-k="row"]').style.display = 'none';
-  }
   container.querySelector('input[data-k="text"]').addEventListener('input', e=>{
     state.text = e.target.value.trim(); render();
   });
   paintSel();
 
-  function kanaRow(kana){
-    const c = (kana||'')[0];
-    for(const g of GOJUON){ if(g[1].indexOf(c)>=0) return g[0]; }
-    return '';
-  }
   function render(){
     // チップの見た目を今の状態にそろえる(すべて=なにも選んでいないとき)
-    ['grade','sex','row'].forEach(k=>{
+    ['grade','sex'].forEach(k=>{
       container.querySelectorAll(`.chips[data-k="${k}"] .chip`).forEach((b,i)=>{
         const on = i===0 ? state[k].size===0 : state[k].has(b.dataset.v);
         b.classList.toggle('on', on);
@@ -575,7 +566,6 @@ function makeFinder(container, onPick, multiDone, preselected){
     let people = INIT.roster.slice();
     if(state.grade.size) people = people.filter(p=>state.grade.has(p.grade));
     if(state.sex.size)   people = people.filter(p=>Array.from(state.sex).some(v=>(p.sex||'').startsWith(v)));
-    if(state.row.size)   people = people.filter(p=>state.row.has(kanaRow(p.kana)));
     if(state.text)  people = people.filter(p=>p.name.includes(state.text)||p.kana.includes(state.text));
     people.sort((a,b)=>(a.kana||a.name).localeCompare(b.kana||b.name,'ja'));
     list.innerHTML = '';
@@ -952,10 +942,10 @@ function viewMeet(){
     <div class="card">
       <h2>試合で探す</h2>
       <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。</p>
-      <div class="stack" style="align-items:end">
+      <div class="pick2">
         <label class="fld">年<select id="vmYear"></select></label>
         <label class="fld">月<select id="vmMonth"></select></label>
-        <label class="fld" style="flex:1; min-width:260px">試合名<select id="vmName"></select></label>
+        <label class="fld wide">試合名<select id="vmName"></select></label>
       </div>
       <div id="meetOut" style="margin-top:16px"></div>
     </div>`;
@@ -1152,7 +1142,7 @@ async function saveProfile(name){
 ============================================================ */
 function eventPicker(box, onChange, withCourse){
   box.innerHTML = `
-    <div class="stack" style="align-items:end">
+    <div class="pick2">
       <label class="fld">泳法<select data-k="st"></select></label>
       <label class="fld">距離<select data-k="ds"></select></label>
       <label class="fld">男女<select data-k="sx"><option>男子</option><option>女子</option></select></label>
@@ -1374,6 +1364,66 @@ function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
             titleFont:{family:'BIZ UDPGothic', size:15, weight:'700'},
             bodyFont:{family:'M PLUS 1', size:19, weight:'800'},
             callbacks:{ label:c=>' '+toStr(c.parsed.y)+(rows[c.dataIndex].sec===bestSec?' (ベスト)':'') } } },
+        scales:{
+          y:{ reverse:true, min:min-padPx, max:max+padPx,
+            title:{display:true, text:'タイム(上が速い)', font:{family:'BIZ UDPGothic', weight:'700'}},
+            ticks:{ callback:v=>toStr(v), font:{family:'M PLUS 1', size:14} } },
+          x:{ ticks:{ display:false }, grid:{ display:true } }
+        }
+      }
+    });
+}
+
+// 複数の選手の推移をひとつのグラフにくらべて描く (グラフ画面から使う)
+function renderProgressMulti(people, stroke, dist, course){
+  const perRows = people.map(p=> DATA.records.map(rec).filter(r=>
+    r.name===p.name && r.stroke===stroke && r.dist===dist &&
+    (r.meet.course||'長水路')===course && r.sec!=null));
+  const meetIdx = [...new Set([].concat(...perRows).map(r=>DATA.meets.indexOf(r.meet)))]
+    .sort((a,b)=>(DATA.meets[a].year*100+DATA.meets[a].month)-(DATA.meets[b].year*100+DATA.meets[b].month));
+  if(meetIdx.length===0) return;
+  const labels = meetIdx.map(i=>{ const m = DATA.meets[i];
+    return `${m.year}年${m.month}月 ${m.meet}${m.ref?'(参考)':''}`; });
+  // 高コントラストの色を順番に使う
+  const palette = ['#1663C7','#E5372E','#17934A','#7B2D8B','#E58E00','#0D2B52','#C77B3F','#008B9E'];
+  const datasets = people.map((p,pi)=>{
+    const rowsP = perRows[pi];
+    const data = meetIdx.map(mi=>{
+      const hits = rowsP.filter(r=>DATA.meets.indexOf(r.meet)===mi).map(r=>r.sec);
+      return hits.length ? Math.min(...hits) : null;
+    });
+    const col = palette[pi % palette.length];
+    return { label:p.name, data, borderColor:col, backgroundColor:col,
+      borderWidth:4, tension:.25, spanGaps:true,
+      pointRadius:8, pointHitRadius:24,
+      pointBackgroundColor:col, pointBorderColor:'#fff', pointBorderWidth:2 };
+  });
+  // 男女がまざっているときは、標準記録の線は引かない
+  const sexes = [...new Set(people.map(p=>(INIT.roster.find(x=>x.name===p.name)||{}).sex==='女'?'女子':'男子'))];
+  const std = sexes.length===1 ? stdFor(stroke, dist, sexes[0], course) : null;
+  const lines = std ? stdLineList(std, 'y') : [];
+  const allSecs = [].concat(...datasets.map(d=>d.data.filter(v=>v!=null))).concat(lines.map(L=>L.value));
+  const min = Math.min(...allSecs), max = Math.max(...allSecs), padPx=(max-min)*0.12||1;
+  const title = (people.length===1
+    ? people[0].name + ' さんの '
+    : people.map(p=>p.name).join('・') + ' の ')
+    + evShort(dist, stroke) + ' (' + courseShort(course) + ') の推移';
+  openFullGraph(
+    title,
+    stdLegendHtml(lines, '点を押すと大会名とタイムが出ます。上に行くほど速いタイムです。'),
+    {
+      type:'line',
+      data:{ labels, datasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        stdLines:lines, stdLineLabels:false, pointValues:false,
+        plugins:{
+          legend:{ display: people.length>1,
+            labels:{ font:{family:'BIZ UDPGothic', size:15, weight:'700'} } },
+          tooltip:{ displayColors:false, padding:14,
+            titleFont:{family:'BIZ UDPGothic', size:15, weight:'700'},
+            bodyFont:{family:'M PLUS 1', size:19, weight:'800'},
+            callbacks:{ label:c=>' '+c.dataset.label+' '+toStr(c.parsed.y) } } },
         scales:{
           y:{ reverse:true, min:min-padPx, max:max+padPx,
             title:{display:true, text:'タイム(上が速い)', font:{family:'BIZ UDPGothic', weight:'700'}},
@@ -1610,7 +1660,7 @@ function viewStd(){
   const body = document.getElementById('viewBody');
   body.innerHTML = `
     <div class="card"><h2>標準記録の一覧</h2>
-      <div class="stack" style="align-items:end">
+      <div class="pick2">
         <label class="fld">男女<select id="sdSex"><option>男子</option><option>女子</option></select></label>
         <label class="fld">水路<select id="sdCourse"><option>長水路</option><option>短水路</option></select></label>
       </div>
@@ -1677,8 +1727,8 @@ function viewRecords(){
   const body = document.getElementById('viewBody');
   body.innerHTML = `
     <div class="card"><h2>記録一覧</h2>
-      <div class="stack" style="align-items:end">
-        <label class="fld">記録の種類
+      <div class="pick2">
+        <label class="fld wide">記録の種類
           <select id="rcKind"><option>世界記録</option><option>アジア記録</option><option>日本記録</option><option>学生記録</option></select></label>
         <label class="fld">男女<select id="rcSex"><option>男子</option><option>女子</option></select></label>
         <label class="fld">水路<select id="rcCourse"><option>長水路</option><option>短水路</option></select></label>
@@ -2006,30 +2056,33 @@ function viewKentai(){
 function viewGraph(autoName){
   const body = document.getElementById('viewBody');
   body.innerHTML = `
-    <div class="card"><h2>グラフにする選手を選ぶ</h2><div id="gFinder"></div></div>
+    <div class="card"><h2>グラフにする選手を選ぶ(複数可能)</h2>
+      <p class="hint">選手の名前を押すと選ばれます。何人でも選べます。選び終わったら赤いボタンで進んでください。</p>
+      <div id="gFinder"></div></div>
     <div id="gStage"></div>`;
-  makeFinder(document.getElementById('gFinder'), showAthlete);
-  if(autoName){
-    const p = INIT.roster.find(x=>x.name===autoName);
-    if(p) showAthlete(p);
-  }
-  function showAthlete(p){
+  const autoP = autoName ? INIT.roster.find(x=>x.name===autoName) : null;
+  makeFinder(document.getElementById('gFinder'), null, showAthletes, autoP?[autoP]:[], '選んだ選手でグラフへ進む');
+  if(autoP) showAthletes([autoP]);
+
+  function showAthletes(people){
     const stage = document.getElementById('gStage');
-    // 出場した種目だけをあつめる (泳法_距離_水路 → 記録の一覧)
+    // 選ばれた選手たちが出場した種目だけをあつめる (泳法_距離_水路 → 記録の一覧)
     const evs = {};
+    const nameSet = new Set(people.map(p=>p.name));
     DATA.records.map(rec).forEach(r=>{
-      if(r.name!==p.name || r.sec==null) return;
+      if(!nameSet.has(r.name) || r.sec==null) return;
       const k = r.stroke+'_'+r.dist+'_'+(r.meet.course||'長水路');
       (evs[k]=evs[k]||[]).push(r);
     });
     const keys = Object.keys(evs);
     if(keys.length===0){
-      stage.innerHTML = `<div class="card"><p class="hint">${esc(p.name)}さんの記録はまだありません。</p></div>`;
+      stage.innerHTML = `<div class="card"><p class="hint">選んだ選手の記録はまだありません。</p></div>`;
       return;
     }
+    const who = people.length===1 ? esc(people[0].name)+' さん' : people.map(p=>esc(p.name)).join('・');
     stage.innerHTML = `
-      <div class="card redline"><h2>${esc(p.name)} さん どの種目をグラフにしますか</h2>
-        <p class="hint">出場したことのある距離と種目だけが選べます。ボタンを押すとグラフが全画面で開きます。</p>
+      <div class="card redline"><h2>${who} どの種目をグラフにしますか</h2>
+        <p class="hint">選んだ選手のだれかが出場した距離と種目だけが選べます。ボタンを押すとグラフが全画面で開きます。</p>
         <div class="stack" style="align-items:end">
           <label class="fld">距離<select id="gDist"></select></label>
           <label class="fld">種目<select id="gStroke"></select></label>
@@ -2044,8 +2097,7 @@ function viewGraph(autoName){
     const dSel = document.getElementById('gDist');
     const sSel = document.getElementById('gStroke');
     const cSel = document.getElementById('gCourse');
-    const parts = k => { const a=k.split('_'); return {stroke:a[0], dist:Number(a[1]), course:a[2]}; };
-
+    const parts = k => { const [st,d,cs] = k.split('_'); return {stroke:st, dist:Number(d), course:cs}; };
     function fillDist(){
       const dists = [...new Set(keys.map(k=>parts(k).dist))].sort((a,b)=>a-b);
       dSel.innerHTML = '';
@@ -2084,12 +2136,12 @@ function viewGraph(autoName){
       document.getElementById('gCount').textContent = rows.length + '本';
       const btn = document.getElementById('gShow');
       btn.disabled = rows.length===0;
-      btn.onclick = ()=>renderProgress('gChart', 'gTitle', 'gChartBox', p, st, d, cs);
+      btn.onclick = ()=>renderProgressMulti(people, st, d, cs);
     }
     dSel.onchange = ()=>{ fillStroke(); fillCourse(); draw(); };
     sSel.onchange = ()=>{ fillCourse(); draw(); };
     cSel.onchange = draw;
-    // 最初は、いちばん多く泳いでいる種目を自動で選んで描く
+    // 最初は、いちばん多く泳がれている種目を自動で選んでおく
     fillDist();
     let bestKey = keys[0];
     keys.forEach(k=>{ if(evs[k].length > evs[bestKey].length) bestKey = k; });

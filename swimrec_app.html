@@ -306,9 +306,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.16';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.17';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'ランキングに県大会の記録も反映されるようになりました。';
+const APP_NEWS = '22.5のような記録も、22.50と100分の1まで必ず表示されるようになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -1020,7 +1020,7 @@ function viewMeet(){
       html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue)">${esc(k)}</h3>
         <div class="tablewrap"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th><th></th></tr>`;
       g.forEach(r=>{
-        html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td><td class="num">${esc(r.time)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td><td class="num">${esc(r.best)}</td>
+        html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td><td class="num">${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td><td class="num">${esc(fmtTime(r.best))}</td>
           <td>${r.pb? BEST_MARK :''}</td></tr>`;
       });
       html += '</table></div>';
@@ -1096,7 +1096,7 @@ function viewName(autoName){
       html += `<tr><td class="nw" style="font-weight:700">${evShort(r.dist, r.stroke)}</td>
         <td class="nw">${esc(courseShort(cs))}</td>
         <td class="num nw"><button type="button" class="ktcell nmtime" data-i="${bi}" aria-expanded="false"
-          aria-label="${esc(toStr(r.sec)||r.time)}。押すと出した大会が出ます">${esc(toStr(r.sec)||r.time)}</button>${recordBadges(r.sec, r.stroke, r.dist, r.sex, cs)}</td>
+          aria-label="${esc(toStr(r.sec)||fmtTime(r.time))}。押すと出した大会が出ます">${esc(toStr(r.sec)||fmtTime(r.time))}</button>${recordBadges(r.sec, r.stroke, r.dist, r.sex, cs)}</td>
         <td><button class="btn" style="min-height:46px"
           onclick="nameGraph('${r.stroke}',${r.dist},'${esc(cs)}')">グラフ</button></td></tr>
       <tr class="ktdetail nmdetail" data-i="${bi}" hidden><td colspan="4">大会: ${esc(r.meet.meet)} (${r.meet.year}年${r.meet.month}月)</td></tr>`;
@@ -1106,7 +1106,7 @@ function viewName(autoName){
       <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th><th></th></tr>`;
     rows.forEach(r=>{
       html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(courseShort(r.meet.course))}</td>
-        <td class="nw">${evShort(r.dist, r.stroke)}</td><td class="num nw">${esc(r.time)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+        <td class="nw">${evShort(r.dist, r.stroke)}</td><td class="num nw">${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
         <td>${r.pb? BEST_MARK :''}</td></tr>`;
     });
     html += '</table></div></div>';
@@ -1489,7 +1489,7 @@ function viewEvent(){
     rows.forEach((r,ei)=>{
       html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
         <td class="num nw"><button type="button" class="ktcell evtime" data-i="${ei}" aria-expanded="false"
-          aria-label="${esc(r.time)}。押すと大会名が出ます">${esc(r.time)}</button>${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+          aria-label="${esc(fmtTime(r.time))}。押すと大会名が出ます">${esc(fmtTime(r.time))}</button>${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
         <td>${r.pb? BEST_MARK :''}</td></tr>
       <tr class="ktdetail evdetail" data-i="${ei}" hidden><td colspan="3">大会: ${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(courseShort(r.meet.course))}</td></tr>`;
     });

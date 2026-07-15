@@ -306,9 +306,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.19';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.21';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '設定画面から、セイコーの結果ページの取り込みができるようになりました。';
+const APP_NEWS = 'セイコーの取り込みが、結果PDFをAIで読む方式になりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -424,7 +424,8 @@ async function apiSave(payload){
   return json;
 }
 /* ============================================================
-   セイコーの結果ページの取り込み (GASの窓口 action=seiko を使う)
+   セイコーの結果ページの取り込み
+   (GASの窓口 action=seiko と action=seikoPdf を使う)
 ============================================================ */
 async function seikoFetch(url){
   const res = await fetch(GAS_URL + '?action=seiko&url=' + encodeURIComponent(url));
@@ -432,59 +433,47 @@ async function seikoFetch(url){
   if(json.error) throw new Error(json.error);
   return json.text || '';
 }
-// ページの中のリンク(htm)を拾って、絶対アドレスにそろえる
-function seikoLinks(htmlText, baseUrl){
-  const dir = baseUrl.replace(/[^\/]*$/, '');
+async function seikoPdfFetch(url, who){
+  const res = await fetch(GAS_URL + '?action=seikoPdf&url=' + encodeURIComponent(url) +
+    '&who=' + encodeURIComponent(who));
+  return await res.json();
+}
+// 相対の住所を絶対にそろえ、../ をたたむ
+function seikoResolve(u, baseUrl){
+  if(/^https?:/i.test(u)){ /* そのまま */ }
+  else if(u.startsWith('/')) u = 'https://swim.seiko.co.jp' + u;
+  else u = baseUrl.replace(/[^\/]*$/, '') + u.replace(/^\.\//,'');
+  // /a/b/../c を /a/c にたたむ
+  const parts = [];
+  u.replace('https://swim.seiko.co.jp','').split('/').forEach(p=>{
+    if(p==='..') parts.pop();
+    else if(p!=='' && p!=='.') parts.push(p);
+  });
+  return 'https://swim.seiko.co.jp/' + parts.join('/');
+}
+// ページの中のhtmリンクを拾う(入口と同じ大会のフォルダの中だけ)
+function seikoLinks(htmlText, baseUrl, folder){
   const out = [];
-  // href(ふつうのリンク)と src(フレームの入れ物)の両方からリンクを拾う
   const re = /(?:href|src)\s*=\s*["']?([^"'>\s]+\.html?)/gi;
   let m;
   while((m = re.exec(htmlText))){
-    let u = m[1];
-    if(/^https?:/i.test(u)){ /* そのまま */ }
-    else if(u.startsWith('/')) u = 'https://swim.seiko.co.jp' + u;
-    else u = dir + u.replace(/^\.\//,'');
-    if(u.startsWith('https://swim.seiko.co.jp/') && !out.includes(u)) out.push(u);
+    const u = seikoResolve(m[1], baseUrl);
+    if(u.startsWith(folder) && !out.includes(u)) out.push(u);
   }
   return out;
 }
-// ページから種目(男女・距離・泳法)とラウンドを読み取る
-function seikoEvent(text){
-  const plain = text.replace(/<[^>]+>/g,' ');
-  const m = plain.match(/(男子|女子)[^0-9]{0,20}(\d{2,4})\s*m?\s*(自由形|背泳ぎ|平泳ぎ|バタフライ|個人メドレー)/);
-  if(!m) return null;
-  const map = { '自由形':'Fr', '背泳ぎ':'Ba', '平泳ぎ':'Br', 'バタフライ':'Fly', '個人メドレー':'IM' };
-  const round = (plain.match(/タイム決勝|B決勝|決勝|予選/)||[''])[0];
-  return { sex:m[1], dist:Number(m[2]), stroke:map[m[3]], round };
-}
-// 1ページの中から、探したい文字(名前や所属)を含む行の記録を拾う
-function seikoScanPage(text, kws){
-  const ev = seikoEvent(text);
-  if(!ev) return [];
-  const lines = text.replace(/<br[^>]*>/gi,'\n').replace(/<tr[^>]*>/gi,'\n').replace(/<\/tr>/gi,'\n')
-    .replace(/<[^>]+>/g,' ').split('\n');
-  const hits = [];
-  lines.forEach(line=>{
-    const kw = kws.find(k=>line.includes(k));
-    if(!kw) return;
-    const times = line.match(/(?:\d{1,2}:)?\d{1,2}\.\d{2}/g);
-    if(!times) return;
-    const time = times[times.length-1];
-    // 名前の見当をつける。探した文字より前にある日本語のかたまりをつなぐ
-    let name;
-    const isAffil = /大$|大学|高$|高校|中$|中学|SC|クラブ|スイミング/.test(kw);
-    if(isAffil){
-      const stop = ['男子','女子','決勝','予選','タイム決勝','B決勝','自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー'];
-      const before = line.slice(0, line.indexOf(kw)).trim().split(/\s+/);
-      name = before.filter(t=>/^[一-龥々〆ぁ-んァ-ヶーA-Za-z]+$/.test(t) && !stop.includes(t)).join('');
-    } else {
-      name = kw;
-    }
-    if(!name) return;
-    hits.push({ name, sex:ev.sex, dist:ev.dist, stroke:ev.stroke,
-      round:ev.round, time: fmtTime(time) });
-  });
-  return hits;
+// ページの中の、結果PDFへのリンクと、そのそばの種目名を拾う
+function seikoPdfLinks(htmlText, baseUrl, folder){
+  const out = [];
+  const re = /<a[^>]+(?:href|HREF)\s*=\s*["']?([^"'>\s]+\.pdf)["']?[^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while((m = re.exec(htmlText))){
+    const u = seikoResolve(m[1], baseUrl);
+    if(!u.startsWith(folder)) continue;
+    const label = m[2].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    if(!out.some(x=>x.url===u)) out.push({ url:u, label: label || u.split('/').pop() });
+  }
+  return out;
 }
 
 async function loadInit(){
@@ -2373,7 +2362,7 @@ function renderAdmin(){
     </div>
 
     <div class="card"><h2>大会結果の取り込み(セイコーの結果ページ)</h2>
-      <p class="hint">swim.seiko.co.jp の大会ページの住所と、探したい選手の名前や所属を入れると、その選手の記録だけを拾って登録できます。名前や所属はカンマ区切りで何個でも入れられます。</p>
+      <p class="hint">swim.seiko.co.jp の大会ページの住所を入れて、まず種目の一覧を読み取ります。次に取り込みたい種目を選ぶと、AIが結果のPDFを読んで、探したい名前や所属の選手だけを拾います。名前や所属はカンマ区切りで何個でも。所属はページの書き方に合わせて、中京大、のように短く入れると広く拾えます。</p>
       <label class="fld">結果ページの住所(index.htmのページ)
         <input type="text" id="skURL" placeholder="例: https://swim.seiko.co.jp/2026/S70701/index.htm"></label>
       <label class="fld" style="margin-top:8px">探す名前や所属(カンマ区切り)
@@ -2386,7 +2375,7 @@ function renderAdmin(){
         <label class="fld">水路<select id="skCourse"><option>長水路</option><option>短水路</option></select></label>
       </div>
       <div class="stack" style="margin-top:10px">
-        <button class="btn red solid big" onclick="adminSeikoScan()">ページを読み取る</button>
+        <button class="btn red solid big" onclick="adminSeikoScan()">種目の一覧を読み取る</button>
       </div>
       <div id="skMsg" style="margin-top:10px" aria-live="polite"></div>
       <div id="skOut" style="margin-top:10px"></div>
@@ -2411,70 +2400,123 @@ function renderAdmin(){
     document.getElementById('skMonth').value = today.getMonth()+1;
   })();
   let SK_HITS = [];
+  let SK_RACES = [];
+  // 一段目: 大会のページをたどって、種目のPDFの一覧を作る
   window.adminSeikoScan = async function(){
     const msg = document.getElementById('skMsg');
     const out = document.getElementById('skOut');
-    out.innerHTML = ''; SK_HITS = [];
+    out.innerHTML = ''; SK_HITS = []; SK_RACES = [];
     const url = document.getElementById('skURL').value.trim();
-    const kws = document.getElementById('skWho').value.split(/[、,\s]+/).filter(Boolean);
     if(!/^https:\/\/swim\.seiko\.co\.jp\//.test(url)){
       msg.innerHTML = '<div class="errmsg">住所は https://swim.seiko.co.jp/ で始まるページを入れてください。</div>'; return;
     }
-    if(kws.length===0){
-      msg.innerHTML = '<div class="errmsg">探す名前や所属を入れてください。</div>'; return;
-    }
+    const folder = url.replace(/[^\/]*$/, '');
     try{
       msg.innerHTML = '<div class="loading">入口のページを読んでいます…</div>';
-      const queue = [];
       const seen = new Set([url]);
+      const queue = [];
+      const visited = [url];
       const first = await seikoFetch(url);
       let firstText = first;
-      seikoLinks(first, url).forEach(u=>{ if(!seen.has(u)){ seen.add(u); queue.push({u, depth:1}); } });
+      SK_RACES = seikoPdfLinks(first, url, folder);
+      seikoLinks(first, url, folder).forEach(u=>{ if(!seen.has(u)){ seen.add(u); queue.push({u, depth:1}); } });
       let done = 0;
       while(queue.length){
         const item = queue.shift();
         done++;
         const total = done + queue.length;
-        msg.innerHTML = `<div class="loading">読み取り中 ${done}/${total}ページ (${Math.round(done/total*100)}%)…</div>`;
+        msg.innerHTML = `<div class="loading">種目の一覧を読み取り中 ${done}/${total}ページ (${Math.round(done/total*100)}%)…</div>`;
         let text;
         try{ text = await seikoFetch(item.u); }catch(e){ continue; }
-        const hits = seikoScanPage(text, kws);
-        if(hits.length){
-          hits.forEach(h=>{ h.page = item.u; SK_HITS.push(h); });
-        } else if(item.depth < 2){
-          // 記録が見つからなかったページは、もう1階層だけ中のリンクをたどる
-          seikoLinks(text, item.u).forEach(u=>{
-            if(!seen.has(u) && seen.size < 300){ seen.add(u); queue.push({u, depth:item.depth+1}); }
+        visited.push(item.u);
+        seikoPdfLinks(text, item.u, folder).forEach(r=>{
+          if(!SK_RACES.some(x=>x.url===r.url)) SK_RACES.push(r);
+        });
+        if(item.depth < 3){
+          seikoLinks(text, item.u, folder).forEach(u=>{
+            if(!seen.has(u) && seen.size < 100){ seen.add(u); queue.push({u, depth:item.depth+1}); }
           });
         }
       }
-      // 同じ名前・種目・タイムの重複は1つにまとめる
-      const uniq = {};
-      SK_HITS = SK_HITS.filter(h=>{
-        const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
-        if(uniq[k]) return false; uniq[k] = 1; return true;
-      });
-      if(SK_HITS.length===0){
-        msg.innerHTML = '<div class="errmsg">見つかりませんでした。名前や所属の書き方がページと違うかもしれません。下に入口ページの中身の一部を出すので、スクショを送ってください。</div>';
-        out.innerHTML = '<div class="tablewrap" style="max-height:220px"><pre style="white-space:pre-wrap; font-size:.85rem; padding:10px">'
+      if(SK_RACES.length===0){
+        msg.innerHTML = '<div class="errmsg">種目のPDFが見つかりませんでした。下の診断のスクショを送ってください。</div>';
+        const links = visited.slice(0, 30).map(u=>u.replace('https://swim.seiko.co.jp',''));
+        out.innerHTML = '<p class="hint">診断: ' + visited.length + 'ページ読みました。読んだページ: ' + esc(links.join(' , ')) + '</p>' +
+          '<div class="tablewrap" style="max-height:220px"><pre style="white-space:pre-wrap; font-size:.85rem; padding:10px">'
           + esc(String(firstText).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,1200)) + '</pre></div>';
         return;
       }
-      msg.innerHTML = `<div class="okmsg">${SK_HITS.length}件見つかりました。名前を直せます。いらない行はチェックを外して、下のボタンで登録してください。</div>`;
-      let h = '<div class="tablewrap"><table><tr><th></th><th>名前</th><th>種目</th><th>ラウンド</th><th>タイム</th></tr>';
-      SK_HITS.forEach((r,i)=>{
-        h += `<tr><td><input type="checkbox" class="skchk" data-i="${i}" checked style="width:26px;height:26px"></td>
-          <td><input type="text" class="skname" data-i="${i}" value="${esc(r.name)}" style="min-width:120px"></td>
-          <td class="nw">${esc(r.sex)} ${evShort(r.dist, r.stroke)}</td>
-          <td class="nw">${esc(r.round||'-')}</td>
-          <td class="num nw">${esc(r.time)}</td></tr>`;
+      msg.innerHTML = `<div class="okmsg">${SK_RACES.length}種目が見つかりました。取り込みたい種目にチェックを入れて、下のボタンを押してください。AIが1種目ずつ読むので、1種目あたり10秒ほどかかります。</div>`;
+      let h = '<div class="stack" style="margin-bottom:8px">' +
+        '<button type="button" class="btn ghost" onclick="document.querySelectorAll(\'.skrace\').forEach(c=>c.checked=true)">全部選ぶ</button>' +
+        '<button type="button" class="btn ghost" onclick="document.querySelectorAll(\'.skrace\').forEach(c=>c.checked=false)">全部外す</button></div>' +
+        '<div class="tablewrap" style="max-height:420px"><table><tr><th></th><th>種目</th></tr>';
+      SK_RACES.forEach((r,i)=>{
+        h += `<tr><td><input type="checkbox" class="skrace" data-i="${i}" style="width:26px;height:26px"></td>
+          <td style="min-height:40px">${esc(r.label)}</td></tr>`;
       });
       out.innerHTML = h + '</table></div>' +
-        '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminSeikoSave()">選んだ記録を登録する</button></div>';
+        '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminSeikoRead()">選んだ種目をAIで読み取る</button></div>' +
+        '<div id="skOut2" style="margin-top:10px"></div>';
     }catch(err){
       msg.innerHTML = '<div class="errmsg">読み取れませんでした: '+esc(err.message)+
-        '。GAS側にseikoの窓口が入っているか、確認してください。</div>';
+        '。GAS側(v3)にseikoの窓口が入っているか、確認してください。</div>';
     }
+  };
+  // 二段目: 選ばれた種目のPDFを、AIで1枚ずつ読む
+  window.adminSeikoRead = async function(){
+    const msg = document.getElementById('skMsg');
+    const out2 = document.getElementById('skOut2');
+    const kws = document.getElementById('skWho').value.trim();
+    const picked = [];
+    document.querySelectorAll('.skrace').forEach(c=>{ if(c.checked) picked.push(SK_RACES[Number(c.dataset.i)]); });
+    if(picked.length===0){ msg.innerHTML = '<div class="errmsg">読み取る種目にチェックを入れてください。</div>'; return; }
+    SK_HITS = [];
+    const errors = [];
+    for(let i=0; i<picked.length; i++){
+      msg.innerHTML = `<div class="loading">AIが読み取り中 ${i+1}/${picked.length}種目 (${Math.round((i+1)/picked.length*100)}%)… ${esc(picked[i].label)}</div>`;
+      let data;
+      try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ errors.push(picked[i].label); continue; }
+      if(data.error){ errors.push(picked[i].label + ': ' + data.error); continue; }
+      // 種目はAIの読み取りを使い、読めなければ種目名の文字から補う
+      let ev = { sex:data.sex, dist:Number(data.dist), stroke:data.stroke, round:data.round||'' };
+      if(!ev.stroke || !ev.dist){
+        const g = seikoEvent(picked[i].label);
+        if(g) ev = g;
+      }
+      (data.rows||[]).forEach(r=>{
+        if(!r || !r.name || !r.time) return;
+        SK_HITS.push({
+          name: String(r.name).replace(/[\s\u3000]+/g,''),
+          team: String(r.team||''),
+          sex: ev.sex||'', dist: ev.dist||0, stroke: ev.stroke||'',
+          round: ev.round||'', time: fmtTime(String(r.time).trim())
+        });
+      });
+    }
+    // 同じ名前・種目・タイムの重複は1つにまとめる
+    const uniq = {};
+    SK_HITS = SK_HITS.filter(h=>{
+      const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
+      if(uniq[k]) return false; uniq[k] = 1; return true;
+    });
+    const errNote = errors.length? '<div class="errmsg">読めなかった種目: '+esc(errors.join(' / '))+'</div>' : '';
+    if(SK_HITS.length===0){
+      msg.innerHTML = errNote + '<div class="errmsg">対象の選手が見つかりませんでした。探す名前や所属の書き方を、ページの書き方(例: 中京大)に合わせてみてください。</div>';
+      return;
+    }
+    msg.innerHTML = errNote + `<div class="okmsg">${SK_HITS.length}件見つかりました。名前を直せます。いらない行はチェックを外して、下のボタンで登録してください。</div>`;
+    let h = '<div class="tablewrap"><table><tr><th></th><th>名前</th><th>所属</th><th>種目</th><th>ラウンド</th><th>タイム</th></tr>';
+    SK_HITS.forEach((r,i)=>{
+      h += `<tr><td><input type="checkbox" class="skchk" data-i="${i}" checked style="width:26px;height:26px"></td>
+        <td><input type="text" class="skname" data-i="${i}" value="${esc(r.name)}" style="min-width:120px"></td>
+        <td class="nw">${esc(r.team)}</td>
+        <td class="nw">${esc(r.sex)} ${evShort(r.dist, r.stroke)}</td>
+        <td class="nw">${esc(r.round||'-')}</td>
+        <td class="num nw">${esc(r.time)}</td></tr>`;
+    });
+    out2.innerHTML = h + '</table></div>' +
+      '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminSeikoSave()">選んだ記録を登録する</button></div>';
   };
   window.adminSeikoSave = async function(){
     const msg = document.getElementById('skMsg');
@@ -2504,11 +2546,11 @@ function renderAdmin(){
       localStorage.removeItem('cust_rec_cache');
       msg.innerHTML = `<div class="okmsg">${rows.length}件を登録しました。閲覧画面の試合で探すから確認できます。</div>`;
       document.getElementById('skOut').innerHTML = '';
+      const o2 = document.getElementById('skOut2'); if(o2) o2.innerHTML = '';
     }catch(err){
       msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
     }
   };
-
   // 歴代記録の打ち込み(閲覧画面から設定画面へ移動したもの)
   let agCur = null;
   eventPicker(document.getElementById('agPick'), st=>{ agCur = st; }, true);

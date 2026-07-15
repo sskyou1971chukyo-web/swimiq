@@ -196,10 +196,15 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
 .medal{ display:inline-block; min-width:2.1em; text-align:center; border-radius:8px; padding:2px 6px;
   color:var(--white); font-weight:800; margin-right:6px; }
 .medal.m1{ background:var(--gold); } .medal.m2{ background:var(--silver); } .medal.m3{ background:var(--bronze); }
-.pbtag{ color:var(--white); background:var(--red); border-radius:8px; padding:2px 8px; font-size:.85rem; font-weight:700; }
+.pbtag{ color:var(--white); background:var(--red); border-radius:8px; padding:2px 8px; font-size:.85rem; font-weight:700; white-space:nowrap; }
 .tablewrap{ max-height:560px; overflow:auto; border:1.5px solid var(--line); border-radius:12px; }
 
 /* ---------- グラフ ---------- */
+#fsOverlay{ position:fixed; inset:0; background:#F4F8FF; z-index:9999; display:flex; flex-direction:column; }
+#fsOverlay[hidden]{ display:none; }
+.fshead{ display:flex; align-items:center; gap:10px; padding:12px 14px 4px; }
+.fswrap{ flex:1; position:relative; margin:4px 10px 14px; background:var(--white);
+  border:1.5px solid var(--line); border-radius:12px; padding:8px; min-height:0; }
 .chartbox{ background:var(--white); border:1.5px solid var(--line); border-radius:16px; padding:18px; }
 .legendline{ display:flex; gap:22px; flex-wrap:wrap; margin-top:10px; font-size:.95rem; font-weight:700; }
 .legendline .sw{ display:inline-block; width:34px; height:0; border-top:4px dashed; vertical-align:middle; margin-right:6px; }
@@ -292,9 +297,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.8';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.9';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '県大会の記録を、地図(地方ブロック)からも探せるようになりました。';
+const APP_NEWS = 'グラフが全画面で見やすくなりました。歴代記録の打ち込みは設定画面に移りました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -1065,7 +1070,7 @@ function viewName(autoName){
       if(!evs[k] || (r.sec!=null && r.sec < evs[k].sec)) evs[k] = r;
     });
     let html = profileCard + `<div class="card"><h2>${esc(p.name)} さんの種目別ベスト</h2>
-      <p class="hint">グラフのボタンを押すと、その種目の記録の推移が下に出ます。</p>
+      <p class="hint">グラフのボタンを押すと、記録の推移が全画面で開きます。</p>
       <div class="tablewrap"><table><tr><th>種目</th><th>水路</th><th>ベスト</th><th>出した大会</th><th></th></tr>`;
     Object.values(evs).sort((a,b)=>a.dist-b.dist).forEach(r=>{
       const cs = r.meet.course || '長水路';
@@ -1076,16 +1081,6 @@ function viewName(autoName){
           onclick="nameGraph('${r.stroke}',${r.dist},'${esc(cs)}')">グラフ</button></td></tr>`;
     });
     html += `</table></div></div>
-      <div class="chartbox" id="nmChartBox" hidden style="margin-bottom:20px">
-        <h2 id="nmTitle" style="font-size:1.15rem; margin-bottom:8px"></h2>
-        <canvas id="nmChart" height="120"></canvas>
-        <div class="legendline">
-          <span><span class="sw" style="border-color:var(--red)"></span>日本選手権 標準記録</span>
-          <span><span class="sw" style="border-color:var(--blue)"></span>ジャパンオープン 標準記録</span>
-          <span><span class="sw" style="border-color:var(--green)"></span>インカレ 標準記録</span>
-          <span style="color:var(--gray)">上に行くほど速いタイムです</span>
-        </div>
-      </div>
       <div class="card"><h2>すべての出場記録 (新しい順)</h2>
       <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th><th></th></tr>`;
     rows.forEach(r=>{
@@ -1175,6 +1170,8 @@ const stdLinePlugin = {
       }
       ctx.stroke();
       ctx.setLineDash([]);
+      // 全画面表示では線の文字は描かない(重なり防止。値は上の説明行に出す)
+      if(chart.options.stdLineLabels===false){ ctx.restore(); return; }
       ctx.fillStyle = L.color;
       ctx.font = "700 15px 'BIZ UDPGothic', sans-serif";
       if(L.axis==='x'){
@@ -1260,7 +1257,55 @@ function newChart(canvas, config){
   activeChart = new Chart(canvas, config);
   return activeChart;
 }
-// 記録の推移グラフを描く共通の部品 (名前で探すとグラフの両方から使う)
+/* ============================================================
+   グラフの全画面表示 (携帯でも見やすいように)
+============================================================ */
+let fsChart = null;
+function ensureFsOverlay(){
+  let ov = document.getElementById('fsOverlay');
+  if(ov) return ov;
+  ov = document.createElement('div');
+  ov.id = 'fsOverlay';
+  ov.hidden = true;
+  ov.setAttribute('role','dialog');
+  ov.setAttribute('aria-modal','true');
+  ov.setAttribute('aria-label','グラフの全画面表示');
+  ov.innerHTML = `
+    <div class="fshead">
+      <h2 id="fsTitle" style="font-size:1.05rem; flex:1; margin:0"></h2>
+      <button type="button" class="btn red solid" id="fsClose"
+        style="min-height:52px; min-width:110px" onclick="closeFullGraph()">とじる</button>
+    </div>
+    <p id="fsLegend" class="hint" style="margin:0 14px 6px"></p>
+    <div class="fswrap"><canvas id="fsCanvas"></canvas></div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener('keydown', e=>{ if(e.key==='Escape') closeFullGraph(); });
+  return ov;
+}
+function openFullGraph(title, legendHtml, config){
+  const ov = ensureFsOverlay();
+  document.getElementById('fsTitle').textContent = title;
+  document.getElementById('fsLegend').innerHTML = legendHtml || '';
+  ov.hidden = false;
+  document.body.style.overflow = 'hidden';
+  if(fsChart){ fsChart.destroy(); fsChart = null; }
+  fsChart = new Chart(document.getElementById('fsCanvas'), config);
+  document.getElementById('fsClose').focus();
+}
+function closeFullGraph(){
+  const ov = document.getElementById('fsOverlay');
+  if(!ov) return;
+  if(fsChart){ fsChart.destroy(); fsChart = null; }
+  ov.hidden = true;
+  document.body.style.overflow = '';
+}
+// 標準記録の値を、全画面の説明行に色つきで出す
+function stdLegendHtml(lines, tailText){
+  const parts = lines.map(L=>`<span style="color:${L.color}; font-weight:800; white-space:nowrap">${esc(L.label)}</span>`);
+  if(tailText) parts.push(`<span style="color:var(--gray)">${esc(tailText)}</span>`);
+  return parts.join('　');
+}
+// 記録の推移グラフを全画面で描く共通の部品 (名前で探すとグラフの両方から使う)
 function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
   const rows = DATA.records.map(rec).filter(r=>
     r.name===p.name && r.stroke===stroke && r.dist===dist &&
@@ -1271,36 +1316,40 @@ function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
   const std = stdFor(stroke, dist, sex, course);
   const lines = stdLineList(std, 'y');
   const bestSec = Math.min(...rows.map(r=>r.sec));
-  document.getElementById(boxId).hidden = false;
-  document.getElementById(titleId).textContent =
-    `${p.name} さんの ${dist}m${strokeJa(stroke)} (${course}) の推移`;
   const secs = rows.map(r=>r.sec).concat(lines.map(L=>L.value));
-  const min = Math.min(...secs), max = Math.max(...secs), padPx=(max-min)*0.16||1;
-  newChart(document.getElementById(canvasId), {
-    type:'line',
-    data:{
-      labels: rows.map(r=>`${String(r.meet.year).slice(2)}年${r.meet.month}月 ${r.meet.meet}${r.meet.ref?'(参考)':''}`),
-      datasets:[{
-        data: rows.map(r=>r.sec),
-        borderColor:'#1663C7', borderWidth:4, tension:.25,
-        pointRadius: rows.map(r=>r.sec===bestSec?9:6),
-        pointBackgroundColor: rows.map(r=>r.sec===bestSec?'#E5372E':'#1663C7'),
-        pointBorderColor:'#fff', pointBorderWidth:2
-      }]
-    },
-    options:{
-      responsive:true, stdLines:lines, pointValues:true,
-      plugins:{ legend:{display:false},
-        tooltip:{ callbacks:{ label:c=>' '+toStr(c.parsed.y)+(rows[c.dataIndex].sec===bestSec?' (ベスト)':'') } } },
-      scales:{
-        y:{ reverse:true, min:min-padPx, max:max+padPx,
-          title:{display:true, text:'タイム(上が速い)', font:{family:'BIZ UDPGothic', weight:'700'}},
-          ticks:{ callback:v=>toStr(v), font:{family:'M PLUS 1'} } },
-        x:{ ticks:{ font:{family:'BIZ UDPGothic', size:12}, maxRotation:60 } }
+  const min = Math.min(...secs), max = Math.max(...secs), padPx=(max-min)*0.12||1;
+  openFullGraph(
+    `${p.name} さんの ${dist}m${strokeJa(stroke)} (${course}) の推移`,
+    stdLegendHtml(lines, '点を押すと大会名とタイムが出ます。上に行くほど速いタイムです。'),
+    {
+      type:'line',
+      data:{
+        labels: rows.map(r=>`${r.meet.year}年${r.meet.month}月 ${r.meet.meet}${r.meet.ref?'(参考)':''}`),
+        datasets:[{
+          data: rows.map(r=>r.sec),
+          borderColor:'#1663C7', borderWidth:4, tension:.25,
+          pointRadius: rows.map(r=>r.sec===bestSec?11:8),
+          pointHitRadius: 26,
+          pointBackgroundColor: rows.map(r=>r.sec===bestSec?'#E5372E':'#1663C7'),
+          pointBorderColor:'#fff', pointBorderWidth:2
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        stdLines:lines, stdLineLabels:false, pointValues:false,
+        plugins:{ legend:{display:false},
+          tooltip:{ displayColors:false, padding:14,
+            titleFont:{family:'BIZ UDPGothic', size:15, weight:'700'},
+            bodyFont:{family:'M PLUS 1', size:19, weight:'800'},
+            callbacks:{ label:c=>' '+toStr(c.parsed.y)+(rows[c.dataIndex].sec===bestSec?' (ベスト)':'') } } },
+        scales:{
+          y:{ reverse:true, min:min-padPx, max:max+padPx,
+            title:{display:true, text:'タイム(上が速い)', font:{family:'BIZ UDPGothic', weight:'700'}},
+            ticks:{ callback:v=>toStr(v), font:{family:'M PLUS 1', size:14} } },
+          x:{ ticks:{ display:false }, grid:{ display:true } }
+        }
       }
-    }
-  });
-  document.getElementById(boxId).scrollIntoView({behavior:'smooth'});
+    });
 }
 
 // 標準記録をさがす。標準記録シートを最優先にして、
@@ -1369,12 +1418,8 @@ function viewRank(){
       <label style="display:flex; gap:8px; align-items:center; margin-top:10px; font-weight:700;">
         <input type="checkbox" id="rkOB" style="width:26px; height:26px;"> OB・OGも含める
       </label>
-      <div class="chartbox" style="margin-top:16px"><canvas id="rkChart" height="130"></canvas>
-        <div class="legendline">
-          <span><span class="sw" style="border-color:var(--red)"></span>日本選手権 標準記録</span>
-          <span><span class="sw" style="border-color:var(--blue)"></span>ジャパンオープン 標準記録</span>
-          <span><span class="sw" style="border-color:var(--green)"></span>インカレ 標準記録</span>
-        </div>
+      <div class="stack" style="margin-top:14px">
+        <button type="button" class="btn red solid big" id="rkShow" disabled>グラフを全画面で見る</button>
       </div>
       <div id="rkOut" style="margin-top:16px"></div>
     </div>`;
@@ -1398,7 +1443,7 @@ function viewRank(){
     const out = document.getElementById('rkOut');
     if(ranked.length===0){
       out.innerHTML='<p class="hint">この条件の記録はありません。</p>';
-      if(activeChart) activeChart.destroy(), activeChart=null;
+      document.getElementById('rkShow').disabled = true;
       return;
     }
     // 表
@@ -1411,30 +1456,40 @@ function viewRank(){
         <td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
-    // 横棒グラフ + 標準記録の縦ライン
+    // グラフは全画面表示ボタンから開く(小さな画面での重なりをなくすため)
     const std = stdFor(cur.stroke, cur.dist, cur.sex, cur.course);
-    const colors = ranked.map((_,i)=>
-      i===0?'#F5B301': i===1?'#94A7BC': i===2?'#C77B3F':'#1663C7');
     const lines = stdLineList(std, 'x');
-    const secs = ranked.map(r=>r.sec).concat(lines.map(L=>L.value));
-    const min = Math.min(...secs), max = Math.max(...secs), padPx=(max-min)*0.08||1;
-    newChart(document.getElementById('rkChart'), {
-      type:'bar',
-      data:{ labels: ranked.map((r,i)=>(i+1)+'位 '+r.name),
-        datasets:[{ data: ranked.map(r=>r.sec), backgroundColor: colors, borderRadius:8 }] },
-      options:{
-        indexAxis:'y', responsive:true, stdLines:lines, barValues:true,
-        layout:{ padding:{ top: 10 + lines.length*22 } },
-        plugins:{ legend:{display:false},
-          tooltip:{ callbacks:{ label:c=>' '+toStr(c.parsed.x) } } },
-        scales:{
-          x:{ min:min-padPx, max:max+padPx,
-            title:{display:true, text:'タイム(左が速い)', font:{family:'BIZ UDPGothic', weight:'700'}},
-            ticks:{ callback:v=>toStr(v), font:{family:'M PLUS 1'} } },
-          y:{ ticks:{ font:{family:'BIZ UDPGothic', size:14, weight:'700'} } }
-        }
-      }
-    });
+    const btn = document.getElementById('rkShow');
+    btn.disabled = false;
+    btn.onclick = ()=>{
+      const colors = ranked.map((_,i)=>
+        i===0?'#F5B301': i===1?'#94A7BC': i===2?'#C77B3F':'#1663C7');
+      const secs = ranked.map(r=>r.sec).concat(lines.map(L=>L.value));
+      const min = Math.min(...secs), max = Math.max(...secs), padPx=(max-min)*0.08||1;
+      openFullGraph(
+        `${cur.dist}m${strokeJa(cur.stroke)} ${cur.sex} (${cur.course}) ランキング`,
+        stdLegendHtml(lines, '棒を押すとタイムが出ます。左に長いほど速いタイムです。'),
+        {
+          type:'bar',
+          data:{ labels: ranked.map((r,i)=>(i+1)+'位 '+r.name),
+            datasets:[{ data: ranked.map(r=>r.sec), backgroundColor: colors, borderRadius:8 }] },
+          options:{
+            indexAxis:'y', responsive:true, maintainAspectRatio:false,
+            stdLines:lines, stdLineLabels:false, barValues:true,
+            plugins:{ legend:{display:false},
+              tooltip:{ displayColors:false, padding:14,
+                titleFont:{family:'BIZ UDPGothic', size:15, weight:'700'},
+                bodyFont:{family:'M PLUS 1', size:19, weight:'800'},
+                callbacks:{ label:c=>' '+toStr(c.parsed.x) } } },
+            scales:{
+              x:{ min:min-padPx, max:max+padPx,
+                title:{display:true, text:'タイム(左が速い)', font:{family:'BIZ UDPGothic', weight:'700'}},
+                ticks:{ callback:v=>toStr(v), font:{family:'M PLUS 1', size:13} } },
+              y:{ ticks:{ font:{family:'BIZ UDPGothic', size:14, weight:'700'} } }
+            }
+          }
+        });
+    };
   }
   eventPicker(document.getElementById('rkPick'), draw, true);
   document.getElementById('rkOB').onchange = ()=>draw();
@@ -1451,16 +1506,6 @@ function viewLegend(){
       <div id="lgPick"></div>
       <p class="hint" style="margin-top:10px">1957年からの歴代記録の歴代トップ10です。現役の部員が上回ったときだけ、自動で順位が入れ替わります。OB・OGの今の記録では書き換わりません。</p>
       <div id="lgOut" style="margin-top:12px"></div>
-    </div>
-    <div class="card"><h2>歴代記録を打ち込む(指導者・スタッフ用)</h2>
-      <p class="hint">今のスプレッドシートに入っていない、昔の選手の記録をここから登録できます。上で選んでいる種目・男女・水路に登録されます。</p>
-      <div class="stack" style="align-items:end">
-        <label class="fld">名前<input type="text" id="lgName" placeholder="例: 中京太郎"></label>
-        <label class="fld">タイム<input type="text" id="lgTime" placeholder="例: 15483 か 1:54.83" inputmode="numeric"></label>
-        <label class="fld">年(わかれば)<input type="text" id="lgYear" placeholder="例: 2015" inputmode="numeric" style="max-width:140px"></label>
-        <button class="btn red solid" onclick="saveLegacy()">この記録を登録する</button>
-      </div>
-      <div id="lgMsg" style="margin-top:10px"></div>
     </div>`;
   let cur = null;
   // 自動の入れ替えは現役の部員だけ。OB・OGや名簿にいない人の
@@ -1499,15 +1544,13 @@ function viewLegend(){
     const ranked = Object.values(bestMap).sort((a,b)=>a.sec-b.sec).slice(0,10);
     const out = document.getElementById('lgOut');
     if(ranked.length===0){ out.innerHTML='<p class="hint">この条件の記録はまだありません。</p>'; return; }
-    const std = stdFor(cur.stroke, cur.dist, cur.sex, cur.course);
     let html = `<div class="tablewrap"><table><tr><th>順位</th><th>名前</th><th>記録</th><th>備考</th></tr>`;
     ranked.forEach((r,i)=>{
       const cls = i===0?'rank1':i===1?'rank2':i===2?'rank3':'';
       const medal = i<3? `<span class="medal m${i+1}">${i+1}位</span>` : `${i+1}位`;
-      let badge = recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course);
-      if(std.japan && r.sec <= std.japan) badge += ' <span class="pbtag">日本選手権突破</span>';
-      else if(std.open && r.sec <= std.open) badge += ' <span class="pbtag" style="background:var(--blue)">Jオープン突破</span>';
-      else if(std.inc && r.sec <= std.inc) badge += ' <span class="pbtag" style="background:var(--green)">インカレ突破</span>';
+      // 歴代記録には、世界記録・アジア記録・日本記録・学生記録の札だけを付ける
+      // (日本選手権突破などの現役向けの札は、昔の記録には出さない)
+      const badge = recordBadges(r.sec, cur.stroke, cur.dist, cur.sex, cur.course);
       html += `<tr class="${cls}"><td>${medal}</td><td>${esc(r.name)}</td>
         <td class="num" style="font-weight:800">${toStr(r.sec)}${badge}</td>
         <td style="color:var(--gray); font-size:.92rem">${esc(r.note)}</td></tr>`;
@@ -1515,32 +1558,6 @@ function viewLegend(){
     out.innerHTML = html + '</table></div>';
   }
 
-  window.saveLegacy = async function(){
-    const msg = document.getElementById('lgMsg');
-    const name = document.getElementById('lgName').value.trim();
-    let time = document.getElementById('lgTime').value.trim();
-    const year = document.getElementById('lgYear').value.trim();
-    if(!name){ msg.innerHTML = '<div class="errmsg">名前を入れてください。</div>'; return; }
-    // 数字だけの入力(例 15483)も受け付けて 1:54.83 の形に直す
-    if(/^\d{3,6}$/.test(time) && digitsValid(time)) time = digitsToTime(time);
-    const sec = toSec(time);
-    if(sec==null){ msg.innerHTML = '<div class="errmsg">タイムの形が読めません。15483 のように数字だけか、1:54.83 の形で入れてください。</div>'; return; }
-    msg.innerHTML = '<div class="loading">登録しています…</div>';
-    try{
-      await apiSave({ action:'saveLegacy', name:name, sex:cur.sex,
-        event: cur.dist + cur.stroke, course: cur.course,
-        time: toStr(sec), year: year });
-      // 手元のデータにもすぐ足して、順位をその場で更新する
-      (DATA.legacy = DATA.legacy||[]).push({ name:name, sex:cur.sex,
-        event: cur.dist+cur.stroke, course:cur.course, time:toStr(sec), year:year });
-      localStorage.removeItem('cust_rec_cache');
-      document.getElementById('lgName').value=''; document.getElementById('lgTime').value=''; document.getElementById('lgYear').value='';
-      msg.innerHTML = `<div class="okmsg">登録しました。${esc(name)} ${toStr(sec)}</div>`;
-      drawLegend();
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
-    }
-  };
 }
 
 /* ============================================================
@@ -1948,22 +1965,15 @@ function viewGraph(autoName){
     }
     stage.innerHTML = `
       <div class="card redline"><h2>${esc(p.name)} さん どの種目をグラフにしますか</h2>
-        <p class="hint">出場したことのある距離と種目だけが選べます。</p>
+        <p class="hint">出場したことのある距離と種目だけが選べます。ボタンを押すとグラフが全画面で開きます。</p>
         <div class="stack" style="align-items:end">
           <label class="fld">距離<select id="gDist"></select></label>
           <label class="fld">種目<select id="gStroke"></select></label>
           <label class="fld">水路<select id="gCourse"></select></label>
           <span id="gCount" style="font-weight:800; font-size:1.2rem; padding-bottom:14px" aria-live="polite"></span>
         </div>
-      </div>
-      <div class="chartbox" id="gChartBox" hidden>
-        <h2 id="gTitle" style="font-size:1.15rem; margin-bottom:8px"></h2>
-        <canvas id="gChart" height="120"></canvas>
-        <div class="legendline">
-          <span><span class="sw" style="border-color:var(--red)"></span>日本選手権 標準記録</span>
-          <span><span class="sw" style="border-color:var(--blue)"></span>ジャパンオープン 標準記録</span>
-          <span><span class="sw" style="border-color:var(--green)"></span>インカレ 標準記録</span>
-          <span style="color:var(--gray)">上に行くほど速いタイムです</span>
+        <div class="stack" style="margin-top:10px">
+          <button type="button" class="btn red solid big" id="gShow">グラフを全画面で見る</button>
         </div>
       </div>`;
 
@@ -2008,8 +2018,9 @@ function viewGraph(autoName){
       const d = Number(dSel.value), st = sSel.value, cs = cSel.value;
       const rows = evs[st+'_'+d+'_'+cs] || [];
       document.getElementById('gCount').textContent = rows.length + '本';
-      if(rows.length===0) return;
-      renderProgress('gChart', 'gTitle', 'gChartBox', p, st, d, cs);
+      const btn = document.getElementById('gShow');
+      btn.disabled = rows.length===0;
+      btn.onclick = ()=>renderProgress('gChart', 'gTitle', 'gChartBox', p, st, d, cs);
     }
     dSel.onchange = ()=>{ fillStroke(); fillCourse(); draw(); };
     sSel.onchange = ()=>{ fillCourse(); draw(); };
@@ -2111,6 +2122,18 @@ function renderAdmin(){
       <div id="apMsg" style="margin-top:10px"></div>
     </div>
 
+    <div class="card"><h2>歴代記録を打ち込む</h2>
+      <p class="hint">今のスプレッドシートに入っていない、昔の選手の記録をここから登録できます。ここで選んだ種目・男女・水路に登録され、閲覧画面の歴代記録に反映されます。</p>
+      <div id="agPick"></div>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld">名前<input type="text" id="agName" placeholder="例: 中京太郎"></label>
+        <label class="fld">タイム<input type="text" id="agTime" placeholder="例: 15483 か 1:54.83" inputmode="numeric"></label>
+        <label class="fld">年(わかれば)<input type="text" id="agYear" placeholder="例: 2015" inputmode="numeric" style="max-width:140px"></label>
+        <button class="btn red solid" onclick="adminSaveLegacy()">この記録を登録する</button>
+      </div>
+      <div id="agMsg" style="margin-top:10px"></div>
+    </div>
+
     <div class="card"><h2>種目の追加</h2>
       <p class="hint">距離はカンマ区切りで書きます。例: 50,100,200。保存すると入力画面と閲覧画面の種目ボタンに反映されます。</p>
       <div id="aeList"></div>
@@ -2153,6 +2176,34 @@ function renderAdmin(){
     <div class="stack"><button class="btn ghost" onclick="ADMIN_PW=''; sessionStorage.removeItem('cust_admin_pw'); startAdmin()">設定画面から出る</button></div>`;
   adminDrawMeets();
   adminDrawEvents();
+  // 歴代記録の打ち込み(閲覧画面から設定画面へ移動したもの)
+  let agCur = null;
+  eventPicker(document.getElementById('agPick'), st=>{ agCur = st; }, true);
+  window.adminSaveLegacy = async function(){
+    const msg = document.getElementById('agMsg');
+    const name = document.getElementById('agName').value.trim();
+    let time = document.getElementById('agTime').value.trim();
+    const year = document.getElementById('agYear').value.trim();
+    if(!name){ msg.innerHTML = '<div class="errmsg">名前を入れてください。</div>'; return; }
+    // 数字だけの入力(例 15483)も受け付けて 1:54.83 の形に直す
+    if(/^\d{3,6}$/.test(time) && digitsValid(time)) time = digitsToTime(time);
+    const sec = toSec(time);
+    if(sec==null){ msg.innerHTML = '<div class="errmsg">タイムの形が読めません。15483 のように数字だけか、1:54.83 の形で入れてください。</div>'; return; }
+    msg.innerHTML = '<div class="loading">登録しています…</div>';
+    try{
+      await apiSave({ action:'saveLegacy', name:name, sex:agCur.sex,
+        event: agCur.dist + agCur.stroke, course: agCur.course,
+        time: toStr(sec), year: year });
+      // 手元のデータにもすぐ足して、歴代記録の画面に反映されるようにする
+      if(DATA)(DATA.legacy = DATA.legacy||[]).push({ name:name, sex:agCur.sex,
+        event: agCur.dist+agCur.stroke, course:agCur.course, time:toStr(sec), year:year });
+      localStorage.removeItem('cust_rec_cache');
+      document.getElementById('agName').value=''; document.getElementById('agTime').value=''; document.getElementById('agYear').value='';
+      msg.innerHTML = `<div class="okmsg">登録しました。${esc(name)} ${toStr(sec)}</div>`;
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
+    }
+  };
   document.getElementById('apSearch').addEventListener('input', adminSearchAthlete);
 }
 

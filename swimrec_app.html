@@ -306,9 +306,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.14';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.15.15';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'ベスト更新の印が、赤い丸のベのマークになりました。';
+const APP_NEWS = 'グラフの選手選びを、一人ずつ選ぶかんたんな形にしました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -2063,38 +2063,35 @@ function viewKentai(){
 function viewGraph(autoName){
   const body = document.getElementById('viewBody');
   body.innerHTML = `
-    <div class="card"><h2>グラフにする選手を選ぶ(複数可能)</h2>
-      <p class="hint">選手の名前を押すと選ばれます。何人でも選べます。選び終わったら赤いボタンで進んでください。</p>
-      <div id="gFinder"></div></div>
+    <div class="card"><h2>グラフにする選手を選ぶ</h2><div id="gFinder"></div></div>
     <div id="gStage"></div>`;
-  const autoP = autoName ? INIT.roster.find(x=>x.name===autoName) : null;
-  makeFinder(document.getElementById('gFinder'), null, showAthletes, autoP?[autoP]:[], '選んだ選手でグラフへ進む');
-  if(autoP) showAthletes([autoP]);
-
-  function showAthletes(people){
+  makeFinder(document.getElementById('gFinder'), showAthlete);
+  if(autoName){
+    const p = INIT.roster.find(x=>x.name===autoName);
+    if(p) showAthlete(p);
+  }
+  function showAthlete(p){
     const stage = document.getElementById('gStage');
-    // 選ばれた選手たちが出場した種目だけをあつめる (泳法_距離_水路 → 記録の一覧)
+    // 出場した種目だけをあつめる (泳法_距離_水路 → 記録の一覧)
     const evs = {};
-    const nameSet = new Set(people.map(p=>p.name));
     DATA.records.map(rec).forEach(r=>{
-      if(!nameSet.has(r.name) || r.sec==null) return;
+      if(r.name!==p.name || r.sec==null) return;
       const k = r.stroke+'_'+r.dist+'_'+(r.meet.course||'長水路');
       (evs[k]=evs[k]||[]).push(r);
     });
     const keys = Object.keys(evs);
     if(keys.length===0){
-      stage.innerHTML = `<div class="card"><p class="hint">選んだ選手の記録はまだありません。</p></div>`;
+      stage.innerHTML = `<div class="card"><p class="hint">${esc(p.name)}さんの記録はまだありません。</p></div>`;
       return;
     }
-    const who = people.length===1 ? esc(people[0].name)+' さん' : people.map(p=>esc(p.name)).join('・');
     stage.innerHTML = `
-      <div class="card redline"><h2>${who} どの種目をグラフにしますか</h2>
-        <p class="hint">選んだ選手のだれかが出場した距離と種目だけが選べます。ボタンを押すとグラフが全画面で開きます。</p>
-        <div class="stack" style="align-items:end">
+      <div class="card redline"><h2>${esc(p.name)} さん どの種目をグラフにしますか</h2>
+        <p class="hint">出場したことのある距離と種目だけが選べます。ボタンを押すとグラフが全画面で開きます。</p>
+        <div class="pick2">
           <label class="fld">距離<select id="gDist"></select></label>
           <label class="fld">種目<select id="gStroke"></select></label>
           <label class="fld">水路<select id="gCourse"></select></label>
-          <span id="gCount" style="font-weight:800; font-size:1.2rem; padding-bottom:14px" aria-live="polite"></span>
+          <span id="gCount" style="font-weight:800; font-size:1.2rem; align-self:end; padding-bottom:14px" aria-live="polite"></span>
         </div>
         <div class="stack" style="margin-top:10px">
           <button type="button" class="btn red solid big" id="gShow">グラフを全画面で見る</button>
@@ -2143,12 +2140,12 @@ function viewGraph(autoName){
       document.getElementById('gCount').textContent = rows.length + '本';
       const btn = document.getElementById('gShow');
       btn.disabled = rows.length===0;
-      btn.onclick = ()=>renderProgressMulti(people, st, d, cs);
+      btn.onclick = ()=>renderProgress('gChart', 'gTitle', 'gChartBox', p, st, d, cs);
     }
     dSel.onchange = ()=>{ fillStroke(); fillCourse(); draw(); };
     sSel.onchange = ()=>{ fillCourse(); draw(); };
     cSel.onchange = draw;
-    // 最初は、いちばん多く泳がれている種目を自動で選んでおく
+    // 最初は、いちばん多く泳いでいる種目を自動で選んでおく
     fillDist();
     let bestKey = keys[0];
     keys.forEach(k=>{ if(evs[k].length > evs[bestKey].length) bestKey = k; });

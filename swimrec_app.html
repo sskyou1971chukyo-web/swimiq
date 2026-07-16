@@ -200,7 +200,12 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
 .pbtag{ color:var(--white); background:var(--red); border-radius:8px; padding:2px 8px; font-size:.85rem; font-weight:700; white-space:nowrap; }
 .nw{ white-space:nowrap; }
 .pbicon{ display:inline-block; vertical-align:middle; margin-right:6px; line-height:0; }
+/* hidden(かくす印)は、表示の指定より必ず強く効かせる */
+[hidden]{ display:none !important; }
 .pick2{ display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:end; }
+.pick3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px 12px; align-items:end; }
+.pick3 .fld{ min-width:0; }
+.pick3 .wide{ grid-column:1/-1; }
 .pick2 .fld{ min-width:0; }
 .pick2 .wide{ grid-column:1/-1; }
 .ktcell{ background:none; border:none; color:var(--blue); text-decoration:underline;
@@ -303,6 +308,18 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
       <button class="mode" data-m="kentai" role="tab" onclick="showMode('kentai')">県大会</button>
       <button class="mode" data-m="graph" role="tab" onclick="showMode('graph')">グラフ</button>
     </div>
+    <button type="button" class="btn ghost big" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
+      onclick="toggleOfficial()" style="width:100%; margin-bottom:12px">正式記録検索</button>
+    <div class="modes" id="officialLinks" hidden>
+      <a class="mode" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener"
+        style="display:flex; align-items:center; justify-content:center; text-decoration:none">セイコー<br>リザルト速報</a>
+      <a class="mode" href="https://kizahashi.co.jp/JASF/PDF/index.php" target="_blank" rel="noopener"
+        style="display:flex; align-items:center; justify-content:center; text-decoration:none">競泳レース<br>分析プロジェクト</a>
+      <a class="mode" href="https://www.tdsystem.co.jp/" target="_blank" rel="noopener"
+        style="display:flex; align-items:center; justify-content:center; text-decoration:none">東洋電子<br>システム</a>
+      <a class="mode" href="https://dualmeet.swim-kansai.com/2026/information/index.html" target="_blank" rel="noopener"
+        style="display:flex; align-items:center; justify-content:center; text-decoration:none">関西中部<br>対抗戦</a>
+    </div>
     <div id="viewBody"><div class="loading">読み込みの準備をしています…</div></div>
   </section>
 </main>
@@ -311,9 +328,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.28';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.32';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '設定画面に、連盟の記録サイトの調査ボタンが付きました。';
+const APP_NEWS = '正式記録検索のボタンが、押したときだけ開くようになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -554,6 +571,15 @@ function showTab(t){
   if(t==='view') showMode(currentMode);
   if(t==='admin') startAdmin();
 }
+// 正式記録検索: 公式サイトへのボタンの開閉
+window.toggleOfficial = function(){
+  const box = document.getElementById('officialLinks');
+  const btn = document.getElementById('officialToggle');
+  const open = box.hidden;
+  box.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+};
+
 function showMode(m){
   currentMode = m;
   document.querySelectorAll('.mode').forEach(b=>{
@@ -742,19 +768,19 @@ function stepMeet(){
     <div class="card redline">
       <h2>どの大会の記録ですか</h2>
       <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。試合名を選ぶと次に進みます。</p>
-      <div class="stack" style="align-items:end">
+      <div class="pick3">
         <label class="fld">年<select id="meetYear"></select></label>
         <label class="fld">月<select id="meetMonth"></select></label>
-        <label class="fld" style="flex:1; min-width:260px">試合名<select id="meetName"></select></label>
-      </div>
-      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:end;">
-        <label class="fld" style="flex:1; min-width:240px;">一覧にないときは 新しい大会名
-          <input type="text" id="newMeet" placeholder="例: 三重とこわか2026">
-        </label>
         <label class="fld">水路
           <select id="newCourse"><option value="長水路">長水路</option><option value="短水路">短水路</option></select>
         </label>
-        <button class="btn solid" onclick="pickNewMeet()">この大会にする</button>
+        <label class="fld wide">試合名<select id="meetName"></select></label>
+      </div>
+      <div class="pick3" style="margin-top:16px">
+        <label class="fld wide">一覧にないときは 新しい大会名
+          <input type="text" id="newMeet" placeholder="例: 三重とこわか2026">
+        </label>
+        <button class="btn solid" onclick="pickNewMeet()" style="grid-column:1/-1">この大会にする</button>
       </div>
     </div>`;
 
@@ -2390,7 +2416,8 @@ function renderAdmin(){
     <div class="card"><h2>連盟の記録サイトの調査(開発中)</h2>
       <p class="hint">日本水泳連盟の記録サイト(result.swim.or.jp)から記録を直接取る道の調査です。ボタンを押すと、動くと分かっている入り口と、内部IDを引けそうな入り口の候補をまとめて試して、結果を表に出します。結果のスクショを送ってもらえれば、次の一手が決まります。</p>
       <div class="stack">
-        <button class="btn red solid big" onclick="adminRenmeiProbe()">調査を実行する</button>
+        <button class="btn red solid big" onclick="adminRenmeiProbe()">調査1: 入り口を試す</button>
+        <button class="btn red solid big" onclick="adminRenmeiProbe2()">調査2: サイトの中のAPIを探す</button>
       </div>
       <div id="rnMsg" style="margin-top:10px" aria-live="polite"></div>
       <div id="rnOut" style="margin-top:10px"></div>
@@ -2470,6 +2497,73 @@ function renderAdmin(){
     }
     out.innerHTML = h + '</table></div>';
     msg.innerHTML = '<div class="okmsg">調査が終わりました。この表のスクショを送ってください。結果が200のものは使える入り口です。</div>';
+  };
+
+  // 調査2: サイトのプログラム(JS)の中から、APIの形を抜き出す
+  window.adminRenmeiProbe2 = async function(){
+    const msg = document.getElementById('rnMsg');
+    const out = document.getElementById('rnOut');
+    out.innerHTML = '';
+    const base = 'https://result.swim.or.jp';
+    try{
+      // 1) 検索ページを取り、読み込まれるプログラムのファイル一覧を拾う
+      msg.innerHTML = '<div class="loading">検索ページを読んでいます…</div>';
+      const page = await renmeiFetch(base + '/player-search');
+      const srcs = [];
+      const re = /src="(\/_next\/static\/[^"]+\.js)"/g;
+      let m;
+      while((m = re.exec(String(page.text)))){
+        if(!srcs.includes(m[1])) srcs.push(m[1]);
+      }
+      if(srcs.length === 0){
+        msg.innerHTML = '<div class="errmsg">プログラムのファイルが見つかりませんでした。ページの作りが変わった可能性があります。</div>';
+        out.innerHTML = '<div class="tablewrap" style="max-height:200px"><pre style="white-space:pre-wrap; font-size:.8rem; padding:10px">' +
+          esc(String(page.text).slice(0,800)) + '</pre></div>';
+        return;
+      }
+      // 関係の深そうなファイル(検索・選手・共通)を先に、多くても12個まで
+      srcs.sort((a,b)=>{
+        const w = s => (s.includes('player-search')||s.includes('athletes')) ? 0 : (s.includes('pages/_app')||s.includes('main')) ? 1 : 2;
+        return w(a) - w(b);
+      });
+      const targets = srcs.slice(0, 12);
+      // 2) 一つずつ取り寄せ、apiという文字の周りを抜き出す
+      const found = {};
+      for(let i=0; i<targets.length; i++){
+        msg.innerHTML = `<div class="loading">プログラムを調べています ${i+1}/${targets.length} (${Math.round((i+1)/targets.length*100)}%)…</div>`;
+        let js;
+        try{ js = await renmeiFetch(base + targets[i]); }catch(e){ continue; }
+        const text = String(js.text||'');
+        const re2 = /api\/v1[^"'`\\ )]{0,80}/g;
+        let m2;
+        while((m2 = re2.exec(text))){
+          const key = m2[0];
+          if(!found[key]) found[key] = targets[i].split('/').pop().slice(0,24);
+        }
+        await new Promise(r=>setTimeout(r, 300));
+      }
+      // 3) 候補Bの完全な形も試す(必須項目を足した選手番号しぼりこみ)
+      msg.innerHTML = '<div class="loading">選手番号でのしぼりこみ(完全な形)を試しています…</div>';
+      let bFull = '';
+      try{
+        const rb = await renmeiFetch(base + '/api/v1/athletes?swimmer_code=6367531&school_class_code=99&gender_code=99&member_group_code=99&page=1');
+        bFull = rb.status + ' ' + String(rb.text||'').slice(0, 500);
+      }catch(e){ bFull = 'エラー: ' + e.message; }
+      // 4) 結果を表に出す
+      const keys = Object.keys(found).sort();
+      let h = `<p class="hint">プログラム${targets.length}個の中から、APIの形が${keys.length}個見つかりました。</p>` +
+        '<div class="tablewrap" style="max-height:420px"><table><tr><th>見つかったAPIの形</th><th>あった場所</th></tr>';
+      keys.forEach(k=>{
+        h += `<tr><td style="font-size:.85rem; word-break:break-all">${esc(k)}</td><td class="nw" style="font-size:.8rem">${esc(found[k])}</td></tr>`;
+      });
+      h += '</table></div>';
+      h += '<p class="hint" style="margin-top:10px">選手番号しぼりこみ(完全な形)の返事:</p>' +
+        '<div class="tablewrap" style="max-height:220px"><pre style="white-space:pre-wrap; font-size:.8rem; padding:10px">' + esc(bFull) + '</pre></div>';
+      out.innerHTML = h;
+      msg.innerHTML = '<div class="okmsg">調査2が終わりました。この画面のスクショを送ってください。</div>';
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">調査できませんでした: ' + esc(err.message) + '</div>';
+    }
   };
 
   // セイコーの結果ページの取り込み

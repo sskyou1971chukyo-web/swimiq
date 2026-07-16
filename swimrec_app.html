@@ -311,9 +311,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.25';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.26';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'セイコーの取り込みが、まとめPDF(1日分の全種目)にも対応しました。';
+const APP_NEWS = 'セイコーの取り込みに、種目別結果だけ選ぶボタンが付きました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -2416,6 +2416,18 @@ function renderAdmin(){
   })();
   let SK_HITS = [];
   let SK_RACES = [];
+  // 種目別結果だけにチェックを入れる(スタートリストや全種目まとめは外す)
+  window.skPickResults = function(){
+    let n = 0;
+    document.querySelectorAll('.skrace').forEach(c=>{
+      const r = SK_RACES[Number(c.dataset.i)];
+      const on = r.label.includes('種目別結果') && !r.label.includes('全種目');
+      c.checked = on;
+      if(on) n++;
+    });
+    document.getElementById('skMsg').innerHTML =
+      `<div class="okmsg">${n}個の種目別結果にチェックを入れました。1個あたり10〜30秒かかるので、全部で${Math.ceil(n*20/60)}分ほどの見込みです。下のボタンで読み取りをはじめてください。</div>`;
+  };
   // 一段目: 大会のページをたどって、種目のPDFの一覧を作る
   window.adminSeikoScan = async function(){
     const msg = document.getElementById('skMsg');
@@ -2463,6 +2475,7 @@ function renderAdmin(){
       }
       msg.innerHTML = `<div class="okmsg">${SK_RACES.length}個のPDFが見つかりました。読みたいものにチェックを入れて、下のボタンを押してください。おすすめは、日ごとの、種目別結果、です。スタートリストには記録が載っていません。読み取りは1個あたり10〜30秒かかります。</div>`;
       let h = '<div class="stack" style="margin-bottom:8px">' +
+        '<button type="button" class="btn red solid" onclick="skPickResults()">種目別結果だけ選ぶ</button>' +
         '<button type="button" class="btn ghost" onclick="document.querySelectorAll(\'.skrace\').forEach(c=>c.checked=true)">全部選ぶ</button>' +
         '<button type="button" class="btn ghost" onclick="document.querySelectorAll(\'.skrace\').forEach(c=>c.checked=false)">全部外す</button></div>' +
         '<div class="tablewrap" style="max-height:420px"><table><tr><th></th><th>種目</th></tr>';
@@ -2492,7 +2505,11 @@ function renderAdmin(){
     for(let i=0; i<picked.length; i++){
       msg.innerHTML = `<div class="loading">AIが読み取り中 ${i+1}/${picked.length}種目 (${Math.round((i+1)/picked.length*100)}%)… ${esc(picked[i].label)}</div>`;
       let data;
-      try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ errors.push(picked[i].label); continue; }
+      try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ data = { error: '通信エラー' }; }
+      if(data.error){
+        // 一回だけ自動で読み直す
+        try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ data = { error: '通信エラー' }; }
+      }
       if(data.error){ errors.push(picked[i].label + ': ' + data.error); continue; }
       // 種目は行ごとにAIが付けてくる。付いていなければPDF全体の種目や、種目名の文字から補う
       const fallback = (data.stroke && data.dist)

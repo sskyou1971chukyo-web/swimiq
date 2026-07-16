@@ -320,6 +320,34 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
       <a class="mode" href="https://dualmeet.swim-kansai.com/2026/information/index.html" target="_blank" rel="noopener"
         style="display:flex; align-items:center; justify-content:center; text-decoration:none">関西中部<br>対抗戦</a>
     </div>
+    <button type="button" class="btn ghost big" id="fixToggle" aria-expanded="false" aria-controls="fixPanel"
+      onclick="toggleFix()" style="width:100%; margin-bottom:12px">記録の訂正を連絡する</button>
+    <div class="card redline" id="fixPanel" hidden>
+      <h2>記録の訂正の連絡</h2>
+      <p class="hint">おかしいところを選んで送ると、スタッフに届きます。わかるところだけで大丈夫です。</p>
+      <p style="font-weight:800; margin:10px 0 6px">どうおかしいですか</p>
+      <div class="chips" id="fxKind">
+        <button type="button" class="chip" data-v="記録が違う">記録が違う</button>
+        <button type="button" class="chip" data-v="登録されていない">登録されていない</button>
+        <button type="button" class="chip" data-v="試合名・種目が違う">試合名・種目が違う</button>
+        <button type="button" class="chip" data-v="その他">その他</button>
+      </div>
+      <div class="pick3" style="margin-top:12px">
+        <label class="fld wide">名前<select id="fxName"></select></label>
+        <label class="fld">種目<select id="fxStroke"></select></label>
+        <label class="fld">距離<select id="fxDist"></select></label>
+        <label class="fld">タイム
+          <input type="text" id="fxTime" inputmode="decimal" placeholder="例: 1:54.83"></label>
+        <label class="fld wide">試合名<select id="fxMeet"></select></label>
+        <label class="fld wide">日付<input type="date" id="fxDate"></label>
+        <label class="fld wide">補足(音声入力もつかえます)
+          <input type="text" id="fxNote" placeholder="例: 正しくは54.83です"></label>
+      </div>
+      <div class="stack" style="margin-top:12px">
+        <button type="button" class="btn red solid big" onclick="sendFix()">スタッフに送る</button>
+      </div>
+      <div id="fxMsg" style="margin-top:10px" aria-live="polite"></div>
+    </div>
     <div id="viewBody"><div class="loading">読み込みの準備をしています…</div></div>
   </section>
 </main>
@@ -328,9 +356,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.32';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.34';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '正式記録検索のボタンが、押したときだけ開くようになりました。';
+const APP_NEWS = '連盟サイトの調査3(住所の組み立て方の探索)が付きました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -571,6 +599,89 @@ function showTab(t){
   if(t==='view') showMode(currentMode);
   if(t==='admin') startAdmin();
 }
+// 記録の訂正連絡: 開閉と送信
+let FX_READY = false;
+window.toggleFix = function(){
+  const box = document.getElementById('fixPanel');
+  const btn = document.getElementById('fixToggle');
+  const open = box.hidden;
+  box.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  if(open && !FX_READY) fixPrepare();
+};
+function fixPrepare(){
+  FX_READY = true;
+  // どうおかしいかのワンタップ選択
+  document.querySelectorAll('#fxKind .chip').forEach(c=>{
+    c.onclick = ()=>{
+      document.querySelectorAll('#fxKind .chip').forEach(x=>x.classList.remove('on'));
+      c.classList.add('on');
+    };
+  });
+  // 名前は名簿から選ぶだけ(ふりがな順)
+  const nSel = document.getElementById('fxName');
+  nSel.innerHTML = '<option value="">えらんでください</option>';
+  const people = [...(INIT.roster||[])].sort((a,b)=>String(a.kana||a.name).localeCompare(String(b.kana||b.name),'ja'));
+  people.forEach(p=>{
+    const o = document.createElement('option');
+    o.value = p.name; o.textContent = p.name;
+    nSel.appendChild(o);
+  });
+  // 種目と距離も選ぶだけ
+  const sSel = document.getElementById('fxStroke');
+  sSel.innerHTML = '<option value="">えらばない</option>';
+  STROKES.forEach(s=>{
+    const o = document.createElement('option');
+    o.value = s.code; o.textContent = s.ja;
+    sSel.appendChild(o);
+  });
+  const dSel = document.getElementById('fxDist');
+  dSel.innerHTML = '<option value="">えらばない</option>';
+  [50,100,200,400,800,1500].forEach(d=>{
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d + 'm';
+    dSel.appendChild(o);
+  });
+  // 試合名はいまアプリにある大会から選ぶだけ
+  const mSel = document.getElementById('fxMeet');
+  mSel.innerHTML = '<option value="">えらばない(補足に書いてもOK)</option>';
+  (DATA && DATA.meets ? DATA.meets : []).slice().sort((a,b)=>(b.year*100+b.month)-(a.year*100+a.month))
+    .forEach(m=>{
+      const label = `${m.year}年${m.month}月 ${m.meet} ${courseShort(m.course)}`;
+      const o = document.createElement('option');
+      o.value = label; o.textContent = label;
+      mSel.appendChild(o);
+    });
+}
+window.sendFix = async function(){
+  const msg = document.getElementById('fxMsg');
+  const kindBtn = document.querySelector('#fxKind .chip.on');
+  const name = document.getElementById('fxName').value;
+  if(!kindBtn){ msg.innerHTML = '<div class="errmsg">どうおかしいかを、上のボタンから選んでください。</div>'; return; }
+  if(!name){ msg.innerHTML = '<div class="errmsg">名前を選んでください。</div>'; return; }
+  const st = document.getElementById('fxStroke').value;
+  const ds = document.getElementById('fxDist').value;
+  try{
+    msg.innerHTML = '<div class="loading">送っています…</div>';
+    await apiSave({
+      action: 'reportFix',
+      kind: kindBtn.dataset.v,
+      name: name,
+      event: (ds && st) ? (ds + st) : (st || ds || ''),
+      meet: document.getElementById('fxMeet').value,
+      date: document.getElementById('fxDate').value,
+      time: document.getElementById('fxTime').value.trim(),
+      note: document.getElementById('fxNote').value.trim()
+    });
+    msg.innerHTML = '<div class="okmsg">スタッフに送りました。直り次第、記録に反映されます。ありがとうございました。</div>';
+    document.querySelectorAll('#fxKind .chip').forEach(x=>x.classList.remove('on'));
+    document.getElementById('fxTime').value = '';
+    document.getElementById('fxNote').value = '';
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">送れませんでした: ' + esc(err.message) + '。電波の良いところでもう一度お試しください。</div>';
+  }
+};
+
 // 正式記録検索: 公式サイトへのボタンの開閉
 window.toggleOfficial = function(){
   const box = document.getElementById('officialLinks');
@@ -2418,6 +2529,7 @@ function renderAdmin(){
       <div class="stack">
         <button class="btn red solid big" onclick="adminRenmeiProbe()">調査1: 入り口を試す</button>
         <button class="btn red solid big" onclick="adminRenmeiProbe2()">調査2: サイトの中のAPIを探す</button>
+        <button class="btn red solid big" onclick="adminRenmeiProbe3()">調査3: 住所の組み立て方を探す</button>
       </div>
       <div id="rnMsg" style="margin-top:10px" aria-live="polite"></div>
       <div id="rnOut" style="margin-top:10px"></div>
@@ -2561,6 +2673,77 @@ function renderAdmin(){
         '<div class="tablewrap" style="max-height:220px"><pre style="white-space:pre-wrap; font-size:.8rem; padding:10px">' + esc(bFull) + '</pre></div>';
       out.innerHTML = h;
       msg.innerHTML = '<div class="okmsg">調査2が終わりました。この画面のスクショを送ってください。</div>';
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">調査できませんでした: ' + esc(err.message) + '</div>';
+    }
+  };
+
+  // 調査3: 設計図(ビルドマニフェスト)から該当ページのプログラムを特定し、
+  // APIの住所の組み立て方を、前後の文脈ごと抜き出す
+  window.adminRenmeiProbe3 = async function(){
+    const msg = document.getElementById('rnMsg');
+    const out = document.getElementById('rnOut');
+    out.innerHTML = '';
+    const base = 'https://result.swim.or.jp';
+    try{
+      // 1) 検索ページから設計図の番号(buildId)を読む
+      msg.innerHTML = '<div class="loading">設計図の番号を調べています…</div>';
+      const page = await renmeiFetch(base + '/player-search');
+      const bm = String(page.text).match(/"buildId":"([^"]+)"/);
+      if(!bm){
+        msg.innerHTML = '<div class="errmsg">設計図の番号が見つかりませんでした。</div>';
+        return;
+      }
+      const buildId = bm[1];
+      // 2) 設計図を取り、関係するページのプログラムファイルを特定する
+      msg.innerHTML = '<div class="loading">設計図を読んでいます…</div>';
+      const mani = await renmeiFetch(base + '/_next/static/' + buildId + '/_buildManifest.js');
+      const maniText = String(mani.text||'');
+      const files = [];
+      const reFile = /"(static\/chunks\/[^"]+\.js)"/g;
+      let fm;
+      while((fm = reFile.exec(maniText))){
+        if(!files.includes(fm[1])) files.push(fm[1]);
+      }
+      // 選手・検索・大会にかかわるファイルを優先し、共通部品も少し足す
+      files.sort((a,b)=>{
+        const w = s => /athletes|player-search|tournament|ranking/.test(s) ? 0 : /pages\/_app|main/.test(s) ? 1 : 2;
+        return w(a) - w(b);
+      });
+      const targets = files.slice(0, 14);
+      // 3) 該当ファイルを取り寄せ、大事な言葉の前後を抜き出す
+      const words = ['api/v1', 'best_fina_points', 'athletes', 'tournament', 'swimmer_code', 'player_id'];
+      const snippets = [];
+      const seen = new Set();
+      for(let i=0; i<targets.length; i++){
+        msg.innerHTML = `<div class="loading">プログラムを調べています ${i+1}/${targets.length} (${Math.round((i+1)/targets.length*100)}%)…</div>`;
+        let js;
+        try{ js = await renmeiFetch(base + '/_next/' + targets[i]); }catch(e){ continue; }
+        const text = String(js.text||'');
+        const fname = targets[i].split('/').pop().slice(0, 26);
+        words.forEach(w=>{
+          let idx = 0;
+          while((idx = text.indexOf(w, idx)) !== -1 && snippets.length < 90){
+            const snip = text.slice(Math.max(0, idx-50), idx + 90).replace(/\s+/g,' ');
+            if(!seen.has(snip)){
+              seen.add(snip);
+              snippets.push({ w, snip, fname });
+            }
+            idx += w.length;
+          }
+        });
+        await new Promise(r=>setTimeout(r, 300));
+      }
+      // 4) 表に出す
+      let h = `<p class="hint">設計図の番号: ${esc(buildId)}。ファイル${targets.length}個から、手がかりが${snippets.length}個見つかりました。</p>` +
+        '<div class="tablewrap" style="max-height:480px"><table><tr><th>言葉</th><th>前後の文脈</th><th>場所</th></tr>';
+      snippets.forEach(s=>{
+        h += `<tr><td class="nw">${esc(s.w)}</td>
+          <td style="font-size:.78rem; word-break:break-all">${esc(s.snip)}</td>
+          <td class="nw" style="font-size:.75rem">${esc(s.fname)}</td></tr>`;
+      });
+      out.innerHTML = h + '</table></div>';
+      msg.innerHTML = '<div class="okmsg">調査3が終わりました。表を上から順に、数枚に分けてスクショを送ってください。</div>';
     }catch(err){
       msg.innerHTML = '<div class="errmsg">調査できませんでした: ' + esc(err.message) + '</div>';
     }

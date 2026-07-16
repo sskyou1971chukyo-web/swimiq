@@ -311,9 +311,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.24';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.25';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '表の見出しが中央ぞろえになりました。';
+const APP_NEWS = 'セイコーの取り込みが、まとめPDF(1日分の全種目)にも対応しました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -467,6 +467,16 @@ function seikoLinks(htmlText, baseUrl, folder){
   }
   return out;
 }
+// 種目名の文字(例: 女子 100m バタフライ 決勝)から種目を読み取る予備の部品
+function seikoEvent(text){
+  const plain = String(text).replace(/<[^>]+>/g,' ');
+  const m = plain.match(/(男子|女子)[^0-9]{0,20}(\d{2,4})\s*m?\s*(自由形|背泳ぎ|平泳ぎ|バタフライ|個人メドレー)/);
+  if(!m) return null;
+  const map = { '自由形':'Fr', '背泳ぎ':'Ba', '平泳ぎ':'Br', 'バタフライ':'Fly', '個人メドレー':'IM' };
+  const round = (plain.match(/タイム決勝|B決勝|決勝|予選/)||[''])[0];
+  return { sex:m[1], dist:Number(m[2]), stroke:map[m[3]], round };
+}
+
 // ページの中の、結果PDFへのリンクと、そのそばの種目名を拾う
 function seikoPdfLinks(htmlText, baseUrl, folder){
   const out = [];
@@ -2451,14 +2461,15 @@ function renderAdmin(){
           + esc(String(firstText).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,1200)) + '</pre></div>';
         return;
       }
-      msg.innerHTML = `<div class="okmsg">${SK_RACES.length}種目が見つかりました。取り込みたい種目にチェックを入れて、下のボタンを押してください。AIが1種目ずつ読むので、1種目あたり10秒ほどかかります。</div>`;
+      msg.innerHTML = `<div class="okmsg">${SK_RACES.length}個のPDFが見つかりました。読みたいものにチェックを入れて、下のボタンを押してください。おすすめは、日ごとの、種目別結果、です。スタートリストには記録が載っていません。読み取りは1個あたり10〜30秒かかります。</div>`;
       let h = '<div class="stack" style="margin-bottom:8px">' +
         '<button type="button" class="btn ghost" onclick="document.querySelectorAll(\'.skrace\').forEach(c=>c.checked=true)">全部選ぶ</button>' +
         '<button type="button" class="btn ghost" onclick="document.querySelectorAll(\'.skrace\').forEach(c=>c.checked=false)">全部外す</button></div>' +
         '<div class="tablewrap" style="max-height:420px"><table><tr><th></th><th>種目</th></tr>';
       SK_RACES.forEach((r,i)=>{
+        const fname = r.url.split('/').pop();
         h += `<tr><td><input type="checkbox" class="skrace" data-i="${i}" style="width:26px;height:26px"></td>
-          <td style="min-height:40px">${esc(r.label)}</td></tr>`;
+          <td style="min-height:40px">${esc(r.label)} <span style="color:var(--gray); font-size:.85rem">(${esc(fname)})</span></td></tr>`;
       });
       out.innerHTML = h + '</table></div>' +
         '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminSeikoRead()">選んだ種目をAIで読み取る</button></div>' +
@@ -2483,14 +2494,16 @@ function renderAdmin(){
       let data;
       try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ errors.push(picked[i].label); continue; }
       if(data.error){ errors.push(picked[i].label + ': ' + data.error); continue; }
-      // 種目はAIの読み取りを使い、読めなければ種目名の文字から補う
-      let ev = { sex:data.sex, dist:Number(data.dist), stroke:data.stroke, round:data.round||'' };
-      if(!ev.stroke || !ev.dist){
-        const g = seikoEvent(picked[i].label);
-        if(g) ev = g;
-      }
+      // 種目は行ごとにAIが付けてくる。付いていなければPDF全体の種目や、種目名の文字から補う
+      const fallback = (data.stroke && data.dist)
+        ? { sex:data.sex, dist:Number(data.dist), stroke:data.stroke, round:data.round||'' }
+        : (seikoEvent(picked[i].label) || {});
       (data.rows||[]).forEach(r=>{
         if(!r || !r.name || !r.time) return;
+        const ev = (r.stroke && r.dist)
+          ? { sex:r.sex||'', dist:Number(r.dist), stroke:r.stroke, round:r.round||'' }
+          : fallback;
+        if(!ev.stroke || !ev.dist) return;
         SK_HITS.push({
           name: String(r.name).replace(/[\s\u3000]+/g,''),
           team: String(r.team||''),

@@ -78,6 +78,17 @@ main{ max-width:1180px; margin:0 auto; padding:20px 24px 80px; }
 /* ---------- 閲覧のモード選択 ---------- */
 .modes{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
 .modehead{ font-weight:800; font-size:1.02rem; margin:0 0 6px; color:var(--navy); }
+#officialLinks{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+.offbtn{ display:flex; align-items:center; justify-content:center;
+  aspect-ratio:1/1; padding:10px; border:2px solid var(--line); border-radius:14px;
+  background:#fff; text-decoration:none; color:var(--navy);
+  box-shadow:0 1px 3px rgba(0,0,0,.06); }
+.offbtn:active{ transform:scale(.98); }
+.officon{ width:78%; height:78%; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; border:1px solid var(--line); }
+.officon svg{ width:100%; height:100%; }
+@media (max-width:640px){ #officialLinks{ grid-template-columns:repeat(4,1fr); gap:8px; }
+  .offbtn{ padding:8px; } }
 .mode{
   min-height:62px; font-size:1.08rem; font-weight:700;
   border:2.5px solid var(--line); border-radius:12px;
@@ -310,15 +321,19 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
     </div>
     <button type="button" class="btn ghost big" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
       onclick="toggleOfficial()" style="width:100%; margin-bottom:12px">正式記録検索</button>
-    <div class="modes" id="officialLinks" hidden>
-      <a class="mode" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener"
-        style="display:flex; align-items:center; justify-content:center; text-decoration:none">セイコー<br>リザルト速報</a>
-      <a class="mode" href="https://kizahashi.co.jp/JASF/PDF/index.php" target="_blank" rel="noopener"
-        style="display:flex; align-items:center; justify-content:center; text-decoration:none">競泳レース<br>分析プロジェクト</a>
-      <a class="mode" href="https://www.tdsystem.co.jp/" target="_blank" rel="noopener"
-        style="display:flex; align-items:center; justify-content:center; text-decoration:none">東洋電子<br>システム</a>
-      <a class="mode" href="https://dualmeet.swim-kansai.com/2026/information/index.html" target="_blank" rel="noopener"
-        style="display:flex; align-items:center; justify-content:center; text-decoration:none">関西中部<br>対抗戦</a>
+    <div id="officialLinks" hidden>
+      <a class="offbtn" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener" aria-label="セイコーリザルト速報">
+        <span class="officon" style="background:linear-gradient(135deg,#F5C518 0%,#F5C518 30%,#fff 30%,#fff 100%)">
+          <svg viewBox="0 0 40 40" aria-hidden="true"><text x="20" y="26" font-size="11" font-weight="900" text-anchor="middle" fill="#111" font-family="Arial, sans-serif">SEIKO</text></svg></span></a>
+      <a class="offbtn" href="https://kizahashi.co.jp/JASF/PDF/index.php" target="_blank" rel="noopener" aria-label="競泳レース分析プロジェクト">
+        <span class="officon" style="background:#fff">
+          <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="18" r="16" fill="#2CA6E0"/><path d="M4 26 q6 -3 12 0 t12 0 t12 0" stroke="#fff" stroke-width="2.5" fill="none"/><circle cx="26" cy="13" r="3.5" fill="#fff"/><path d="M11 20 l7 -3 6 3" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span></a>
+      <a class="offbtn" href="https://www.tdsystem.co.jp/" target="_blank" rel="noopener" aria-label="東洋電子システム">
+        <span class="officon" style="background:#fff">
+          <svg viewBox="0 0 40 40" aria-hidden="true"><text x="20" y="17" font-size="9" font-weight="900" text-anchor="middle" fill="#0D2B52" font-family="sans-serif">東洋</text><g stroke="#22B04B" stroke-width="2.4"><line x1="8" y1="27" x2="18" y2="27"/><line x1="22" y1="27" x2="32" y2="27"/><line x1="10" y1="31" x2="16" y2="31"/><line x1="24" y1="31" x2="30" y2="31"/></g></svg></span></a>
+      <a class="offbtn" href="https://dualmeet.swim-kansai.com/2026/information/index.html" target="_blank" rel="noopener" aria-label="関西中部対抗戦">
+        <span class="officon" style="background:#fff">
+          <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 24 a12 12 0 0 1 22 -6" stroke="#1565C0" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M32 16 a12 12 0 0 1 -22 6" stroke="#E8570F" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="26" cy="14" r="3" fill="#E8570F"/><circle cx="14" cy="26" r="3" fill="#1565C0"/></svg></span></a>
     </div>
     <button type="button" class="btn ghost big" id="fixToggle" aria-expanded="false" aria-controls="fixPanel"
       onclick="toggleFix()" style="width:100%; margin-bottom:12px">記録の訂正を連絡する</button>
@@ -356,9 +371,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.41';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.44';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '連盟の通し確認(名簿の一人で記録まで取れるか)が付きました。';
+const APP_NEWS = '正式記録検索のボタンがロゴだけの四つ並びになり、見やすくなりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -473,17 +488,6 @@ async function apiSave(payload){
   if(json.error) throw new Error(json.error);
   return json;
 }
-/* ============================================================
-   日本水泳連盟の記録サイト(result.swim.or.jp)の取り込み
-   (GASの窓口 action=renmei を使う)
-============================================================ */
-async function renmeiFetch(url){
-  const res = await fetch(GAS_URL + '?action=renmei&url=' + encodeURIComponent(url));
-  const json = await res.json();
-  if(json.error) throw new Error(json.error);
-  return json;   // { ok, status, text }
-}
-
 /* ============================================================
    セイコーの結果ページの取り込み
    (GASの窓口 action=seiko と action=seikoPdf を使う)
@@ -2524,27 +2528,6 @@ function renderAdmin(){
       <div id="asMsg" style="margin-top:10px"></div>
     </div>
 
-    <div class="card"><h2>連盟の記録サイトの調査(開発中)</h2>
-      <p class="hint">日本水泳連盟の記録サイト(result.swim.or.jp)から記録を直接取る道の調査です。ボタンを押すと、動くと分かっている入り口と、内部IDを引けそうな入り口の候補をまとめて試して、結果を表に出します。結果のスクショを送ってもらえれば、次の一手が決まります。</p>
-      <div class="stack">
-        <button class="btn red solid big" onclick="adminRenmeiProbe()">調査1: 入り口を試す</button>
-        <button class="btn red solid big" onclick="adminRenmeiProbe2()">調査2: サイトの中のAPIを探す</button>
-        <button class="btn red solid big" onclick="adminRenmeiProbe3()">調査3: 住所の組み立て方を探す</button>
-        <button class="btn red solid big" onclick="adminRenmeiTry()">確認: 番号と入り口を試す</button>
-        <button class="btn red solid big" onclick="adminRenmeiTry3()">最終確認: 選手番号から長い番号を引く</button>
-        <button class="btn red solid big" onclick="adminRenmeiTry4()">最終確認2: 一覧ページから番号ペアを拾う</button>
-      </div>
-      <div class="pick2" style="margin-top:10px">
-        <label class="fld wide">通し確認する選手(名字だけでOK)
-          <input type="text" id="rnOneName" placeholder="例: 石川" value="石川"></label>
-      </div>
-      <div class="stack">
-        <button class="btn red solid big" onclick="adminRenmeiOne()">通し確認: 名簿の一人で記録まで取れるか試す</button>
-      </div>
-      <div id="rnMsg" style="margin-top:10px" aria-live="polite"></div>
-      <div id="rnOut" style="margin-top:10px"></div>
-    </div>
-
     <div class="card"><h2>大会結果の取り込み(セイコーの結果ページ)</h2>
       <p class="hint">swim.seiko.co.jp の大会ページの住所を入れて、まず種目の一覧を読み取ります。次に取り込みたい種目を選ぶと、AIが結果のPDFを読んで、探したい名前や所属の選手だけを拾います。名前や所属はカンマ区切りで何個でも。所属はページの書き方に合わせて、中京大、のように短く入れると広く拾えます。</p>
       <label class="fld">結果ページの住所(index.htmのページ)
@@ -2576,464 +2559,6 @@ function renderAdmin(){
     <div class="stack"><button class="btn ghost" onclick="ADMIN_PW=''; sessionStorage.removeItem('cust_admin_pw'); startAdmin()">設定画面から出る</button></div>`;
   adminDrawMeets();
   adminDrawEvents();
-  // 連盟の記録サイトの調査
-  window.adminRenmeiProbe = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const base = 'https://result.swim.or.jp';
-    // 試す入り口の一覧。前半は動くと分かっているもの、後半は内部IDを引けそうな候補
-    const probes = [
-      { name:'選手一覧(中京大学)', url: base + '/api/v1/athletes?member_group_code=99&school_class_code=4&gender_code=99&entry_group_name=' + encodeURIComponent('中京大学') + '&page=1' },
-      { name:'個人ページの中身(石川・内部ID)', url: base + '/api/v1/athletes/49102596' },
-      { name:'個人のベスト記録(石川・内部ID)', url: base + '/api/v1/athletes/49102596/best_fina_points?year=2025&waterway_code=1' },
-      { name:'候補A: 選手番号を内部ID扱い', url: base + '/api/v1/athletes/6367531' },
-      { name:'候補B: 選手番号でしぼりこみ', url: base + '/api/v1/athletes?swimmer_code=6367531' },
-      { name:'候補C: 大会の中身(日本選手権)', url: base + '/api/v1/tournaments/7025701' },
-      { name:'候補D: 大会の中身 別の形', url: base + '/api/v1/tournament/7025701' },
-      { name:'候補E: 大会の種目一覧', url: base + '/api/v1/tournaments/7025701/races' },
-      { name:'候補F: 選手ページの土台データ', url: base + '/athletes/49102596' },
-      { name:'候補G: 検索ページの土台データ', url: base + '/player-search?swimmer_name=' + encodeURIComponent('石川凌久') }
-    ];
-    let h = '<div class="tablewrap"><table><tr><th>入り口</th><th>結果</th><th>中身の冒頭</th></tr>';
-    for(let i=0; i<probes.length; i++){
-      msg.innerHTML = `<div class="loading">調査中 ${i+1}/${probes.length} (${Math.round((i+1)/probes.length*100)}%)… ${esc(probes[i].name)}</div>`;
-      let cell = '', status = '';
-      try{
-        const r = await renmeiFetch(probes[i].url);
-        status = String(r.status);
-        let t = String(r.text||'');
-        // 土台データ(__NEXT_DATA__)が入っているHTMLなら、その部分を取り出して見る
-        const nd = t.indexOf('__NEXT_DATA__');
-        if(nd >= 0){
-          const j = t.indexOf('>', nd);
-          t = '(土台データあり) ' + t.slice(j+1, j+400);
-        }
-        cell = t.replace(/</g,' ').slice(0, 220);
-      }catch(err){
-        status = 'エラー'; cell = err.message;
-      }
-      h += `<tr><td class="nw">${esc(probes[i].name)}</td><td class="nw">${esc(status)}</td>
-        <td style="font-size:.82rem; word-break:break-all">${esc(cell)}</td></tr>`;
-      await new Promise(r=>setTimeout(r, 400));
-    }
-    out.innerHTML = h + '</table></div>';
-    msg.innerHTML = '<div class="okmsg">調査が終わりました。この表のスクショを送ってください。結果が200のものは使える入り口です。</div>';
-  };
-
-  // ============================================================
-  // 連盟から記録を取り込む(選手番号=個人ページ という確定した道)
-  // 選手一覧 → 各選手のベスト記録、の順に取る
-  // ============================================================
-  const RENMEI_BASE = 'https://result.swim.or.jp';
-  // 連盟のJSONを取る小さな道具
-  async function renmeiJson(path){
-    const r = await renmeiFetch(RENMEI_BASE + path);
-    try{ return JSON.parse(r.text); }catch(e){ throw new Error('連盟の返事が読めませんでした'); }
-  }
-  // 中京大の選手一覧を全ページ取る。返りは [{name, code}]
-  async function renmeiRoster(onProgress){
-    const group = encodeURIComponent('中京大学');
-    const out = [];
-    for(let page=1; page<=10; page++){
-      if(onProgress) onProgress('選手一覧 ' + page + 'ページ目…');
-      const d = await renmeiJson('/api/v1/athletes?member_group_code=99&school_class_code=4&gender_code=99&entry_group_name=' + group + '&page=' + page);
-      (d.data||[]).forEach(p=>{
-        if(p.swimmer_name && p.swimmer_code) out.push({ name:String(p.swimmer_name).replace(/[\s\u3000]+/g,''), code:String(p.swimmer_code) });
-      });
-      if(!d.links || !d.links.next) break;
-      await new Promise(r=>setTimeout(r, 300));
-    }
-    return out;
-  }
-  // 泳法コードをアプリの記号に直す(連盟: 1自由形 2背 3平 4バタ 5個メ)
-  const RENMEI_STYLE = { 1:'Fr', 2:'Ba', 3:'Br', 4:'Fly', 5:'IM' };
-  // 一人のベスト記録を取る。waterwayは 1長 2短。返りは [{dist,stroke,time,date,game}]
-  async function renmeiBest(code, year, waterway){
-    const arr = await renmeiJson('/api/v1/athletes/' + code + '/best_fina_points?year=' + year + '&waterway_code=' + waterway);
-    if(!Array.isArray(arr)) return [];
-    const out = [];
-    arr.forEach(r=>{
-      const stroke = RENMEI_STYLE[(r.swimming_style||{}).code];
-      const dist = (r.distance||{}).code!=null ? ({1:'50',2:'50',3:'100',4:'200',5:'400',6:'800',7:'1500'}[(r.distance||{}).code]) : null;
-      // distanceのnameから数字を読むのが確実
-      const dm = String((r.distance||{}).name||'').match(/(\d+)/);
-      const distNum = dm ? Number(dm[1]) : null;
-      if(!stroke || !distNum || !r.result_time) return;
-      out.push({ dist:distNum, stroke, time:fmtTime(String(r.result_time)),
-        date:String(r.result_date||''), game:String(r.game_name||'') });
-    });
-    return out;
-  }
-
-  // 通し確認: 名簿の一人について、名前で選手一覧を引き、選手番号を得て、
-  // 「その選手番号を選手一覧APIで1件に絞り、返るデータの中から記録取得に使える値」を探し、記録まで取れるか通しで試す
-  window.adminRenmeiOne = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const who = (document.getElementById('rnOneName')||{}).value || '石川';
-    const group = encodeURIComponent('中京大学');
-    try{
-      // 1) 名前で選手一覧を引く(名字だけでも部分一致で拾えることが多い)
-      msg.innerHTML = '<div class="loading">選手一覧から探しています…</div>';
-      const roster = await renmeiRoster(()=>{});
-      const hit = roster.find(p=>p.name.includes(who.replace(/[\s\u3000]/g,'')));
-      if(!hit){
-        msg.innerHTML = '<div class="errmsg">その名前が中京大の一覧に見つかりませんでした。名字だけで試してみてください。</div>';
-        return;
-      }
-      // 2) 選手一覧APIで、その1人の全項目を取り、記録に使えそうな番号を集める
-      msg.innerHTML = `<div class="loading">${esc(hit.name)}さんの詳しい情報を調べています…</div>`;
-      const one = await renmeiJson('/api/v1/athletes?entry_group_name=' + group + '&school_class_code=4&gender_code=99&member_group_code=99&page=1');
-      const rec = (one.data||[]).find(p=>String(p.swimmer_code)===hit.code) || {};
-      // データの中で、6桁以上の数字の値を「番号の候補」として全部集める
-      const candidates = [];
-      (function dig(obj, path){
-        if(obj == null) return;
-        if(typeof obj === 'object'){
-          Object.keys(obj).forEach(k=>dig(obj[k], path? path+'.'+k : k));
-        } else {
-          const s = String(obj);
-          if(/^\d{6,}$/.test(s)) candidates.push({ path, val:s });
-        }
-      })(rec, '');
-      // hit.code(選手番号)も候補に入れておく
-      if(!candidates.some(c=>c.val===hit.code)) candidates.unshift({ path:'swimmer_code', val:hit.code });
-      // 3) 各候補の番号で、ベスト記録が取れるか試す(去年・長水路)
-      const year = new Date().getFullYear() - 1;
-      let h = `<p class="hint">${esc(hit.name)}さん(選手番号${hit.code})。データの中の番号候補それぞれで、${year}年長水路のベスト記録が取れるか試します。</p>` +
-        '<div class="tablewrap"><table><tr><th>番号の出どころ</th><th>番号</th><th>結果</th></tr>';
-      let win = null;
-      for(const c of candidates){
-        msg.innerHTML = `<div class="loading">番号 ${esc(c.val)} を試しています…</div>`;
-        let recs = [];
-        try{ recs = await renmeiBest(c.val, year, 1); }catch(e){}
-        const summary = recs.length
-          ? recs.length + '本! ' + recs.slice(0,3).map(r=>evShort(r.dist,r.stroke)+' '+r.time).join(' , ')
-          : '(なし)';
-        if(recs.length && !win) win = c;
-        h += `<tr><td class="nw" style="font-size:.82rem">${esc(c.path||'?')}</td>
-          <td class="nw">${esc(c.val)}</td><td style="font-size:.85rem">${esc(summary)}</td></tr>`;
-        await new Promise(r=>setTimeout(r, 400));
-      }
-      out.innerHTML = h + '</table></div>';
-      if(win){
-        msg.innerHTML = `<div class="okmsg">取れました! ${esc(win.path)} の番号(${esc(win.val)})で記録が取れます。これで名簿から全自動の道が完成します。この表のスクショを送ってください。</div>`;
-      } else {
-        msg.innerHTML = '<div class="errmsg">どの番号でも記録が取れませんでした。この表のスクショを送ってください。次の手を考えます。</div>';
-      }
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">試せませんでした: ' + esc(err.message) + '</div>';
-    }
-  };
-
-  // 最終確認2: 選手一覧の「ページ」を開いて、中に埋め込まれた
-  // 選手番号と長い番号のペアを拾えるか確かめる
-  window.adminRenmeiTry4 = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const group = encodeURIComponent('中京大学');
-    // 選手一覧を見せるページの候補(検索結果ページ)
-    const pageUrls = [
-      '/player-search?entry_group_name=' + group,
-      '/athletes?entry_group_name=' + group,
-      '/players?entry_group_name=' + group
-    ];
-    try{
-      let best = { url:'', pairs:[], sample:'' };
-      for(const pu of pageUrls){
-        msg.innerHTML = '<div class="loading">ページを読んでいます… ' + esc(pu.slice(0,40)) + '</div>';
-        let text = '';
-        try{ const r = await renmeiFetch(RENMEI_BASE + pu); text = String(r.text||''); }catch(e){ continue; }
-        // athletes/長い番号 と swimmer_code の両方を拾う
-        const ids = [...new Set((text.match(/athletes\/(\d{6,})/g)||[]).map(s=>s.split('/')[1]))];
-        const codes = [...new Set((text.match(/"swimmer_code":"?(\d+)"?/g)||[]).map(s=>s.replace(/\D/g,'')))];
-        // ページ内データ(__NEXT_DATA__)があれば、その中のペアを探す
-        let pairs = [];
-        const nd = text.indexOf('__NEXT_DATA__');
-        if(nd >= 0){
-          const chunk = text.slice(nd, nd + 200000);
-          const re = /"id":(\d{6,})[^}]*?"swimmer_code":"?(\d+)"?|"swimmer_code":"?(\d+)"?[^}]*?"id":(\d{6,})/g;
-          let m;
-          while((m = re.exec(chunk))){
-            const id = m[1]||m[4], code = m[2]||m[3];
-            if(id && code) pairs.push({ id, code });
-          }
-        }
-        if(ids.length > best.pairs.length || pairs.length > best.pairs.length){
-          best = { url:pu, ids, codes, pairs,
-            sample: text.replace(/\\u[0-9a-f]{4}/gi,'字').replace(/</g,' ').slice(nd>=0?nd:0, (nd>=0?nd:0)+600) };
-        }
-      }
-      let h = '<div class="tablewrap"><table><tr><th>調べたこと</th><th>結果</th></tr>';
-      h += `<tr><td>使えたページ</td><td style="font-size:.8rem; word-break:break-all">${esc(best.url||'(なし)')}</td></tr>`;
-      h += `<tr><td>長い番号(athletes/○○)の数</td><td>${(best.ids||[]).length}個 ${(best.ids||[]).slice(0,3).join(', ')}</td></tr>`;
-      h += `<tr><td>選手番号の数</td><td>${(best.codes||[]).length}個</td></tr>`;
-      h += `<tr><td>番号のペアの数</td><td>${(best.pairs||[]).length}組 ${(best.pairs||[]).slice(0,2).map(p=>p.code+'→'+p.id).join(' / ')}</td></tr>`;
-      h += '</table></div>';
-      h += '<p class="hint" style="margin-top:10px">ページの中身の冒頭(データ部分):</p>' +
-        '<div class="tablewrap" style="max-height:240px"><pre style="white-space:pre-wrap; font-size:.75rem; padding:10px">' + esc(best.sample||'(データ部分が見つかりませんでした)') + '</pre></div>';
-      out.innerHTML = h;
-      msg.innerHTML = '<div class="okmsg">最終確認2が終わりました。長い番号やペアが取れていれば、これで全自動の道が完成します。この画面のスクショを送ってください。</div>';
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">試せませんでした: ' + esc(err.message) + '</div>';
-    }
-  };
-
-  // 最終確認: 選手番号(6367531)から長い番号(49102596)を引く方法を探す
-  window.adminRenmeiTry3 = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const swimmerCode = '6367531';   // 石川さんの選手番号(一覧が返す値)
-    const name = encodeURIComponent('石川 凌久');
-    const group = encodeURIComponent('中京大学');
-    // 選手番号や名前から、長い番号(49102596)が返ってきそうな入り口の候補
-    const probes = [
-      { name:'検索: 選手番号で', url:'/api/v1/athletes/search?swimmer_code=' + swimmerCode },
-      { name:'検索: 名前と所属で', url:'/api/v1/athletes/search?swimmer_name=' + name + '&entry_group_name=' + group },
-      { name:'一覧に詳細を足す1', url:'/api/v1/athletes?entry_group_name=' + group + '&school_class_code=4&gender_code=99&member_group_code=99&with=id&page=1' },
-      { name:'選手番号を id に', url:'/api/v1/athletes/' + swimmerCode + '/histories/waterways/1/swimming_styles/1/distances/2' },
-      { name:'personal-results', url:'/api/v1/games/0/swimmers/' + swimmerCode },
-      { name:'一覧(素の形)を全項目', url:'/api/v1/athletes?entry_group_name=' + group + '&school_class_code=4&gender_code=99&member_group_code=99&page=1' }
-    ];
-    try{
-      let h = `<p class="hint">選手番号 ${swimmerCode} から、記録に必要な長い番号(石川さんは49102596)を引く方法を探します。中身に 49102596 や id が見えるものが正解です。</p>` +
-        '<div class="tablewrap"><table><tr><th>入り口</th><th>結果</th><th>中身の冒頭(長い番号49102596が出るか)</th></tr>';
-      for(const p of probes){
-        msg.innerHTML = `<div class="loading">${esc(p.name)} を試しています…</div>`;
-        let status = '', body = '', hit = '';
-        try{
-          const r = await renmeiFetch(RENMEI_BASE + p.url);
-          status = String(r.status);
-          const t = String(r.text||'');
-          if(t.indexOf('49102596') >= 0) hit = ' ★49102596あり';
-          body = t.replace(/\\u[0-9a-f]{4}/gi,'字').slice(0, 160);
-        }catch(e){ status = 'エラー'; body = e.message; }
-        h += `<tr><td class="nw" style="font-size:.82rem">${esc(p.name)}</td>
-          <td class="nw">${esc(status)}${hit}</td>
-          <td style="font-size:.75rem; word-break:break-all">${esc(body)}</td></tr>`;
-        await new Promise(r=>setTimeout(r, 400));
-      }
-      out.innerHTML = h + '</table></div>';
-      msg.innerHTML = '<div class="okmsg">最終確認が終わりました。★49102596あり、と出た入り口が正解です。なければ、個人ページ経由でつなぐ道を使います。この表のスクショを送ってください。</div>';
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">試せませんでした: ' + esc(err.message) + '</div>';
-    }
-  };
-
-  // (前の版)2つの番号 x 入り口 の総当たり
-  window.adminRenmeiTry = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const year = new Date().getFullYear() - 1;   // 去年(記録がたまっている可能性が高い)
-    // 2つの番号: 選手一覧の選手番号 と、調査で見えた長い番号
-    const codes = [
-      { id:'6367531', label:'選手番号(一覧の値)' },
-      { id:'49102596', label:'長い番号(調査で確認)' }
-    ];
-    // いくつかの入り口(記録が返りそうなもの)
-    const paths = [
-      { name:'ベスト記録', make:id=>'/api/v1/athletes/'+id+'/best_fina_points?year='+year+'&waterway_code=1' },
-      { name:'個人ページ', make:id=>'/api/v1/athletes/'+id },
-      { name:'出場した種目', make:id=>'/api/v1/athletes/'+id+'/swimed_races?period_code='+year+'&waterway_code=1' },
-      { name:'成績一覧', make:id=>'/api/v1/athletes/'+id+'/results/waterways/1/swimming_styles/1/distances/2' }
-    ];
-    try{
-      let h = `<p class="hint">石川凌久さんの2つの番号で、いくつかの入り口を試します。結果が200で中身のあるものが正解です。</p>` +
-        '<div class="tablewrap"><table><tr><th>番号</th><th>入り口</th><th>結果</th><th>中身の冒頭</th></tr>';
-      for(const c of codes){
-        for(const p of paths){
-          msg.innerHTML = `<div class="loading">${esc(c.label)} / ${esc(p.name)} を試しています…</div>`;
-          let status = '', body = '';
-          try{
-            const r = await renmeiFetch(RENMEI_BASE + p.make(c.id));
-            status = String(r.status);
-            body = String(r.text||'').replace(/\\u[0-9a-f]{4}/gi,'字').slice(0, 140);
-          }catch(e){ status = 'エラー'; body = e.message; }
-          h += `<tr><td class="nw" style="font-size:.8rem">${esc(c.label)}<br>${esc(c.id)}</td>
-            <td class="nw">${esc(p.name)}</td><td class="nw">${esc(status)}</td>
-            <td style="font-size:.75rem; word-break:break-all">${esc(body)}</td></tr>`;
-          await new Promise(r=>setTimeout(r, 400));
-        }
-      }
-      out.innerHTML = h + '</table></div>';
-      msg.innerHTML = '<div class="okmsg">確認が終わりました。結果が200で中身に記録(result_timeなど)が見えるものが正解です。この表のスクショを送ってください。</div>';
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">試せませんでした: ' + esc(err.message) + '</div>';
-    }
-  };
-
-  // 調査2: サイトのプログラム(JS)の中から、APIの形を抜き出す
-  window.adminRenmeiProbe2 = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const base = 'https://result.swim.or.jp';
-    try{
-      // 1) 検索ページを取り、読み込まれるプログラムのファイル一覧を拾う
-      msg.innerHTML = '<div class="loading">検索ページを読んでいます…</div>';
-      const page = await renmeiFetch(base + '/player-search');
-      const srcs = [];
-      const re = /src="(\/_next\/static\/[^"]+\.js)"/g;
-      let m;
-      while((m = re.exec(String(page.text)))){
-        if(!srcs.includes(m[1])) srcs.push(m[1]);
-      }
-      if(srcs.length === 0){
-        msg.innerHTML = '<div class="errmsg">プログラムのファイルが見つかりませんでした。ページの作りが変わった可能性があります。</div>';
-        out.innerHTML = '<div class="tablewrap" style="max-height:200px"><pre style="white-space:pre-wrap; font-size:.8rem; padding:10px">' +
-          esc(String(page.text).slice(0,800)) + '</pre></div>';
-        return;
-      }
-      // 関係の深そうなファイル(検索・選手・共通)を先に、多くても12個まで
-      srcs.sort((a,b)=>{
-        const w = s => (s.includes('player-search')||s.includes('athletes')) ? 0 : (s.includes('pages/_app')||s.includes('main')) ? 1 : 2;
-        return w(a) - w(b);
-      });
-      const targets = srcs.slice(0, 12);
-      // 2) 一つずつ取り寄せ、apiという文字の周りを抜き出す
-      const found = {};
-      for(let i=0; i<targets.length; i++){
-        msg.innerHTML = `<div class="loading">プログラムを調べています ${i+1}/${targets.length} (${Math.round((i+1)/targets.length*100)}%)…</div>`;
-        let js;
-        try{ js = await renmeiFetch(base + targets[i]); }catch(e){ continue; }
-        const text = String(js.text||'');
-        const re2 = /api\/v1[^"'`\\ )]{0,80}/g;
-        let m2;
-        while((m2 = re2.exec(text))){
-          const key = m2[0];
-          if(!found[key]) found[key] = targets[i].split('/').pop().slice(0,24);
-        }
-        await new Promise(r=>setTimeout(r, 300));
-      }
-      // 3) 候補Bの完全な形も試す(必須項目を足した選手番号しぼりこみ)
-      msg.innerHTML = '<div class="loading">選手番号でのしぼりこみ(完全な形)を試しています…</div>';
-      let bFull = '';
-      try{
-        const rb = await renmeiFetch(base + '/api/v1/athletes?swimmer_code=6367531&school_class_code=99&gender_code=99&member_group_code=99&page=1');
-        bFull = rb.status + ' ' + String(rb.text||'').slice(0, 500);
-      }catch(e){ bFull = 'エラー: ' + e.message; }
-      // 4) 結果を表に出す
-      const keys = Object.keys(found).sort();
-      let h = `<p class="hint">プログラム${targets.length}個の中から、APIの形が${keys.length}個見つかりました。</p>` +
-        '<div class="tablewrap" style="max-height:420px"><table><tr><th>見つかったAPIの形</th><th>あった場所</th></tr>';
-      keys.forEach(k=>{
-        h += `<tr><td style="font-size:.85rem; word-break:break-all">${esc(k)}</td><td class="nw" style="font-size:.8rem">${esc(found[k])}</td></tr>`;
-      });
-      h += '</table></div>';
-      h += '<p class="hint" style="margin-top:10px">選手番号しぼりこみ(完全な形)の返事:</p>' +
-        '<div class="tablewrap" style="max-height:220px"><pre style="white-space:pre-wrap; font-size:.8rem; padding:10px">' + esc(bFull) + '</pre></div>';
-      out.innerHTML = h;
-      msg.innerHTML = '<div class="okmsg">調査2が終わりました。この画面のスクショを送ってください。</div>';
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">調査できませんでした: ' + esc(err.message) + '</div>';
-    }
-  };
-
-  // 調査3: 設計図(ビルドマニフェスト)から該当ページのプログラムを特定し、
-  // APIの住所の組み立て方を、前後の文脈ごと抜き出す
-  window.adminRenmeiProbe3 = async function(){
-    const msg = document.getElementById('rnMsg');
-    const out = document.getElementById('rnOut');
-    out.innerHTML = '';
-    const base = 'https://result.swim.or.jp';
-    try{
-      // 1) 検索ページから設計図の番号(buildId)を読む
-      msg.innerHTML = '<div class="loading">設計図の番号を調べています…</div>';
-      const page = await renmeiFetch(base + '/player-search');
-      const bm = String(page.text).match(/"buildId":"([^"]+)"/);
-      if(!bm){
-        msg.innerHTML = '<div class="errmsg">設計図の番号が見つかりませんでした。</div>';
-        return;
-      }
-      const buildId = bm[1];
-      // 2) プログラムファイルの一覧をあつめる(三段構えで確実に)
-      msg.innerHTML = '<div class="loading">設計図を読んでいます…</div>';
-      const fileSet = new Set();
-      // (a) 設計図(_buildManifest)の中の .js で終わる住所を全部拾う
-      try{
-        const mani = await renmeiFetch(base + '/_next/static/' + buildId + '/_buildManifest.js');
-        (String(mani.text||'').match(/[\w\-\/\.\[\]]+\.js/g) || []).forEach(f=>{
-          let u = f.replace(/^\.?\//,'');
-          if(u.indexOf('static/') === 0) fileSet.add(u);
-        });
-      }catch(e){}
-      // (b) app一覧(_app一覧のような索引)も試す
-      try{
-        const ssg = await renmeiFetch(base + '/_next/static/' + buildId + '/_ssgManifest.js');
-        (String(ssg.text||'').match(/[\w\-\/\.\[\]]+\.js/g) || []).forEach(f=>{
-          let u = f.replace(/^\.?\//,'');
-          if(u.indexOf('static/') === 0) fileSet.add(u);
-        });
-      }catch(e){}
-      // (c) 保険: 検索ページと選手ページのHTMLに直接書かれた .js も拾う
-      for(const p of ['/player-search', '/athletes/49102596']){
-        try{
-          const pg = await renmeiFetch(base + p);
-          (String(pg.text||'').match(/\/_next\/(static\/[^"'\s]+\.js)/g) || []).forEach(f=>{
-            fileSet.add(f.replace('/_next/',''));
-          });
-        }catch(e){}
-      }
-      const files = [...fileSet];
-      // 選手・検索・大会にかかわるファイルを優先し、共通部品も少し足す
-      files.sort((a,b)=>{
-        const w = s => /athletes|player-search|tournament|ranking/.test(s) ? 0 : /pages\/_app|main/.test(s) ? 1 : 2;
-        return w(a) - w(b);
-      });
-      if(files.length === 0){
-        msg.innerHTML = '<div class="errmsg">プログラムファイルが拾えませんでした。設計図の中身の冒頭を出すので送ってください。</div>';
-        let dump = '';
-        try{
-          const mani = await renmeiFetch(base + '/_next/static/' + buildId + '/_buildManifest.js');
-          dump = String(mani.text||'').slice(0, 1000);
-        }catch(e){ dump = '設計図も読めませんでした: ' + e.message; }
-        out.innerHTML = '<div class="tablewrap" style="max-height:260px"><pre style="white-space:pre-wrap; font-size:.78rem; padding:10px">' + esc(dump) + '</pre></div>';
-        return;
-      }
-      const targets = files.slice(0, 16);
-      // 3) 該当ファイルを取り寄せ、大事な言葉の前後を抜き出す
-      const words = ['api/v1', 'best_fina_points', 'athletes', 'tournament', 'swimmer_code', 'player_id'];
-      const snippets = [];
-      const seen = new Set();
-      for(let i=0; i<targets.length; i++){
-        msg.innerHTML = `<div class="loading">プログラムを調べています ${i+1}/${targets.length} (${Math.round((i+1)/targets.length*100)}%)…</div>`;
-        let js;
-        try{ js = await renmeiFetch(base + '/_next/' + targets[i]); }catch(e){ continue; }
-        const text = String(js.text||'');
-        const fname = targets[i].split('/').pop().slice(0, 26);
-        words.forEach(w=>{
-          let idx = 0;
-          while((idx = text.indexOf(w, idx)) !== -1 && snippets.length < 90){
-            const snip = text.slice(Math.max(0, idx-50), idx + 90).replace(/\s+/g,' ');
-            if(!seen.has(snip)){
-              seen.add(snip);
-              snippets.push({ w, snip, fname });
-            }
-            idx += w.length;
-          }
-        });
-        await new Promise(r=>setTimeout(r, 300));
-      }
-      // 4) 表に出す
-      let h = `<p class="hint">設計図の番号: ${esc(buildId)}。ファイル${targets.length}個から、手がかりが${snippets.length}個見つかりました。</p>` +
-        '<div class="tablewrap" style="max-height:480px"><table><tr><th>言葉</th><th>前後の文脈</th><th>場所</th></tr>';
-      snippets.forEach(s=>{
-        h += `<tr><td class="nw">${esc(s.w)}</td>
-          <td style="font-size:.78rem; word-break:break-all">${esc(s.snip)}</td>
-          <td class="nw" style="font-size:.75rem">${esc(s.fname)}</td></tr>`;
-      });
-      out.innerHTML = h + '</table></div>';
-      msg.innerHTML = '<div class="okmsg">調査3が終わりました。表を上から順に、数枚に分けてスクショを送ってください。</div>';
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">調査できませんでした: ' + esc(err.message) + '</div>';
-    }
-  };
-
   // セイコーの結果ページの取り込み
   (function(){
     const today = new Date();
@@ -3048,7 +2573,11 @@ function renderAdmin(){
     let n = 0;
     document.querySelectorAll('.skrace').forEach(c=>{
       const r = SK_RACES[Number(c.dataset.i)];
-      const on = r.label.includes('種目別結果') && !r.label.includes('全種目');
+      // 種目別結果だけを選ぶ。全種目まとめ(巨大PDF)やスタートリストは必ず外す
+      const fname = (r.url.split('/').pop() || '').toLowerCase();
+      const isAll = r.label.includes('全種目') || r.label.includes('全記録') ||
+        r.label.includes('新記録') || fname.startsWith('all') || fname.includes('newrec');
+      const on = r.label.includes('種目別結果') && !isAll;
       c.checked = on;
       if(on) n++;
     });
@@ -3124,9 +2653,21 @@ function renderAdmin(){
     const msg = document.getElementById('skMsg');
     const out2 = document.getElementById('skOut2');
     const kws = document.getElementById('skWho').value.trim();
-    const picked = [];
+    let picked = [];
     document.querySelectorAll('.skrace').forEach(c=>{ if(c.checked) picked.push(SK_RACES[Number(c.dataset.i)]); });
     if(picked.length===0){ msg.innerHTML = '<div class="errmsg">読み取る種目にチェックを入れてください。</div>'; return; }
+    // 全種目まとめ(巨大PDF)が混ざっていたら外して知らせる
+    const big = picked.filter(p=>{
+      const fn = (p.url.split('/').pop()||'').toLowerCase();
+      return p.label.includes('全種目') || fn.startsWith('all') || fn.includes('newrec');
+    });
+    if(big.length){
+      picked = picked.filter(p=>!big.includes(p));
+      if(picked.length===0){
+        msg.innerHTML = '<div class="errmsg">「全種目別結果」や「新記録一覧」は大きすぎてAIが読み取れません。かわりに「種目別結果」を選んでください。種目別結果だけ選ぶボタンが便利です。</div>';
+        return;
+      }
+    }
     SK_HITS = [];
     const errors = [];
     for(let i=0; i<picked.length; i++){

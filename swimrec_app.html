@@ -322,16 +322,16 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
     <button type="button" class="btn ghost big" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
       onclick="toggleOfficial()" style="width:100%; margin-bottom:12px">正式記録検索</button>
     <div id="officialLinks" hidden>
-      <a class="offbtn" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener" aria-label="セイコーリザルト速報">
+      <a class="offbtn" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener" onclick="return openOfficial(this)" aria-label="セイコーリザルト速報">
         <span class="officon" style="background:linear-gradient(135deg,#F5C518 0%,#F5C518 30%,#fff 30%,#fff 100%)">
           <svg viewBox="0 0 40 40" aria-hidden="true"><text x="20" y="26" font-size="11" font-weight="900" text-anchor="middle" fill="#111" font-family="Arial, sans-serif">SEIKO</text></svg></span></a>
-      <a class="offbtn" href="https://kizahashi.co.jp/JASF/PDF/index.php" target="_blank" rel="noopener" aria-label="競泳レース分析プロジェクト">
+      <a class="offbtn" href="https://kizahashi.co.jp/JASF/PDF/index.php" target="_blank" rel="noopener" onclick="return openOfficial(this)" aria-label="競泳レース分析プロジェクト">
         <span class="officon" style="background:#fff">
           <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="18" r="16" fill="#2CA6E0"/><path d="M4 26 q6 -3 12 0 t12 0 t12 0" stroke="#fff" stroke-width="2.5" fill="none"/><circle cx="26" cy="13" r="3.5" fill="#fff"/><path d="M11 20 l7 -3 6 3" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span></a>
-      <a class="offbtn" href="https://www.tdsystem.co.jp/" target="_blank" rel="noopener" aria-label="東洋電子システム">
+      <a class="offbtn" href="https://www.tdsystem.co.jp/" target="_blank" rel="noopener" onclick="return openOfficial(this)" aria-label="東洋電子システム">
         <span class="officon" style="background:#fff">
           <svg viewBox="0 0 40 40" aria-hidden="true"><text x="20" y="17" font-size="9" font-weight="900" text-anchor="middle" fill="#0D2B52" font-family="sans-serif">東洋</text><g stroke="#22B04B" stroke-width="2.4"><line x1="8" y1="27" x2="18" y2="27"/><line x1="22" y1="27" x2="32" y2="27"/><line x1="10" y1="31" x2="16" y2="31"/><line x1="24" y1="31" x2="30" y2="31"/></g></svg></span></a>
-      <a class="offbtn" href="https://dualmeet.swim-kansai.com/2026/information/index.html" target="_blank" rel="noopener" aria-label="関西中部対抗戦">
+      <a class="offbtn" href="https://dualmeet.swim-kansai.com/2026/information/index.html" target="_blank" rel="noopener" onclick="return openOfficial(this)" aria-label="関西中部対抗戦">
         <span class="officon" style="background:#fff">
           <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 24 a12 12 0 0 1 22 -6" stroke="#1565C0" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M32 16 a12 12 0 0 1 -22 6" stroke="#E8570F" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="26" cy="14" r="3" fill="#E8570F"/><circle cx="14" cy="26" r="3" fill="#1565C0"/></svg></span></a>
     </div>
@@ -371,9 +371,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.44';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.45';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '正式記録検索のボタンがロゴだけの四つ並びになり、見やすくなりました。';
+const APP_NEWS = '正式記録検索の公式サイトが、確実に別ウィンドウで開くようになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -693,6 +693,14 @@ window.toggleOfficial = function(){
   const open = box.hidden;
   box.hidden = !open;
   btn.setAttribute('aria-expanded', String(open));
+};
+
+// 正式記録検索: 公式サイトを確実に別ウィンドウで開く
+// target="_blank" が効かない環境でも、命令で新しいウィンドウを開く二重の仕組み
+window.openOfficial = function(link){
+  const w = window.open(link.href, '_blank', 'noopener');
+  if (w) return false;  // 開けたら、元のリンクの動きは止める
+  return true;          // 開けなかったときだけ、元のリンクの動きに任せる
 };
 
 function showMode(m){

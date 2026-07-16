@@ -76,7 +76,8 @@ header{ background:var(--white); padding:18px 24px 14px; }
 main{ max-width:1180px; margin:0 auto; padding:20px 24px 80px; }
 
 /* ---------- 閲覧のモード選択 ---------- */
-.modes{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:22px; }
+.modes{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+.modehead{ font-weight:800; font-size:1.02rem; margin:0 0 6px; color:var(--navy); }
 .mode{
   min-height:62px; font-size:1.08rem; font-weight:700;
   border:2.5px solid var(--line); border-radius:12px;
@@ -234,7 +235,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   main{ padding:14px 12px 60px; }
   .tabs{ padding:12px 12px 0; gap:8px; }
   .tab{ font-size:.95rem; min-height:56px; padding:4px 2px; }
-  .modes{ grid-template-columns:repeat(2,1fr); gap:8px; }
+  .modes{ grid-template-columns:repeat(3,1fr); gap:8px; }
   .mode{ min-height:56px; font-size:.98rem; }
   .card{ padding:14px; border-radius:12px; }
   .stack{ gap:8px; }
@@ -287,14 +288,18 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 
   <!-- ================= 閲覧画面 ================= -->
   <section id="paneView" role="tabpanel" aria-label="記録を見る" hidden>
-    <div class="modes" role="tablist" aria-label="閲覧のしかた">
-      <button class="mode" data-m="meet"  role="tab" onclick="showMode('meet')">試合で探す</button>
-      <button class="mode" data-m="name"  role="tab" onclick="showMode('name')">名前で探す</button>
-      <button class="mode" data-m="event" role="tab" onclick="showMode('event')">種目で探す</button>
+    <p class="modehead">探す</p>
+    <div class="modes" role="tablist" aria-label="探しかた">
+      <button class="mode" data-m="meet"  role="tab" aria-label="試合で探す" onclick="showMode('meet')">試合</button>
+      <button class="mode" data-m="name"  role="tab" aria-label="名前で探す" onclick="showMode('name')">名前</button>
+      <button class="mode" data-m="event" role="tab" aria-label="種目で探す" onclick="showMode('event')">種目</button>
+    </div>
+    <p class="modehead">記録</p>
+    <div class="modes" role="tablist" aria-label="記録の見かた">
       <button class="mode" data-m="rank"  role="tab" onclick="showMode('rank')">ランキング</button>
-      <button class="mode" data-m="best"  role="tab" onclick="showMode('best')">歴代記録</button>
-      <button class="mode" data-m="std"   role="tab" onclick="showMode('std')">標準記録</button>
-      <button class="mode" data-m="records" role="tab" onclick="showMode('records')">記録一覧</button>
+      <button class="mode" data-m="best"  role="tab" aria-label="歴代記録" onclick="showMode('best')">歴代</button>
+      <button class="mode" data-m="std"   role="tab" aria-label="標準記録" onclick="showMode('std')">標準</button>
+      <button class="mode" data-m="records" role="tab" aria-label="記録一覧" onclick="showMode('records')">一覧</button>
       <button class="mode" data-m="kentai" role="tab" onclick="showMode('kentai')">県大会</button>
       <button class="mode" data-m="graph" role="tab" onclick="showMode('graph')">グラフ</button>
     </div>
@@ -306,9 +311,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.15.21';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.22';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'セイコーの取り込みが、結果PDFをAIで読む方式になりました。';
+const APP_NEWS = 'ボタンが3つずつのすっきりした並びになり、試合で探すが見やすくなりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -1067,14 +1072,15 @@ function viewMeet(){
       const k = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
       (groups[k] = groups[k]||[]).push(r);
     });
-    let html = `<p class="hint">${rows.length}件の記録。ベスト更新には赤い丸のベの印がつきます。</p>`;
+    let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。</p>`;
     Object.keys(groups).forEach(k=>{
       const g = groups[k].sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
-      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue)">${esc(k)}</h3>
-        <div class="tablewrap"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th><th></th></tr>`;
+      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(k)}</h3>
+        <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
       g.forEach(r=>{
-        html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td><td class="num">${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td><td class="num">${esc(fmtTime(r.best))}</td>
-          <td>${r.pb? BEST_MARK :''}</td></tr>`;
+        html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
+          <td class="num nw">${esc(fmtTime(r.time))}${r.pb? BEST_MARK :''}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+          <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
     });

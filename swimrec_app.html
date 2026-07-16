@@ -311,9 +311,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.26';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.27';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'セイコーの取り込みに、種目別結果だけ選ぶボタンが付きました。';
+const APP_NEWS = 'AIが混みあったとき(429)は、自動で待ってやり直すようになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -2504,13 +2504,20 @@ function renderAdmin(){
     const errors = [];
     for(let i=0; i<picked.length; i++){
       msg.innerHTML = `<div class="loading">AIが読み取り中 ${i+1}/${picked.length}種目 (${Math.round((i+1)/picked.length*100)}%)… ${esc(picked[i].label)}</div>`;
-      let data;
-      try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ data = { error: '通信エラー' }; }
-      if(data.error){
-        // 一回だけ自動で読み直す
+      let data = null;
+      for(let t = 0; t < 3; t++){
         try{ data = await seikoPdfFetch(picked[i].url, kws); }catch(e){ data = { error: '通信エラー' }; }
+        if(!data.error) break;
+        if(t < 2){
+          // 429はAIの混みすぎの合図なので長めに、それ以外は短く待って自動でやり直す
+          const wait = String(data.error).includes('429') ? 30000 : 3000;
+          msg.innerHTML = `<div class="loading">混み合っているため${Math.round(wait/1000)}秒待って読み直します… (${esc(picked[i].label)})</div>`;
+          await new Promise(r=>setTimeout(r, wait));
+        }
       }
       if(data.error){ errors.push(picked[i].label + ': ' + data.error); continue; }
+      // AIの混みすぎを防ぐため、1枚ごとに少し息継ぎを入れる
+      if(i < picked.length - 1) await new Promise(r=>setTimeout(r, 4000));
       // 種目は行ごとにAIが付けてくる。付いていなければPDF全体の種目や、種目名の文字から補う
       const fallback = (data.stroke && data.dist)
         ? { sex:data.sex, dist:Number(data.dist), stroke:data.stroke, round:data.round||'' }

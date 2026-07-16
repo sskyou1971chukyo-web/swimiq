@@ -189,7 +189,7 @@ label.fld{ display:flex; flex-direction:column; gap:6px; font-weight:700; font-s
 
 /* ---------- 表 ---------- */
 table{ width:100%; border-collapse:collapse; background:var(--white); }
-th{ background:var(--blue); color:var(--white); font-size:.95rem; padding:10px 12px; text-align:left; position:sticky; top:0; }
+th{ background:var(--blue); color:var(--white); font-size:.95rem; padding:10px 12px; text-align:center; position:sticky; top:0; }
 td{ padding:10px 12px; border-bottom:1.5px solid var(--line); font-size:1.02rem; }
 tr.rank1 td{ background:#FFF6DA; font-weight:700; }
 tr.rank2 td{ background:#EEF3F8; font-weight:700; }
@@ -199,7 +199,7 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
 .medal.m1{ background:var(--gold); } .medal.m2{ background:var(--silver); } .medal.m3{ background:var(--bronze); }
 .pbtag{ color:var(--white); background:var(--red); border-radius:8px; padding:2px 8px; font-size:.85rem; font-weight:700; white-space:nowrap; }
 .nw{ white-space:nowrap; }
-.pbicon{ display:inline-block; vertical-align:middle; margin-left:4px; line-height:0; }
+.pbicon{ display:inline-block; vertical-align:middle; margin-right:6px; line-height:0; }
 .pick2{ display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:end; }
 .pick2 .fld{ min-width:0; }
 .pick2 .wide{ grid-column:1/-1; }
@@ -311,9 +311,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.22';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.24';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'ボタンが3つずつのすっきりした並びになり、試合で探すが見やすくなりました。';
+const APP_NEWS = '表の見出しが中央ぞろえになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -1079,7 +1079,7 @@ function viewMeet(){
         <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
       g.forEach(r=>{
         html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
-          <td class="num nw">${esc(fmtTime(r.time))}${r.pb? BEST_MARK :''}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
           <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
@@ -1162,11 +1162,11 @@ function viewName(autoName){
     });
     html += `</table></div></div>
       <div class="card"><h2>すべての出場記録 (新しい順)</h2>
-      <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th><th></th></tr>`;
+      <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th></tr>`;
     rows.forEach(r=>{
       html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(courseShort(r.meet.course))}</td>
-        <td class="nw">${evShort(r.dist, r.stroke)}</td><td class="num nw">${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
-        <td>${r.pb? BEST_MARK :''}</td></tr>`;
+        <td class="nw">${evShort(r.dist, r.stroke)}</td>
+        <td class="num nw">${r.pb? BEST_MARK :''}${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td></tr>`;
     });
     html += '</table></div></div>';
     out.innerHTML = html;
@@ -1543,14 +1543,13 @@ function viewEvent(){
     ).sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
     const out = document.getElementById('evOut');
     if(rows.length===0){ out.innerHTML='<p class="hint">この条件の記録はありません。</p>'; return; }
-    let html = `<p class="hint">${rows.length}件。速い記録が上です。タイムを押すと大会名が出ます。赤い丸のベの印はベスト更新です。</p>
-      <div class="tablewrap"><table><tr><th>名前</th><th>記録</th><th></th></tr>`;
+    let html = `<p class="hint">${rows.length}件。速い記録が上です。タイムを押すと大会名が出ます。記録の前の赤い丸のベの印はベスト更新です。</p>
+      <div class="tablewrap"><table><tr><th>名前</th><th>記録</th></tr>`;
     rows.forEach((r,ei)=>{
       html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
-        <td class="num nw"><button type="button" class="ktcell evtime" data-i="${ei}" aria-expanded="false"
-          aria-label="${esc(fmtTime(r.time))}。押すと大会名が出ます">${esc(fmtTime(r.time))}</button>${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
-        <td>${r.pb? BEST_MARK :''}</td></tr>
-      <tr class="ktdetail evdetail" data-i="${ei}" hidden><td colspan="3">大会: ${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(courseShort(r.meet.course))}</td></tr>`;
+        <td class="num nw">${r.pb? BEST_MARK :''}<button type="button" class="ktcell evtime" data-i="${ei}" aria-expanded="false"
+          aria-label="${esc(fmtTime(r.time))}。押すと大会名が出ます">${esc(fmtTime(r.time))}</button>${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td></tr>
+      <tr class="ktdetail evdetail" data-i="${ei}" hidden><td colspan="2">大会: ${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(courseShort(r.meet.course))}</td></tr>`;
     });
     out.innerHTML = html + '</table></div>';
     out.querySelectorAll('button.evtime').forEach(b=>{
@@ -2106,14 +2105,14 @@ function viewKentai(){
     rows.forEach((r,idx)=>{
       const grade = r[3] ? '('+esc(r[3])+')' : '';
       const time = r[6] ? esc(r[6]) : '-';
-      const best = r[8] ? ' ' + BEST_MARK : '';
+      const best = r[8] ? BEST_MARK : '';
       html += `<tr>
         <td><button type="button" class="ktcell" data-i="${idx}" data-k="meet" aria-expanded="false"
           aria-label="${esc(kentaiMeetLabel(r[1]))}。押すと日付と大会名が出ます">${esc(kentaiMeetLabel(r[1]))}</button></td>
         <td class="nw" style="font-weight:700">${esc(r[2])}${grade}</td>
         <td><button type="button" class="ktcell" data-i="${idx}" data-k="ev" aria-expanded="false"
           aria-label="${esc(kentaiEventJa(r[4]))}。押すとラウンドと順位が出ます">${esc(kentaiEventJa(r[4]))}</button></td>
-        <td class="num nw">${time}${best}</td></tr>
+        <td class="num nw">${best}${time}</td></tr>
       <tr class="ktdetail" data-i="${idx}" hidden><td colspan="4">
         <div class="ktd-meet" hidden>日付: ${esc(r[0])}　大会: ${esc(r[1])}</div>
         <div class="ktd-ev" hidden>ラウンド: ${esc(r[5]||'-')}　順位: ${esc(r[7]||'-')}　備考: ${esc(r[9]||'-')}</div>

@@ -319,6 +319,8 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
       <button class="mode" data-m="kentai" role="tab" onclick="showMode('kentai')">県大会</button>
       <button class="mode" data-m="graph" role="tab" onclick="showMode('graph')">グラフ</button>
     </div>
+    <button type="button" class="btn ghost" onclick="forceReloadData()"
+      style="width:100%; margin-bottom:12px">最新のデータに読み直す</button>
     <button type="button" class="btn ghost big" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
       onclick="toggleOfficial()" style="width:100%; margin-bottom:12px">正式記録検索</button>
     <div id="officialLinks" hidden>
@@ -371,9 +373,9 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.45';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.16.46';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '正式記録検索の公式サイトが、確実に別ウィンドウで開くようになりました。';
+const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 
 /* ============================================================
@@ -703,6 +705,13 @@ window.openOfficial = function(link){
   return true;          // 開けなかったときだけ、元のリンクの動きに任せる
 };
 
+// 覚えていた記録・大会・名簿のデータをすべて捨てて、サーバーから読み直す
+async function forceReloadData(){
+  localStorage.removeItem('cust_rec_cache');
+  localStorage.removeItem('cust_init_cache');
+  DATA = null; INIT = null;
+  showMode(currentMode);   // いま開いている画面を、読み直したデータで表示し直す
+}
 function showMode(m){
   currentMode = m;
   document.querySelectorAll('.mode').forEach(b=>{
@@ -2556,6 +2565,46 @@ function renderAdmin(){
       <div id="skOut" style="margin-top:10px"></div>
     </div>
 
+    <div class="card"><h2>大会結果の取り込み(Excel・CSVファイル)</h2>
+      <p class="hint">ExcelファイルやCSVファイルから記録をまとめて取り込みます。表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格などタイムのない行は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。</p>
+      <label class="fld">探す名前や所属(カンマ区切り。空なら全員)
+        <input type="text" id="xlWho" placeholder="例: 中京大 または 山本大地,石渡遥"></label>
+      <div class="pick2" style="margin-top:8px">
+        <label class="fld">大会名(登録に使う)<input type="text" id="xlMeet" placeholder="例: 日本選手権"></label>
+        <label class="fld">実施日<input type="date" id="xlDate"></label>
+        <label class="fld">年<input type="text" id="xlYear" inputmode="numeric"></label>
+        <label class="fld">月<input type="text" id="xlMonth" inputmode="numeric"></label>
+        <label class="fld">水路<select id="xlCourse"><option>長水路</option><option>短水路</option></select></label>
+      </div>
+      <label class="fld" style="margin-top:8px">ExcelまたはCSVのファイル
+        <input type="file" id="xlFile" accept=".csv,.xlsx,.xls" style="min-height:58px; padding:12px"></label>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn red solid big" onclick="adminXlsxRead()">ファイルを読み取る</button>
+      </div>
+      <div id="xlMsg" style="margin-top:10px" aria-live="polite"></div>
+      <div id="xlOut" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card"><h2>大会結果の取り込み(スクショ・写真)</h2>
+      <p class="hint">結果画面のスクショや、掲示された紙を撮った写真から記録を取り込みます。写真は自動で小さくしてから、1枚ずつAIが読みます。探す名前や所属を入れると、その選手だけを拾います。空のままなら全員拾います。</p>
+      <label class="fld">探す名前や所属(カンマ区切り。空なら全員)
+        <input type="text" id="shWho" placeholder="例: 中京大 または 濵田航太朗,三輪田理央"></label>
+      <div class="pick2" style="margin-top:8px">
+        <label class="fld">大会名(登録に使う)<input type="text" id="shMeet" placeholder="例: 愛知県選手権"></label>
+        <label class="fld">実施日<input type="date" id="shDate"></label>
+        <label class="fld">年<input type="text" id="shYear" inputmode="numeric"></label>
+        <label class="fld">月<input type="text" id="shMonth" inputmode="numeric"></label>
+        <label class="fld">水路<select id="shCourse"><option>長水路</option><option>短水路</option></select></label>
+      </div>
+      <label class="fld" style="margin-top:8px">スクショや写真(何枚でも)
+        <input type="file" id="shFiles" accept="image/*" multiple style="min-height:58px; padding:12px"></label>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn red solid big" onclick="adminShotRead()">写真をAIで読み取る</button>
+      </div>
+      <div id="shMsg" style="margin-top:10px" aria-live="polite"></div>
+      <div id="shOut" style="margin-top:10px"></div>
+    </div>
+
     <div class="card"><h2>記録の自動取得(Wikipedia)</h2>
       <p class="hint">世界記録・アジア記録・日本記録・学生記録の4種類を、Wikipediaから自動で取得して登録します。1種類ずつAIが読み取るので、全部で2〜3分かかります。記録が塗り替えられたころに、ときどき押し直してください。</p>
       <div class="stack">
@@ -2576,6 +2625,7 @@ function renderAdmin(){
   })();
   let SK_HITS = [];
   let SK_RACES = [];
+  let SH_HITS = [];
   // 種目別結果だけにチェックを入れる(スタートリストや全種目まとめは外す)
   window.skPickResults = function(){
     let n = 0;
@@ -2769,6 +2819,348 @@ function renderAdmin(){
       msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
     }
   };
+  // ---------- スクショ・写真からの取り込み ----------
+  // 写真を送る前に小さく縮めて、通信を軽くする(縮められないときは元のまま送る)
+  async function shrinkImage(file){
+    const dataUrl = await new Promise((ok, ng)=>{
+      const r = new FileReader();
+      r.onload = ()=>ok(String(r.result));
+      r.onerror = ()=>ng(new Error('画像が読めませんでした'));
+      r.readAsDataURL(file);
+    });
+    try{
+      const img = await new Promise((ok, ng)=>{
+        const im = new Image();
+        im.onload = ()=>ok(im);
+        im.onerror = ()=>ng(new Error('画像が開けませんでした'));
+        im.src = dataUrl;
+      });
+      const MAX = 1600;
+      let w = img.width, h = img.height;
+      if(Math.max(w, h) > MAX){
+        const s = MAX / Math.max(w, h);
+        w = Math.round(w * s); h = Math.round(h * s);
+      }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = cv.toDataURL('image/jpeg', 0.85);
+      return { b64: out.split(',')[1], mime: 'image/jpeg' };
+    }catch(e){
+      return { b64: dataUrl.split(',')[1], mime: file.type || 'image/png' };
+    }
+  }
+  window.adminShotRead = async function(){
+    const msg = document.getElementById('shMsg');
+    const out2 = document.getElementById('shOut');
+    const kws = document.getElementById('shWho').value.trim();
+    const files = Array.from(document.getElementById('shFiles').files || []);
+    if(files.length === 0){ msg.innerHTML = '<div class="errmsg">スクショや写真を選んでください。</div>'; return; }
+    SH_HITS = [];
+    out2.innerHTML = '';
+    const errors = [];
+    for(let i = 0; i < files.length; i++){
+      msg.innerHTML = `<div class="loading">AIが読み取り中 ${i+1}/${files.length}枚 (${Math.round((i+1)/files.length*100)}%)…</div>`;
+      let data = null;
+      let img = null;
+      try{ img = await shrinkImage(files[i]); }
+      catch(e){ errors.push((i+1)+'枚目: 画像が読めませんでした'); continue; }
+      for(let t = 0; t < 3; t++){
+        try{
+          data = await apiSave({ action:'importShot', password:ADMIN_PW,
+            who:kws, image:img.b64, mime:img.mime });
+        }catch(e){ data = { error: String(e.message || '通信エラー') }; }
+        if(!data.error) break;
+        if(t < 2){
+          // 429はAIの混みすぎの合図なので長めに、それ以外は短く待って自動でやり直す
+          const wait = String(data.error).includes('429') ? 30000 : 3000;
+          msg.innerHTML = `<div class="loading">混み合っているため${Math.round(wait/1000)}秒待って読み直します… (${i+1}枚目)</div>`;
+          await new Promise(r=>setTimeout(r, wait));
+        }
+      }
+      if(data.error){ errors.push((i+1)+'枚目: '+data.error); continue; }
+      // AIの混みすぎを防ぐため、1枚ごとに少し息継ぎを入れる
+      if(i < files.length - 1) await new Promise(r=>setTimeout(r, 3000));
+      // 画像から大会名が読めていて、大会名の欄が空なら、そっと入れておく(直せます)
+      if(data.meet && !document.getElementById('shMeet').value.trim()){
+        document.getElementById('shMeet').value = String(data.meet);
+      }
+      (data.rows||[]).forEach(r=>{
+        if(!r || !r.name || !r.time) return;
+        if(!r.stroke || !r.dist) return;
+        SH_HITS.push({
+          name: String(r.name).replace(/[\s\u3000]+/g,''),
+          team: String(r.team||''),
+          sex: r.sex||'', dist: Number(r.dist)||0, stroke: r.stroke||'',
+          round: r.round||'', time: fmtTime(String(r.time).trim())
+        });
+      });
+    }
+    // 同じ名前・種目・タイムの重複は1つにまとめる
+    const uniq = {};
+    SH_HITS = SH_HITS.filter(h=>{
+      const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
+      if(uniq[k]) return false; uniq[k] = 1; return true;
+    });
+    const errNote = errors.length? '<div class="errmsg">読めなかった写真: '+esc(errors.join(' / '))+'</div>' : '';
+    if(SH_HITS.length === 0){
+      msg.innerHTML = errNote + '<div class="errmsg">記録を読み取れませんでした。表がはっきり写るように撮り直すか、探す名前や所属の書き方を写真の書き方に合わせてみてください。</div>';
+      return;
+    }
+    msg.innerHTML = errNote + `<div class="okmsg">${SH_HITS.length}件見つかりました。名前を直せます。いらない行はチェックを外して、下のボタンで登録してください。</div>`;
+    let h = '<div class="tablewrap"><table><tr><th></th><th>名前</th><th>所属</th><th>種目</th><th>ラウンド</th><th>タイム</th></tr>';
+    SH_HITS.forEach((r,i)=>{
+      h += `<tr><td><input type="checkbox" class="shchk" data-i="${i}" checked style="width:26px;height:26px"></td>
+        <td><input type="text" class="shname" data-i="${i}" value="${esc(r.name)}" style="min-width:120px"></td>
+        <td class="nw">${esc(r.team)}</td>
+        <td class="nw">${esc(r.sex)} ${evShort(r.dist, r.stroke)}</td>
+        <td class="nw">${esc(r.round||'-')}</td>
+        <td class="num nw">${esc(r.time)}</td></tr>`;
+    });
+    out2.innerHTML = h + '</table></div>' +
+      '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminShotSave()">選んだ記録を登録する</button></div>';
+  };
+  window.adminShotSave = async function(){
+    const msg = document.getElementById('shMsg');
+    const meet = document.getElementById('shMeet').value.trim();
+    const date = document.getElementById('shDate').value;
+    const year = Number(document.getElementById('shYear').value);
+    const month = Number(document.getElementById('shMonth').value);
+    const course = document.getElementById('shCourse').value;
+    if(!meet){ msg.innerHTML = '<div class="errmsg">大会名を入れてください。</div>'; return; }
+    // チェックの入った行だけ集める(名前は直した内容を使う)
+    const rows = [];
+    document.querySelectorAll('.shchk').forEach(c=>{
+      if(!c.checked) return;
+      const i = Number(c.dataset.i);
+      const name = document.querySelector(`.shname[data-i="${i}"]`).value.trim();
+      if(!name) return;
+      rows.push({ name, event: SH_HITS[i].dist + SH_HITS[i].stroke, time: SH_HITS[i].time });
+    });
+    if(rows.length===0){ msg.innerHTML = '<div class="errmsg">登録する行がありません。</div>'; return; }
+    if(!confirm(rows.length+'件を '+meet+' ('+course+') として登録します。よろしいですか。')) return;
+    try{
+      msg.innerHTML = '<div class="loading">登録しています…</div>';
+      // 大会がまだ登録されていなければ、先に登録する
+      const exists = (INIT.meets||[]).some(m=>m.meet===meet && m.year===year && m.month===month && (m.course||'')===course);
+      if(!exists) await apiSave({ action:'addMeet', password:ADMIN_PW, meet, year, month, course });
+      await apiSave({ action:'saveBatch', meet, course, date, records: rows });
+      localStorage.removeItem('cust_rec_cache');
+      msg.innerHTML = `<div class="okmsg">${rows.length}件を登録しました。閲覧画面の試合で探すから確認できます。</div>`;
+      document.getElementById('shOut').innerHTML = '';
+      document.getElementById('shFiles').value = '';
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
+    }
+  };
+  // ---------- Excel・CSVファイルからの取り込み ----------
+  (function(){ const t = new Date();
+    document.getElementById('xlDate').value = t.toISOString().slice(0,10);
+    document.getElementById('xlYear').value = t.getFullYear();
+    document.getElementById('xlMonth').value = t.getMonth()+1;
+  })();
+  // 実施日を選んだら、年と月の欄も自動でその日付に合わせる(登録する年月のズレを防ぐ)
+  [['xlDate','xlYear','xlMonth'], ['skDate','skYear','skMonth'], ['shDate','shYear','shMonth']].forEach(ids=>{
+    const el = document.getElementById(ids[0]);
+    if(!el) return;
+    el.addEventListener('change', ()=>{
+      if(!el.value) return;
+      const dt = new Date(el.value);
+      if(isNaN(dt)) return;
+      document.getElementById(ids[1]).value = dt.getFullYear();
+      document.getElementById(ids[2]).value = dt.getMonth()+1;
+    });
+  });
+  let XL_HITS = [];
+  // Excelを読むための部品(SheetJS)を、必要になったときだけ読み込む
+  function loadSheetJS(){
+    return new Promise((ok, ng)=>{
+      if(window.XLSX) return ok();
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = ()=>ok();
+      s.onerror = ()=>ng(new Error('Excel読み取り部品が読み込めませんでした。通信を確認してください。'));
+      document.head.appendChild(s);
+    });
+  }
+  // CSVの文字列を表(2次元の配列)にする。"で囲まれた値やカンマ入りの値にも対応
+  function parseCSV(text){
+    const rows = []; let row = []; let cur = ''; let inQ = false;
+    for(let i=0; i<text.length; i++){
+      const ch = text[i];
+      if(inQ){
+        if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else inQ = false; }
+        else cur += ch;
+      } else {
+        if(ch==='"') inQ = true;
+        else if(ch===','){ row.push(cur); cur=''; }
+        else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+        else if(ch!=='\r') cur += ch;
+      }
+    }
+    if(cur!=='' || row.length){ row.push(cur); rows.push(row); }
+    return rows;
+  }
+  // 種目の文字(例: 400m 自由形 / 男子100m平泳ぎ / 200IM)を 距離+泳法コード に直す
+  function parseEventText(txt){
+    if(!txt) return null;
+    const s = String(txt).replace(/[\s\u3000]/g,'');
+    const dm = s.match(/(\d{2,4})m?/);
+    if(!dm) return null;
+    const dist = Number(dm[1]);
+    let stroke = '';
+    for(const st of STROKES){
+      if(st.ja && s.includes(st.ja)){ stroke = st.code; break; }
+    }
+    if(!stroke){
+      if(/自由|ﾌﾘｰ|フリー|FR/i.test(s)) stroke = 'Fr';
+      else if(/背|ﾊﾞｯｸ|バック|BA/i.test(s)) stroke = 'Ba';
+      else if(/平|ﾌﾞﾚ|ブレ|BR/i.test(s)) stroke = 'Br';
+      else if(/バタ|ﾊﾞﾀ|FLY|FL/i.test(s)) stroke = 'Fly';
+      else if(/メドレー|ﾒﾄﾞﾚｰ|個メ|IM/i.test(s)) stroke = 'IM';
+    }
+    if(!stroke) return null;
+    let sex = '';
+    if(/女/.test(String(txt))) sex = '女'; else if(/男/.test(String(txt))) sex = '男';
+    return { dist, stroke, sex };
+  }
+  // 見出しの行から、目当ての列が何番目かを探す(まず完全一致、なければ部分一致)
+  function findCol(header, exacts, parts){
+    let idx = header.findIndex(h=>exacts.includes(h));
+    if(idx<0 && parts) idx = header.findIndex(h=>parts.some(p=>h.includes(p)));
+    return idx;
+  }
+  // 1枚のシート(表)から記録の行を拾い出す
+  function harvestGrid(grid, sheetName, kws){
+    for(let hi=0; hi<Math.min(grid.length,10); hi++){
+      const header = (grid[hi]||[]).map(c=>String(c==null?'':c).trim());
+      const cName = findCol(header, ['氏名','名前','選手名','name','Name'], ['氏名','名前']);
+      const cTime = findCol(header, ['記録','タイム','time','Time'], ['記録','タイム']);
+      if(cName<0 || cTime<0) continue;
+      const cEvent = findCol(header, ['種目','event','Event'], ['種目']);
+      const cSex   = findCol(header, ['性別','男女','sex','Sex'], ['性別']);
+      const cRound = findCol(header, ['ラウンド','round','Round'], ['ラウンド']);
+      const cTeam  = findCol(header, ['所属','チーム','team','Team'], ['所属']);
+      const hits = []; let skipped = 0;
+      for(let r=hi+1; r<grid.length; r++){
+        const row = grid[r]||[];
+        const name = String(row[cName]==null?'':row[cName]).replace(/[\s\u3000]+/g,'');
+        if(!name || name===header[cName]) continue;
+        const rawTime = String(row[cTime]==null?'':row[cTime]).trim();
+        const time = fmtTime(rawTime);
+        if(toSec(time)==null){ if(rawTime) skipped++; continue; }   // 棄権・失格・空欄は飛ばす
+        let ev = cEvent>=0 ? parseEventText(row[cEvent]) : null;
+        if(!ev) ev = parseEventText(sheetName);
+        if(!ev){ skipped++; continue; }
+        let sex = cSex>=0 ? String(row[cSex]||'') : '';
+        sex = /女/.test(sex) ? '女' : /男/.test(sex) ? '男' : (ev.sex||'');
+        const team = cTeam>=0 ? String(row[cTeam]||'') : '';
+        if(kws.length && !kws.some(k=>(name+team).includes(k))) continue;
+        hits.push({ name, team, sex, dist:ev.dist, stroke:ev.stroke,
+          round: cRound>=0 ? String(row[cRound]||'') : '', time });
+      }
+      return { hits, skipped };
+    }
+    return null;
+  }
+  window.adminXlsxRead = async function(){
+    const msg = document.getElementById('xlMsg');
+    const out = document.getElementById('xlOut');
+    out.innerHTML = ''; XL_HITS = [];
+    const f = (document.getElementById('xlFile').files||[])[0];
+    if(!f){ msg.innerHTML = '<div class="errmsg">ファイルを選んでください。</div>'; return; }
+    const kws = document.getElementById('xlWho').value.split(/[,、，]/).map(s=>s.replace(/[\s\u3000]+/g,'')).filter(Boolean);
+    msg.innerHTML = '<div class="loading">ファイルを読んでいます…</div>';
+    const grids = [];   // シートごとの表 { name, grid }
+    try{
+      const buf = await f.arrayBuffer();
+      if(/\.csv$/i.test(f.name)){
+        // 文字コードを自動で見分ける(UTF-8で文字化けしたらShift_JISで読み直す)
+        let text = new TextDecoder('utf-8').decode(buf);
+        if(text.includes('\uFFFD')){ try{ text = new TextDecoder('shift_jis').decode(buf); }catch(e){} }
+        if(text.charCodeAt(0)===0xFEFF) text = text.slice(1);
+        grids.push({ name:f.name, grid: parseCSV(text) });
+      } else {
+        await loadSheetJS();
+        const wb = XLSX.read(buf, { type:'array' });
+        wb.SheetNames.forEach(nm=>{
+          grids.push({ name:nm, grid: XLSX.utils.sheet_to_json(wb.Sheets[nm], { header:1, raw:false, defval:'' }) });
+        });
+      }
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">読めませんでした: '+esc(err.message)+'</div>'; return;
+    }
+    let skipped = 0; let readSheets = 0;
+    grids.forEach(g=>{
+      const res = harvestGrid(g.grid, g.name, kws);
+      if(!res) return;
+      readSheets++;
+      XL_HITS = XL_HITS.concat(res.hits);
+      skipped += res.skipped;
+    });
+    if(readSheets===0){
+      msg.innerHTML = '<div class="errmsg">表の見出しが見つかりませんでした。1行目に「氏名」と「記録」(またはタイム)の列名があるか確認してください。</div>'; return;
+    }
+    // 同じ名前・種目・タイムの重複は1つにまとめる(まとめシートとの二重読みを防ぐ)
+    const uniq = {};
+    XL_HITS = XL_HITS.filter(h=>{
+      const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
+      if(uniq[k]) return false; uniq[k] = 1; return true;
+    });
+    if(XL_HITS.length===0){
+      msg.innerHTML = '<div class="errmsg">取り込める記録が見つかりませんでした。探す名前や所属の書き方を、ファイルの書き方に合わせてみてください。</div>'; return;
+    }
+    const note = skipped ? `(棄権・失格などタイムのない${skipped}行は飛ばしました)` : '';
+    msg.innerHTML = `<div class="okmsg">${XL_HITS.length}件見つかりました${note}。名前を直せます。いらない行はチェックを外して、下のボタンで登録してください。</div>`;
+    let h = '<div class="tablewrap"><table><tr><th></th><th>名前</th><th>所属</th><th>種目</th><th>ラウンド</th><th>タイム</th></tr>';
+    XL_HITS.forEach((r,i)=>{
+      h += `<tr><td><input type="checkbox" class="xlchk" data-i="${i}" checked style="width:26px;height:26px"></td>
+        <td><input type="text" class="xlname" data-i="${i}" value="${esc(r.name)}" style="min-width:120px"></td>
+        <td class="nw">${esc(r.team)}</td>
+        <td class="nw">${esc(r.sex)} ${evShort(r.dist, r.stroke)}</td>
+        <td class="nw">${esc(r.round||'-')}</td>
+        <td class="num nw">${esc(r.time)}</td></tr>`;
+    });
+    out.innerHTML = h + '</table></div>' +
+      '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminXlsxSave()">選んだ記録を登録する</button></div>';
+  };
+  window.adminXlsxSave = async function(){
+    const msg = document.getElementById('xlMsg');
+    const meet = document.getElementById('xlMeet').value.trim();
+    const date = document.getElementById('xlDate').value;
+    const year = Number(document.getElementById('xlYear').value);
+    const month = Number(document.getElementById('xlMonth').value);
+    const course = document.getElementById('xlCourse').value;
+    if(!meet){ msg.innerHTML = '<div class="errmsg">大会名を入れてください。</div>'; return; }
+    // チェックの入った行だけ集める(名前は直した内容を使う)
+    const rows = [];
+    document.querySelectorAll('.xlchk').forEach(c=>{
+      if(!c.checked) return;
+      const i = Number(c.dataset.i);
+      const name = document.querySelector(`.xlname[data-i="${i}"]`).value.trim();
+      if(!name) return;
+      rows.push({ name, event: XL_HITS[i].dist + XL_HITS[i].stroke, time: XL_HITS[i].time });
+    });
+    if(rows.length===0){ msg.innerHTML = '<div class="errmsg">登録する行がありません。</div>'; return; }
+    if(!confirm(rows.length+'件を '+meet+' ('+course+') として登録します。よろしいですか。')) return;
+    try{
+      msg.innerHTML = '<div class="loading">登録しています…</div>';
+      // 大会がまだ登録されていなければ、先に登録する
+      const exists = (INIT.meets||[]).some(m=>m.meet===meet && m.year===year && m.month===month && (m.course||'')===course);
+      if(!exists) await apiSave({ action:'addMeet', password:ADMIN_PW, meet, year, month, course });
+      await apiSave({ action:'saveBatch', meet, course, date, records: rows });
+      localStorage.removeItem('cust_rec_cache');
+      // 手元に覚えていた記録と大会一覧を捨てて、その場で読み直す(閲覧画面にすぐ反映させるため)
+      msg.innerHTML = '<div class="loading">登録が終わりました。画面に反映しています…</div>';
+      DATA = null; INIT = null;
+      try{ await Promise.all([loadInit(), loadRecords(true)]); }catch(e){}
+      msg.innerHTML = `<div class="okmsg">${rows.length}件を登録しました。閲覧画面の試合で探すから確認できます。</div>`;
+      document.getElementById('xlOut').innerHTML = '';
+      document.getElementById('xlFile').value = '';
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
+    }
+  };
   // 歴代記録の打ち込み(閲覧画面から設定画面へ移動したもの)
   let agCur = null;
   eventPicker(document.getElementById('agPick'), st=>{ agCur = st; }, true);
@@ -2824,6 +3216,10 @@ async function adminAddMeet(){
     await apiSave({ action:'addMeet', password:ADMIN_PW, meet, year, month, course });
     INIT.meets.unshift({ sheet:'', meet, year, month, course, ref:false, reg:true });
     INIT.meets.sort((a,b)=>(b.year*100+b.month)-(a.year*100+a.month));
+    // 覚えていた記録データを捨てて読み直す(閲覧画面の大会一覧にすぐ反映させるため)
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
     document.getElementById('amName').value='';
     msg.innerHTML = `<div class="okmsg">登録しました。${esc(meet)}</div>`;
     adminDrawMeets();
@@ -2836,6 +3232,10 @@ async function adminDeleteMeet(meet, course){
   try{
     await apiSave({ action:'deleteMeet', password:ADMIN_PW, meet, course });
     INIT.meets = INIT.meets.filter(m=>!(m.reg && m.meet===meet && m.course===course));
+    // 覚えていた記録データを捨てて読み直す(閲覧画面の大会一覧にすぐ反映させるため)
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
     msg.innerHTML = `<div class="okmsg">削除しました。${esc(meet)}</div>`;
     adminDrawMeets();
   }catch(err){ msg.innerHTML = '<div class="errmsg">削除できませんでした: '+esc(err.message)+'</div>'; }

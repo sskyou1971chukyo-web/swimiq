@@ -307,6 +307,8 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
     <p class="modehead">探す</p>
     <div class="modes" role="tablist" aria-label="探しかた">
       <button class="mode" data-m="meet"  role="tab" aria-label="試合で探す" onclick="showMode('meet')">試合</button>
+      <button class="mode" data-m="national" role="tab" aria-label="全国大会で探す" onclick="showMode('national')">全国大会</button>
+      <button class="mode" data-m="fy" role="tab" aria-label="年度で探す" onclick="showMode('fy')">年度</button>
       <button class="mode" data-m="name"  role="tab" aria-label="名前で探す" onclick="showMode('name')">名前</button>
       <button class="mode" data-m="event" role="tab" aria-label="種目で探す" onclick="showMode('event')">種目</button>
     </div>
@@ -377,6 +379,8 @@ const APP_VERSION = '2026.07.16.46';  // アプリを更新するたびにこの
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
+// 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
 
 /* ============================================================
    アプリ全体で使うデータ
@@ -584,10 +588,50 @@ async function loadRecords(force){
 // 記録の配列を、あつかいやすい形にひらく
 function rec(r){
   const mt = DATA.meets[r[0]];
+  // r[8]はラウンド、r[9]は通過タイム(「30.23 / 1:02.72 / …」の形)
+  const spRaw = String(r[9] || '').trim();
   return { meet:mt, name:r[1], sex:r[2], stroke:r[3], dist:r[4],
-           time:r[5], best:r[6], pb:r[7]===1,
+           time:r[5], best:r[6], pb:r[7]===1, round:r[8]||'',
+           splits: spRaw ? spRaw.split('/').map(s=>s.trim()).filter(s=>s) : [],
            sec:toSec(r[5]), stamp:mt.year*100+mt.month };
 }
+
+/* タイムを押すとラップが開く仕組み。
+   ラップのある記録は、タイムのうしろに小さな印をつけて押せるようにする。 */
+let LAP_SEQ = 0;
+const LAP_STORE = {};
+function lapCell(r){
+  const html = esc(fmtTime(r.time));
+  if(!r.splits || r.splits.length < 1) return html;
+  const id = 'lap' + (++LAP_SEQ);
+  LAP_STORE[id] = { splits: r.splits, time: r.time, dist: r.dist, name: r.name };
+  return `<span class="lapbtn" onclick="toggleLap('${id}', this)" style="cursor:pointer; border-bottom:2px dotted var(--blue)">${html}</span>` +
+    `<span style="color:var(--blue); font-size:0.8em"> ▾</span>`;
+}
+window.toggleLap = function(id, el){
+  const tr = el.closest('tr');
+  const next = tr.nextElementSibling;
+  if(next && next.classList.contains('laprow')){ next.remove(); return; }
+  const d = LAP_STORE[id];
+  if(!d) return;
+  const cols = tr.children.length;
+  // 通過タイムと、その差(ラップ)を並べる
+  const step = d.dist && d.splits.length ? Math.round(d.dist / (d.splits.length + 1)) : 50;
+  let h = '<table style="width:100%; font-size:0.9em"><tr><th>距離</th><th>通過</th><th>ラップ</th></tr>';
+  const all = d.splits.concat([d.time]);
+  for(let i=0; i<all.length; i++){
+    const a = toSec(all[i]), b = i===0 ? 0 : toSec(all[i-1]);
+    const lap = (a!=null && b!=null) ? (a-b).toFixed(2) : '';
+    h += `<tr><td class="nw">${step*(i+1)}m</td><td class="num nw">${esc(fmtTime(all[i]))}</td>
+      <td class="num nw" style="color:var(--blue)">${esc(lap)}</td></tr>`;
+  }
+  h += '</table>';
+  const row = document.createElement('tr');
+  row.className = 'laprow';
+  row.innerHTML = `<td colspan="${cols}" style="background:var(--blue-pale); padding:8px">
+    <div style="font-weight:700; margin-bottom:4px">${esc(d.name)}　${esc(fmtTime(d.time))} のラップ</div>${h}</td>`;
+  tr.insertAdjacentElement('afterend', row);
+};
 
 /* ============================================================
    画面の切りかえ
@@ -723,6 +767,8 @@ function showMode(m){
   if(m==='kentai'){ viewKentai(); return; }
   Promise.all([loadInit(), loadRecords()]).then(()=>{
     if(m==='meet') viewMeet();
+    if(m==='national') viewNationalTab();
+    if(m==='fy') viewFyTab();
     if(m==='name') viewName();
     if(m==='event') viewEvent();
     if(m==='rank') viewRank();
@@ -1180,12 +1226,251 @@ async function saveBatchGo(){
 /* ============================================================
    閲覧 1: 試合で探す
 ============================================================ */
+/* ============================================================
+   年度で探す
+   4月〜翌年3月をひとつの年度として、その年度の試合をまとめて選べる。
+   1〜3月の大会は前の年度あつかい(例: 2026年3月 → 2025年度)。
+============================================================ */
+function viewFyTab(){
+  const body = document.getElementById('viewBody');
+  const fyOf = m => (m.month>=4 ? m.year : m.year-1);
+  const fys = [...new Set(DATA.meets.filter(m=>m.year>0 && m.month>0).map(fyOf))].sort((a,b)=>b-a);
+  body.innerHTML = `
+    <div class="card">
+      <h2>年度で探す</h2>
+      <p class="hint">年度を選ぶと、その年度(4月〜翌年3月)の試合が新しい順に並びます。</p>
+      <div class="pick2">
+        <label class="fld">年度<select id="vfFy"></select></label>
+        <label class="fld wide">試合名<select id="vfName"></select></label>
+      </div>
+      <div id="vfOut" style="margin-top:16px"></div>
+    </div>`;
+  const fySel = document.getElementById('vfFy');
+  const nSel = document.getElementById('vfName');
+  if(fys.length===0){
+    fySel.innerHTML = '<option value="">まだ試合がありません</option>';
+    return;
+  }
+  fySel.innerHTML = '';
+  fys.forEach(fy=>{
+    const o = document.createElement('option');
+    o.value = fy; o.textContent = fy + '年度';
+    fySel.appendChild(o);
+  });
+  function fillNames(){
+    const fy = Number(fySel.value);
+    const hits = DATA.meets
+      .map((m,i)=>({m,i}))
+      .filter(x=>x.m.year>0 && x.m.month>0 && fyOf(x.m)===fy)
+      .sort((a,b)=>(b.m.year*100+b.m.month)-(a.m.year*100+a.m.month));
+    nSel.innerHTML = '';
+    hits.forEach(x=>{
+      const o = document.createElement('option');
+      o.value = x.i;
+      o.textContent = `${x.m.year}年${x.m.month}月 ${x.m.meet} ${x.m.course||''}${x.m.ref?'(参考)':''}`;
+      nSel.appendChild(o);
+    });
+    if(hits.length===0){
+      nSel.innerHTML = '<option value="">この年度の試合はありません</option>';
+      document.getElementById('vfOut').innerHTML = '';
+      return;
+    }
+    draw();
+  }
+  function draw(){
+    if(nSel.value==='') return;
+    const idx = Number(nSel.value);
+    const rows = DATA.records.map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
+    const out = document.getElementById('vfOut');
+    if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
+    const groups = {};
+    rows.forEach(r=>{
+      const k = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
+      (groups[k] = groups[k]||[]).push(r);
+    });
+    let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。</p>`;
+    Object.keys(groups).forEach(k=>{
+      const g = groups[k].sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
+      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(k)}</h3>
+        <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
+      g.forEach(r=>{
+        html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+          <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
+      });
+      html += '</table></div>';
+    });
+    out.innerHTML = html;
+  }
+  fySel.onchange = fillNames;
+  nSel.onchange = draw;
+  fillNames();   // いちばん新しい年度を自動で表示する
+}
+
+/* ============================================================
+   リレーの記録の読み出しと表示
+============================================================ */
+let RELAYS = null;
+async function loadRelays(force){
+  if(RELAYS && !force) return RELAYS;
+  try{
+    const c = JSON.parse(localStorage.getItem('cust_relay_cache')||'null');
+    if(!force && c && Date.now()-c.t < 10*60*1000){ RELAYS = c.relays; return RELAYS; }
+  }catch(e){}
+  try{
+    const j = await apiGet('relays');
+    RELAYS = (j && j.relays) ? j.relays : [];
+    localStorage.setItem('cust_relay_cache', JSON.stringify({ t: Date.now(), relays: RELAYS }));
+  }catch(e){ RELAYS = RELAYS || []; }   // GAS側が未対応でも個人記録の表示は普通に動く
+  return RELAYS;
+}
+// 試合の結果のいちばん下に、その大会のリレーを付け足す
+async function appendRelays(mt, outId, stamp){
+  await loadRelays();
+  const out = document.getElementById(outId);
+  if(!out || out.dataset.stamp !== stamp) return;   // 表示中の大会が切りかわっていたらやめる
+  const list = (RELAYS||[]).filter(r=>
+    String(r.meet)===mt.meet && Number(r.year)===mt.year && Number(r.month)===mt.month &&
+    String(r.course||'')===String(mt.course||''));
+  if(list.length===0) return;
+  // 種目・ラウンドごとにまとめる
+  const groups = {};
+  list.forEach(r=>{
+    const k = (r.sex||'') + ' ' + (r.event||'') + (r.round ? '・'+r.round : '');
+    (groups[k] = groups[k]||[]).push(r);
+  });
+  let html = '<h3 style="margin:22px 0 6px; font-size:1.15rem; color:var(--red); text-align:center">リレー</h3>';
+  Object.keys(groups).forEach(k=>{
+    const g = groups[k].sort((a,b)=>(toSec(a.time)??9e9)-(toSec(b.time)??9e9));
+    html += `<h3 style="margin:14px 0 6px; font-size:1.05rem; color:var(--blue); text-align:center">${esc(k)}</h3>`;
+    g.forEach(r=>{
+      /* 通過タイムの列を作る。splits(通過タイムの全部)がある記録は
+         50m・100m…と並べ、ラップも出す。まだ通過タイムが入っていない
+         古い記録は、これまでどおり「50m通過」と「タイム」だけを出す。 */
+      const legDist = Number(r.legDist) || 0;
+      const nSplit = Math.max.apply(null, (r.legs||[]).map(l=>(l.splits||[]).length).concat([0]));
+      const hasSplits = nSplit >= 2;
+      const heads = [];
+      if(hasSplits){
+        for(let i=1; i<=nSplit; i++) heads.push((legDist ? Math.round((legDist/nSplit)*i) : 50*i) + 'm');
+      }
+      html += `<div style="margin:8px 0 14px">
+        <div style="font-weight:700; font-size:1.05rem">${r.rank ? esc(r.rank)+'位 ' : ''}${esc(r.team)}　<span class="num">${esc(r.time)}</span></div>
+        <div class="tablewrap"><table><tr><th>泳順</th><th>名前</th><th>学年</th>` +
+        (hasSplits
+          ? heads.map(h=>`<th class="nw">${esc(h)}</th>`).join('') + '<th class="nw">ラップ</th>'
+          : '<th class="nw">50m通過</th><th class="nw">タイム</th>') + `</tr>`;
+      (r.legs||[]).forEach((l,i)=>{
+        html += `<tr><td class="nw">${i+1}泳${i===0?'(正式記録)':''}</td>
+          <td class="nw" style="font-weight:700">${esc(l.name||'')}</td>
+          <td class="nw">${esc(l.grade||'')}</td>`;
+        if(hasSplits){
+          const sp = l.splits || [];
+          const laps = [];
+          for(let j=0; j<sp.length; j++){
+            const a = toSec(sp[j]), b = j===0 ? 0 : toSec(sp[j-1]);
+            laps.push((a!=null && b!=null) ? (a-b).toFixed(2) : '');
+          }
+          for(let j=0; j<nSplit; j++) html += `<td class="num nw">${esc(sp[j]||'-')}</td>`;
+          html += `<td class="num nw" style="color:var(--blue)">${esc(laps.filter(v=>v).join(' / '))}</td>`;
+        } else {
+          html += `<td class="num nw">${esc(l.pass||'-')}</td><td class="num nw">${esc(l.leg||'')}</td>`;
+        }
+        html += '</tr>';
+      });
+      html += '</table></div></div>';
+    });
+  });
+  out.insertAdjacentHTML('beforeend', html);
+}
+
+/* ============================================================
+   全国大会の印
+   どの大会が全国大会かは、設定画面の「全国大会の登録」でチェックを付ける。
+   サーバー(GAS)に保存できればみんなに共有され、
+   できないあいだはこの端末(localStorage)にだけ覚えておく。
+============================================================ */
+let NATIONALS = null;   // 全国大会にした大会名の一覧
+async function loadNationals(){
+  if(NATIONALS) return NATIONALS;
+  try{
+    const json = await apiGet('nationals');            // まずサーバーから
+    if(json && Array.isArray(json.meets)){
+      NATIONALS = json.meets.map(s=>String(s).trim());
+      localStorage.setItem('cust_nationals', JSON.stringify(NATIONALS));
+      return NATIONALS;
+    }
+  }catch(e){ /* サーバー側が未対応でもこの端末の覚え書きで動く */ }
+  try{ NATIONALS = JSON.parse(localStorage.getItem('cust_nationals')||'[]'); }
+  catch(e){ NATIONALS = []; }
+  return NATIONALS;
+}
+
+async function viewNationalTab(){
+  const body = document.getElementById('viewBody');
+  await loadNationals();
+  const marked = new Set((NATIONALS||[]).map(s=>String(s).trim()));
+  const list = DATA.meets.map((m,i)=>({m,i}))
+    .filter(x=>marked.has(String(x.m.meet).trim()))
+    .sort((a,b)=>(b.m.year*100+b.m.month)-(a.m.year*100+a.m.month));
+  body.innerHTML = `
+    <div class="card">
+      <h2>全国大会で探す</h2>
+      <p class="hint">全国大会の印がついた大会だけが並びます。印は設定画面の「全国大会の登録」で付けられます。</p>
+      <div class="pick2">
+        <label class="fld wide">大会名<select id="vnName"></select></label>
+      </div>
+      <div id="vnOut" style="margin-top:16px"></div>
+    </div>`;
+  const nSel = document.getElementById('vnName');
+  if(list.length===0){
+    nSel.innerHTML = '<option value="">まだ全国大会の印がついた大会がありません</option>';
+    document.getElementById('vnOut').innerHTML =
+      '<p class="hint">設定画面の「全国大会の登録」で、大会にチェックを付けて保存してください。</p>';
+    return;
+  }
+  nSel.innerHTML = '';
+  list.forEach(x=>{
+    const o = document.createElement('option');
+    o.value = x.i;
+    o.textContent = `${x.m.year||'?'}年${x.m.month||'?'}月 ${x.m.meet} ${x.m.course||''}${x.m.ref?'(参考)':''}`;
+    nSel.appendChild(o);
+  });
+  function draw(){
+    if(nSel.value==='') return;
+    const idx = Number(nSel.value);
+    const rows = DATA.records.map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
+    const out = document.getElementById('vnOut');
+    if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
+    const groups = {};
+    rows.forEach(r=>{
+      const k = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
+      (groups[k] = groups[k]||[]).push(r);
+    });
+    let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。</p>`;
+    Object.keys(groups).forEach(k=>{
+      const g = groups[k].sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
+      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(k)}</h3>
+        <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
+      g.forEach(r=>{
+        html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+          <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
+      });
+      html += '</table></div>';
+    });
+    out.innerHTML = html;
+  }
+  nSel.onchange = draw;
+  draw();   // いちばん新しい全国大会を自動で表示する
+}
+
 function viewMeet(){
   const body = document.getElementById('viewBody');
   body.innerHTML = `
     <div class="card">
       <h2>試合で探す</h2>
-      <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。</p>
+      <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。年度(4月〜翌年3月)でまとめて探すときは、上の「年度」のタブを使ってください。</p>
       <div class="pick2">
         <label class="fld">年<select id="vmYear"></select></label>
         <label class="fld">月<select id="vmMonth"></select></label>
@@ -1258,12 +1543,16 @@ function viewMeet(){
         <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
       g.forEach(r=>{
         html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
-          <td class="num nw">${r.pb? BEST_MARK :''}${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td>
           <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
     });
     out.innerHTML = html;
+    // リレーがあれば、いちばん下に付け足す(表示が切りかわっていないか印で確かめる)
+    const stamp = String(idx) + '_' + Date.now();
+    out.dataset.stamp = stamp;
+    appendRelays(DATA.meets[idx], 'meetOut', stamp);
   }
   ySel.onchange = ()=>{ fillMonths(); fillNames(); };
   mSel.onchange = fillNames;
@@ -1345,7 +1634,7 @@ function viewName(autoName){
     rows.forEach(r=>{
       html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${esc(courseShort(r.meet.course))}</td>
         <td class="nw">${evShort(r.dist, r.stroke)}</td>
-        <td class="num nw">${r.pb? BEST_MARK :''}${esc(fmtTime(r.time))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td></tr>`;
+        <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course)}</td></tr>`;
     });
     html += '</table></div></div>';
     out.innerHTML = html;
@@ -2472,7 +2761,7 @@ function renderAdmin(){
   const body = document.getElementById('adminBody');
   body.innerHTML = `
     <div class="card redline"><h2>試合名の登録</h2>
-      <p class="hint">ここで登録した大会は、入力画面の大会選びの一覧に出ます。</p>
+      <p class="hint">ここで登録した大会は、入力画面の大会選びの一覧に出ます。一覧の「削除」は<b>登録簿から外すだけ</b>で、レースの記録データは消えません(記録は大会名で結びついて別に保存されています)。<b>年月を間違えたとき</b>は、その大会を「削除」してから、まったく同じ大会名・正しい年月でもう一度「登録する」だけで直ります。<b>大会名も直したいとき</b>は、正しい名前で新しく登録して、下の「重複の点検と大会の統合」で間違えた大会を統合してください。記録は新しい名前へそのまま移ります。 <a href="${SHEET_URL}" target="_blank" rel="noopener">記録の保存先スプレッドシートを開く</a></p>
       <div class="stack" style="align-items:end">
         <label class="fld" style="flex:1; min-width:220px">大会名<input type="text" id="amName" placeholder="例: 中部学生選手権"></label>
         <label class="fld">年<input type="text" id="amYear" inputmode="numeric" style="max-width:110px" value="${new Date().getFullYear()}"></label>
@@ -2482,6 +2771,45 @@ function renderAdmin(){
       </div>
       <div id="amList" style="margin-top:14px"></div>
       <div id="amMsg"></div>
+    </div>
+
+    <div class="card"><h2>全国大会の登録</h2>
+      <p class="hint">全レースに入っている大会の一覧です。全国大会にチェックを付けて保存すると、閲覧画面の「全国大会」のタブで、その大会だけをまとめて見られます。チェックはいつでも付け外しできます。</p>
+      <div id="natList" style="margin-top:10px"><p class="hint">大会一覧を読み込んでいます…</p></div>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn solid" onclick="adminSaveNationals()">全国大会の印を保存する</button>
+      </div>
+      <div id="natMsg" aria-live="polite"></div>
+    </div>
+
+    <div class="card"><h2>記録の修正</h2>
+      <p class="hint">選手の名前で記録を探して、その場で直せます。直した内容はスプレッドシート(全レース)にも書き込まれて、全員の画面に反映されます。名前・種目・タイム・ラウンド・水路を直せます。大会名や年月を直したいときは、上の「試合名の登録」と「大会の統合」を使ってください。</p>
+      <div class="stack" style="align-items:end">
+        <label class="fld" style="flex:1; min-width:200px">選手の名前(一部でもOK)<input type="text" id="rfName" placeholder="例: 山本"></label>
+        <button class="btn solid" onclick="adminFixSearch()">記録を探す</button>
+      </div>
+      <div id="rfList" style="margin-top:12px"></div>
+      <div id="rfMsg" aria-live="polite"></div>
+    </div>
+
+    <div class="card"><h2>重複の点検と大会の統合</h2>
+      <p class="hint">同じ記録の二重登録や、名前ちがいで二重に入っている大会を見つけて整理します。まず点検ボタンで全体を調べられます。二重に入っている大会が見つかったら、下で二つの大会を選んで比べて、そのまま統合できます。統合すると、消える側の記録は残す側へ移り、まったく同じ記録は削除されます。大会名の先頭の★は、アプリの大会登録に入っている試合の印です。</p>
+      <div class="stack" style="margin-top:6px">
+        <button class="btn solid" onclick="adminDupCheck()">重複を点検する</button>
+        <button class="btn red solid" onclick="adminDedupeRaces()">同じ記録の二重登録を削除する</button>
+        <button class="btn ghost" onclick="adminFreshReload()">覚え書きを全部捨てて読み直す</button>
+        <button class="btn ghost" onclick="window.open(SHEET_URL,'_blank')">スプレッドシートを開く</button>
+      </div>
+      <div class="pick2" style="margin-top:14px">
+        <label class="fld">大会1(残す側)<select id="cmpA" onfocus="if(this.options.length<=1)adminDrawCmpSelects()"></select></label>
+        <label class="fld">大会2(統合されて消える側)<select id="cmpB" onfocus="if(this.options.length<=1)adminDrawCmpSelects()"></select></label>
+      </div>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn solid" onclick="adminCompareMeets()">二つの大会を比べる</button>
+        <button class="btn red solid" onclick="adminMergeMeets()">大会2を大会1に統合する</button>
+      </div>
+      <div id="cmpMsg" style="margin-top:10px" aria-live="polite"></div>
+      <div id="cmpOut" style="margin-top:10px"></div>
     </div>
 
     <div class="card"><h2>選手情報の登録・修正・削除</h2>
@@ -2500,18 +2828,6 @@ function renderAdmin(){
         <button class="btn red" onclick="adminDeleteAthlete()">この選手を名簿から削除する</button>
       </div>
       <div id="apMsg" style="margin-top:10px"></div>
-    </div>
-
-    <div class="card"><h2>歴代記録を打ち込む</h2>
-      <p class="hint">今のスプレッドシートに入っていない、昔の選手の記録をここから登録できます。ここで選んだ種目・男女・水路に登録され、閲覧画面の歴代記録に反映されます。</p>
-      <div id="agPick"></div>
-      <div class="stack" style="align-items:end; margin-top:10px">
-        <label class="fld">名前<input type="text" id="agName" placeholder="例: 中京太郎"></label>
-        <label class="fld">タイム<input type="text" id="agTime" placeholder="例: 15483 か 1:54.83" inputmode="numeric"></label>
-        <label class="fld">年(わかれば)<input type="text" id="agYear" placeholder="例: 2015" inputmode="numeric" style="max-width:140px"></label>
-        <button class="btn red solid" onclick="adminSaveLegacy()">この記録を登録する</button>
-      </div>
-      <div id="agMsg" style="margin-top:10px"></div>
     </div>
 
     <div class="card"><h2>種目の追加</h2>
@@ -2545,64 +2861,34 @@ function renderAdmin(){
       <div id="asMsg" style="margin-top:10px"></div>
     </div>
 
-    <div class="card"><h2>大会結果の取り込み(セイコーの結果ページ)</h2>
-      <p class="hint">swim.seiko.co.jp の大会ページの住所を入れて、まず種目の一覧を読み取ります。次に取り込みたい種目を選ぶと、AIが結果のPDFを読んで、探したい名前や所属の選手だけを拾います。名前や所属はカンマ区切りで何個でも。所属はページの書き方に合わせて、中京大、のように短く入れると広く拾えます。</p>
-      <label class="fld">結果ページの住所(index.htmのページ)
-        <input type="text" id="skURL" placeholder="例: https://swim.seiko.co.jp/2026/S70701/index.htm"></label>
-      <label class="fld" style="margin-top:8px">探す名前や所属(カンマ区切り)
-        <input type="text" id="skWho" placeholder="例: 中京大 または 濵田航太朗,三輪田理央"></label>
-      <div class="pick2" style="margin-top:8px">
-        <label class="fld">大会名(登録に使う)<input type="text" id="skMeet" placeholder="例: 日本選手権"></label>
-        <label class="fld">実施日<input type="date" id="skDate"></label>
-        <label class="fld">年<input type="text" id="skYear" inputmode="numeric"></label>
-        <label class="fld">月<input type="text" id="skMonth" inputmode="numeric"></label>
-        <label class="fld">水路<select id="skCourse"><option>長水路</option><option>短水路</option></select></label>
-      </div>
-      <div class="stack" style="margin-top:10px">
-        <button class="btn red solid big" onclick="adminSeikoScan()">種目の一覧を読み取る</button>
-      </div>
-      <div id="skMsg" style="margin-top:10px" aria-live="polite"></div>
-      <div id="skOut" style="margin-top:10px"></div>
-    </div>
-
-    <div class="card"><h2>大会結果の取り込み(Excel・CSVファイル)</h2>
-      <p class="hint">ExcelファイルやCSVファイルから記録をまとめて取り込みます。表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格などタイムのない行は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。</p>
+    <div class="card"><h2>大会結果の取り込み(Excel・CSV・PDF)</h2>
+      <p class="hint">ExcelファイルやCSVファイルのほか、東洋電子(TDSystem)とセイコー(swim.seiko.co.jp)の種目別結果PDFもそのまま読み取れます。セイコーは大会ページから結果PDFをダウンロードして、ここで選ぶだけです。全種目まとめの大きなPDF(all_ranking)にも対応しています。Excel・CSVは表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格・欠場の行もそのまま取り込みます(記録欄に「棄権」などの言葉が入ります)。タイムも棄権もない行と、リレー種目は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。省く名前や所属を入れると、その言葉を含む選手を外します。たとえば探すに中京大、省くに中京大中京と入れると、大学の選手だけを拾えます。<b>国体(国民スポーツ大会)の結果</b>は所属が「東京」「愛知」のような県名になっているため、大学名では絞れません。かわりに「国体のPDFを読み取る(名簿と照合)」のボタンを使うと、選手情報の名簿に載っている名前と同じ選手だけを自動で拾います。同姓同名の別人が混ざることがあるので、一覧の所属の県を見て、ちがう人はチェックを外してから登録してください。</p>
       <label class="fld">探す名前や所属(カンマ区切り。空なら全員)
         <input type="text" id="xlWho" placeholder="例: 中京大 または 山本大地,石渡遥"></label>
+      <div id="xlWhoChips" aria-label="探す言葉の記憶"></div>
+      <label class="fld" style="margin-top:8px">省く名前や所属(カンマ区切り。空なら省かない)
+        <input type="text" id="xlEx" placeholder="例: 中京大中京"></label>
+      <div id="xlExChips" aria-label="省く言葉の記憶"></div>
       <div class="pick2" style="margin-top:8px">
         <label class="fld">大会名(登録に使う)<input type="text" id="xlMeet" placeholder="例: 日本選手権"></label>
         <label class="fld">実施日<input type="date" id="xlDate"></label>
+      </div>
+      <div class="pick3" style="margin-top:8px">
         <label class="fld">年<input type="text" id="xlYear" inputmode="numeric"></label>
         <label class="fld">月<input type="text" id="xlMonth" inputmode="numeric"></label>
         <label class="fld">水路<select id="xlCourse"><option>長水路</option><option>短水路</option></select></label>
       </div>
-      <label class="fld" style="margin-top:8px">ExcelまたはCSVのファイル
-        <input type="file" id="xlFile" accept=".csv,.xlsx,.xls" style="min-height:58px; padding:12px"></label>
+      <label class="fld" style="margin-top:8px">Excel・CSV・PDFのファイル
+        <input type="file" id="xlFile" accept=".csv,.xlsx,.xls,.pdf" multiple style="min-height:58px; padding:12px"></label>
       <div class="stack" style="margin-top:10px">
-        <button class="btn red solid big" onclick="adminXlsxRead()">ファイルを読み取る</button>
+        <button class="btn red solid big" onclick="adminXlsxRead()">Excel・CSVを読み取る</button>
+        <button class="btn red solid big" onclick="adminXlsxRead('tds')">東洋電子のPDFを読み取る</button>
+        <button class="btn red solid big" onclick="adminXlsxRead('seiko')">セイコーのPDFを読み取る</button>
+        <button class="btn red solid big" onclick="adminXlsxRead('kokutai')">国体のPDFを読み取る(名簿と照合)</button>
+        <button class="btn red solid big" onclick="adminXlsxRead('relay')">リレーのPDFを読み取る</button>
       </div>
       <div id="xlMsg" style="margin-top:10px" aria-live="polite"></div>
       <div id="xlOut" style="margin-top:10px"></div>
-    </div>
-
-    <div class="card"><h2>大会結果の取り込み(スクショ・写真)</h2>
-      <p class="hint">結果画面のスクショや、掲示された紙を撮った写真から記録を取り込みます。写真は自動で小さくしてから、1枚ずつAIが読みます。探す名前や所属を入れると、その選手だけを拾います。空のままなら全員拾います。</p>
-      <label class="fld">探す名前や所属(カンマ区切り。空なら全員)
-        <input type="text" id="shWho" placeholder="例: 中京大 または 濵田航太朗,三輪田理央"></label>
-      <div class="pick2" style="margin-top:8px">
-        <label class="fld">大会名(登録に使う)<input type="text" id="shMeet" placeholder="例: 愛知県選手権"></label>
-        <label class="fld">実施日<input type="date" id="shDate"></label>
-        <label class="fld">年<input type="text" id="shYear" inputmode="numeric"></label>
-        <label class="fld">月<input type="text" id="shMonth" inputmode="numeric"></label>
-        <label class="fld">水路<select id="shCourse"><option>長水路</option><option>短水路</option></select></label>
-      </div>
-      <label class="fld" style="margin-top:8px">スクショや写真(何枚でも)
-        <input type="file" id="shFiles" accept="image/*" multiple style="min-height:58px; padding:12px"></label>
-      <div class="stack" style="margin-top:10px">
-        <button class="btn red solid big" onclick="adminShotRead()">写真をAIで読み取る</button>
-      </div>
-      <div id="shMsg" style="margin-top:10px" aria-live="polite"></div>
-      <div id="shOut" style="margin-top:10px"></div>
     </div>
 
     <div class="card"><h2>記録の自動取得(Wikipedia)</h2>
@@ -2616,17 +2902,558 @@ function renderAdmin(){
     <div class="stack"><button class="btn ghost" onclick="ADMIN_PW=''; sessionStorage.removeItem('cust_admin_pw'); startAdmin()">設定画面から出る</button></div>`;
   adminDrawMeets();
   adminDrawEvents();
-  // セイコーの結果ページの取り込み
-  (function(){
-    const today = new Date();
-    document.getElementById('skDate').value = today.toISOString().slice(0,10);
-    document.getElementById('skYear').value = today.getFullYear();
-    document.getElementById('skMonth').value = today.getMonth()+1;
-  })();
+  adminDrawNationals();
   let SK_HITS = [];
   let SK_RACES = [];
   let SH_HITS = [];
-  // 種目別結果だけにチェックを入れる(スタートリストや全種目まとめは外す)
+  // ----- 探す言葉・省く言葉の記憶(一度入れた言葉をボタンにして、押すだけでオンオフできる) -----
+  const TERM_KEYS = { who:'cust_terms_who', ex:'cust_terms_ex' };
+  function termLoad(kind){
+    try{ return JSON.parse(localStorage.getItem(TERM_KEYS[kind])||'[]'); }catch(e){ return []; }
+  }
+  function termSave(kind, list){ localStorage.setItem(TERM_KEYS[kind], JSON.stringify(list)); }
+  // カンマ区切りの入力を言葉の一覧にする
+  function splitTerms(v){ return String(v||'').split(/[,、，]/).map(s=>s.replace(/[\s\u3000]+/g,'')).filter(Boolean); }
+  // 読み取りを実行したとき、入力欄の言葉をボタンとして覚える
+  function termRemember(kind, terms){
+    if(!terms.length) return;
+    const list = termLoad(kind);
+    let changed = false;
+    terms.forEach(t=>{
+      const f = list.find(x=>x.t===t);
+      if(f){ if(!f.on){ f.on = true; changed = true; } }
+      else { list.push({ t, on:true }); changed = true; }
+    });
+    if(changed){ termSave(kind, list); }
+    termDrawAll();
+  }
+  // 入力欄の言葉と、オンになっているボタンの言葉を合わせて返す
+  function collectTerms(inputId, kind){
+    const el = document.getElementById(inputId);
+    const typed = splitTerms(el ? el.value : '');
+    const set = new Set(typed);
+    termLoad(kind).forEach(x=>{ if(x.on) set.add(x.t); });
+    return Array.from(set);
+  }
+  window.termToggle = function(kind, idx){
+    const list = termLoad(kind);
+    if(!list[idx]) return;
+    list[idx].on = !list[idx].on;
+    termSave(kind, list); termDrawAll();
+  };
+  window.termDelete = function(kind, idx){
+    const list = termLoad(kind);
+    if(!list[idx]) return;
+    if(!confirm('「'+list[idx].t+'」を候補から消します。よろしいですか。')) return;
+    list.splice(idx, 1); termSave(kind, list); termDrawAll();
+  };
+  function termDraw(kind, boxId){
+    const box = document.getElementById(boxId);
+    if(!box) return;
+    const list = termLoad(kind);
+    if(list.length===0){ box.innerHTML = ''; return; }
+    const label = kind==='who' ? '探す' : '省く';
+    let h = '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px" role="group" aria-label="覚えている'+label+'言葉">';
+    list.forEach((x,i)=>{
+      h += `<button type="button" class="btn ${x.on?'red solid':'ghost'}" style="min-height:44px" aria-pressed="${x.on?'true':'false'}" onclick="termToggle('${kind}',${i})">${esc(x.t)} ${x.on?'オン':'オフ'}</button>`;
+      h += `<button type="button" class="btn ghost" style="min-height:44px; padding:0 10px" aria-label="${esc(x.t)}を候補から消す" onclick="termDelete('${kind}',${i})">消す</button>`;
+    });
+    box.innerHTML = h + '</div>';
+  }
+  function termDrawAll(){
+    termDraw('who','skWhoChips'); termDraw('ex','skExChips');
+    termDraw('who','xlWhoChips'); termDraw('ex','xlExChips');
+    termDraw('who','shWhoChips'); termDraw('ex','shExChips');
+  }
+  termDrawAll();
+  // 探す言葉に合うか、省く言葉に当たるかを調べる
+  function termKeep(text, kws, exs){
+    if(kws.length && !kws.some(k=>text.includes(k))) return false;
+    if(exs.length && exs.some(k=>text.includes(k))) return false;
+    return true;
+  }
+  // ----- 東洋電子(TDSystem)のPDF読み取り -----
+  function loadPdfJs(){
+    return new Promise((ok, ng)=>{
+      if(window.pdfjsLib) return ok();
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = ()=>{ try{ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }catch(e){} ok(); };
+      s.onerror = ()=>ng(new Error('PDF読み取り部品が読み込めませんでした。通信を確認してください。'));
+      document.head.appendChild(s);
+    });
+  }
+  // PDFの中の文字を、紙の見た目どおりの行に組み立て直す
+  // PDFを「行ごとの文字の集まり」にする。各文字のかたまりは横位置(x)を持つ。
+  // 横位置があると、セイコーのPDFのように列で区切られた表を正確に読める。
+  async function pdfToRows(buf){
+    await loadPdfJs();
+    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const allRows = [];
+    for(let p=1; p<=doc.numPages; p++){
+      const page = await doc.getPage(p);
+      const tc = await page.getTextContent();
+      const items = tc.items.filter(it=>it.str && it.str.trim()!=='');
+      const rows = [];
+      items.forEach(it=>{
+        const y = it.transform[5];
+        let row = rows.find(r=>Math.abs(r.y - y) < 3);
+        if(!row){ row = { y, items: [] }; rows.push(row); }
+        row.items.push(it);
+      });
+      rows.sort((a,b)=>b.y - a.y);
+      rows.forEach(r=>{
+        r.items.sort((a,b)=>a.transform[4] - b.transform[4]);
+        let line = ''; let prevEnd = null;
+        const cells = [];
+        r.items.forEach(it=>{
+          const x = it.transform[4];
+          if(prevEnd!==null && x - prevEnd > 1) line += ' ';
+          line += it.str;
+          prevEnd = x + (it.width || 0);
+          cells.push({ x, str: it.str.trim() });
+        });
+        allRows.push({ text: line, cells });
+      });
+    }
+    return allRows;
+  }
+  // これまで通り「行の文字だけ」が欲しいとき用(東洋電子のPDF読み取りで使う)
+  async function pdfToLines(buf){
+    const rows = await pdfToRows(buf);
+    return rows.map(r=>r.text);
+  }
+  /* ============================================================
+     セイコーの「種目別競技結果」PDFの読み取り
+     行の作りは 1人あたり2行以上:
+       1行目: 順位 組/水路 加盟 氏名 所属 生年 学年 … ポイント
+       2行目: フリガナ           正式記録 (リアクション)
+       3行目から: 通過タイム(あれば)
+     氏名と所属の区切りは、見出し行(氏名・所属…)の横位置で見分ける。
+  ============================================================ */
+  /* セイコーの種目別競技結果PDFの読み取り。
+     新形式(2024年ごろ〜): 1行目=順位〜ポイント、2行目=フリガナ+記録、3行目以降=通過タイム
+     旧形式(2021年ごろ):   1行目に記録も書いてあり、2行目=通過タイム+反応タイム
+     どちらの形式も読めるように、見出しの横位置と
+     「記録の行はタイムが1個だけ・通過の行はタイムが並ぶ」という性質で見分ける。 */
+  function parseSeiko(rows){
+    const evRe = /競技No\.?\s*[:：]?\s*\d+\s+(男子|女子|混合)\s+(\d{2,4})\s*m?\s+(\S+?)\s+(予選|Ｂ決勝|B決勝|決勝|タイム決勝|スイムオフ)/;
+    const timeRe = /^(\d+:)?\d{1,2}\.\d{2}$/;
+    let event = null;      // いま読んでいる種目
+    let col = null;        // 見出しの横位置 { name, team, birth, rec }
+    let pending = null;    // 1行目を読んで、記録の確定を待っている選手
+    let wait = 0;
+    const hits = [];
+    const put = (p, time, splits) => {
+      if(p && p.name) hits.push({ name: p.name, team: p.team,
+        sex: p.ev.sex, dist: p.ev.dist, stroke: p.ev.stroke, round: p.ev.round, time,
+        splits: (splits && splits.length) ? splits : [] });
+    };
+    const flush = () => {   // 旧形式: 1行目に書いてあった記録で確定させる
+      if(pending && pending.l1time){
+        put(pending, pending.l1time, /^\d/.test(pending.l1time) ? pending.l1splits : []);
+      }
+      pending = null;
+    };
+    /* 記録の行のあとに続く「タイムだけの行」を通過タイムとして集める。
+       セイコーは 26.34 55.34 1:24.89 … のように並ぶ。
+       800m・1500mは複数行に分かれるので、続きの行もつなげる。 */
+    const splitsAfter = (rws, idx, dist) => {
+      const TT = /^(?:\d+:)?\d{1,2}\.\d{2}$/;
+      const want = Math.max(0, Math.round(dist / 50) - 1);
+      if(want < 1) return [];          // 50mは通過なし
+      const out = [];
+      let started = false;
+      for(let j = idx + 1; j <= idx + 10 && j < rws.length; j++){
+        const toks = String(rws[j].text).trim().split(/\s+/).filter(s=>s);
+        if(toks.length >= 1 && toks.every(s=>TT.test(s))){
+          out.push.apply(out, toks); started = true;
+          if(out.length >= want) break;
+        } else if(started) break;
+      }
+      return out.slice(0, want);
+    };
+    // 通過タイムが記録より遅い(または同じ)ものは、読み違いなので捨てる
+    const cleanSplits = (sp, time) => {
+      const fin = toSec(time);
+      if(!sp || !sp.length || fin == null) return sp || [];
+      const ok = sp.filter(v=>{ const s = toSec(v); return s != null && s < fin; });
+      return ok.length === sp.length ? sp : [];
+    };
+    for(let ri = 0; ri < rows.length; ri++){
+      const row = rows[ri];
+      const text = row.text;
+      const plain = text.replace(/[\s\u3000]/g,'');
+      // 種目の見出し
+      const m = text.match(evRe);
+      if(m){
+        flush();
+        if(/[×xX]|リレー/.test(text)){ event = null; }
+        else{
+          const ev = parseEventText(m[2]+'m'+m[3]);
+          event = ev ? { sex: m[1]==='女子' ? '女' : '男', dist: ev.dist, stroke: ev.stroke,
+            round: m[4].replace('Ｂ','B') } : null;
+        }
+        continue;
+      }
+      // 列の見出し(旧形式は「氏  名」「所属名」のように空白入りで書かれる)
+      if(plain.includes('氏名') && plain.includes('所属')){
+        flush();
+        const find = pref => {
+          const c = row.cells.find(c=>c.str.replace(/[\s\u3000]/g,'').indexOf(pref)===0);
+          return c ? c.x : null;
+        };
+        const name = find('氏'), team = find('所属'), birth = find('生年');
+        const recCell = row.cells.find(c=>c.str.replace(/[\s\u3000]/g,'').includes('記録'));
+        if(name!=null && team!=null){
+          col = { name, team, birth: birth!=null ? birth : team+90,
+                  rec: recCell ? recCell.x : null };
+        }
+        continue;
+      }
+      if(!event || !col) continue;
+      const thr = (col.rec!=null) ? col.rec - 30 : col.team + 40;  // 記録欄のはじまり
+      // 1行目かどうか: 氏名の欄より左に「組/水路」(例 4/6 や 1/ 4)があるか
+      const leftJoin = row.cells.filter(c=>c.x < col.name - 6).map(c=>c.str).join('');
+      if(/\d+\/\s*\d+/.test(leftJoin)){
+        flush();
+        const pick = (x0, x1) => row.cells.filter(c=>c.x >= x0 && c.x < x1).map(c=>c.str).join('');
+        // 旧形式にそなえて、1行目の記録欄にあるタイムや棄権も拾っておく
+        const tc = row.cells.filter(c=>c.x >= thr && timeRe.test(c.str.trim()));
+        let l1 = tc.length ? fmtTime(tc[tc.length-1].str.trim()) : null;
+        if(/棄権|欠場|失格/.test(plain)){
+          l1 = /失格/.test(plain) ? '失格' : /欠場/.test(plain) ? '欠場' : '棄権';
+        }
+        pending = {
+          l1splits: splitsAfter(rows, ri, event.dist),
+          name: pick(col.name - 6, col.team - 6).replace(/[\s\u3000]+/g,''),
+          // 所属の欄では、生年の2桁数字(例: 04)がまぎれこんでも拾わない。
+          // 文字とくっついている場合(例: 高校04)は、末尾の2桁だけを取り除く
+          team: row.cells.filter(c=>c.x >= col.team - 6 && c.x < col.birth - 6 && !/^\d{2}$/.test(c.str.trim()))
+                  .map(c=>c.str).join('').replace(/[\s\u3000]+/g,'')
+                  .replace(/([^0-9])\d{2}$/, '$1'),
+          ev: event, l1time: l1
+        };
+        wait = 3;
+        continue;
+      }
+      // 記録の確定: 新形式なら2行目(フリガナ+記録)、旧形式なら1行目の値を使う
+      if(pending && wait > 0){
+        wait--;
+        if(plain.includes('記録')){ if(wait===0) flush(); continue; }  // 世界記録などの参考行はとばす
+        let time = null;
+        if(/棄権|欠場|失格/.test(text)){
+          time = /失格/.test(text) ? '失格' : /欠場/.test(text) ? '欠場' : '棄権';
+        } else {
+          // 記録の行はタイムが1個だけ。通過タイムの行(タイムが並ぶ)は読まない
+          const tcells = row.cells.filter(c=>timeRe.test(c.str.trim()));
+          if(tcells.length===1 && tcells[0].x >= thr) time = fmtTime(tcells[0].str.trim());
+        }
+        if(time!=null){
+          // 棄権・失格には通過タイムを付けない(次の選手の値を拾わないため)
+          put(pending, time, /^\d/.test(time)
+            ? cleanSplits(splitsAfter(rows, ri, pending.ev.dist), time) : []);
+          pending = null;
+        } else if(wait===0){ flush(); }
+      }
+    }
+    flush();   // 最後の選手ぶん
+    return hits;
+  }
+  /* 東洋電子のリレー種目PDFの読み取り。1チームぶんは次の4行:
+       1 中京大 Ａ  2/ 3  3:45.74          … 順位・チーム・組/水路・総合記録
+       27.81 57.30 1:24.33 …               … 通しの通過タイム(使わない)
+       神田 美夢 大3 ・ 宮脇 礼依 大2・ …   … 泳者の名前と学年(・区切り)
+       27.81 57.30 ( ) 27.03 56.21 (-----) … 泳者ごとの50m通過とタイム */
+  /* 東洋電子のリレー種目PDFの読み取り。1チームぶんの行の並び:
+       1 中京大 Ａ 2/ 3 7:14.22   … 順位・チーム・組/水路・総合記録
+       (通しの通過タイムの行。使わない)
+       笠島 大雅 大4・ 宮本 敦矢 大4・ … … 泳者の名前と学年(・区切り)
+       25.71 53.69 ( ) 24.62 51.94 (-----) … … 泳者ごとのタイム(カッコで区切られる)
+     4×200mだけは、上の行が印字の重なりで読みにくく、
+     つぎの行に「泳者ごとの後半2つ」がきれいに並ぶので、そちらを使う。 */
+  /* 東洋電子のリレー種目PDFの読み取り。
+     4×200mは2行が重なって印字されるため、文字の横位置(x)を使って
+     泳者ごとの列に振り分ける。rowsは pdfToRows の結果(textとcellsを持つ)。 */
+  function parseRelay(rows){
+    const lines = rows.map(r=>r.text);
+    const evRe = /No\.\s*\d+\s+(男子|女子|混合)\s+(\d+)\s*[×xX]\s*(\d+)\s*m\s+(\S*リレー)\s*(\S*)/;
+    const teamRe = /^\s*(\d+)?\s+(\S+)\s*([Ａ-ＺA-Z])?\s+\d+\/\s*\d+\s+((?:\d+:)?\d+\.\d{2}|棄権|失格|欠場|DSQ|DNS|DNF)/;
+    const T = /^(?:\d+:)?\d+\.\d{2}$/;
+    const secOf = v => { const m = String(v).match(/^(?:(\d+):)?(\d+)\.(\d+)$/);
+      return m ? Number(m[1]||0)*60 + Number(m[2]) + Number('0.'+m[3]) : null; };
+    let ev = null;
+    const out = [];
+    for(let i=0; i<lines.length; i++){
+      const m = lines[i].match(evRe);
+      if(m){
+        ev = {
+          sex: m[1]==='女子' ? '女' : (m[1]==='混合' ? '混合' : '男'),
+          count: Number(m[2]), legDist: Number(m[3]), type: m[4],
+          event: m[2]+'×'+m[3]+'m'+m[4],
+          round: (m[5]||'').replace('タイムレース決勝','タイム決勝').replace('Ｂ','B')
+        };
+        continue;
+      }
+      if(!ev) continue;
+      const t = lines[i].match(teamRe);
+      if(!t) continue;
+      // 名前の行と、そのあとのタイムの行(1〜2行)を集める
+      let nameRow = null; const timeRows = [];
+      for(let j=i+1; j<=i+7 && j<lines.length; j++){
+        if(!nameRow && lines[j].includes('・')){ nameRow = rows[j]; continue; }
+        if(nameRow){
+          const hasTime = (rows[j].cells||[]).some(c=>T.test(c.str.trim()));
+          if(hasTime) timeRows.push(rows[j]);
+          else if(timeRows.length) break;
+          if(timeRows.length >= 2) break;
+        }
+      }
+      const team = t[2] + (t[3] ? t[3].normalize('NFKC') : '');
+      // 名前は「・」で区切って読む
+      const names = nameRow ? nameRow.text.split('・').map(s=>{
+        const g = s.match(/(大|高|中)\d|一般/);
+        return { name: s.replace(/(大|高|中)\d|一般/g,'').replace(/[\s\u3000]+/g,''), grade: g ? g[0] : '' };
+      }) : [];
+      // 名前の行のx位置から、泳者ごとの列の境目を決める
+      let bounds = null;
+      if(nameRow && nameRow.cells && nameRow.cells.length){
+        const marks = [];
+        nameRow.cells.forEach(c=>{ if(c.str.includes('・')) marks.push(c.x); });
+        if(marks.length >= ev.count - 1){
+          bounds = [];
+          for(let k=0; k<ev.count; k++){
+            bounds.push({ lo: k===0 ? -1e9 : marks[k-1], hi: k===ev.count-1 ? 1e9 : marks[k] });
+          }
+        }
+      }
+      const per = Math.max(1, Math.round(ev.legDist / 50));
+      const legs = [];
+      /* 通過タイムの取り出し方
+         4×50m・4×100m: 1行目のカッコ区切りで泳者ごとに分かれている
+         4×200m: 1行目は前半(50m・100m)、2行目に後半(150m・200m)が
+                 泳者ごとにきれいに並ぶので、2行目を軸にして組み立てる */
+      const row1 = timeRows[0], row2 = timeRows[1];
+      const timesOf = r => (r && r.cells ? r.cells.filter(c=>T.test(c.str.trim())).map(c=>({x:c.x, v:c.str.trim()})) : []);
+      const t1 = timesOf(row1), t2 = timesOf(row2);
+      const useTwoRows = (per > 2) && (t2.length === ev.count * (per - 2) + (per - 2 > 0 ? 0 : 0)) ;
+      if(per > 2 && t2.length >= ev.count * 2 && t2.length % ev.count === 0){
+        /* 4×200m: 2行目に各泳者の後半(150m・200m)が順に並ぶ。
+           1行目には各泳者の前半(50m・100m)が、後半の値と混ざって印字される。
+           2行目の値と同じものを1行目から取り除くと、残りが前半にあたる。 */
+        const back = t2.length / ev.count;
+        const front = per - back;
+        const backAll = t2.map(o=>o.v);
+        // 1行目から、2行目にある値(=後半)を取り除いたものを、x順に並べる
+        const frontAll = t1.filter(o=>backAll.indexOf(o.v) === -1).sort((a,b)=>a.x-b.x).map(o=>o.v);
+        for(let k=0; k<ev.count; k++){
+          const b = t2.slice(k*back, (k+1)*back).map(o=>o.v);
+          const f = frontAll.slice(k*front, (k+1)*front);
+          legs.push(f.concat(b));
+        }
+      } else {
+        const chunks = (row1 ? row1.text : '').split(/\([^)]*\)/);
+        for(let k=0; k<ev.count; k++){
+          const raw = (chunks[k] || '').match(/(?:\d+:)?\d+\.\d{2}/g) || [];
+          legs.push(raw.slice(0, per));
+        }
+      }
+      const swimmers = [];
+      for(let k=0; k<ev.count; k++){
+        const sp = legs[k].map(v=>fmtTime(v));
+        swimmers.push({
+          name: names[k] ? names[k].name : '',
+          grade: names[k] ? names[k].grade : '',
+          pass: sp.length >= 2 ? sp[0] : '',
+          leg: sp.length ? sp[sp.length-1] : '',
+          splits: sp
+        });
+      }
+      out.push({ sex: ev.sex, event: ev.event, relayType: ev.type, legDist: ev.legDist,
+        round: ev.round, rank: t[1] ? Number(t[1]) : '', team,
+        time: /\d/.test(t[4]) ? fmtTime(t[4]) : t[4], legs: swimmers });
+    }
+    return out;
+  }
+  // 東洋電子PDFの見出しから、大会名・実施日・水路を読み取る
+  // 1行目=大会名、「期日:2026年7月4日…」、「会場:…(50m)」の形を利用する
+  function tdsMeta(rows){
+    let meet = '', year = 0, month = 0, date = '', course = '';
+    for(const r of rows.slice(0, 15)){
+      const t = String(r.text || '').trim();
+      if(!t) continue;
+      if(!meet && t.length >= 6 && !/No\.\s*\d|会場|期日|順位|氏\s*名|組\/水|≪/.test(t)){
+        meet = t.replace(/\s*\d+\s*\/\s*\d+\s*$/, '').trim();
+      }
+      const dm = t.match(/期日.*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+      if(dm){
+        year = Number(dm[1]); month = Number(dm[2]);
+        date = dm[1] + '-' + String(dm[2]).padStart(2,'0') + '-' + String(dm[3]).padStart(2,'0');
+      }
+      if(/会場/.test(t)){
+        if(t.includes('50m')) course = '長水路';
+        else if(t.includes('25m')) course = '短水路';
+      }
+    }
+    return (meet || date) ? { meet, year, month, date, course } : null;
+  }
+  // 東洋電子の書式(No.1 男子 400m 自由形 / ≪年齢の部≫ / 順位 氏名 所属 学年 水路 時間)を読み取る
+  function parseTdsystem(lines){
+    const evRe = /No\.\s*(\d+)\s+(男子|女子|混合)\s+(\S*m)\s+(\S+)/;
+    const ageRe = /≪\s*(.+?)\s*≫/;
+    const ltRe = /(\d+\/\s*\d+)\s+((?:\d+:)?\d+\.\d+|途中棄権|棄権|欠場|失格\S*|DNS|DSQ|DNF)/;
+    const gakuRe = /^(小|中|高|大)\d$|^一般$/;
+    let event = null, agegrp = '';
+    const hits = [];
+    for(let i=0; i<lines.length; i++){
+      const line = lines[i];
+      let m = line.match(evRe);
+      if(m){
+        const full = m[2]+m[3]+m[4];
+        if(/[×xX]|リレー/.test(full)){ event = null; }  // リレーは個人の記録ではないので飛ばす
+        else{
+          const ev = parseEventText(m[3]+m[4]);
+          event = ev ? { sex: m[2]==='女子' ? '女' : '男', dist: ev.dist, stroke: ev.stroke } : null;
+        }
+        agegrp = '';
+        continue;
+      }
+      m = line.match(ageRe);
+      if(m){ agegrp = m[1]; continue; }
+      if(!event) continue;
+      m = line.match(ltRe);
+      if(!m) continue;
+      // 棄権・失格などの言葉を、そろえた形に直す(例: 失格5.2 → 失格)
+      let time = m[2];
+      const isDQ = /棄権|欠場|失格|DNS|DSQ|DNF/i.test(time);
+      if(isDQ){
+        if(/失格/.test(time) || /DSQ/i.test(time)) time = '失格';
+        else if(/途中棄権|DNF/i.test(time)) time = '途中棄権';
+        else if(/欠場|DNS/i.test(time)) time = /欠場/.test(time) ? '欠場' : '棄権';
+        else time = '棄権';
+      }
+      // 選手の行とみなす条件: 順位の数字か OPN(オープン参加)で始まる行。
+      // 棄権・失格の行は順位が空のこともあるので、そのまま通す。
+      if(!/^\s*(\d+|OPN)\s+\S/i.test(line) && !isDQ) continue;
+      const left = line.slice(0, m.index).trim();
+      const tokens = left.split(/\s+/);
+      // 先頭が順位の数字か OPN なら取りのぞく(棄権の行は順位なしで名前から始まることがある)
+      let rest = (/^\d+$/.test(tokens[0]) || /^OPN$/i.test(tokens[0])) ? tokens.slice(1) : tokens.slice();
+      let gaku = '';
+      if(rest.length && gakuRe.test(rest[rest.length-1])) gaku = rest.pop();
+      if(rest.length===0) continue;
+      let name, team;
+      if(rest.length===1){ name = rest[0]; team = ''; }
+      else if(rest.length===2){ name = rest[0]; team = rest[1]; }
+      else if(rest.length===3){ name = rest[0]+rest[1]; team = rest[2]; }
+      else { name = rest[0]+rest[1]; team = rest.slice(2).join(''); }
+      hits.push({
+        name: String(name).replace(/[\s\u3000]+/g,''),
+        team: String(team),
+        sex: event.sex, dist: event.dist, stroke: event.stroke,
+        round: agegrp || '', time: fmtTime(time)
+      });
+    }
+    return hits;
+  }
+  /* 東洋電子の「2行タイプ」の結果を読む(例: 愛知県選手権)
+     1行目: 順位 氏名 所属 学年 タイム (PBなどの印)
+     2行目: 組/水路 (リアクション) 資格級 ポイント ← ここは読み飛ばす
+     棄権の行は順位なしで、タイムの場所に棄権・失格と書かれる */
+  /* 東洋電子PDFの通過タイムを拾う共通部品。
+     選手の行のあと数行のうち、タイムだけが3つ以上並ぶ行が通過タイム。
+     例) 30.23 1:02.72 1:36.28 2:09.52 2:42.73 3:15.59 3:48.60 */
+  function tdsSplitsAt(lines, idx, dist){
+    const T = /^(?:\d+:)?\d{1,2}\.\d{2}$/;
+    const want = Math.max(0, Math.round(dist / 50) - 1);   // 通過の個数(最後の1つは記録)
+    if(want < 1) return [];        // 50mは通過を持たせない
+    const out = [];
+    let started = false;
+    // 800m・1500mは通過タイムが2行以上に分かれるので、続きの行もつなげる
+    for(let j = idx + 1; j <= idx + 8 && j < lines.length; j++){
+      const toks = String(lines[j]).trim().split(/\s+/).filter(s=>s);
+      const allTimes = toks.length >= 1 && toks.every(s=>T.test(s));
+      if(allTimes){
+        out.push.apply(out, toks);
+        started = true;
+        if(out.length >= want) break;
+      } else if(started){
+        break;     // 通過タイムの行が途切れたら終わり
+      }
+    }
+    return out.slice(0, want);
+  }
+  // 通過タイムが記録より遅い(または同じ)ものは、読み違いなので捨てる
+  function tdsCleanSplits(sp, time){
+    const fin = toSec(time);
+    if(!sp || !sp.length || fin == null) return sp || [];
+    const ok = sp.filter(v=>{ const s = toSec(v); return s != null && s < fin; });
+    return ok.length === sp.length ? sp : [];
+  }
+
+  function parseTdsystem2(lines){
+    const evRe = /No\.\s*(\d+)\s+(男子|女子|混合)\s+(\S*m)\s+(\S+)/;
+    const roundRe = /(タイムレース決勝|タイム決勝|Ｂ決勝|B決勝|決勝|予選|スイムオフ)/;
+    const timeRe = /^(\d+:)?\d{1,2}\.\d{1,2}$/;
+    const dqRe = /^(棄権|欠場|途中棄権)$|^失格/;
+    const gakuRe = /^(小|中|高|大)\d$|^一般$/;
+    let event = null;
+    const hits = [];
+    for(let li = 0; li < lines.length; li++){
+      const line = lines[li];
+      const m = line.match(evRe);
+      if(m){
+        const full = m[2]+m[3]+m[4];
+        if(/[×xX]|リレー/.test(full)){ event = null; continue; }
+        const ev = parseEventText(m[3]+m[4]);
+        const round = (line.match(roundRe)||['',''])[0]
+          .replace('タイムレース決勝','タイム決勝').replace('Ｂ','B');
+        event = ev ? { sex: m[2]==='女子' ? '女' : '男', dist: ev.dist, stroke: ev.stroke, round } : null;
+        continue;
+      }
+      if(!event) continue;
+      let toks = line.trim().split(/\s+/);
+      if(toks.length < 3) continue;
+      // 順位(数字かOPN=オープン参加)は付いていることも、棄権で付いていないこともある
+      let rank = null;
+      if(/^(\d+|OPN)$/i.test(toks[0])){ rank = toks[0]; toks = toks.slice(1); }
+      if(toks.length < 2) continue;
+      // 名前は日本語で始まるはず(通過タイムだけの行などを除くため)
+      if(!/^[^\x00-\x7F]/.test(toks[0])) continue;
+      // 後ろから、タイムか棄権・失格の言葉を探す
+      let ti = -1, isDQ = false;
+      for(let i=toks.length-1; i>=1; i--){
+        if(timeRe.test(toks[i])){ ti = i; break; }
+        if(dqRe.test(toks[i])){ ti = i; isDQ = true; break; }
+      }
+      if(ti < 1) continue;
+      if(rank===null && !isDQ) continue;   // 順位もタイムもない行は選手の行ではない
+      let time;
+      if(isDQ){
+        const w = toks[ti];
+        time = /失格/.test(w) ? '失格' : /途中棄権/.test(w) ? '途中棄権' : /欠場/.test(w) ? '欠場' : '棄権';
+      } else {
+        time = fmtTime(toks[ti]);
+      }
+      let rest = toks.slice(0, ti);
+      let gaku = '';
+      if(rest.length && gakuRe.test(rest[rest.length-1])) gaku = rest.pop();
+      if(rest.length===0) continue;
+      let name, team;
+      if(rest.length===1){ name = rest[0]; team = ''; }
+      else if(rest.length===2){ name = rest[0]; team = rest[1]; }
+      else if(rest.length===3){ name = rest[0]+rest[1]; team = rest[2]; }
+      else { name = rest[0]+rest[1]; team = rest.slice(2).join(''); }
+      hits.push({
+        name: String(name).replace(/[\s\u3000]+/g,''),
+        team: String(team),
+        sex: event.sex, dist: event.dist, stroke: event.stroke,
+        round: event.round, time,
+        splits: isDQ ? [] : tdsCleanSplits(tdsSplitsAt(lines, li, event.dist), time)
+      });
+    }
+    return hits;
+  }
   window.skPickResults = function(){
     let n = 0;
     document.querySelectorAll('.skrace').forEach(c=>{
@@ -2710,7 +3537,10 @@ function renderAdmin(){
   window.adminSeikoRead = async function(){
     const msg = document.getElementById('skMsg');
     const out2 = document.getElementById('skOut2');
-    const kws = document.getElementById('skWho').value.trim();
+    termRemember('who', splitTerms(document.getElementById('skWho').value));
+    termRemember('ex', splitTerms(document.getElementById('skEx').value));
+    const skExs = collectTerms('skEx','ex');
+    const kws = collectTerms('skWho','who').join(',');
     let picked = [];
     document.querySelectorAll('.skrace').forEach(c=>{ if(c.checked) picked.push(SK_RACES[Number(c.dataset.i)]); });
     if(picked.length===0){ msg.innerHTML = '<div class="errmsg">読み取る種目にチェックを入れてください。</div>'; return; }
@@ -2768,6 +3598,7 @@ function renderAdmin(){
       const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
       if(uniq[k]) return false; uniq[k] = 1; return true;
     });
+    if(skExs.length) SK_HITS = SK_HITS.filter(h=>!skExs.some(k=>(h.name + h.team).includes(k)));
     const errNote = errors.length? '<div class="errmsg">読めなかった種目: '+esc(errors.join(' / '))+'</div>' : '';
     if(SK_HITS.length===0){
       msg.innerHTML = errNote + '<div class="errmsg">対象の選手が見つかりませんでした。探す名前や所属の書き方を、ページの書き方(例: 中京大)に合わせてみてください。</div>';
@@ -2801,7 +3632,7 @@ function renderAdmin(){
       const i = Number(c.dataset.i);
       const name = document.querySelector(`.skname[data-i="${i}"]`).value.trim();
       if(!name) return;
-      rows.push({ name, event: SK_HITS[i].dist + SK_HITS[i].stroke, time: SK_HITS[i].time });
+      rows.push({ name, event: SK_HITS[i].dist + SK_HITS[i].stroke, time: SK_HITS[i].time, round: SK_HITS[i].round||'' });
     });
     if(rows.length===0){ msg.innerHTML = '<div class="errmsg">登録する行がありません。</div>'; return; }
     if(!confirm(rows.length+'件を '+meet+' ('+course+') として登録します。よろしいですか。')) return;
@@ -2853,7 +3684,10 @@ function renderAdmin(){
   window.adminShotRead = async function(){
     const msg = document.getElementById('shMsg');
     const out2 = document.getElementById('shOut');
-    const kws = document.getElementById('shWho').value.trim();
+    termRemember('who', splitTerms(document.getElementById('shWho').value));
+    termRemember('ex', splitTerms(document.getElementById('shEx').value));
+    const shExs = collectTerms('shEx','ex');
+    const kws = collectTerms('shWho','who').join(',');
     const files = Array.from(document.getElementById('shFiles').files || []);
     if(files.length === 0){ msg.innerHTML = '<div class="errmsg">スクショや写真を選んでください。</div>'; return; }
     SH_HITS = [];
@@ -2902,6 +3736,7 @@ function renderAdmin(){
       const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
       if(uniq[k]) return false; uniq[k] = 1; return true;
     });
+    if(shExs.length) SH_HITS = SH_HITS.filter(h=>!shExs.some(k=>(h.name + h.team).includes(k)));
     const errNote = errors.length? '<div class="errmsg">読めなかった写真: '+esc(errors.join(' / '))+'</div>' : '';
     if(SH_HITS.length === 0){
       msg.innerHTML = errNote + '<div class="errmsg">記録を読み取れませんでした。表がはっきり写るように撮り直すか、探す名前や所属の書き方を写真の書き方に合わせてみてください。</div>';
@@ -2935,7 +3770,7 @@ function renderAdmin(){
       const i = Number(c.dataset.i);
       const name = document.querySelector(`.shname[data-i="${i}"]`).value.trim();
       if(!name) return;
-      rows.push({ name, event: SH_HITS[i].dist + SH_HITS[i].stroke, time: SH_HITS[i].time });
+      rows.push({ name, event: SH_HITS[i].dist + SH_HITS[i].stroke, time: SH_HITS[i].time, round: SH_HITS[i].round||'' });
     });
     if(rows.length===0){ msg.innerHTML = '<div class="errmsg">登録する行がありません。</div>'; return; }
     if(!confirm(rows.length+'件を '+meet+' ('+course+') として登録します。よろしいですか。')) return;
@@ -2960,7 +3795,7 @@ function renderAdmin(){
     document.getElementById('xlMonth').value = t.getMonth()+1;
   })();
   // 実施日を選んだら、年と月の欄も自動でその日付に合わせる(登録する年月のズレを防ぐ)
-  [['xlDate','xlYear','xlMonth'], ['skDate','skYear','skMonth'], ['shDate','shYear','shMonth']].forEach(ids=>{
+  [['xlDate','xlYear','xlMonth']].forEach(ids=>{
     const el = document.getElementById(ids[0]);
     if(!el) return;
     el.addEventListener('change', ()=>{
@@ -3031,7 +3866,7 @@ function renderAdmin(){
     return idx;
   }
   // 1枚のシート(表)から記録の行を拾い出す
-  function harvestGrid(grid, sheetName, kws){
+  function harvestGrid(grid, sheetName, kws, exs){
     for(let hi=0; hi<Math.min(grid.length,10); hi++){
       const header = (grid[hi]||[]).map(c=>String(c==null?'':c).trim());
       const cName = findCol(header, ['氏名','名前','選手名','name','Name'], ['氏名','名前']);
@@ -3047,15 +3882,20 @@ function renderAdmin(){
         const name = String(row[cName]==null?'':row[cName]).replace(/[\s\u3000]+/g,'');
         if(!name || name===header[cName]) continue;
         const rawTime = String(row[cTime]==null?'':row[cTime]).trim();
-        const time = fmtTime(rawTime);
-        if(toSec(time)==null){ if(rawTime) skipped++; continue; }   // 棄権・失格・空欄は飛ばす
+        let time = fmtTime(rawTime);
+        if(toSec(time)==null){
+          // タイムがない行でも、棄権・失格・欠場はその言葉のまま取り込む
+          const st = rawTime.match(/棄権|失格|欠場|DNS|DSQ|DNF/i);
+          if(st){ time = ({'DNS':'棄権','DSQ':'失格','DNF':'途中棄権'})[st[0].toUpperCase()] || st[0]; }
+          else { if(rawTime) skipped++; continue; }   // タイムも棄権もない行は飛ばす
+        }
         let ev = cEvent>=0 ? parseEventText(row[cEvent]) : null;
         if(!ev) ev = parseEventText(sheetName);
         if(!ev){ skipped++; continue; }
         let sex = cSex>=0 ? String(row[cSex]||'') : '';
         sex = /女/.test(sex) ? '女' : /男/.test(sex) ? '男' : (ev.sex||'');
         const team = cTeam>=0 ? String(row[cTeam]||'') : '';
-        if(kws.length && !kws.some(k=>(name+team).includes(k))) continue;
+        if(!termKeep(name + team, kws, exs || [])) continue;
         hits.push({ name, team, sex, dist:ev.dist, stroke:ev.stroke,
           round: cRound>=0 ? String(row[cRound]||'') : '', time });
       }
@@ -3063,55 +3903,183 @@ function renderAdmin(){
     }
     return null;
   }
-  window.adminXlsxRead = async function(){
+  window.adminXlsxRead = async function(pdfKind){
     const msg = document.getElementById('xlMsg');
     const out = document.getElementById('xlOut');
     out.innerHTML = ''; XL_HITS = [];
-    const f = (document.getElementById('xlFile').files||[])[0];
-    if(!f){ msg.innerHTML = '<div class="errmsg">ファイルを選んでください。</div>'; return; }
-    const kws = document.getElementById('xlWho').value.split(/[,、，]/).map(s=>s.replace(/[\s\u3000]+/g,'')).filter(Boolean);
-    msg.innerHTML = '<div class="loading">ファイルを読んでいます…</div>';
-    const grids = [];   // シートごとの表 { name, grid }
+    const files = Array.from(document.getElementById('xlFile').files || []);
+    if(files.length===0){ msg.innerHTML = '<div class="errmsg">ファイルを選んでください。複数まとめて選べます(統合は不要です)。</div>'; return; }
+    // 入力欄の言葉をボタンとして覚えてから、オンのボタンと合わせて絞り込みに使う
+    termRemember('who', splitTerms(document.getElementById('xlWho').value));
+    termRemember('ex', splitTerms(document.getElementById('xlEx').value));
+    const kws = collectTerms('xlWho','who');
+    const exs = collectTerms('xlEx','ex');
+    const isPdfKind = (pdfKind==='tds' || pdfKind==='seiko' || pdfKind==='kokutai' || pdfKind==='relay');
+    let kokutaiNote = '';   // 国体モードのときの注意書き
+    const grids = [];       // Excel・CSVのシートごとの表 { name, grid }
+    const perFile = [];     // ファイルごとの読み取り結果 { name, count } または { name, err }
+    let pdfHitsAll = [];    // 全PDFから集めた記録
+    let relayAll = [];      // 全PDFから集めたリレーの記録
+    let meta = null;        // PDFの見出しから読み取った大会名など
     try{
-      const buf = await f.arrayBuffer();
-      if(/\.csv$/i.test(f.name)){
-        // 文字コードを自動で見分ける(UTF-8で文字化けしたらShift_JISで読み直す)
-        let text = new TextDecoder('utf-8').decode(buf);
-        if(text.includes('\uFFFD')){ try{ text = new TextDecoder('shift_jis').decode(buf); }catch(e){} }
-        if(text.charCodeAt(0)===0xFEFF) text = text.slice(1);
-        grids.push({ name:f.name, grid: parseCSV(text) });
-      } else {
-        await loadSheetJS();
-        const wb = XLSX.read(buf, { type:'array' });
-        wb.SheetNames.forEach(nm=>{
-          grids.push({ name:nm, grid: XLSX.utils.sheet_to_json(wb.Sheets[nm], { header:1, raw:false, defval:'' }) });
+      for(let fi=0; fi<files.length; fi++){
+        const f = files[fi];
+        const isPdf = /\.pdf$/i.test(f.name);
+        if(isPdfKind && !isPdf){ perFile.push({ name:f.name, err:'PDFではないので飛ばしました' }); continue; }
+        if(!isPdfKind && isPdf){ perFile.push({ name:f.name, err:'PDFは東洋電子・セイコー・国体のボタンで読んでください' }); continue; }
+        msg.innerHTML = `<div class="loading">読んでいます… (${fi+1}/${files.length}件目) ${esc(f.name)}</div>`;
+        const buf = await f.arrayBuffer();
+        if(isPdf){
+          const pdfRows = await pdfToRows(buf);
+          let hitsThis = [];
+          if(pdfKind==='relay'){
+            hitsThis = parseRelay(pdfRows);
+            if(hitsThis.length===0){ perFile.push({ name:f.name, err:'リレーの記録を読み取れませんでした(個人種目のPDFかもしれません)' }); continue; }
+            if(!meta) meta = tdsMeta(pdfRows);
+            perFile.push({ name:f.name, count:hitsThis.length });
+            relayAll = relayAll.concat(hitsThis);
+            continue;
+          }
+          if(pdfKind==='tds'){
+            hitsThis = parseTdsystem(pdfRows.map(r=>r.text));
+            if(hitsThis.length===0) hitsThis = parseTdsystem2(pdfRows.map(r=>r.text));  // 2行タイプも試す
+            if(hitsThis.length===0 && parseSeiko(pdfRows).length>0){
+              perFile.push({ name:f.name, err:'セイコーの形のPDFです(セイコーのボタンで読んでください)' }); continue;
+            }
+          } else {
+            hitsThis = parseSeiko(pdfRows);
+            if(hitsThis.length===0 && (parseTdsystem(pdfRows.map(r=>r.text)).length>0 || parseTdsystem2(pdfRows.map(r=>r.text)).length>0)){
+              perFile.push({ name:f.name, err:'東洋電子の形のPDFです(東洋電子のボタンで読んでください)' }); continue;
+            }
+          }
+          if(hitsThis.length===0){ perFile.push({ name:f.name, err:'記録を読み取れませんでした' }); continue; }
+          if(!meta && pdfKind==='tds') meta = tdsMeta(pdfRows);
+          perFile.push({ name:f.name, count:hitsThis.length });
+          pdfHitsAll = pdfHitsAll.concat(hitsThis);
+        } else if(/\.csv$/i.test(f.name)){
+          // 文字コードを自動で見分ける(UTF-8で文字化けしたらShift_JISで読み直す)
+          let text = new TextDecoder('utf-8').decode(buf);
+          if(text.includes('\uFFFD')){ try{ text = new TextDecoder('shift_jis').decode(buf); }catch(e){} }
+          if(text.charCodeAt(0)===0xFEFF) text = text.slice(1);
+          grids.push({ name:f.name, grid: parseCSV(text) });
+          perFile.push({ name:f.name, count:null });
+        } else {
+          await loadSheetJS();
+          const wb = XLSX.read(buf, { type:'array' });
+          wb.SheetNames.forEach(nm=>{
+            grids.push({ name:nm, grid: XLSX.utils.sheet_to_json(wb.Sheets[nm], { header:1, raw:false, defval:'' }) });
+          });
+          perFile.push({ name:f.name, count:null });
+        }
+      }
+      if(pdfKind==='relay'){
+        RELAY_HITS = relayAll.filter(r=>termKeep(r.team, kws, exs));
+        if(RELAY_HITS.length===0){
+          const detail = perFile.map(p=>esc(p.name)+': '+(p.err||(p.count+'件'))).join('<br>');
+          msg.innerHTML = '<div class="errmsg">リレーの記録が見つかりませんでした(探す・省くの条件も確認してください)。<br>'+detail+'</div>'; return;
+        }
+        // 自動入力(個人種目と同じ)
+        let rMetaNote = '';
+        if(meta && !document.getElementById('xlMeet').value.trim()){
+          if(meta.meet) document.getElementById('xlMeet').value = meta.meet;
+          if(meta.year && !document.getElementById('xlYear').value.trim()) document.getElementById('xlYear').value = meta.year;
+          if(meta.month && !document.getElementById('xlMonth').value.trim()) document.getElementById('xlMonth').value = meta.month;
+          if(meta.date && !document.getElementById('xlDate').value) document.getElementById('xlDate').value = meta.date;
+          if(meta.course) document.getElementById('xlCourse').value = meta.course;
+          rMetaNote = '(PDFの見出しから大会名・実施日・水路を自動入力しました。まちがっていたら直してください)';
+        }
+        let fileNote2 = '';
+        if(perFile.length > 1 || perFile.some(p=>p.err)){
+          fileNote2 = '<div class="hint" style="max-height:150px; overflow:auto; margin-top:6px; padding:8px; background:var(--blue-pale); border-radius:8px">ファイルごとの内訳:<br>' +
+            perFile.map(p=>esc(p.name)+': '+(p.err ? '⚠ '+esc(p.err) : p.count+'件')).join('<br>') + '</div>';
+        }
+        msg.innerHTML = `<div class="okmsg">リレーを${RELAY_HITS.length}チームぶん見つけました${rMetaNote}。登録すると、リレーの記録が保存され、<b>1泳のタイムは個人の正式記録としても登録</b>されます(2〜4泳は個人登録しません)。いらないチームはチェックを外してください。</div>` + fileNote2;
+        let rh = '<div class="tablewrap"><table><tr><th></th><th>種目</th><th>ラウンド</th><th>チーム</th><th>記録</th><th>泳者(1泳→4泳)</th></tr>';
+        RELAY_HITS.forEach((r,i)=>{
+          rh += `<tr><td><input type="checkbox" class="rlchk" data-i="${i}" checked style="width:26px;height:26px"></td>
+            <td class="nw">${esc(r.sex)} ${esc(r.event)}</td>
+            <td class="nw">${esc(r.round||'-')}</td>
+            <td class="nw" style="font-weight:700">${esc(r.team)}</td>
+            <td class="num nw">${esc(r.time)}</td>
+            <td>${r.legs.map(l=>esc(l.name)).join(' → ')}</td></tr>`;
         });
+        out.innerHTML = rh + '</table></div>' +
+          '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminRelaySave()">選んだリレーを登録する</button></div>';
+        return;
+      }
+      if(isPdfKind){
+        if(pdfHitsAll.length===0){
+          const detail = perFile.map(p=>esc(p.name)+': '+(p.err||'0件')).join('<br>');
+          msg.innerHTML = '<div class="errmsg">どのPDFからも記録を読み取れませんでした。<br>'+detail+'</div>'; return;
+        }
+        if(pdfKind==='kokutai'){
+          // 国体は所属が都道府県名なので、大学名では絞り込めない。
+          // かわりに、選手情報の名簿に載っている名前と照合して拾う。
+          const roster = (INIT && INIT.roster) ? INIT.roster : [];
+          if(roster.length===0){
+            msg.innerHTML = '<div class="errmsg">選手の名簿がまだ読み込めていません。ページを再読み込みしてから、もう一度試してください。</div>'; return;
+          }
+          const clean = s=>String(s||'').replace(/[\s\u3000]+/g,'');
+          const rosterNames = new Set(roster.map(p=>clean(p.name)));
+          const total = pdfHitsAll.length;
+          XL_HITS = pdfHitsAll.filter(h=>rosterNames.has(clean(h.name)));
+          kokutaiNote = `(PDF全体${total}件のうち、名簿と同じ名前だけを拾いました。同姓同名の別人がいたら、所属の県を見てチェックを外してください)`;
+          if(XL_HITS.length===0){
+            msg.innerHTML = `<div class="errmsg">PDFからは${total}件読み取れましたが、名簿と同じ名前の選手が1人も見つかりませんでした。名簿の名前の書き方(姓と名の間の空白など)を確認してください。</div>`; return;
+          }
+        } else {
+          XL_HITS = pdfHitsAll.filter(h=>termKeep(h.name + h.team, kws, exs));
+        }
       }
     }catch(err){
       msg.innerHTML = '<div class="errmsg">読めませんでした: '+esc(err.message)+'</div>'; return;
     }
-    let skipped = 0; let readSheets = 0;
-    grids.forEach(g=>{
-      const res = harvestGrid(g.grid, g.name, kws);
-      if(!res) return;
-      readSheets++;
-      XL_HITS = XL_HITS.concat(res.hits);
-      skipped += res.skipped;
-    });
-    if(readSheets===0){
-      msg.innerHTML = '<div class="errmsg">表の見出しが見つかりませんでした。1行目に「氏名」と「記録」(またはタイム)の列名があるか確認してください。</div>'; return;
+    // PDFの見出しから大会名・実施日・水路を自動入力(大会名の欄が空のときだけ)
+    let metaNote = '';
+    if(meta && !document.getElementById('xlMeet').value.trim()){
+      if(meta.meet) document.getElementById('xlMeet').value = meta.meet;
+      if(meta.year && !document.getElementById('xlYear').value.trim()) document.getElementById('xlYear').value = meta.year;
+      if(meta.month && !document.getElementById('xlMonth').value.trim()) document.getElementById('xlMonth').value = meta.month;
+      if(meta.date && !document.getElementById('xlDate').value) document.getElementById('xlDate').value = meta.date;
+      if(meta.course) document.getElementById('xlCourse').value = meta.course;
+      metaNote = '(PDFの見出しから大会名・実施日・水路を自動入力しました。まちがっていたら直してください)';
     }
-    // 同じ名前・種目・タイムの重複は1つにまとめる(まとめシートとの二重読みを防ぐ)
+    const isPdf = isPdfKind;
+    let skipped = 0; let readSheets = 0;
+
+    if(!isPdf){
+      grids.forEach(g=>{
+        const res = harvestGrid(g.grid, g.name, kws, exs);
+        if(!res) return;
+        readSheets++;
+        XL_HITS = XL_HITS.concat(res.hits);
+        skipped += res.skipped;
+      });
+      if(readSheets===0){
+        msg.innerHTML = '<div class="errmsg">表の見出しが見つかりませんでした。1行目に「氏名」と「記録」(またはタイム)の列名があるか確認してください。</div>'; return;
+      }
+    }
+    // 同じ名前・種目・タイム・ラウンドの重複は1つにまとめる(二重読みを防ぐ。
+    // 予選と決勝が同タイムでも、ラウンドが違えば両方残る)
     const uniq = {};
     XL_HITS = XL_HITS.filter(h=>{
-      const k = h.name+'_'+h.dist+h.stroke+'_'+h.time;
+      const k = h.name+'_'+h.dist+h.stroke+'_'+h.time+'_'+(h.round||'');
       if(uniq[k]) return false; uniq[k] = 1; return true;
     });
     if(XL_HITS.length===0){
       msg.innerHTML = '<div class="errmsg">取り込める記録が見つかりませんでした。探す名前や所属の書き方を、ファイルの書き方に合わせてみてください。</div>'; return;
     }
-    const note = skipped ? `(棄権・失格などタイムのない${skipped}行は飛ばしました)` : '';
-    msg.innerHTML = `<div class="okmsg">${XL_HITS.length}件見つかりました${note}。名前を直せます。いらない行はチェックを外して、下のボタンで登録してください。</div>`;
+    const dqCount = XL_HITS.filter(h=>toSec(h.time)==null).length;
+    let note = '';
+    if(dqCount) note += `(棄権・失格 ${dqCount}件をふくみます)`;
+    if(skipped) note += `(タイムも棄権もない${skipped}行は飛ばしました)`;
+    if(kokutaiNote) note += kokutaiNote;
+    let fileNote = '';
+    if(perFile.length > 1 || perFile.some(p=>p.err)){
+      fileNote = '<div class="hint" style="max-height:150px; overflow:auto; margin-top:6px; padding:8px; background:var(--blue-pale); border-radius:8px">ファイルごとの内訳:<br>' +
+        perFile.map(p=>esc(p.name)+': '+(p.err ? '⚠ '+esc(p.err) : (p.count==null ? '読み取り' : p.count+'件'))).join('<br>') + '</div>';
+    }
+    msg.innerHTML = `<div class="okmsg">${XL_HITS.length}件見つかりました${note}${metaNote}。名前を直せます。いらない行はチェックを外して、下のボタンで登録してください。</div>` + fileNote;
     let h = '<div class="tablewrap"><table><tr><th></th><th>名前</th><th>所属</th><th>種目</th><th>ラウンド</th><th>タイム</th></tr>';
     XL_HITS.forEach((r,i)=>{
       h += `<tr><td><input type="checkbox" class="xlchk" data-i="${i}" checked style="width:26px;height:26px"></td>
@@ -3123,6 +4091,51 @@ function renderAdmin(){
     });
     out.innerHTML = h + '</table></div>' +
       '<div class="stack" style="margin-top:10px"><button class="btn red solid big" onclick="adminXlsxSave()">選んだ記録を登録する</button></div>';
+  };
+  let RELAY_HITS = [];
+  // リレーの登録: リレーシートへの保存と、1泳の個人記録の登録をまとめて行う
+  window.adminRelaySave = async function(){
+    const msg = document.getElementById('xlMsg');
+    const meet = document.getElementById('xlMeet').value.trim();
+    const date = document.getElementById('xlDate').value;
+    const year = Number(document.getElementById('xlYear').value);
+    const month = Number(document.getElementById('xlMonth').value);
+    const course = document.getElementById('xlCourse').value;
+    if(!meet){ msg.innerHTML = '<div class="errmsg">大会名を入れてください。</div>'; return; }
+    const rows = [];
+    document.querySelectorAll('.rlchk').forEach(c=>{
+      if(c.checked) rows.push(RELAY_HITS[Number(c.dataset.i)]);
+    });
+    if(rows.length===0){ msg.innerHTML = '<div class="errmsg">登録するチームがありません。</div>'; return; }
+    // 1泳の個人記録(混合リレーは男女が分からないため個人登録はしない)
+    const firstLegs = [];
+    rows.forEach(r=>{
+      const l1 = r.legs[0];
+      if(r.sex==='混合' || !l1 || !l1.name || toSec(l1.leg)==null) return;
+      const stroke = r.relayType.includes('メドレー') ? 'Ba' : 'Fr';
+      firstLegs.push({ name: l1.name, event: r.legDist + stroke, time: l1.leg, round: r.round||'', sex: r.sex });
+    });
+    if(!confirm(rows.length+'チームのリレーを '+meet+' ('+course+') として登録します。あわせて1泳の個人記録を'+firstLegs.length+'件登録します。よろしいですか。')) return;
+    try{
+      msg.innerHTML = '<div class="loading">登録しています…</div>';
+      const exists = (INIT && INIT.meets||[]).some(m=>m.meet===meet && m.year===year && m.month===month && (m.course||'')===course);
+      if(!exists) await apiSave({ action:'addMeet', password:ADMIN_PW, meet, year, month, course });
+      const res = await apiSave({ action:'saveRelays', password:ADMIN_PW, meet, year, month, course, date,
+        relays: rows.map(r=>({ sex:r.sex, event:r.event, round:r.round||'', rank:r.rank||'', team:r.team, time:r.time, legDist:r.legDist||0, legs:r.legs })) });
+      if(firstLegs.length) await apiSave({ action:'saveBatch', meet, course, date,
+        records: firstLegs.map(f=>({ name:f.name, event:f.event, time:f.time, round:f.round })) });
+      localStorage.removeItem('cust_rec_cache');
+      localStorage.removeItem('cust_relay_cache');
+      RELAYS = null; DATA = null; INIT = null;
+      msg.innerHTML = '<div class="loading">登録が終わりました。画面に反映しています…</div>';
+      try{ await Promise.all([loadInit(), loadRecords(true)]); }catch(e){}
+      msg.innerHTML = `<div class="okmsg">リレー${rows.length}チームと、1泳の個人記録${firstLegs.length}件を登録しました。リレーは閲覧画面の「試合」で大会を開くと、いちばん下に表示されます。</div>`;
+      document.getElementById('xlOut').innerHTML = '';
+      document.getElementById('xlFile').value = '';
+    }catch(err){
+      msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+
+        '。GAS側に saveRelays の窓口(パッチv12)が入っているか確認してください。</div>';
+    }
   };
   window.adminXlsxSave = async function(){
     const msg = document.getElementById('xlMsg');
@@ -3139,7 +4152,7 @@ function renderAdmin(){
       const i = Number(c.dataset.i);
       const name = document.querySelector(`.xlname[data-i="${i}"]`).value.trim();
       if(!name) return;
-      rows.push({ name, event: XL_HITS[i].dist + XL_HITS[i].stroke, time: XL_HITS[i].time });
+      rows.push({ name, event: XL_HITS[i].dist + XL_HITS[i].stroke, time: XL_HITS[i].time, round: XL_HITS[i].round||'', splits: (XL_HITS[i].splits||[]).join(' / ') });
     });
     if(rows.length===0){ msg.innerHTML = '<div class="errmsg">登録する行がありません。</div>'; return; }
     if(!confirm(rows.length+'件を '+meet+' ('+course+') として登録します。よろしいですか。')) return;
@@ -3161,48 +4174,383 @@ function renderAdmin(){
       msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
     }
   };
-  // 歴代記録の打ち込み(閲覧画面から設定画面へ移動したもの)
-  let agCur = null;
-  eventPicker(document.getElementById('agPick'), st=>{ agCur = st; }, true);
-  window.adminSaveLegacy = async function(){
-    const msg = document.getElementById('agMsg');
-    const name = document.getElementById('agName').value.trim();
-    let time = document.getElementById('agTime').value.trim();
-    const year = document.getElementById('agYear').value.trim();
-    if(!name){ msg.innerHTML = '<div class="errmsg">名前を入れてください。</div>'; return; }
-    // 数字だけの入力(例 15483)も受け付けて 1:54.83 の形に直す
-    if(/^\d{3,6}$/.test(time) && digitsValid(time)) time = digitsToTime(time);
-    const sec = toSec(time);
-    if(sec==null){ msg.innerHTML = '<div class="errmsg">タイムの形が読めません。15483 のように数字だけか、1:54.83 の形で入れてください。</div>'; return; }
-    msg.innerHTML = '<div class="loading">登録しています…</div>';
-    try{
-      await apiSave({ action:'saveLegacy', name:name, sex:agCur.sex,
-        event: agCur.dist + agCur.stroke, course: agCur.course,
-        time: toStr(sec), year: year });
-      // 手元のデータにもすぐ足して、歴代記録の画面に反映されるようにする
-      if(DATA)(DATA.legacy = DATA.legacy||[]).push({ name:name, sex:agCur.sex,
-        event: agCur.dist+agCur.stroke, course:agCur.course, time:toStr(sec), year:year });
-      localStorage.removeItem('cust_rec_cache');
-      document.getElementById('agName').value=''; document.getElementById('agTime').value=''; document.getElementById('agYear').value='';
-      msg.innerHTML = `<div class="okmsg">登録しました。${esc(name)} ${toStr(sec)}</div>`;
-    }catch(err){
-      msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>';
-    }
-  };
   document.getElementById('apSearch').addEventListener('input', adminSearchAthlete);
 }
 
 // ----- 試合名の登録 -----
+// ----- 重複の点検と大会の統合 -----
+// 大会を選ぶ二つのプルダウンを、いま読み込めている大会一覧で作り直す
+function adminDrawCmpSelects(){
+  const selA = document.getElementById('cmpA');
+  const selB = document.getElementById('cmpB');
+  if(!selA || !selB) return;
+  const meets = (DATA && DATA.meets) ? DATA.meets : [];
+  const keepA = selA.value, keepB = selB.value;
+  // アプリの大会登録に入っている試合かどうかを調べる(登録済みなら先頭に★をつける)
+  const regd = (INIT && INIT.meets) ? INIT.meets : [];
+  const isReg = m => regd.some(x=>String(x.meet).trim()===String(m.meet).trim()
+    && Number(x.year)===Number(m.year) && Number(x.month)===Number(m.month)
+    && (x.course||'')===(m.course||''));
+  let opts = '<option value="">選んでください</option>';
+  meets.forEach((m, i)=>{
+    const label = `${isReg(m)?'★':''}${m.meet} ${m.year||'?'}年${m.month||'?'}月 ${m.course||''}`;
+    opts += `<option value="${i}">${esc(label)}</option>`;
+  });
+  selA.innerHTML = opts; selB.innerHTML = opts;
+  selA.value = keepA; selB.value = keepB;
+  if(meets.length===0){
+    const msg = document.getElementById('cmpMsg');
+    if(msg) msg.innerHTML = '<p class="hint">大会一覧を読み込み中です。少し待つと選べるようになります。</p>';
+  }
+}
+// 全レースの中の、まったく同じ行の二重登録を掃除する
+// 大会・年・月・水路・選手名・種目・タイム(秒の値)がすべて同じ行を、1行だけ残して削除する
+async function adminDedupeRaces(){
+  const msg = document.getElementById('cmpMsg');
+  if(!confirm('全レースシートを調べて、大会・選手・種目・タイム・ラウンドがすべて同じ行を、1行だけ残して削除します。予選と決勝のようにラウンドが違えば残ります。ただし過去に取り込んだ記録はラウンドが空のため、同じタイムの予選と決勝がどちらも空の場合は片方が消えることがあります。よろしいですか。')) return;
+  msg.innerHTML = '<div class="loading">二重登録を掃除しています…</div>';
+  let r;
+  try{
+    r = await apiSave({ action:'dedupeRaces', password:ADMIN_PW });
+    if(r && r.error) throw new Error(r.error);
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">掃除できませんでした: ' + esc(err.message) +
+      '。GAS側に dedupeRaces の窓口(パッチv7)が入っているか確認してください。</div>'; return;
+  }
+  // ここから先は画面の読み直し。失敗しても掃除そのものは終わっている
+  msg.innerHTML = `<div class="okmsg">掃除が終わりました。二重登録 ${r.removed||0} 件を削除しました。</div>`;
+  try{
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    await loadRecords(true);
+    adminDrawMeets();
+  }catch(e){
+    msg.innerHTML = `<div class="okmsg">掃除が終わりました。二重登録 ${r.removed||0} 件を削除しました。<br>(画面の読み直しに失敗したので、「覚え書きを全部捨てて読み直す」を押すか、ページを開き直してください)</div>`;
+  }
+}
+// スプレッドシートを手で直したあとに使う。GASサーバーの覚え書きと、
+// ブラウザの覚え書きと、画面が持っているデータの三つをまとめて捨てて読み直す
+async function adminFreshReload(){
+  const msg = document.getElementById('cmpMsg');
+  msg.innerHTML = '<div class="loading">覚え書きを捨てて、読み直しています…</div>';
+  try{
+    const r = await apiSave({ action:'bustCache', password:ADMIN_PW });
+    if(r && r.error) throw new Error(r.error);
+    localStorage.removeItem('cust_rec_cache');
+    localStorage.removeItem('cust_init_cache');
+    DATA = null; INIT = null;
+    await Promise.all([loadInit(), loadRecords(true)]);
+    adminDrawMeets();
+    document.getElementById('cmpOut').innerHTML = '';
+    msg.innerHTML = '<div class="okmsg">読み直しました。いまのスプレッドシートの中身がそのまま入っています。もう一度、二つの大会を比べるを押してください。</div>';
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">読み直せませんでした: ' + esc(err.message) +
+      '。GAS側に bustCache の窓口(パッチv4)が入っているか確認してください。</div>';
+  }
+}
+// 重複の点検: GASに調べてもらい、結果の件数を画面に出す(くわしくは重複チェックシート)
+async function adminDupCheck(){
+  const msg = document.getElementById('cmpMsg');
+  msg.innerHTML = '<div class="loading">全レースを点検しています…</div>';
+  try{
+    const r = await apiSave({ action:'checkDup', password:ADMIN_PW });
+    if(r && r.error) throw new Error(r.error);
+    msg.innerHTML = `<div class="okmsg">点検が終わりました。同じ試合が二重に入っている疑いが ${r.simPairs||0} 組、まったく同じ記録の二重登録が ${r.dupGroups||0} 組見つかりました。くわしい一覧はスプレッドシートの重複チェックシートにあります。同じ試合の疑いは下の統合で、同じ記録の二重登録は二重登録を削除のボタンで片づけられます。</div>`;
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">点検できませんでした: ' + esc(err.message) +
+      '。GAS側に checkDup の窓口(今回のパッチ)が入っているか確認してください。</div>';
+  }
+}
+// 二つの大会を、種目ごとに比べて表にする
+function adminCompareMeets(){
+  const msg = document.getElementById('cmpMsg');
+  const out = document.getElementById('cmpOut');
+  out.innerHTML = '';
+  if(!DATA || !DATA.records){ msg.innerHTML = '<div class="errmsg">記録の読み込みがまだ終わっていません。少し待ってからもう一度押してください。</div>'; return; }
+  const a = document.getElementById('cmpA').value;
+  const b = document.getElementById('cmpB').value;
+  if(a==='' || b===''){ msg.innerHTML = '<div class="errmsg">大会1と大会2を選んでください。</div>'; return; }
+  if(a===b){ msg.innerHTML = '<div class="errmsg">同じ大会どうしは比べられません。</div>'; return; }
+  const ia = Number(a), ib = Number(b);
+  const evs = {};
+  const put = (r, side)=>{
+    const k = r[2] + '_' + r[4] + r[3];
+    evs[k] = evs[k] || { sex:r[2], dist:r[4], stroke:r[3], A:{}, B:{} };
+    // 名前と、秒に直したタイムで同じ記録を見分ける
+    // (0:29.34 と 29.34、53.9 と 53.90 のような書き方の違いを同じとみなす)
+    const sec = toSec(r[5]);
+    const tkey = (sec==null) ? String(r[5]) : sec.toFixed(2);
+    evs[k][side][r[1] + '_' + tkey] = r[1];
+  };
+  DATA.records.forEach(r=>{
+    if(r[0]===ia) put(r, 'A');
+    else if(r[0]===ib) put(r, 'B');
+  });
+  const keys = Object.keys(evs);
+  if(keys.length===0){ msg.innerHTML = '<div class="errmsg">どちらの大会にも記録が見つかりませんでした。</div>'; return; }
+  let same = 0, onlyA = 0, onlyB = 0;
+  let h = '<div class="tablewrap"><table><tr><th>種目</th><th>大会1</th><th>大会2</th><th>同じ記録</th><th>大会2にだけある選手</th></tr>';
+  keys.sort().forEach(k=>{
+    const e = evs[k];
+    const aKeys = Object.keys(e.A), bKeys = Object.keys(e.B);
+    const dup = bKeys.filter(x=>e.A[x]);
+    const bOnly = bKeys.filter(x=>!e.A[x]);
+    same += dup.length;
+    onlyA += aKeys.filter(x=>!e.B[x]).length;
+    onlyB += bOnly.length;
+    const names = bOnly.map(x=>e.B[x]);
+    const shown = names.slice(0,8).join('、') + (names.length>8 ? ' ほか'+(names.length-8)+'名' : '');
+    h += `<tr><td class="nw">${esc(e.sex)} ${evShort(e.dist, e.stroke)}</td>
+      <td class="num nw">${aKeys.length}件</td><td class="num nw">${bKeys.length}件</td>
+      <td class="num nw">${dup.length}件</td><td>${esc(shown||'-')}</td></tr>`;
+  });
+  out.innerHTML = h + '</table></div>';
+  msg.innerHTML = `<div class="okmsg">比べました。まったく同じ記録が ${same} 件、大会1にだけある記録が ${onlyA} 件、大会2にだけある記録が ${onlyB} 件です。統合すると、同じ ${same} 件は削除され、大会2にだけある ${onlyB} 件が大会1へ移ります。(アプリ版 v6)</div>`;
+}
+// 大会2を大会1に統合する(GASで全レース・大会登録・入力ログをまとめて書き換える)
+async function adminMergeMeets(){
+  const msg = document.getElementById('cmpMsg');
+  if(!DATA || !DATA.meets){ msg.innerHTML = '<div class="errmsg">記録の読み込みがまだ終わっていません。</div>'; return; }
+  const a = document.getElementById('cmpA').value;
+  const b = document.getElementById('cmpB').value;
+  if(a==='' || b===''){ msg.innerHTML = '<div class="errmsg">大会1と大会2を選んでください。</div>'; return; }
+  if(a===b){ msg.innerHTML = '<div class="errmsg">同じ大会どうしは統合できません。</div>'; return; }
+  const mA = DATA.meets[Number(a)], mB = DATA.meets[Number(b)];
+  if(!confirm(`${mB.meet}(${mB.year}年${mB.month}月 ${mB.course}) の記録を ${mA.meet}(${mA.year}年${mA.month}月 ${mA.course}) に統合します。同じ記録は削除され、${mB.meet} は一覧から消えます。よろしいですか。`)) return;
+  msg.innerHTML = '<div class="loading">統合しています…</div>';
+  try{
+    const r = await apiSave({ action:'mergeMeets', password:ADMIN_PW,
+      toMeet: mA.meet, toCourse: mA.course||'', toYear: mA.year||0, toMonth: mA.month||0,
+      fromMeet: mB.meet, fromCourse: mB.course||'', fromYear: mB.year||0, fromMonth: mB.month||0 });
+    if(r && r.error) throw new Error(r.error);
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null; INIT = null;
+    try{ await Promise.all([loadInit(), loadRecords(true)]); }catch(e){}
+    msg.innerHTML = `<div class="okmsg">統合しました。${r.moved||0} 件を ${esc(mA.meet)} へ移し、同じ記録 ${r.removed||0} 件を削除しました。</div>`;
+    document.getElementById('cmpOut').innerHTML = '';
+    adminDrawMeets();
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">統合できませんでした: ' + esc(err.message) +
+      '。GAS側に mergeMeets の窓口(今回のパッチ)が入っているか確認してください。</div>';
+  }
+}
+// ----- 全国大会の登録(設定画面) -----
+async function adminDrawNationals(){
+  const box = document.getElementById('natList');
+  if(!box) return;
+  try{
+    await Promise.all([loadInit(), loadRecords()]);
+    await loadNationals();
+  }catch(e){
+    box.innerHTML = '<p class="hint">大会一覧を読み込めませんでした。ページを再読み込みして、もう一度試してください。</p>';
+    return;
+  }
+  const marked = new Set((NATIONALS||[]).map(s=>String(s).trim()));
+  // 同じ大会名は1行にまとめる(印は大会名につくため)。新しい順に並べる
+  const seen = {};
+  const list = [];
+  DATA.meets.slice()
+    .sort((a,b)=>(b.year*100+b.month)-(a.year*100+a.month))
+    .forEach(m=>{
+      const name = String(m.meet).trim();
+      if(!name || seen[name]) return;
+      seen[name] = 1;
+      list.push({ name, year:m.year, month:m.month, course:m.course });
+    });
+  if(list.length===0){
+    box.innerHTML = '<p class="hint">まだ大会がありません。記録を取り込むとここに並びます。</p>';
+    return;
+  }
+  let h = '<div class="tablewrap" style="max-height:340px"><table><tr><th>全国大会</th><th>大会名</th><th>年月</th></tr>';
+  list.forEach((m,i)=>{
+    h += `<tr><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${marked.has(m.name)?'checked':''} style="width:26px;height:26px"></td>
+      <td>${esc(m.name)}</td>
+      <td class="nw">${m.year||'?'}年${m.month||'?'}月</td></tr>`;
+  });
+  box.innerHTML = h + '</table></div>';
+}
+window.adminSaveNationals = async function(){
+  const msg = document.getElementById('natMsg');
+  const names = [...document.querySelectorAll('.natchk')]
+    .filter(c=>c.checked).map(c=>c.dataset.name);
+  NATIONALS = names;
+  localStorage.setItem('cust_nationals', JSON.stringify(names));
+  msg.innerHTML = '<div class="loading">保存しています…</div>';
+  try{
+    await apiSave({ action:'setNationals', password:ADMIN_PW, meets:names });
+    msg.innerHTML = `<div class="okmsg">保存しました。全国大会の印は ${names.length} 件です。閲覧画面の「全国大会」のタブに反映されます。</div>`;
+  }catch(err){
+    msg.innerHTML = `<div class="okmsg">この端末には保存しました(印 ${names.length} 件)。ただし、ほかの人のスマホにも共有するにはサーバー(GAS)側の準備が必要です。<br><span style="color:var(--red)">サーバーからの返事: ${esc(err.message)}</span></div>`;
+  }
+};
+
+// ----- 記録の修正(設定画面) -----
+// 名前で記録を探して、その場で直す。直した内容はGAS経由で
+// 全レースシート(と入力ログの控え)にも書き込まれる。
+let RF_HITS = [];
+window.adminFixSearch = async function(){
+  const list = document.getElementById('rfList');
+  const msg = document.getElementById('rfMsg');
+  const q = String(document.getElementById('rfName').value || '').replace(/[\s\u3000]+/g, '');
+  if(!q){ msg.innerHTML = '<div class="errmsg">名前を入れてください。</div>'; return; }
+  msg.innerHTML = '<div class="loading">記録を探しています…</div>';
+  try{ await Promise.all([loadInit(), loadRecords()]); }
+  catch(e){ msg.innerHTML = '<div class="errmsg">記録を読み込めませんでした: '+esc(e.message)+'</div>'; return; }
+  RF_HITS = DATA.records
+    .map((r,i)=>({ r, i }))
+    .filter(x=>String(x.r[1]).replace(/[\s\u3000]+/g,'').includes(q))
+    .sort((a,b)=>{
+      const ma = DATA.meets[a.r[0]], mb = DATA.meets[b.r[0]];
+      return (mb.year*100+mb.month)-(ma.year*100+ma.month);
+    })
+    .slice(0, 200);
+  if(RF_HITS.length===0){
+    list.innerHTML = ''; msg.innerHTML = '<div class="errmsg">その名前の記録は見つかりませんでした。</div>'; return;
+  }
+  msg.innerHTML = `<div class="okmsg">${RF_HITS.length}件見つかりました。直したい行の「直す」を押してください。</div>`;
+  let h = '<div class="tablewrap" style="max-height:400px"><table><tr><th>名前</th><th>大会</th><th>種目</th><th>ラウンド</th><th>タイム</th><th></th></tr>';
+  RF_HITS.forEach((x, k)=>{
+    const m = DATA.meets[x.r[0]];
+    h += `<tr id="rfrow${k}"><td class="nw" style="font-weight:700">${esc(x.r[1])}</td>
+      <td>${m.year||'?'}年${m.month||'?'}月 ${esc(m.meet)} ${esc(m.course||'')}</td>
+      <td class="nw">${x.r[4]}${esc(x.r[3])}</td>
+      <td class="nw">${esc(x.r[8]||'-')}</td>
+      <td class="num nw">${esc(x.r[5])}</td>
+      <td><button class="btn" style="min-height:44px; padding:6px 14px" onclick="adminFixOpen(${k})">直す</button></td></tr>
+      <tr id="rfedit${k}" hidden><td colspan="6"></td></tr>`;
+  });
+  list.innerHTML = h + '</table></div>';
+};
+window.adminFixOpen = function(k){
+  // ほかの編集行を閉じる
+  RF_HITS.forEach((_, j)=>{ const tr = document.getElementById('rfedit'+j); if(tr) tr.hidden = (j!==k); });
+  const x = RF_HITS[k];
+  const m = DATA.meets[x.r[0]];
+  const td = document.querySelector('#rfedit'+k+' td');
+  const rounds = ['', '予選', 'B決勝', '決勝', 'タイム決勝', 'スイムオフ'];
+  const roundOpts = rounds.map(r=>`<option value="${r}" ${String(x.r[8]||'')===r?'selected':''}>${r||'(なし)'}</option>`).join('');
+  td.innerHTML = `
+    <div style="background:var(--blue-pale); border-radius:10px; padding:12px">
+      <p class="hint" style="margin:0 0 8px">${m.year||'?'}年${m.month||'?'}月 ${esc(m.meet)} の記録を直します。</p>
+      <div class="pick3">
+        <label class="fld">名前<input type="text" id="rfEdName" value="${esc(x.r[1])}"></label>
+        <label class="fld">種目(例: 100Fr)<input type="text" id="rfEdEvent" value="${x.r[4]}${esc(x.r[3])}"></label>
+        <label class="fld">タイム<input type="text" id="rfEdTime" value="${esc(x.r[5])}"></label>
+      </div>
+      <div class="pick3" style="margin-top:8px">
+        <label class="fld">ラウンド<select id="rfEdRound">${roundOpts}</select></label>
+        <label class="fld">水路<select id="rfEdCourse">
+          <option ${m.course==='長水路'?'selected':''}>長水路</option>
+          <option ${m.course==='短水路'?'selected':''}>短水路</option></select></label>
+      </div>
+      <div class="stack" style="margin-top:10px">
+        <button class="btn red solid" onclick="adminFixSave(${k})">この内容で直す</button>
+        <button class="btn red" onclick="adminFixDelete(${k})">この記録を消す</button>
+        <button class="btn ghost" onclick="document.getElementById('rfedit${k}').hidden=true">やめる</button>
+      </div>
+    </div>`;
+};
+window.adminFixDelete = async function(k){
+  const msg = document.getElementById('rfMsg');
+  const x = RF_HITS[k];
+  const m = DATA.meets[x.r[0]];
+  if(!confirm(`この記録をスプレッドシートから消します。もとに戻せません。\n\n${x.r[1]} ${x.r[4]}${x.r[3]} ${x.r[5]}\n${m.year}年${m.month}月 ${m.meet}\n\nよろしいですか。`)) return;
+  msg.innerHTML = '<div class="loading">消しています…</div>';
+  try{
+    await apiSave({ action:'deleteRecord', password:ADMIN_PW,
+      old:{ meet:m.meet, year:m.year, month:m.month, course:m.course,
+            name:x.r[1], event:x.r[4]+x.r[3], time:x.r[5], round:String(x.r[8]||'') } });
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
+    msg.innerHTML = '<div class="okmsg">記録を1件消しました。</div>';
+    adminFixSearch();
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">消せませんでした: '+esc(err.message)+
+      '。GAS側に deleteRecord の窓口(パッチv13)が入っているか確認してください。</div>';
+  }
+};
+window.adminFixSave = async function(k){
+  const msg = document.getElementById('rfMsg');
+  const x = RF_HITS[k];
+  const m = DATA.meets[x.r[0]];
+  const nwName = String(document.getElementById('rfEdName').value || '').replace(/[\s\u3000]+/g, '');
+  const nwEvent = String(document.getElementById('rfEdEvent').value || '').trim();
+  const nwTime = String(document.getElementById('rfEdTime').value || '').trim();
+  const nwRound = String(document.getElementById('rfEdRound').value || '');
+  const nwCourse = String(document.getElementById('rfEdCourse').value || '');
+  if(!nwName){ msg.innerHTML = '<div class="errmsg">名前を入れてください。</div>'; return; }
+  if(!/^\d+(Fr|Ba|Br|Fly|IM)$/.test(nwEvent)){
+    msg.innerHTML = '<div class="errmsg">種目は 100Fr のような形で入れてください(Fr=自由形 Ba=背泳ぎ Br=平泳ぎ Fly=バタフライ IM=個人メドレー)。</div>'; return;
+  }
+  if(toSec(nwTime)==null && ['棄権','失格','欠場'].indexOf(nwTime)===-1){
+    msg.innerHTML = '<div class="errmsg">タイムは 1:54.83 か 54.83 の形(または 棄権・失格・欠場)で入れてください。</div>'; return;
+  }
+  if(!confirm('この記録をスプレッドシートごと書き換えます。よろしいですか。')) return;
+  msg.innerHTML = '<div class="loading">直しています…</div>';
+  try{
+    const res = await apiSave({ action:'editRecord', password:ADMIN_PW,
+      old:{ meet:m.meet, year:m.year, month:m.month, course:m.course,
+            name:x.r[1], event:x.r[4]+x.r[3], time:x.r[5], round:String(x.r[8]||'') },
+      nw:{ name:nwName, event:nwEvent, time:nwTime, round:nwRound, course:nwCourse } });
+    // 覚えていた記録データを捨てて読み直す
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
+    msg.innerHTML = `<div class="okmsg">直しました。${res.logFixed ? '(入力ログの控えもそろえました)' : ''}</div>`;
+    adminFixSearch();   // 同じ名前で探し直して、直った状態を見せる
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">直せませんでした: '+esc(err.message)+
+      '。GAS側にeditRecordの窓口(パッチv11)が入っているか確認してください。</div>';
+  }
+};
+
 function adminDrawMeets(){
   const box = document.getElementById('amList');
+  adminDrawCmpSelects();
+  if(!box) return;
+  // 大会一覧のデータがまだ無い(または読み直しに失敗した)ときは、自動で読み直す
+  if(!INIT || !INIT.meets){
+    box.innerHTML = '<p class="hint">大会一覧を読み込んでいます…</p>';
+    loadInit().then(()=>{ if(INIT && INIT.meets) adminDrawMeets(); })
+      .catch(()=>{ box.innerHTML = '<p class="hint">大会一覧を読み込めませんでした。通信の状態を確認して、ページを再読み込みしてください。</p>'; });
+    return;
+  }
   const regs = INIT.meets.filter(m=>m.reg);
   if(regs.length===0){ box.innerHTML = '<p class="hint">登録済みの大会はまだありません。</p>'; return; }
-  let html = '<div class="tablewrap"><table><tr><th>登録済みの大会</th><th>年月</th><th>水路</th><th></th></tr>';
+  let html = '<div class="tablewrap"><table><tr><th>登録済みの大会</th><th>年月</th><th>水路</th><th></th><th></th></tr>';
   regs.forEach(m=>{
+    const other = (m.course==='長水路') ? '短水路' : '長水路';
     html += `<tr><td>${esc(m.meet)}</td><td>${m.year}年${m.month}月</td><td>${esc(m.course)}</td>
+      <td><button class="btn" style="min-height:44px" onclick="adminChangeCourse('${esc(m.meet)}','${esc(m.course)}',${m.year||0},${m.month||0})">${other}に直す</button></td>
       <td><button class="btn red" style="min-height:44px" onclick="adminDeleteMeet('${esc(m.meet)}','${esc(m.course)}')">削除</button></td></tr>`;
   });
   box.innerHTML = html + '</table></div>';
+}
+// 登録済みの大会の水路を、ボタン一つで長水路と短水路で切り替える
+// 大会登録と全レースの両方をGAS側で書き換えて、ベスト比較も付け直す
+async function adminChangeCourse(meet, course, year, month){
+  const newCourse = (course === '長水路') ? '短水路' : '長水路';
+  if(!confirm(meet + ' の水路を ' + course + ' から ' + newCourse +
+    ' に切り替えます。この大会として登録された記録の水路もまとめて書き換わります。よろしいですか。')) return;
+  const msg = document.getElementById('amMsg');
+  msg.innerHTML = '<div class="loading">水路を切り替えています…</div>';
+  try{
+    const r = await apiSave({ action:'changeMeetCourse', password:ADMIN_PW,
+      meet: meet, course: course, newCourse: newCourse,
+      year: year||0, month: month||0 });
+    if(r && r.error) throw new Error(r.error);
+    // 手元に覚えている大会一覧もその場で書き換える
+    (INIT.meets||[]).forEach(m=>{ if(m.meet===meet && (m.course||'')===course && (!year || (m.year||0)===year) && (!month || (m.month||0)===month)) m.course = newCourse; });
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
+    msg.innerHTML = `<div class="okmsg">${esc(meet)} を ${newCourse} に切り替えました(書き換えた記録 ${r.count||0} 件)。</div>`;
+    adminDrawMeets();
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">切り替えられませんでした: ' + esc(err.message) +
+      '。GAS側に changeMeetCourse の窓口(今回のパッチ)が入っているか確認してください。</div>';
+  }
 }
 async function adminAddMeet(){
   const msg = document.getElementById('amMsg');
@@ -3226,7 +4574,7 @@ async function adminAddMeet(){
   }catch(err){ msg.innerHTML = '<div class="errmsg">登録できませんでした: '+esc(err.message)+'</div>'; }
 }
 async function adminDeleteMeet(meet, course){
-  if(!confirm(meet+' を登録から削除します。よろしいですか。')) return;
+  if(!confirm(meet+' を登録簿から外します。レースの記録データは消えません。よろしいですか。')) return;
   const msg = document.getElementById('amMsg');
   msg.innerHTML = '<div class="loading">削除しています…</div>';
   try{

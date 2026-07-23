@@ -304,6 +304,12 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 
   <!-- ================= 閲覧画面 ================= -->
   <section id="paneView" role="tabpanel" aria-label="記録を見る" hidden>
+    <div class="stack" style="justify-content:flex-end; align-items:center; margin-bottom:6px; gap:8px">
+      <span class="hint" style="margin:0; font-size:0.8rem" id="verLabel"></span>
+      <button class="btn ghost" style="min-height:40px; padding:6px 14px; font-size:0.95rem"
+        onclick="reloadAll()" title="最新の記録を取り直して、アプリも新しくします">最新の状態にする</button>
+    </div>
+    <div id="reloadMsg" aria-live="polite"></div>
     <p class="modehead">探す</p>
     <div class="modes" role="tablist" aria-label="探しかた">
       <button class="mode" data-m="meet"  role="tab" aria-label="試合で探す" onclick="showMode('meet')">試合</button>
@@ -375,7 +381,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.16.46';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.07.23.2';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -587,7 +593,9 @@ async function loadRecords(force){
 }
 // 記録の配列を、あつかいやすい形にひらく
 function rec(r){
-  const mt = DATA.meets[r[0]];
+  const mt = (DATA && DATA.meets) ? DATA.meets[r[0]] : null;
+  if(!mt) return { meet:{meet:'',year:0,month:0,course:''}, name:'', sex:'', stroke:'', dist:0,
+                   time:'', best:'', pb:false, round:'', splits:[], sec:null, stamp:0 };
   // r[8]はラウンド、r[9]は通過タイム(「30.23 / 1:02.72 / …」の形)
   const spRaw = String(r[9] || '').trim();
   return { meet:mt, name:r[1], sex:r[2], stroke:r[3], dist:r[4],
@@ -756,6 +764,36 @@ async function forceReloadData(){
   DATA = null; INIT = null;
   showMode(currentMode);   // いま開いている画面を、読み直したデータで表示し直す
 }
+/* 「最新の状態にする」ボタン。
+   手元に覚えている記録を捨てて取り直し、そのあとアプリ本体も新しく読み直す。
+   アプリのファイルを差し替えたのに古いままになる、という取りちがえを防ぐ。 */
+window.reloadAll = async function(){
+  const msg = document.getElementById('reloadMsg');
+  if(msg) msg.innerHTML = '<div class="loading">最新の記録を取りに行っています…</div>';
+  try{
+    localStorage.removeItem('cust_rec_cache');
+    localStorage.removeItem('cust_relay_cache');
+    localStorage.removeItem('cust_init_cache');
+  }catch(e){}
+  DATA = null; RELAYS = null; INIT = null;
+  try{
+    await Promise.all([loadInit(), loadRecords(true)]);
+  }catch(e){}
+  if(msg) msg.innerHTML = '<div class="loading">アプリを新しく読み直しています…</div>';
+  // 少し待ってから、ブラウザの覚え書きも使わずに読み直す
+  setTimeout(()=>{
+    const u = new URL(location.href);
+    u.searchParams.set('_r', String(Date.now()));   // 毎回ちがう印をつけて、確実に新しく読ませる
+    location.replace(u.toString());
+  }, 400);
+};
+
+// 画面を開いたときに、アプリの日付を小さく出す
+window.addEventListener('DOMContentLoaded', ()=>{
+  const el = document.getElementById('verLabel');
+  if(el) el.textContent = 'アプリ ' + APP_VERSION;
+});
+
 function showMode(m){
   currentMode = m;
   document.querySelectorAll('.mode').forEach(b=>{
@@ -1075,7 +1113,7 @@ function stepAthletes(){
 function findBest(name, stroke, dist, course){
   if(!DATA) return null;
   let best = null;
-  DATA.records.map(rec).forEach(r=>{
+  ((DATA&&DATA.records)?DATA.records:[]).map(rec).forEach(r=>{
     if(r.name!==name || r.stroke!==stroke || r.dist!==dist) return;
     if(course && r.meet.course && r.meet.course!==course) return;
     if(r.sec!=null && (best==null || r.sec<best)) best = r.sec;
@@ -1280,8 +1318,14 @@ function viewFyTab(){
   function draw(){
     if(nSel.value==='') return;
     const idx = Number(nSel.value);
-    const rows = DATA.records.map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     const out = document.getElementById('vfOut');
+    if(!DATA || !DATA.records){
+      out.innerHTML = '<p class="hint">記録を読み込んでいます…</p>';
+      loadRecords().then(()=>{ if(DATA && DATA.records) draw(); })
+        .catch(()=>{ out.innerHTML = '<p class="hint">記録を読み込めませんでした。ページを再読み込みしてください。</p>'; });
+      return;
+    }
+    const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
     const groups = {};
     rows.forEach(r=>{
@@ -1439,7 +1483,7 @@ async function viewNationalTab(){
   function draw(){
     if(nSel.value==='') return;
     const idx = Number(nSel.value);
-    const rows = DATA.records.map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
+    const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     const out = document.getElementById('vnOut');
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
     const groups = {};
@@ -1527,8 +1571,15 @@ function viewMeet(){
   function draw(){
     if(nSel.value==='') return;
     const idx = Number(nSel.value);
-    const rows = DATA.records.map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     const out = document.getElementById('meetOut');
+    // データがまだ無いときは、読み直してからもう一度描く
+    if(!DATA || !DATA.records){
+      out.innerHTML = '<p class="hint">記録を読み込んでいます…</p>';
+      loadRecords().then(()=>{ if(DATA && DATA.records) draw(); })
+        .catch(()=>{ out.innerHTML = '<p class="hint">記録を読み込めませんでした。ページを再読み込みしてください。</p>'; });
+      return;
+    }
+    const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
     // 種目ごとにまとめる
     const groups = {};
@@ -1575,7 +1626,7 @@ function viewName(autoName){
   }
 
   function showPerson(p, isMine){
-    const rows = DATA.records.map(rec).filter(r=>r.name===p.name)
+    const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>r.name===p.name)
       .sort((a,b)=>b.stamp-a.stamp);
     const out = document.getElementById('nameOut');
     // 生年月日を yyyy-mm-dd の形に直す(入力欄に入れるため)
@@ -1863,7 +1914,7 @@ function stdLegendHtml(lines, tailText){
 }
 // 記録の推移グラフを全画面で描く共通の部品 (名前で探すとグラフの両方から使う)
 function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
-  const rows = DATA.records.map(rec).filter(r=>
+  const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>
     r.name===p.name && r.stroke===stroke && r.dist===dist &&
     (r.meet.course||'長水路')===course && r.sec!=null
   ).sort((a,b)=>a.stamp-b.stamp);
@@ -1910,7 +1961,7 @@ function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
 
 // 複数の選手の推移をひとつのグラフにくらべて描く (グラフ画面から使う)
 function renderProgressMulti(people, stroke, dist, course){
-  const perRows = people.map(p=> DATA.records.map(rec).filter(r=>
+  const perRows = people.map(p=> ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>
     r.name===p.name && r.stroke===stroke && r.dist===dist &&
     (r.meet.course||'長水路')===course && r.sec!=null));
   const meetIdx = [...new Set([].concat(...perRows).map(r=>DATA.meets.indexOf(r.meet)))]
@@ -2005,7 +2056,7 @@ function viewEvent(){
       <div id="evPick"></div><div id="evOut" style="margin-top:16px"></div>
     </div>`;
   eventPicker(document.getElementById('evPick'), st=>{
-    const rows = DATA.records.map(rec).filter(r=>
+    const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>
       r.stroke===st.stroke && r.dist===st.dist && r.sex===st.sex &&
       (!st.course || (r.meet.course||'')===st.course)
     ).sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
@@ -2052,7 +2103,7 @@ function viewRank(){
     cur = st || cur; if(!cur) return;
     // 選手ごとのベストを出す (名前・秒数・出した大会の文字、の形にそろえる)
     const bestMap = {};
-    DATA.records.map(rec).forEach(r=>{
+    ((DATA&&DATA.records)?DATA.records:[]).map(rec).forEach(r=>{
       if(r.stroke!==cur.stroke || r.dist!==cur.dist || r.sex!==cur.sex) return;
       if(cur.course && (r.meet.course||'')!==cur.course) return;
       if(r.sec==null) return;
@@ -2169,7 +2220,7 @@ function viewLegend(){
     cur = st || cur; if(!cur) return;
     // 現役部員の大会記録: 選手ごとにいちばん速いもの
     const bestMap = {};
-    DATA.records.map(rec).forEach(r=>{
+    ((DATA&&DATA.records)?DATA.records:[]).map(rec).forEach(r=>{
       if(r.stroke!==cur.stroke || r.dist!==cur.dist || r.sex!==cur.sex) return;
       if((r.meet.course||'')!==cur.course) return;
       if(r.sec==null) return;
@@ -2623,7 +2674,7 @@ function viewGraph(autoName){
     const stage = document.getElementById('gStage');
     // 出場した種目だけをあつめる (泳法_距離_水路 → 記録の一覧)
     const evs = {};
-    DATA.records.map(rec).forEach(r=>{
+    ((DATA&&DATA.records)?DATA.records:[]).map(rec).forEach(r=>{
       if(r.name!==p.name || r.sec==null) return;
       const k = r.stroke+'_'+r.dist+'_'+(r.meet.course||'長水路');
       (evs[k]=evs[k]||[]).push(r);
@@ -2862,7 +2913,7 @@ function renderAdmin(){
     </div>
 
     <div class="card"><h2>大会結果の取り込み(Excel・CSV・PDF)</h2>
-      <p class="hint">ExcelファイルやCSVファイルのほか、東洋電子(TDSystem)とセイコー(swim.seiko.co.jp)の種目別結果PDFもそのまま読み取れます。セイコーは大会ページから結果PDFをダウンロードして、ここで選ぶだけです。全種目まとめの大きなPDF(all_ranking)にも対応しています。Excel・CSVは表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格・欠場の行もそのまま取り込みます(記録欄に「棄権」などの言葉が入ります)。タイムも棄権もない行と、リレー種目は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。省く名前や所属を入れると、その言葉を含む選手を外します。たとえば探すに中京大、省くに中京大中京と入れると、大学の選手だけを拾えます。<b>国体(国民スポーツ大会)の結果</b>は所属が「東京」「愛知」のような県名になっているため、大学名では絞れません。かわりに「国体のPDFを読み取る(名簿と照合)」のボタンを使うと、選手情報の名簿に載っている名前と同じ選手だけを自動で拾います。同姓同名の別人が混ざることがあるので、一覧の所属の県を見て、ちがう人はチェックを外してから登録してください。</p>
+      <p class="hint">ExcelファイルやCSVファイルのほか、東洋電子(TDSystem)・セイコー(swim.seiko.co.jp)・アクアクルー(関西中部対抗戦など)の種目別結果PDFもそのまま読み取れます。どのボタンでも、形がちがえば自動で読み分けます。セイコーは大会ページから結果PDFをダウンロードして、ここで選ぶだけです。全種目まとめの大きなPDF(all_ranking)にも対応しています。Excel・CSVは表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格・欠場の行もそのまま取り込みます(記録欄に「棄権」などの言葉が入ります)。タイムも棄権もない行と、リレー種目は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。省く名前や所属を入れると、その言葉を含む選手を外します。たとえば探すに中京大、省くに中京大中京と入れると、大学の選手だけを拾えます。<b>国体(国民スポーツ大会)の結果</b>は所属が「東京」「愛知」のような県名になっているため、大学名では絞れません。かわりに「国体のPDFを読み取る(名簿と照合)」のボタンを使うと、選手情報の名簿に載っている名前と同じ選手だけを自動で拾います。同姓同名の別人が混ざることがあるので、一覧の所属の県を見て、ちがう人はチェックを外してから登録してください。</p>
       <label class="fld">探す名前や所属(カンマ区切り。空なら全員)
         <input type="text" id="xlWho" placeholder="例: 中京大 または 山本大地,石渡遥"></label>
       <div id="xlWhoChips" aria-label="探す言葉の記憶"></div>
@@ -2877,6 +2928,9 @@ function renderAdmin(){
         <label class="fld">年<input type="text" id="xlYear" inputmode="numeric"></label>
         <label class="fld">月<input type="text" id="xlMonth" inputmode="numeric"></label>
         <label class="fld">水路<select id="xlCourse"><option>長水路</option><option>短水路</option></select></label>
+      </div>
+      <div class="pick2" style="margin-top:8px">
+        <label class="fld wide">会場(わかれば。PDFから自動で入ります)<input type="text" id="xlPlace" placeholder="例: 中京大学スポーツ科学部 梅村プール"></label>
       </div>
       <label class="fld" style="margin-top:8px">Excel・CSV・PDFのファイル
         <input type="file" id="xlFile" accept=".csv,.xlsx,.xls,.pdf" multiple style="min-height:58px; padding:12px"></label>
@@ -3277,13 +3331,125 @@ function renderAdmin(){
   }
   // 東洋電子PDFの見出しから、大会名・実施日・水路を読み取る
   // 1行目=大会名、「期日:2026年7月4日…」、「会場:…(50m)」の形を利用する
+  /* AQUA CREW(アクアクルー)の種目別競技結果PDFを読む。
+     見出し: 競技番号:1 女子 400ｍ 個人メドレー 予選
+     選手行: 1 1/ 3 梶本 幸花 関西支部 /同志社大学 07 大１ 0.62 4:49.94 Q +2.63
+     つぎの行から: 50ｍ: 30.82 100ｍ: 1:05.44 (34.62) [1:05.44] 150ｍ: … と通過タイムが並ぶ */
+  function parseAqua(lines){
+    const evRe = /競技番号\s*[:：]\s*\d+\s+(男子|女子|混合)\s+(\d+)\s*[ｍm]\s+(\S+?)\s+(予選|Ｂ決勝|B決勝|決勝|タイム決勝|準決勝|スイムオフ)/;
+    // 順位 組/水路 氏名 加盟団体 /所属 生年 学年 リアクション 記録
+    const rowRe = /^\s*(\d+)?\s*(\d+\/\s*\d+)\s+(.+?)\s+(\d{2})\s+(大|高|中|小)?[０-９0-9一二三四五六七八九]?\s+(?:(\d\.\d{2})\s+)?((?:\d+:)?\d{1,2}\.\d{2}|棄権|失格|欠場|DNS|DSQ|DNF)/;
+    const splitRe = /(\d+)\s*[ｍm]\s*[:：]\s*((?:\d+:)?\d{1,2}\.\d{2})/g;
+    let ev = null;
+    const hits = [];
+    for(let i=0; i<lines.length; i++){
+      const line = lines[i];
+      const m = line.match(evRe);
+      if(m){
+        if(/[×xX]|リレー/.test(line)){ ev = null; }
+        else{
+          const e = parseEventText(m[2]+'m'+m[3]);
+          ev = e ? { sex: m[1]==='女子' ? '女' : (m[1]==='混合' ? '混合' : '男'),
+                     dist: e.dist, stroke: e.stroke,
+                     round: m[4].replace('Ｂ','B') } : null;
+        }
+        continue;
+      }
+      if(!ev) continue;
+      // 記録の行を読む(世界記録などの参考行は「記録」の文字があるので飛ばす)
+      if(/世界記録|日本記録|学生記録|大会記録|ＷＪ記録|関西記録|中部記録/.test(line)) continue;
+      const r = line.match(rowRe);
+      if(!r) continue;
+      // 氏名と所属を分ける(所属は「/」で始まる)
+      let namePart = r[3];
+      let name = namePart, team = '';
+      const slash = namePart.indexOf('/');
+      if(slash >= 0){
+        team = namePart.slice(slash+1).trim();
+        name = namePart.slice(0, slash).replace(/(関西支部|中部支部|近畿支部|東海支部)\s*$/, '').trim();
+      }
+      name = name.replace(/[\s\u3000]+/g, '');
+      let time = r[7];
+      if(/棄権|欠場|DNS/.test(time)) time = /欠場/.test(time) ? '欠場' : '棄権';
+      else if(/失格|DSQ/.test(time)) time = '失格';
+      else if(/DNF/.test(time)) time = '途中棄権';
+      else time = fmtTime(time);
+      // つぎの行から通過タイムを集める(50ｍ: 30.82 100ｍ: 1:05.44 … の形)
+      const splits = [];
+      if(/^\d/.test(time)){
+        for(let j=i+1; j<=i+4 && j<lines.length; j++){
+          if(rowRe.test(lines[j]) || evRe.test(lines[j])) break;
+          let mm; const re = new RegExp(splitRe.source, 'g');
+          let found = false;
+          while((mm = re.exec(lines[j]))){
+            splits.push({ d: Number(mm[1]), t: mm[2] });
+            found = true;
+          }
+          if(!found && splits.length) break;
+        }
+      }
+      // 距離の順に並べ、最後(=記録そのもの)を除いた通過タイムにする
+      splits.sort((a,b)=>a.d-b.d);
+      const sp = splits.filter(s=>s.d < ev.dist).map(s=>fmtTime(s.t));
+      hits.push({ name, team, sex: ev.sex, dist: ev.dist, stroke: ev.stroke,
+        round: ev.round, time, splits: sp });
+    }
+    return hits;
+  }
+
+  /* AQUA CREWのPDFから大会名・会場・実施日を読み取る。
+     1行目は同じ文字が2回くり返されることがあるので、半分に切り詰める。 */
+  function aquaMeta(lines){
+    const dedupe = s => {
+      const t = String(s).trim();
+      const h = Math.floor(t.length/2);
+      // 「ABCABC」のように前半と後半が同じなら、前半だけにする
+      if(t.length >= 6 && t.slice(0,h) === t.slice(h)) return t.slice(0,h).trim();
+      return t;
+    };
+    let meet = '', place = '', year = 0, month = 0, date = '', course = '';
+    for(const line of lines.slice(0, 10)){
+      const t = String(line||'').trim();
+      if(!t) continue;
+      // 日付「2026/04/18～2026/04/19」と会場が同じ行にある
+      const dm = t.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+      if(dm && !date){
+        year = Number(dm[1]); month = Number(dm[2]);
+        date = dm[1] + '-' + String(dm[2]).padStart(2,'0') + '-' + String(dm[3]).padStart(2,'0');
+        // 日付より前の部分が会場名
+        const p = dedupe(t.slice(0, t.indexOf(dm[0])).trim());
+        if(p && p.length >= 3) place = p;
+      }
+      if(!meet && /大会|選手権|カップ|フェスティバル|記録会|競技会/.test(t) && !/種目別|競技番号/.test(t)){
+        // 英語の副題(Dual Meet of など)を取りのぞいてから、くり返しをまとめる
+        let c = t.replace(/Dual Meet of/gi, ' ').replace(/[A-Za-z]+\s+vs\s+[A-Za-z]+/gi, ' ')
+                 .replace(/\s+/g, ' ').trim();
+        c = dedupe(c);
+        // それでも同じ大会名が2回つながっているときは、1回ぶんにする
+        const m2 = c.match(/^(.+?)\1$/);
+        if(m2) c = m2[1].trim();
+        if(c.length >= 4) meet = c;
+      }
+    }
+    return (meet || date) ? { meet, place, year, month, date, course } : null;
+  }
+
+  /* 東洋電子PDFの見出しから、大会名・会場・実施日・水路を読み取る。
+     ふつうは1行目が大会名、つぎに「会場:…(50m)」「期日:2026年5月16日」と並ぶ。
+     水路は、会場の(50m)→長水路 / (25m)→短水路 で判断する。
+     それが無いときは、大会名の中の「長水路」「短水路」からも探す。 */
   function tdsMeta(rows){
-    let meet = '', year = 0, month = 0, date = '', course = '';
+    let meet = '', place = '', year = 0, month = 0, date = '', course = '';
     for(const r of rows.slice(0, 15)){
       const t = String(r.text || '').trim();
       if(!t) continue;
-      if(!meet && t.length >= 6 && !/No\.\s*\d|会場|期日|順位|氏\s*名|組\/水|≪/.test(t)){
-        meet = t.replace(/\s*\d+\s*\/\s*\d+\s*$/, '').trim();
+      // 「会場:」「期日:」の見出し行は除く。大会名の中の「東海会場」などは残す
+      if(!meet && t.length >= 6 && !/No\.\s*\d|会場\s*[:：]|期日\s*[:：]|順位|氏\s*名|組\/水|≪|出力日時/.test(t)){
+        // 末尾のページ番号(1 / 1)を取りのぞく
+        const cand = t.replace(/\s*\d+\s*\/\s*\d+\s*$/, '').trim();
+        // 選手の記録行(タイムや「◯級」をふくむ行)は大会名ではない
+        const looksRecord = /(?:\d+:)?\d{1,2}\.\d{2}/.test(cand) || /\d+級/.test(cand);
+        if(cand.length >= 6 && !looksRecord) meet = cand;
       }
       const dm = t.match(/期日.*?(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
       if(dm){
@@ -3291,11 +3457,44 @@ function renderAdmin(){
         date = dm[1] + '-' + String(dm[2]).padStart(2,'0') + '-' + String(dm[3]).padStart(2,'0');
       }
       if(/会場/.test(t)){
-        if(t.includes('50m')) course = '長水路';
-        else if(t.includes('25m')) course = '短水路';
+        // 「会場:中京大学スポーツ科学部 梅村プール(50m)」から会場名だけを取り出す
+        place = t.replace(/^.*会場\s*[:：]\s*/, '').replace(/\s*[\(（]\s*\d+\s*[mｍ]\s*[\)）]\s*$/, '').trim();
+        if(/[\(（]\s*50\s*[mｍ]/.test(t)) course = '長水路';
+        else if(/[\(（]\s*25\s*[mｍ]/.test(t)) course = '短水路';
       }
     }
-    return (meet || date) ? { meet, year, month, date, course } : null;
+    // 会場から分からなければ、大会名の中の言葉で判断する
+    if(!course && meet){
+      if(/長水路|50\s*[mｍ]/.test(meet)) course = '長水路';
+      else if(/短水路|25\s*[mｍ]/.test(meet)) course = '短水路';
+    }
+    return (meet || date) ? { meet, place, year, month, date, course } : null;
+  }
+
+  /* 記録から水路を推し量る(会場にも大会名にも書いていないとき用)。
+     短水路は長水路より速いので、長水路の日本記録より明らかに速い記録が
+     あれば短水路とみなす。逆に、極端に遅い記録ばかりなら判断しない。 */
+  function guessCourse(hits){
+    // 長水路の日本記録に近い目安(秒)。これより速ければ短水路の可能性が高い
+    const LCM_LIMIT = {
+      '男50Fr':21.0,'男100Fr':47.0,'男200Fr':1*60+43.0,'男400Fr':3*60+40.0,
+      '男100Ba':51.5,'男200Ba':1*60+52.0,'男100Br':58.0,'男200Br':2*60+6.0,
+      '男100Fly':50.0,'男200Fly':1*60+52.0,'男200IM':1*60+55.0,'男400IM':4*60+6.0,
+      '女50Fr':24.0,'女100Fr':52.5,'女200Fr':1*60+54.0,'女400Fr':4*60+2.0,
+      '女100Ba':58.0,'女200Ba':2*60+5.0,'女100Br':1*60+5.0,'女200Br':2*60+19.0,
+      '女100Fly':56.0,'女200Fly':2*60+4.0,'女200IM':2*60+7.0,'女400IM':4*60+31.0
+    };
+    let fast = 0, checked = 0;
+    (hits||[]).forEach(h=>{
+      const key = (h.sex==='女' ? '女' : '男') + h.dist + h.stroke;
+      const lim = LCM_LIMIT[key];
+      const sec = toSec(h.time);
+      if(lim == null || sec == null) return;
+      checked++;
+      if(sec < lim) fast++;
+    });
+    if(checked >= 5 && fast >= 2) return '短水路';   // 日本記録級が複数あれば短水路
+    return '';
   }
   // 東洋電子の書式(No.1 男子 400m 自由形 / ≪年齢の部≫ / 順位 氏名 所属 学年 水路 時間)を読み取る
   function parseTdsystem(lines){
@@ -3351,7 +3550,13 @@ function renderAdmin(){
         name: String(name).replace(/[\s\u3000]+/g,''),
         team: String(team),
         sex: event.sex, dist: event.dist, stroke: event.stroke,
-        round: agegrp || '', time: fmtTime(time)
+        round: agegrp || '', time: fmtTime(time),
+        // 選手の行のつぎに並ぶ通過タイムも拾う(棄権・失格には付けない)
+        splits: isDQ ? [] : tdsCleanSplits(
+          (function(){
+            const s1 = tdsSplitsAt(lines, i, event.dist);
+            return s1.length ? s1 : tdsSplitNear(lines, i, event.dist, fmtTime(time));
+          })(), fmtTime(time))
       });
     }
     return hits;
@@ -3363,6 +3568,36 @@ function renderAdmin(){
   /* 東洋電子PDFの通過タイムを拾う共通部品。
      選手の行のあと数行のうち、タイムだけが3つ以上並ぶ行が通過タイム。
      例) 30.23 1:02.72 1:36.28 2:09.52 2:42.73 3:15.59 3:48.60 */
+  /* 100mなどで「50m」の列に通過タイムだけが別行で印字される形に対応する。
+     選手の行のすぐ上か下に、タイムが1つだけの行があればそれを通過タイムとみなす。 */
+  function tdsSplitNear(lines, idx, dist, timeStr){
+    const T = /^(?:\d+:)?\d{1,2}\.\d{2}$/;
+    const want = Math.max(0, Math.round(dist / 50) - 1);
+    if(want !== 1) return [];        // この形は100m(通過1個)のときだけ
+    const fin = toSec(timeStr);
+    // (1) 選手の行の中に「記録 つづけて通過」と並んでいる形
+    //     例: 1 松本 周也 中京大 大4 5/ 3 51.89 24.22 11級 ( )
+    const own = String(lines[idx]).match(/(?:\d+:)?\d{1,2}\.\d{2}/g) || [];
+    if(fin != null){
+      const after = [];
+      let seen = false;
+      for(const v of own){
+        if(!seen && toSec(v) === fin){ seen = true; continue; }   // 記録そのものを通りすぎたら
+        if(seen) after.push(v);
+      }
+      // 記録より速い値が1つだけ続いていれば、それが通過タイム
+      const cand = after.filter(v=>{ const s = toSec(v); return s != null && s < fin; });
+      if(cand.length >= 1) return [cand[0]];
+    }
+    // (2) 選手の行の上か下に、通過タイムだけの行がある形
+    for(const j of [idx-1, idx+1]){
+      if(j < 0 || j >= lines.length) continue;
+      const toks = String(lines[j]).trim().split(/\s+/).filter(s=>s);
+      if(toks.length === 1 && T.test(toks[0])) return [toks[0]];
+    }
+    return [];
+  }
+
   function tdsSplitsAt(lines, idx, dist){
     const T = /^(?:\d+:)?\d{1,2}\.\d{2}$/;
     const want = Math.max(0, Math.round(dist / 50) - 1);   // 通過の個数(最後の1つは記録)
@@ -3449,7 +3684,11 @@ function renderAdmin(){
         team: String(team),
         sex: event.sex, dist: event.dist, stroke: event.stroke,
         round: event.round, time,
-        splits: isDQ ? [] : tdsCleanSplits(tdsSplitsAt(lines, li, event.dist), time)
+        splits: isDQ ? [] : tdsCleanSplits(
+          (function(){
+            const s1 = tdsSplitsAt(lines, li, event.dist);
+            return s1.length ? s1 : tdsSplitNear(lines, li, event.dist, time);
+          })(), time)
       });
     }
     return hits;
@@ -3943,11 +4182,24 @@ function renderAdmin(){
           if(pdfKind==='tds'){
             hitsThis = parseTdsystem(pdfRows.map(r=>r.text));
             if(hitsThis.length===0) hitsThis = parseTdsystem2(pdfRows.map(r=>r.text));  // 2行タイプも試す
+            if(hitsThis.length===0){
+              // アクアクルーの形も試す(関西・中部対抗戦など)
+              const aq = parseAqua(pdfRows.map(r=>r.text));
+              if(aq.length > 0){
+                hitsThis = aq;
+                if(!meta) meta = aquaMeta(pdfRows.map(r=>r.text));
+              }
+            }
             if(hitsThis.length===0 && parseSeiko(pdfRows).length>0){
               perFile.push({ name:f.name, err:'セイコーの形のPDFです(セイコーのボタンで読んでください)' }); continue;
             }
           } else {
             hitsThis = parseSeiko(pdfRows);
+            // セイコーで読めなければ、アクアクルーの形も試す(関西・中部対抗戦など)
+            if(hitsThis.length===0){
+              hitsThis = parseAqua(pdfRows.map(r=>r.text));
+              if(hitsThis.length > 0 && !meta) meta = aquaMeta(pdfRows.map(r=>r.text));
+            }
             if(hitsThis.length===0 && (parseTdsystem(pdfRows.map(r=>r.text)).length>0 || parseTdsystem2(pdfRows.map(r=>r.text)).length>0)){
               perFile.push({ name:f.name, err:'東洋電子の形のPDFです(東洋電子のボタンで読んでください)' }); continue;
             }
@@ -3980,11 +4232,11 @@ function renderAdmin(){
         }
         // 自動入力(個人種目と同じ)
         let rMetaNote = '';
-        if(meta && !document.getElementById('xlMeet').value.trim()){
+        if(meta){   // PDFから読めた情報は、前の入力を上書きして入れ直す
           if(meta.meet) document.getElementById('xlMeet').value = meta.meet;
           if(meta.year && !document.getElementById('xlYear').value.trim()) document.getElementById('xlYear').value = meta.year;
           if(meta.month && !document.getElementById('xlMonth').value.trim()) document.getElementById('xlMonth').value = meta.month;
-          if(meta.date && !document.getElementById('xlDate').value) document.getElementById('xlDate').value = meta.date;
+          if(meta.date) document.getElementById('xlDate').value = meta.date;   // PDFの日付を優先(初期値の今日を上書き)
           if(meta.course) document.getElementById('xlCourse').value = meta.course;
           rMetaNote = '(PDFの見出しから大会名・実施日・水路を自動入力しました。まちがっていたら直してください)';
         }
@@ -4036,13 +4288,31 @@ function renderAdmin(){
     }
     // PDFの見出しから大会名・実施日・水路を自動入力(大会名の欄が空のときだけ)
     let metaNote = '';
-    if(meta && !document.getElementById('xlMeet').value.trim()){
+    if(meta){   // PDFから読めた情報は、前の入力を上書きして入れ直す
       if(meta.meet) document.getElementById('xlMeet').value = meta.meet;
-      if(meta.year && !document.getElementById('xlYear').value.trim()) document.getElementById('xlYear').value = meta.year;
-      if(meta.month && !document.getElementById('xlMonth').value.trim()) document.getElementById('xlMonth').value = meta.month;
-      if(meta.date && !document.getElementById('xlDate').value) document.getElementById('xlDate').value = meta.date;
-      if(meta.course) document.getElementById('xlCourse').value = meta.course;
-      metaNote = '(PDFの見出しから大会名・実施日・水路を自動入力しました。まちがっていたら直してください)';
+      if(meta.place) document.getElementById('xlPlace').value = meta.place;
+      if(meta.year) document.getElementById('xlYear').value = meta.year;
+      if(meta.month) document.getElementById('xlMonth').value = meta.month;
+      if(meta.date) document.getElementById('xlDate').value = meta.date;   // PDFの日付を優先(初期値の今日を上書き)
+      const got = [];
+      if(meta.meet) got.push('大会名');
+      if(meta.place) got.push('会場');
+      if(meta.date) got.push('実施日');
+      if(meta.course){
+        document.getElementById('xlCourse').value = meta.course;
+        got.push('水路');
+        metaNote = '(PDFから' + got.join('・') + 'を自動入力しました。まちがっていたら直してください)';
+      } else {
+        // 会場にも大会名にも水路の手がかりがないときは、記録から推し量る
+        const guess = guessCourse(XL_HITS);
+        if(guess){
+          document.getElementById('xlCourse').value = guess;
+          metaNote = '(PDFから' + got.join('・') + 'を自動入力しました。<b style="color:var(--red)">水路はPDFに書かれていないため、記録の速さから「' +
+            guess + '」と判断しました。ちがっていたら直してください</b>)';
+        } else {
+          metaNote = '(PDFから' + got.join('・') + 'を自動入力しました。<b style="color:var(--red)">水路はPDFから判断できませんでした。長水路か短水路かを選んでください</b>)';
+        }
+      }
     }
     const isPdf = isPdfKind;
     let skipped = 0; let readSheets = 0;
@@ -4161,7 +4431,8 @@ function renderAdmin(){
       // 大会がまだ登録されていなければ、先に登録する
       const exists = (INIT.meets||[]).some(m=>m.meet===meet && m.year===year && m.month===month && (m.course||'')===course);
       if(!exists) await apiSave({ action:'addMeet', password:ADMIN_PW, meet, year, month, course });
-      await apiSave({ action:'saveBatch', meet, course, date, records: rows });
+      const place = (document.getElementById('xlPlace')||{}).value || '';
+      await apiSave({ action:'saveBatch', meet, course, date, place, records: rows });
       localStorage.removeItem('cust_rec_cache');
       // 手元に覚えていた記録と大会一覧を捨てて、その場で読み直す(閲覧画面にすぐ反映させるため)
       msg.innerHTML = '<div class="loading">登録が終わりました。画面に反映しています…</div>';

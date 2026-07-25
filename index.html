@@ -1359,6 +1359,11 @@
     <div id="stdCheck" class="note hide"></div>
     <button id="stdSaveBtn" type="button" class="hide">この内容で 保存する</button>
     <p class="note cfg-note">連盟の標準記録のページで表を選んでコピーし、上の箱に貼り付けて「読み取って確認する」を押してください。読み取った内容を確認してから保存します。保存には招待コードが必要です。</p>
+
+    <div style="height:1px; background:var(--line); margin:16px 0;"></div>
+    <h3 style="margin:0 0 8px; font-size:16px; opacity:.9;">アプリの更新</h3>
+    <button id="updForce" type="button" style="display:block; width:100%; padding:14px; margin:6px 0; border-radius:12px; border:2px solid #38bdf8; background:rgba(56,189,248,.18); color:#fff; font-weight:900; font-size:16px; cursor:pointer;">✨ 今すぐ 最新版に 更新する</button>
+    <p class="note cfg-note">画面がおかしいときや、新しい機能が出ないときに押してください。古い写し（キャッシュ）を全部消して、いちばん新しい版を取りに行きます。</p>
     <label class="cfg-l">シャッチーくんの案内
       <select id="cfgShacchi">
         <option value="on">出す（はじめての人用）</option>
@@ -6421,12 +6426,25 @@
         updLatest=list[0].sha;
         var seen=localStorage.getItem('swimiq_seen_sha');
         if(!seen){
-          // はじめての起動。いま見ている版を「見た」として覚えるだけ
+          // はじめての起動でも、いま見ている版が最新でなければお知らせを出す
+          // (前回このアプリを閉じたあと、コーチが新しい版を上げているかもしれない)
           localStorage.setItem('swimiq_seen_sha', updLatest);
-          return;
         }
-        if(seen!==updLatest && !sessionStorage.getItem('swimiq_upd_later')){
-          $('updBanner').classList.remove('hide');
+        // 「あとで」を押した回は黙る。それ以外は、いま見ている版と比べて違えば知らせる
+        if(!sessionStorage.getItem('swimiq_upd_later')){
+          // ページの中身(HTML)が本当に古いかを、軽く見に行って判定する
+          fetch(location.pathname+'?nocache='+Date.now(), { cache:'no-store' })
+            .then(function(r){ return r.text(); })
+            .then(function(text){
+              // 自分の中身と、いま取ってきた中身の長さが違えば古い
+              try{
+                var mine=document.documentElement.outerHTML.length;
+                if(Math.abs(text.length - mine) > 100){
+                  $('updBanner').classList.remove('hide');
+                }
+              }catch(e){}
+            })
+            .catch(function(){});
         }
       })
       .catch(function(){});  // 電波が無いときなどは、だまって何もしない
@@ -6456,6 +6474,29 @@
     sessionStorage.setItem('swimiq_upd_later','1');
     $('updBanner').classList.add('hide');
   };
+  // 設定画面の「今すぐ最新版に更新」ボタン: 有無を言わさず更新する
+  var updBtn=$('updForce');
+  if(updBtn){
+    updBtn.onclick=function(){
+      updBtn.disabled=true;
+      updBtn.textContent='更新しています…';
+      function go(){ location.replace(location.pathname+'?v='+Date.now()); }
+      var jobs=[];
+      try{
+        if(window.caches){
+          jobs.push(caches.keys().then(function(ks){
+            return Promise.all(ks.map(function(k){ return caches.delete(k); }));
+          }));
+        }
+        if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+          jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+            return Promise.all(rs.map(function(r){ return r.unregister(); }));
+          }));
+        }
+      }catch(e){}
+      Promise.all(jobs).then(go, go);
+    };
+  }
   updCheck();
   document.addEventListener('visibilitychange', function(){ if(!document.hidden) updCheck(); });
   setInterval(updCheck, 30*60*1000);  // 30分ごとにも そっと確認する

@@ -79,9 +79,6 @@
   #recList .rec{ background:rgba(255,255,255,.08); border-radius:10px; padding:5px 8px;
     border-left:4px solid var(--accent); }
   #recList .rec .top{ display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
-  #recList .rec .rec-del{ flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:1.5px solid rgba(255,255,255,.5);
-    background:rgba(220,38,38,.35); color:#fff; font-size:13px; font-weight:900; cursor:pointer; line-height:1; padding:0; }
-  #recList .rec .rec-del:active{ background:rgba(220,38,38,.7); }
   #recList .rec .d{ font-size:13px; font-weight:900; color:#fff; }
   #recList .rec .t{ font-size:16px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
   #recList .rec .lap{ font-size:11px; font-weight:700; color:#bfe3ff; text-align:right; }
@@ -106,40 +103,18 @@
   #startMenu .logo{ font-size:clamp(30px,7vw,46px); font-weight:900; letter-spacing:.04em;
     text-shadow:var(--shadow); margin-bottom:4px; }
   #startMenu .logo span{ color:var(--accent2); }
-  /* きょうの登録件数バッジ。GASが件数を返すようになると自動で現れる */
-  #todayCount{ background:rgba(34,197,94,.2); border:1.5px solid var(--accent); color:#bbf7d0;
-    border-radius:999px; padding:4px 16px; font-size:14px; font-weight:800; text-shadow:none; }
-  #todayCount.hide{ display:none; }
   #startMenu button, #startMenu label{ display:flex; align-items:center; justify-content:flex-start; gap:12px;
     width:min(230px,59vw); height:56px; padding:0 22px; cursor:pointer; text-align:left;
     border:none; border-radius:16px;
     color:#fff; font-size:17px; font-weight:800; text-shadow:var(--shadow);
     box-shadow:0 4px 0 rgba(0,0,0,.2); }
   #startMenu button:active, #startMenu label:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
-  /* 押した合図：どのボタンも、押した瞬間に明るく光って黄色い枠が付く。
-     指を離しても少しのあいだ残るので、「押せた」とはっきりわかる */
-  .btn-pressed{ filter:brightness(1.55) saturate(1.3) !important;
-    outline:3px solid #FFDD57 !important; outline-offset:2px !important; }
-  /* ホームのカテゴリー分け：見出し＋2列のボタン */
-  #startMenu .sm-group{ width:min(300px,84vw); display:flex; flex-direction:column; gap:8px; }
-  #startMenu .sm-gtitle{ font-size:12px; font-weight:800; color:#9dbdd1; letter-spacing:.18em; padding-left:6px; }
-  #startMenu .sm-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
-  #startMenu .sm-grid button{ width:100%; height:52px; padding:0 10px; justify-content:center;
-    gap:7px; font-size:14px; }
-  #startMenu .sm-grid button svg{ width:18px; height:18px; flex:0 0 18px; }
-  /* 3つ目のボタンは横いっぱいに広げる（2列の残り半分が空かないように） */
-  #startMenu .sm-grid button:last-child:nth-child(odd){ grid-column:1 / -1; }
-  /* ニュースはカテゴリーの中で横いっぱい */
-  #startMenu .sm-group #newsBar{ width:100%; }
   #startMenu button svg, #startMenu label svg{ width:22px; height:22px; flex:0 0 22px;
     filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
   #smOpen{ background:linear-gradient(135deg,#f97316,#fbbf24); }
   #smFind{ background:linear-gradient(135deg,#818cf8,#6366f1); }
-  #smEdit{ background:linear-gradient(135deg,#14b8a6,#0ea5e9); }
-  #smInput{ background:linear-gradient(135deg,#a78bfa,#6366f1); }
   #smAnalyze{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
   #smCompare{ background:linear-gradient(135deg,#f97316,#fbbf24); }
-  #smRecords{ background:linear-gradient(135deg,#eab308,#f59e0b); }
 
   /* 右上の道具ボタン（歯車）。押すと下の2つのボタンが出たり隠れたりする */
   #toolsBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 10px); z-index:7;
@@ -180,7 +155,7 @@
   #loadBtn:active{ transform:translateY(1px); }
 
   /* ===== 右：きょり目盛り（均等） ===== */
-  #scale{ position:absolute; right:0; top:0; bottom:0; width:96px; z-index:5;
+  #scale{ position:absolute; right:0; top:0; bottom:120px; width:96px; z-index:5;
     display:none; flex-direction:column; padding:calc(env(safe-area-inset-top) + 14px) 6px 14px;
     background:linear-gradient(90deg,rgba(10,42,72,0),rgba(10,42,72,.55) 40%); }
   #app.hasvideo #scale{ display:flex; }
@@ -298,11 +273,6 @@
     background:rgba(8,145,178,.85); border:1px solid #fff; border-radius:12px;
     font-size:10px; font-weight:800; text-shadow:var(--shadow); white-space:nowrap;
     text-align:center; }
-  /* テンポ計測中のストップウォッチ。入水①からの経過秒を大きく出す */
-  #tempoWatch{ background:rgba(6,24,42,.85); border:2px solid var(--yellow); color:var(--yellow);
-    font-size:26px; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:.03em;
-    text-align:center; border-radius:12px; padding:2px 16px; text-shadow:none; }
-  #tempoWatch.hide{ display:none; }
   #app.hasvideo.tempomode #tempoStatus{ display:flex; }
 
   /* 1つずつ測定の確定ボタン（記録ボタンの左どなり・出るときだけ） */
@@ -436,15 +406,6 @@
     font-size:15px; font-weight:900; text-shadow:var(--shadow);
     box-shadow:0 3px 0 rgba(0,0,0,.2); }
   #dvLoadBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
-  /* 記録の修正モード：動画がなくても きろくデータ画面をひらく */
-  #app.editview #dataView{ display:flex; }
-  #app.editview #homeBtn{ display:flex; }
-  #dvSaveBtn{ display:none; width:100%; margin:0 0 12px; padding:12px;
-    border:none; border-radius:14px; cursor:pointer;
-    background:linear-gradient(135deg,#4ade80,#16a34a); color:#06351c;
-    font-size:15px; font-weight:900; box-shadow:0 3px 0 rgba(0,0,0,.2); }
-  #dvSaveBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
-  #app.editview #dvSaveBtn{ display:block; }
   .dv-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
     display:flex; flex-direction:column; gap:6px; }
   .dv-row{ display:grid; grid-template-columns:62px 1fr 1fr 1.4fr; align-items:center; gap:6px;
@@ -467,16 +428,6 @@
   .dv-foot .dv-srow{ display:flex; justify-content:space-between; padding:2px 4px; font-size:13px; font-weight:700; }
   .dv-foot .dv-srow.total{ border-top:1px solid rgba(255,255,255,.3); margin-top:5px; padding-top:6px; font-weight:900; font-size:15px; }
   .dv-empty{ font-size:14px; font-weight:600; opacity:.75; text-align:center; padding:40px 10px; line-height:1.8; }
-  /* 縦画面の登録者プロフィールカード（文字は小さめ・3分の2サイズ） */
-  .dv-prof{ margin:8px 0 4px; background:rgba(14,58,92,.6); border:1.5px solid rgba(255,255,255,.35);
-    border-radius:12px; padding:8px 10px; }
-  .dv-prof-head{ font-size:8px; font-weight:800; color:#bfe3ff; margin-bottom:3px; }
-  .dv-prof-grid{ display:grid; grid-template-columns:auto 1fr; gap:1px 10px; font-size:9px; font-weight:800; }
-  .dv-prof-grid span:nth-child(odd){ color:#9dbdd1; font-size:8px; font-weight:700; align-self:center; }
-  .dv-prof-row{ display:flex; align-items:center; gap:8px; margin-top:6px; }
-  .dv-prof-row label{ font-size:8px; font-weight:800; color:#bfe3ff; white-space:nowrap; }
-  .dv-prof-row input{ flex:1; min-height:32px; padding:4px 8px; border-radius:8px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:10px; font-weight:700; }
   @media (orientation: portrait){
     #app.hasvideo #timeHud, #app.hasvideo #recPanel, #app.hasvideo #toolsBtn,
     #app.hasvideo #changeBtn, #app.hasvideo #distBtn, #app.hasvideo #scale,
@@ -497,44 +448,6 @@
   #findModal, #anaModal, #cmpInfoModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #findModal.hide, #anaModal.hide, #cmpInfoModal.hide{ display:none; }
-  /* 記録の修正モーダル（一覧と編集画面） */
-  /* くらべ方えらび */
-  #cmpModePanel.hide{ display:none; }
-  .cm-gtitle{ font-size:12px; font-weight:800; color:#9dbdd1; letter-spacing:.15em; margin:12px 0 6px; }
-  .cm-mode{ display:block; width:100%; text-align:left; margin-top:8px; padding:12px 14px;
-    border-radius:14px; border:1.5px solid var(--line); background:rgba(14,58,92,.6);
-    color:#fff; font-size:16px; font-weight:900; cursor:pointer; }
-  .cm-mode small{ display:block; margin-top:3px; font-size:11px; font-weight:700; color:#9dbdd1; }
-  #cmpModeBack{ margin-bottom:6px; padding:8px 12px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#bfe3ff; font-size:13px; font-weight:800; cursor:pointer; }
-  .cm-note{ font-size:12px; font-weight:700; color:#9dbdd1; margin-bottom:8px; }
-  #editModal, #editFormModal, #manualModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
-    padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-  #editModal.hide, #editFormModal.hide, #manualModal.hide{ display:none; }
-  /* 記録の入力の表 */
-  #manualModal .modal-card{ max-height:90vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
-  .mn-row{ display:grid; grid-template-columns:3.2em 1fr 1fr 1fr; gap:6px; align-items:center; margin-top:6px; }
-  .mn-row.mn-2{ grid-template-columns:4.5em 1fr; }
-  #mnSt, #mnSpm{ flex:1; min-height:40px; padding:6px 10px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:800; }
-  .mn-row.mn-head{ font-size:11px; font-weight:800; color:#9dbdd1; margin-top:12px; }
-  .mn-row .mn-d{ font-size:14px; font-weight:900; }
-  .mn-row input{ width:100%; min-height:40px; padding:6px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:800; text-align:center; }
-  #mnAthlete, #mnMeetSel, #mnStroke, #mnCourse, #mnRound, #mnDate, #mnMeet{ flex:1; min-height:40px; padding:8px;
-    border-radius:10px; border:1.5px solid var(--line); background:rgba(10,32,55,.9); color:#fff; font-size:14px; font-weight:700; }
-  #mnClose{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:15px; font-weight:800; }
-  #mnSave{ padding:11px 20px; border-radius:12px; cursor:pointer; border:none;
-    background:var(--accent); color:#04263f; font-size:15px; font-weight:900; }
-  #edClose, #edfClose{ padding:11px 16px; border-radius:12px; cursor:pointer; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:15px; font-weight:800; }
-  #edfSave{ padding:11px 20px; border-radius:12px; cursor:pointer; border:none;
-    background:var(--accent); color:#04263f; font-size:15px; font-weight:900; }
-  #edAthlete{ flex:1; padding:9px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:15px; font-weight:700; }
-  #edfStrokes input, #edfRt{ width:110px; padding:9px; border-radius:10px; border:1.5px solid var(--line);
-    background:rgba(10,32,55,.9); color:#fff; font-size:16px; font-weight:800; text-align:right; }
   .df-card{ width:min(560px, 94vw); max-height:88vh; display:flex; flex-direction:column; }
   .df-filters{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
   .df-filters label{ display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:800; color:#bfe3ff; flex:1 1 45%; }
@@ -767,15 +680,6 @@
   /* 進捗：成績表の行。低視力でも読めるよう、数字は大きく */
   .prog-row{ display:flex; align-items:baseline; gap:10px; background:rgba(255,255,255,.08);
     border-radius:12px; padding:12px; margin-bottom:8px; }
-  /* 成長グラフ（進捗のいちばん下） */
-  .pg-charts{ margin-top:14px; }
-  .pg-head{ font-size:14px; font-weight:900; margin-bottom:4px; }
-  .pg-chart{ background:rgba(255,255,255,.06); border:1px solid rgba(157,189,209,.3);
-    border-radius:12px; padding:8px 8px 2px; margin-top:10px; }
-  .pg-chart svg{ display:block; width:100%; height:auto; }
-  .pg-title{ font-size:13px; font-weight:800; }
-  .pg-title small{ margin-left:8px; font-size:10px; font-weight:700; color:#9dbdd1; }
-  .pg-note{ font-size:11px; font-weight:700; color:#9dbdd1; padding:8px 2px; }
   .prog-label{ font-size:14px; font-weight:800; opacity:.9; flex:0 0 8.5em; }
   .prog-val{ font-size:22px; font-weight:800; letter-spacing:.5px; }
   .prog-note{ font-size:12px; opacity:.75; margin-left:auto; text-align:right; }
@@ -1117,34 +1021,15 @@
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
     <div class="logo">Swim<span>IQ</span></div>
-    <div id="todayCount" class="hide" aria-live="polite">きょうの登録 0件</div>
     <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
     <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
-    <div class="sm-group">
-      <div class="sm-gtitle">きろく</div>
-      <div class="sm-grid">
-        <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
-        <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
-        <button id="smEdit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l11-11a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M13.5 6.5l3 3"/></svg><span>記録の修正</span></button>
-        <button id="smInput" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9.5h16M9.5 4v16"/></svg><span>記録の入力</span></button>
-      </div>
-    </div>
-    <div class="sm-group">
-      <div class="sm-gtitle">ぶんせき</div>
-      <div class="sm-grid">
-        <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
-        <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
-        <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
-      </div>
-    </div>
-    <div class="sm-group">
-      <div class="sm-gtitle">じょうほう</div>
-      <div class="sm-grid">
-        <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
-        <button id="smRecords" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 2.9M17 6h2.5a2.5 2.5 0 0 1-2.6 2.9"/></svg><span>世界・日本記録</span></button>
-      </div>
-      <button id="newsBar" type="button" aria-label="きょうの水泳ニュース。押すと元の記事がひらきます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h8M8 16.5h5"/></svg><span id="newsText">きょうの水泳ニュース</span></button>
-    </div>
+    <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
+    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
+    <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
+    <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
+    <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
+    <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
+    <button id="newsBar" type="button" aria-label="きょうの水泳ニュース。押すと元の記事がひらきます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h8M8 16.5h5"/></svg><span id="newsText">きょうの水泳ニュース</span></button>
     <button id="smSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9.5" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
@@ -1174,7 +1059,6 @@
   <!-- 右下の操作ドック：テンポ状態→狙い→（確定・R.T・記録ボタン）が縦に積み上がる。
        決め打ちの位置指定をやめたので、どの画面サイズでも重ならない -->
   <div id="dock">
-    <div id="tempoWatch" class="hide">0.00</div>
     <div id="tempoStatus"></div>
     <div id="aim"><span id="aimText">50m を きろく</span></div>
   </div>
@@ -1205,21 +1089,6 @@
     <div class="dv-head">きろく データ</div>
     <div class="dv-note">よこ向きにすると 測定にもどります</div>
     <button id="dvLoadBtn">📂 ほぞんした きろくを よびだす</button>
-    <button id="dvSaveBtn" type="button">💾 直した内容を ほぞん（上書き）</button>
-    <div id="dvProfile" class="dv-prof">
-      <div class="dv-prof-head">登録者</div>
-      <div class="dv-prof-grid">
-        <span>名前</span><span id="dvpName">—</span>
-        <span>生年月日</span><span id="dvpBirth">—</span>
-        <span>身長</span><span id="dvpHeight">—</span>
-        <span>体重</span><span id="dvpWeight">—</span>
-        <span>BMI</span><span id="dvpBmi">—</span>
-      </div>
-      <div class="dv-prof-row">
-        <label for="dvSwimmer">分析したい選手</label>
-        <input id="dvSwimmer" type="text" list="swimmerList" placeholder="ふつうは 登録者のまま">
-      </div>
-    </div>
     <div id="dvBody" class="dv-body"></div>
   </div>
 
@@ -1532,23 +1401,13 @@
   </div>
 </div>
 
-<!-- くらべる（新）：AさんとBさんのレースをグラフで見くらべる -->
+<!-- くらべる（新）：AサンとBサンのレースをグラフで見くらべる -->
 <div id="cmp2Modal" class="hide">
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
-    <div id="cmpModePanel">
-      <div class="cm-gtitle">じぶんと くらべる</div>
-      <button type="button" class="cm-mode" data-mode="self-best">ベストタイムと比較<small>じぶんのベスト × じぶんの他のレース</small></button>
-      <button type="button" class="cm-mode" data-mode="self-race">レース比較<small>じぶんの レースどうし</small></button>
-      <div class="cm-gtitle">ほかの人と くらべる</div>
-      <button type="button" class="cm-mode" data-mode="other-best">ベストタイムと比較<small>じぶんのベスト × あいてのベスト</small></button>
-      <button type="button" class="cm-mode" data-mode="other-race">レース比較<small>じぶんのレース × あいてのレース</small></button>
-    </div>
-    <div id="cmp2Cond" class="hide">
-      <button type="button" id="cmpModeBack">← くらべ方を えらびなおす</button>
-      <div class="cm-note" id="cmpModeNote"></div>
-      <div class="sv-row"><span>Aさん</span><select id="cmpA" aria-label="Aさんをえらぶ"></select></div>
-      <div class="sv-row" id="cmpRowB"><span>Bさん</span><select id="cmpB" aria-label="Bさんをえらぶ"></select></div>
+    <div id="cmp2Cond">
+      <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
+      <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
       <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
       <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
       <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
@@ -1560,47 +1419,6 @@
     </div>
     <div id="cmp2Body" class="df-list"></div>
     <div class="stroke-btns"><button id="cmp2Close">とじる</button></div>
-  </div>
-</div>
-
-<!-- 記録の入力：動画なしで、表にまとめて手入力する -->
-<div id="manualModal" class="hide">
-  <div class="modal-card df-card">
-    <h2>記録の入力</h2>
-    <p class="note">きょりをえらぶと、分析と同じ地点の表が出ます。ゴールのタイムだけでも ほぞんできます。</p>
-    <div class="sv-row"><span>選手</span><select id="mnAthlete" aria-label="選手をえらぶ"></select></div>
-    <div class="sv-row"><span>試合名</span><select id="mnMeetSel" aria-label="試合をえらぶ"></select></div>
-    <div class="sv-row" id="mnMeetFreeRow"><span></span><input id="mnMeet" type="text" maxlength="60" placeholder="試合名を 入力"></div>
-    <div class="sv-row"><span>試合日</span><input id="mnDate" type="date"></div>
-    <div class="sv-row"><span>泳法</span><select id="mnStroke"><option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option><option>バタフライ</option><option>個人メドレー</option></select></div>
-    <div class="sv-row"><span>水路</span><select id="mnCourse"><option>長水路</option><option>短水路</option></select></div>
-    <div class="sv-row"><span>ラウンド</span><select id="mnRound"><option>予選</option><option>準決勝</option><option>決勝</option><option>タイムレース</option></select></div>
-    <div class="sv-row"><span>きょり</span><select id="mnDist" aria-label="きょりをえらぶ"><option>50</option><option>100</option><option>200</option><option>400</option><option>800</option><option>1500</option></select></div>
-    <div class="mn-row mn-head mn-2"><span>地点</span><span>タイム（スタートからの通過）</span></div>
-    <div id="mnRows"></div>
-    <div class="sv-row"><span>かき数</span><input id="mnSt" type="number" inputmode="decimal" min="1" max="99" step="0.1" placeholder="50mあたりの平均（任意）" aria-label="かき数 50mあたりの平均"></div>
-    <div class="sv-row"><span>テンポ</span><input id="mnSpm" type="number" inputmode="numeric" min="10" max="120" placeholder="毎分のかき数（任意）" aria-label="テンポ 毎分のかき数"></div>
-    <div class="stroke-btns"><button id="mnClose">とじる</button><button id="mnSave">ほぞんする</button></div>
-  </div>
-</div>
-
-<!-- 記録の修正：一覧からえらんで、その場で直す -->
-<div id="editModal" class="hide">
-  <div class="modal-card df-card">
-    <h2>記録の修正</h2>
-    <p class="note">直したいレースを えらんでください。かき数とR.Tを その場で直せます。</p>
-    <div class="sv-row"><span>選手</span><select id="edAthlete" aria-label="選手をえらぶ"></select></div>
-    <div id="edList" class="df-list"></div>
-    <div class="stroke-btns"><button id="edClose">とじる</button></div>
-  </div>
-</div>
-<div id="editFormModal" class="hide">
-  <div class="modal-card">
-    <h2 id="edfTitle">記録の修正</h2>
-    <p class="note">数字を直して「上書きしてほぞん」。ほかの項目（タイムなど）は そのまま守られます。</p>
-    <div class="sv-row"><span>R.T（秒）</span><input id="edfRt" type="number" inputmode="decimal" step="0.01" min="0" max="9.99" placeholder="例 0.65"></div>
-    <div id="edfStrokes"></div>
-    <div class="stroke-btns"><button id="edfClose">やめる</button><button id="edfSave">上書きして ほぞん</button></div>
   </div>
 </div>
 
@@ -1723,21 +1541,6 @@
     if(!isVideoReady()) return;
     var val=fmt(elapsed(getStampTime()));
     var hud=$('bigTimeHud'); if(hud) hud.textContent=val;
-    tempoWatchPaint();   // テンポ計測中のストップウォッチも毎コマ更新する
-  }
-  // ===== テンポ計測のストップウォッチ表示 =====
-  // 入水①を押した瞬間から動きだし、いま何秒たったかを大きく出す。
-  // 「3.30」あたりで止めれば3かき目、と時間から見当がつけられる。
-  function tempoWatchShow(on){
-    var el=$('tempoWatch'); if(!el) return;
-    el.classList.toggle('hide', !on);
-    tempoWatchPaint();
-  }
-  function tempoWatchPaint(){
-    var el=$('tempoWatch'); if(!el || el.classList.contains('hide')) return;
-    if(!tempoMarks.length){ el.textContent='0.00'; return; }
-    var v=getStampTime()-tempoMarks[0];
-    el.textContent=(v<0?0:v).toFixed(2);
   }
   function step(frames){
     if(!isVideoReady())return;
@@ -1974,7 +1777,6 @@
     if(m==='time'){ lb.className='time'; $('lapBtnMain').innerHTML='ここを<br>きろく'; }
     else { lb.className='tempo'; }   // テンポの文字は updateTempoUI で決める
     if(m==='tempo'){ tempoMarks=[]; updateTempoUI(); }
-    else { tempoWatchShow(false); }   // テンポ以外のモードではストップウォッチを隠す
     updateAim(); updateRtChip();
   }
   $('mtTime').onclick=function(){ setMode('time'); toast('記録モード（地点タイム）'); guideStep(); };
@@ -2004,14 +1806,6 @@
     var fin = addDelay ? (v+SOUND_DELAY) : v;
     // ②足ばなれの瞬間は、レースの0m（スタート）そのもの。
     // ここを0mとして自動で記録しておくと、通過タイムの基準が正しくなる。
-    // ただし、すでに記録済みの地点と順番が矛盾するときは止める。
-    var conflict=checkStampOrder(0, rtMark1+v);
-    if(conflict){
-      rtStep=0; rtBySound=false; rtPendingV=null;
-      toast(conflict.msg);
-      shacchiSay(conflict.msg+'ッチ。R.Tを測る場面が正しいか、コマ送りでたしかめてほしいッチ。まちがえた地点の記録は、きろく一覧の✕で消せるッチ。', 13000);
-      return;
-    }
     splitTimes[0]=rtMark1+v;
     rtTime=fin; rtStep=0; rtBySound=false; rtPendingV=null;
     selDist=0; updateAim(); buildScale(); renderRecords();
@@ -2468,14 +2262,6 @@
         rtTime=v; rtStep=0; rtBySound=false;
         buildScale(); renderRecords();
         toast('R.T '+v.toFixed(2)+'秒 を とうろくしました');
-        // 数字で入れたときは0m（足ばなれ）の場面がまだ無い。
-        // 0mが無いとタイムの基準（原点）が作れないので、続けて動画で記録してもらう。
-        if(splitTimes[0]==null){
-          if(mode!=='time') setMode('time');
-          selDist=0; selFrom=null; selTo=null;
-          updateAim(); buildScale();
-          shacchiSay('R.Tを数字で入れたときは、つぎに 0m（足が台をはなれた瞬間）を動画で記録するッチ。足ばなれのコマに合わせて「ここを きろく」だッチ。これが全部のタイムの基準になるッチ！', 16000);
-        }
       },
       (rtTime!=null)? function(){
         rtTime=null; rtStep=0;
@@ -2593,13 +2379,7 @@
   function showNewsBar(){
     var bar=$('newsBar');
     var c=newsCache();
-    if(!c || !c.list || !c.list.length){
-      // 見出しがまだ届いていなくても、入り口は消さない。押すとSwimSwamがそのままひらく
-      $('newsText').textContent='水泳ニュースをひらく（SwimSwam）';
-      bar.onclick=function(){ window.open('https://swimswam.com/', '_blank'); };
-      bar.classList.add('show');
-      return;
-    }
+    if(!c || !c.list || !c.list.length){ bar.classList.remove('show'); return; }
     var len=c.list.length;
     if(newsShownI==null){
       newsShownI=(Number(localStorage.getItem('swimiq_news_i'))||0) % len;
@@ -2625,33 +2405,6 @@
     }).catch(function(){});
   }
   refreshNews();
-
-  // ========== 押した合図（すべてのボタン共通） ==========
-  // 押した瞬間に btn-pressed のしるしを付けて明るく光らせ、0.4秒後にもどす。
-  // ボタン・ラベルのほか、目盛りの点・区間・記録の✕・タップできる数字にも効く。
-  function flashPress(e){
-    var el = e.target && e.target.closest &&
-      e.target.closest('button, label, .pt, .zhit, .rec-del, .df-race, .lap-edit, .dv-tap, .dv-foot');
-    if(!el) return;
-    el.classList.add('btn-pressed');
-    setTimeout(function(){ el.classList.remove('btn-pressed'); }, 400);
-  }
-  document.addEventListener('pointerdown', flashPress, true);
-  document.addEventListener('touchstart', flashPress, true);   // 古い携帯むけの予備
-
-  // ========== きょうの登録件数（ホームにリアルタイム表示） ==========
-  // GASに「きょう何件登録された？」と聞いて出す。
-  // GASがまだこの質問に未対応なら、静かに隠れたままで害はない。
-  function refreshTodayCount(){
-    api({action:'todayCount'}).then(function(res){
-      if(res && res.ok && res.count!=null){
-        $('todayCount').textContent='きょうの登録 '+res.count+'件';
-        $('todayCount').classList.remove('hide');
-      }
-    }).catch(function(){});
-  }
-  refreshTodayCount();
-  setInterval(refreshTodayCount, 2*60*1000);   // 2分ごとに数え直す
 
   // ========== 試合名を スプレッドシートから えらぶ ==========
   // スプレッドシートの「試合名」シート（試合名・日程開始・日程終了・場所・水路）から
@@ -2739,7 +2492,6 @@
     var course=opt.dataset.course||'';
     if(course.indexOf('短')>=0) $('svCourse').value='短水路';
     else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
-  }
   // 「2026-04-11」を「2026年4月11日」の書き方にする
   function hiJa(s){
     var m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2762,6 +2514,8 @@
     var moji=meetDateMoji(m);
     note.textContent=moji;
     note.classList.toggle('hide', !moji);
+  }
+
   }
   $('svMeetSel').onchange=function(){
       meetDateMise('svMeetSel', 'svMeetDateNote');
@@ -2861,30 +2615,10 @@
         // 泳ぐ人の名前が選手一覧にあれば、えらんでおく
         var selA=$('svAthlete');
         var target=raceInfo.swimmer.replace(/[\s\u3000]+/g,'');
-        var atatta=false;
         for(var ai=0; ai<selA.options.length; ai++){
           if(String(selA.options[ai].textContent).replace(/[\s\u3000]+/g,'').indexOf(target)===0){
-            selA.selectedIndex=ai; atatta=true; break;
+            selA.selectedIndex=ai; break;
           }
-        }
-        // この携帯に無ければ、部の名簿からさがして同じ選手に統一する。
-        // ここで統一しないと、同じ選手が二重登録されてデータが分裂してしまう。
-        if(!atatta){
-          api({action:'roster'}).then(function(res){
-            if(!(res && res.ok && res.athletes)) return;
-            var hit=null;
-            for(var ri=0; ri<res.athletes.length; ri++){
-              var nm=String(res.athletes[ri].name||'').replace(/[\s\u3000]+/g,'');
-              if(nm && (nm.indexOf(target)===0 || target.indexOf(nm)===0)){ hit=res.athletes[ri]; break; }
-            }
-            if(!hit) return;   // 名簿にも無ければ、あたらしい選手のままでよい
-            var o=document.createElement('option');
-            o.value=hit.id; o.textContent=hit.name;
-            selA.appendChild(o);
-            selA.value=hit.id;
-            if(selA.onchange) selA.onchange();   // あたらしい選手の欄をとじるなどの表示更新
-            toast('名簿の '+hit.name+' さんに統一しました');
-          }).catch(function(){});
         }
       }
     }
@@ -3025,7 +2759,6 @@
         lastSaved={ key:[payload.athleteId, payload.meetDate, payload.raceDist, payload.stroke, payload.round].join('|'),
                     raceId: res.raceId || payload.replaceId || '' };
         $('saveModal').classList.add('hide');
-        refreshTodayCount();   // ほぞん直後に、きょうの登録件数を数え直す
         done(payload.replaceId
           ? (silent ? '前のほぞんを 新しい内容に 上書きしました' : '上書きして ほぞんしました')
           : 'スプレッドシートに ほぞんしました');
@@ -3099,246 +2832,10 @@
     renderLoadList($('ldAthlete').value);
   }
   $('loadBtn').addEventListener('click', openLoadModal);
-  $('dvLoadBtn').addEventListener('click', function(){
-    // 記録の修正モードでは名簿から選ぶ画面、ふだんはこの携帯の呼び出し画面
-    if(app.classList.contains('editview')) openEditModal(); else openLoadModal();
-  });
-  $('dvSaveBtn').addEventListener('click', function(){ edQuickSave(); });   // 直した内容を元のレースに上書きする
+  $('dvLoadBtn').addEventListener('click', openLoadModal);  // 縦画面からも同じ呼び出し画面をひらく
 
   // ========== 左上メニュー：記録をさがす・分析・比較 ==========
   $('smFind').onclick=function(){ openFindModal(); };
-  // ========== 記録の修正（一覧からえらんで、その場で直す） ==========
-  // マネージャーが通過タイムを一次情報として保存 → 選手があとで かき数やR.Tを追記する使い方。
-  // 直した項目だけ書き換わり、タイムなどほかの項目は元のまま守られる。
-  var edCtx=null;   // いま直しているレースの中身一式
-  function openEditModal(){
-    var sel=$('edAthlete'); sel.innerHTML='<option value="">よみこみ中…</option>';
-    $('edList').innerHTML='';
-    $('editModal').classList.remove('hide');
-    api({action:'roster'}).then(function(res){
-      var list=(res.ok && res.athletes)? res.athletes : [];
-      if(!list.length) list=getAthletes();
-      sel.innerHTML='';
-      list.forEach(function(a){
-        var o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o);
-      });
-      if(!list.length){ $('edList').innerHTML='<div class="df-empty">名簿を取得できませんでした。電波を確認してね。</div>'; return; }
-      var jid=jibunIdIn(list);
-      if(jid) sel.value=jid;
-      if(!sel.value) sel.selectedIndex=0;
-      edLoadList();
-    }).catch(function(){
-      $('edList').innerHTML='<div class="df-empty">名簿を取得できませんでした。電波を確認してね。</div>';
-    });
-  }
-  function edLoadList(){
-    var box=$('edList'); box.innerHTML='<div class="df-empty">記録を よみこみ中…</div>';
-    api({action:'list', athleteId:$('edAthlete').value}).then(function(res){
-      box.innerHTML='';
-      var races=(res.ok && res.races)? res.races : [];
-      if(!races.length){ box.innerHTML='<div class="df-empty">この選手の記録は まだありません。</div>'; return; }
-      races.forEach(function(r){
-        var row=document.createElement('button'); row.type='button'; row.className='df-race';
-        row.innerHTML='<span class="di"><span class="dn">'+r.raceDist+'m '+(r.stroke||'')+'　'+(r.finalTime||'')+'</span>'+
-          '<span class="ds">'+[(r.meetName||''),(r.meetDate||'')].filter(function(x){return x;}).join('　')+'</span></span>';
-        row.onclick=function(){ edOpenForm(r); };
-        box.appendChild(row);
-      });
-    }).catch(function(){ box.innerHTML='<div class="df-empty">よみこめませんでした。電波を確認してね。</div>'; });
-  }
-  $('edAthlete').onchange=edLoadList;
-  $('edClose').onclick=function(){ $('editModal').classList.add('hide'); };
-  // レースをえらんだら、中身を取り寄せて きろくデータ画面に読み込む
-  function edOpenForm(r){
-    api({action:'load', raceId:r.raceId}).then(function(res){
-      if(!res.ok) throw new Error(res.error||'読み込めませんでした');
-      edCtx={ r:r, res:res };
-      applyLoadedRace(res);   // きろくデータ画面に そのまま表示される
-      $('editModal').classList.add('hide');
-      toast((r.meetName||'記録')+' を よびだしました。数字をタップで直せます');
-      shacchiSay('R.Tやタイムは数字をタップ、かき数は下のかき数の欄をタップで直せるッチ。直したら 緑の「直した内容を ほぞん」だッチ！', 14000);
-    }).catch(function(err){ toast('よみこみ失敗： '+err.message); });
-  }
-  $('edfClose').onclick=function(){ $('editFormModal').classList.add('hide'); $('editModal').classList.remove('hide'); };
-  // 記録の修正モードの上書き保存：
-  // いま画面で直した内容（タイム・R.T・かき数・テンポ）を、元のレースに書き戻す。
-  // 試合名・水路・ラウンドなど、直していない項目は元のまま守られる。
-  function edQuickSave(){
-    if(!edCtx){ toast('先に「ほぞんした きろくを よびだす」で 直したいレースを えらんでください'); return; }
-    var btn=$('dvSaveBtn');
-    btn.disabled=true; btn.textContent='送信中…';
-    function fin(msg){ btn.disabled=false; btn.textContent='💾 直した内容を ほぞん（上書き）'; if(msg) toast(msg); }
-    var r=edCtx.r, res=edCtx.res;
-    var pick=function(a,b){ return (a!=null && a!=='')? a : (b!=null? b : ''); };
-    var ft=passOf(raceDist, originTime());
-    var payload={ action:'save', deviceId:deviceId(),
-      measurer:(riProfile().name||''),
-      athleteId: pick(res.athleteId, $('edAthlete').value),
-      athleteName: pick(res.athleteName, (($('edAthlete').options[$('edAthlete').selectedIndex]||{}).textContent||'')),
-      meetName: pick(res.meetName, r.meetName),
-      meetDate: pick(res.meetDate, r.meetDate),
-      stroke: pick(res.stroke, r.stroke),
-      raceDist: raceDist,
-      course: pick(res.course, r.course),
-      round: pick(res.round, r.round),
-      height: pick(res.height, r.height),
-      weight: pick(res.weight, r.weight),
-      videoUrl: pick(res.videoUrl, r.videoUrl),
-      finalTime: (ft!=null? fmt(ft) : pick(res.finalTime, r.finalTime)),
-      data: buildRaceData(),
-      replaceId: r.raceId };
-    api(payload).then(function(res2){
-      if(!res2.ok) throw new Error(res2.error||'ほぞんできませんでした');
-      refreshTodayCount();
-      fin('上書きして ほぞんしました');
-    }).catch(function(err){ fin('失敗： '+err.message); });
-  }
-  // ========== 記録の入力（動画なしで、分析と同じ地点の表に手入力） ==========
-  function mnBuildRows(){
-    var dist=Number($('mnDist').value)||50;
-    var box=$('mnRows'); box.innerHTML='';
-    // 先頭はR.T（なくてもよい）
-    var r0=document.createElement('div'); r0.className='mn-row mn-2';
-    r0.innerHTML='<span class="mn-d">R.T</span>'+
-      '<input type="text" inputmode="decimal" data-k="rt" placeholder="例 0.65（あいてもOK）" aria-label="リアクションタイム">';
-    box.appendChild(r0);
-    // 分析画面と同じ地点（RACE_POINTS）をならべる
-    pointsFor(dist).forEach(function(p){
-      if(p.d===0) return;
-      var r=document.createElement('div'); r.className='mn-row mn-2';
-      r.innerHTML='<span class="mn-d">'+p.d+'m</span>'+
-        '<input type="text" inputmode="decimal" data-k="pt" data-d="'+p.d+'" data-official="'+(p.official?1:0)+'"'+
-        ' placeholder="'+(p.d===dist? 'ゴール（ここは必須）':'とちゅう（あいてもOK）')+'" aria-label="'+p.d+'mの通過タイム">';
-      box.appendChild(r);
-    });
-  }
-  function openManualModal(){
-    mnBuildRows();
-    $('mnSt').value=''; $('mnSpm').value='';
-    // 選手：部の名簿から。初期値は登録者（自分）
-    var sel=$('mnAthlete'); sel.innerHTML='<option value="">よみこみ中…</option>';
-    api({action:'roster'}).then(function(res){
-      var list=(res && res.ok && res.athletes)? res.athletes : getAthletes();
-      sel.innerHTML='';
-      list.forEach(function(a){ var o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o); });
-      var jid=jibunIdIn(list);
-      if(jid) sel.value=jid;
-    }).catch(function(){ sel.innerHTML='<option value="">名簿を取得できません</option>'; });
-    mnFillMeets();
-    if(!$('mnDate').value) $('mnDate').value=todayStr();
-    $('manualModal').classList.remove('hide');
-  }
-  $('mnDist').onchange=mnBuildRows;
-  // 試合名のえらぶ式メニュー（自由入力もえらべる）
-  function mnFillMeets(){
-    var sel=$('mnMeetSel'); var keep=sel.value;
-    function fill(list){
-      sel.innerHTML='';
-      var o0=document.createElement('option'); o0.value='__free__'; o0.textContent='（自由に入力）';
-      sel.appendChild(o0);
-      (list||[]).forEach(function(m,i){
-        var o=document.createElement('option'); o.value=String(i);
-        o.textContent=(m.start? m.start+'　':'')+m.name;
-        o.dataset.name=m.name; o.dataset.start=m.start||''; o.dataset.end=m.end||''; o.dataset.course=m.course||'';
-        sel.appendChild(o);
-      });
-      if(keep){ sel.value=keep; }
-      if(!sel.value) sel.value='__free__';
-      mnMeetApply();
-    }
-    fill(meetCache());
-    api({action:'meets'}).then(function(res){ if(res && res.ok && res.meets) fill(res.meets); }).catch(function(){});
-  }
-  // 試合をえらんだら、名前・日にち・水路を自動で入れる
-  function mnMeetApply(){
-    var sel=$('mnMeetSel');
-    var o=sel.options[sel.selectedIndex];
-    var free=(sel.value==='__free__');
-    $('mnMeetFreeRow').style.display = free? '' : 'none';
-    if(!free && o){
-      $('mnMeet').value=o.dataset.name||'';
-      if(o.dataset.start) $('mnDate').value=meetAutoDate(o.dataset.start, o.dataset.end);
-      var c=o.dataset.course||'';
-      if(c.indexOf('短')>=0) $('mnCourse').value='短水路';
-      else if(c.indexOf('長')>=0) $('mnCourse').value='長水路';
-    }
-  }
-  $('mnMeetSel').onchange=mnMeetApply;
-  $('mnClose').onclick=function(){ $('manualModal').classList.add('hide'); };
-  $('mnSave').onclick=function(){
-    var sel=$('mnAthlete');
-    if(!sel.value){ toast('選手を えらんでください'); return; }
-    var aName=(sel.options[sel.selectedIndex]||{}).textContent||'';
-    var dist=Number($('mnDist').value)||50;
-    // 地点タイムを上から順に集めて、その場で検品する
-    var els=$('mnRows').querySelectorAll('input[data-k="pt"]');
-    var pts=[], mae=0, maeD=0, warui='';
-    for(var i=0;i<els.length;i++){
-      var dd=Number(els[i].dataset.d);
-      var tv=els[i].value.trim();
-      if(!tv){
-        if(dd===dist) warui='ゴール（'+dist+'m）のタイムは 必須です';
-        continue;
-      }
-      var sec=parseT(tv);
-      if(sec==null){ warui=dd+'m のタイムの形が正しくありません（例 26.54 / 1:52.34）'; break; }
-      if(sec<=mae){ warui=dd+'m のタイムが '+maeD+'m より小さくなっています。通過タイムは 先に行くほど大きくなります'; break; }
-      pts.push({ d:dd, sec:sec, official: els[i].dataset.official==='1' });
-      mae=sec; maeD=dd;
-    }
-    if(warui){ toast(warui); return; }
-    if(!pts.length){ toast('タイムを なにも入れていません'); return; }
-    // R.T（あれば）
-    var data={ splits:{ 0:0 }, official:{}, tempo:{}, strokes:[], rt:null };
-    var rtEl=$('mnRows').querySelector('input[data-k="rt"]');
-    var rtv=rtEl? rtEl.value.trim() : '';
-    if(rtv){
-      var rv=Number(rtv);
-      if(!(rv>0 && rv<10)){ toast('R.Tは 10秒みまんの数で 入れてください（例 0.65）'); return; }
-      data.rt=rv;
-    }
-    pts.forEach(function(p){
-      data.splits[p.d]=p.sec;
-      if(p.official) data.official[p.d]=p.sec;   // 50mきざみの地点は 正式あつかい
-    });
-    var stv=$('mnSt').value.trim();
-    if(stv){
-      var n=Math.max(1, Math.round(dist/50));
-      for(var si=0; si<n; si++) data.strokes.push(Number(stv));   // 50mごとの平均として記録
-    }
-    var spv=$('mnSpm').value.trim();
-    if(spv){
-      data.tempo['0-'+dist]={ method:'manual', strokes:null, perStroke:60/Number(spv), spm:Number(spv) };
-    }
-    var goal=data.splits[dist];
-    var btn=this; btn.disabled=true; btn.textContent='送信中…';
-    var payload={ action:'save', deviceId:deviceId(), measurer:(riProfile().name||''),
-      athleteId:sel.value, athleteName:aName,
-      meetName:$('mnMeet').value.trim(), meetDate:$('mnDate').value,
-      stroke:$('mnStroke').value, raceDist:dist,
-      course:$('mnCourse').value, round:$('mnRound').value,
-      height:'', weight:'', videoUrl:'',
-      finalTime: fmt(goal),
-      data:data };
-    api(payload).then(function(res){
-      btn.disabled=false; btn.textContent='ほぞんする';
-      if(!(res && res.ok)) throw new Error((res&&res.error)||'ほぞんできませんでした');
-      refreshTodayCount();
-      toast(aName+' の '+dist+'m を ほぞんしました');
-      mnBuildRows();   // 表を空にして、つづけて次を入れられるようにする
-      $('mnSt').value=''; $('mnSpm').value='';
-    }).catch(function(err){
-      btn.disabled=false; btn.textContent='ほぞんする';
-      toast('失敗： '+err.message);
-    });
-  };
-  $('smInput').onclick=function(){ openManualModal(); };
-  $('smEdit').onclick=function(){
-    // 記録の修正：動画なしで きろくデータ画面をひらき、名簿から選ぶ画面へ
-    app.classList.remove('homeover');
-    app.classList.add('editview');
-    openEditModal();
-  };
 
   // ========== レースの じょうほう（距離のあとに聞く画面） ==========
   // 自分の名前・生年月日・身長・体重は、一度入れると携帯が覚えて、次からの初期値になる。
@@ -3488,7 +2985,6 @@
     rememberSwimmerInfo(raceInfo.swimmer, { birth:$('riSwBirth').value,
       height:$('riSwHeight').value, weight:$('riSwWeight').value });   // からだメモ帳にも覚える
     $('riModal').classList.add('hide');
-    dvRenderProfile();   // 縦画面の登録者カードも、いま入れた内容で更新する
     toast((raceInfo.swimmer||'')+' の '+raceDist+'m '+raceInfo.stroke+' を 測ります');
   
     showTut('まずは リアクションタイムを\n測定しよう！\n\n下の「R.T」ボタンから はじめられるよ');
@@ -3893,13 +3389,6 @@
     }
     $('progList').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
     loadAllRaces().then(function(){
-      // 標準記録と全国基準も先にそろえてから、1回だけ描く。
-      // （以前は届くたびに描き直していたので、同じ画面が3回くり返して見えていた）
-      var matsu=[];
-      if(stdCache===null) matsu.push(new Promise(function(ok){ stdLoad(function(){ ok(); }); }));
-      if(kijunCache===null) matsu.push(new Promise(function(ok){ kijunLoad(function(){ ok(); }); }));
-      return Promise.all(matsu);
-    }).then(function(){
       progFillAthletes();
       progFillEvents();
       progRender();
@@ -3925,16 +3414,10 @@
       o.textContent=p.name+(p.group? '　'+p.group:'');
       sel.appendChild(o);
     });
-    // 前に自分でえらんだ人がいればそれを尊重し、いなければ登録者（自分）を最初からえらぶ
-    var keepAri=false;
-    if(keep){
-      for(var oi=0; oi<sel.options.length; oi++){
-        if(sel.options[oi].value===keep){ keepAri=true; break; }
-      }
-    }
-    var jibun=jibunIdIn(people);
-    if(keepAri) sel.value=keep;
-    else if(jibun) sel.value=jibun;
+    if(keep) sel.value=keep;                                   // えらび直しはそのまま
+    if(!sel.value && myId()) sel.value=myId();                 // ふつうは じぶん
+    if(!sel.value && getAthletes().length) sel.value=getAthletes()[0].id;  // この携帯の選手
+    if(!sel.value && people.length) sel.value=people[0].id;    // それも無ければ先頭の人
   }
   // 種目のえらび：その選手が泳いだ種目を、新しい順にならべる
   function progFillEvents(){
@@ -4324,7 +3807,12 @@
       bestRow.namae.appendChild(iwai);
     }
     // ===== 標準記録: ベストタイムのすぐ下に表示する =====
-    // （標準記録と全国基準は、openProgressが画面を開くときに先にそろえてある）
+    if(stdCache===null){
+      stdLoad(function(){ try{ progRender(); }catch(e){} });
+    }
+    if(kijunCache===null){
+      kijunLoad(function(){ try{ progRender(); }catch(e){} });
+    }
     // レースの水路(短水路か長水路)に合わせた標準記録をさがす
     var stdRec=stdFind(races[0] && races[0].course);
     if(stdRec){
@@ -4408,176 +3896,29 @@
       s.appendChild(t1); s.appendChild(t2); d.appendChild(s);
       box.appendChild(d);
     });
-    progRenderCharts(box, recent);   // 一番下に、成長グラフ（上にのびる折れ線）を足す
-  }
-  // ===== 成長グラフ（小学生でもわかる、上にのびる折れ線） =====
-  // ルール：線は一種類だけ・点の上に数字をそのまま書く・全部のグラフで「上に行くほど良い」。
-  // タイムとかき数は数字が小さいほど良いので、グラフの向きをひっくり返して上にのびるようにする。
-  var progChartSeq=0;
-  var raceDataCache={};   // レースの中身（かき数・テンポ）を一度よみこんだら覚えておく
-  function progRenderCharts(box, recent){
-    var seq=++progChartSeq;
-    var races=recent.slice().reverse();   // 左が古い→右が新しい
-    if(!races.length) return;
-    var waku=document.createElement('div');
-    waku.className='pg-charts';
-    waku.innerHTML='<div class="pg-note">成長グラフを よみこみ中…</div>';
-    box.appendChild(waku);
-    // それぞれのレースの中身を取り寄せる（よみこみ済みのレースは通信しない）
-    Promise.all(races.map(function(r){
-      if(raceDataCache[r.raceId]) return Promise.resolve();
-      return api({action:'load', raceId:r.raceId}).then(function(res){
-        if(res && res.ok) raceDataCache[r.raceId]=res.data||{};
-      }).catch(function(){});
-    })).then(function(){
-      if(seq!==progChartSeq) return;   // そのあいだに選手や種目が切り替わっていたら描かない
-      waku.innerHTML='<div class="pg-head">成長グラフ　上に行くほど 良い</div>';
-      function nakami(r){ return raceDataCache[r.raceId]||{}; }
-      // かき数の合計と、かき数が記録されている距離（50mごと）
-      function kakiInfo(d){
-        var st=d.strokes||[]; var sum=0, cnt=0;
-        for(var i=0;i<st.length;i++){ var s=Number(st[i]); if(s>0){ sum+=s; cnt++; } }
-        return cnt? { sum:sum, cnt:cnt } : null;
-      }
-      // テンポ（毎分のかき数）の平均
-      function spmAvg(d){
-        var t=d.tempo||{}; var ks=Object.keys(t); var s=0,c=0;
-        ks.forEach(function(k){ var v=Number((t[k]||{}).spm||0); if(v>0){ s+=v; c++; } });
-        return c? s/c : null;
-      }
-      // 4つのグラフの点を用意する
-      var tPts=[], lenPts=[], spmPts=[], kzPts=[];
-      races.forEach(function(r){
-        var d=nakami(r);
-        var tv=parseT(r.finalTime);
-        if(tv!=null) tPts.push({ x:r.meetDate, v:tv, disp:fmt(tv) });
-        var k=kakiInfo(d);
-        if(k){
-          var nagasa=(k.cnt*50)/k.sum;   // ひとかきで すすんだ きょり
-          lenPts.push({ x:r.meetDate, v:nagasa, disp:nagasa.toFixed(2)+'m' });
-          var hon=k.sum/k.cnt;           // 50mあたりの かき数
-          kzPts.push({ x:r.meetDate, v:hon, disp:(Math.round(hon*10)/10)+'' });
-        }
-        var sp=spmAvg(d);
-        if(sp!=null) spmPts.push({ x:r.meetDate, v:sp, disp:String(Math.round(sp)) });
-      });
-      // グラフを1枚描く部品。invert=true なら「小さいほど上」にひっくり返す
-      function tanju(title, note, pts, invert, iro){
-        var d=document.createElement('div'); d.className='pg-chart';
-        var h='<div class="pg-title">'+title+'<small>'+note+'</small></div>';
-        if(pts.length<2){
-          h+='<div class="pg-note">'+(pts.length===1
-            ? 'あと1レース きろくが ふえると 線になります'
-            : 'かき数やテンポを きろくすると ここに出ます（記録の修正から あとで入れられます）')+'</div>';
-          d.innerHTML=h; waku.appendChild(d); return;
-        }
-        var W=320, H=118, L=16, R=16, T=26, B=20;
-        var lo=Math.min.apply(null, pts.map(function(p){return p.v;}));
-        var hi=Math.max.apply(null, pts.map(function(p){return p.v;}));
-        if(hi-lo<0.0001){ hi=lo+1; lo=lo-1; }
-        var pad=(hi-lo)*0.2; lo-=pad; hi+=pad;
-        function X(i){ return L+(W-L-R)*(pts.length===1? 0.5 : i/(pts.length-1)); }
-        function Y(v){
-          var n=(v-lo)/(hi-lo);
-          if(invert) n=1-n;               // 小さいほど上（速い・少ない＝良い）
-          return T+(H-T-B)*(1-n);
-        }
-        var line=pts.map(function(p,i){ return X(i)+','+Y(p.v); }).join(' ');
-        var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+title+'。'+note+'">';
-        svg+='<polyline points="'+line+'" fill="none" stroke="'+iro+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
-        pts.forEach(function(p,i){
-          svg+='<circle cx="'+X(i)+'" cy="'+Y(p.v)+'" r="5" fill="#fff" stroke="'+iro+'" stroke-width="3"/>';
-          svg+='<text x="'+X(i)+'" y="'+(Y(p.v)-10)+'" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">'+p.disp+'</text>';
-          var hizuke=String(p.x||'').slice(5).replace('-','/');
-          svg+='<text x="'+X(i)+'" y="'+(H-5)+'" text-anchor="middle" font-size="10" fill="#9dbdd1">'+hizuke+'</text>';
-        });
-        svg+='</svg>';
-        d.innerHTML=h+svg;
-        waku.appendChild(d);
-      }
-      tanju('タイム', '上ほど はやい', tPts, true, '#22d3ee');
-      tanju('ひとかきで すすむ きょり', '上ほど のびている', lenPts, false, '#4ade80');
-      tanju('テンポ（毎分のかき数）', '上ほど はやい回転', spmPts, false, '#fbbf24');
-      tanju('かき数（50mあたり）', '上ほど 少ないかき数', kzPts, true, '#f472b6');
-    });
   }
   $('progAthlete').onchange=function(){ progFillEvents(); progRender(); };
   $('progEvent').onchange=function(){ progRender(); };
   $('progRecentN').onchange=function(){ progRender(); };
 
-  // ========== くらべる（Aさん・Bさんのグラフ比較） ==========
+  // ========== くらべる（Aサン・Bサンのグラフ比較） ==========
   // 選手をふたりえらび、同じ種目・距離のレースを一本ずつ取り寄せて、
   // ラップ・スピード・テンポを二色の折れ線でならべる。
   // 横に長いレース（200m以上など）は、指のスワイプかボタンで横にめくって見る。
   var cmp2DataCache={};   // 記録ID → レースの中身（一度取り寄せたら覚える）
   var CMP_A_COL='#38bdf8', CMP_B_COL='#fbbf24';
   $('cmp2Close').onclick=function(){ $('cmp2Modal').classList.add('hide'); };
-  var cmp2Mode='other-race';   // えらんだ くらべ方
   function openCmp2Modal(){
     $('cmp2Modal').classList.remove('hide');
-    // まず、くらべ方をえらんでもらう
-    $('cmpModePanel').classList.remove('hide');
-    $('cmp2Cond').classList.add('hide');
-    $('cmp2Sum').classList.add('hide');
     $('cmp2Body').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
     loadAllRaces().then(function(){
       cmp2FillPeople();
       cmp2FillEvents();
       cmp2FillRaces();
-      $('cmp2Body').innerHTML='<div class="df-empty">上から くらべ方を えらんでください。</div>';
+      cmp2Render();
     }).catch(function(err){
       $('cmp2Body').innerHTML='<div class="df-empty">読み込みに失敗しました： '+err.message+'</div>';
     });
-  }
-  // くらべ方のボタン
-  (function(){
-    var setumei={
-      'self-best':'じぶんのベスト（A）と、じぶんの他のレース（B）をくらべます。',
-      'self-race':'じぶんのレースどうしを、自由にえらんで くらべます。',
-      'other-best':'じぶんのベスト（A）と、あいてのベスト（B）をくらべます。',
-      'other-race':'じぶんのレース（A）と、あいてのレース（B）を自由にえらんで くらべます。'
-    };
-    var btns=document.querySelectorAll('#cmpModePanel .cm-mode');
-    for(var i=0;i<btns.length;i++){
-      btns[i].onclick=function(){
-        cmp2Mode=this.dataset.mode;
-        $('cmpModePanel').classList.add('hide');
-        $('cmp2Cond').classList.remove('hide');
-        $('cmpModeNote').textContent=setumei[cmp2Mode]||'';
-        // じぶんどうしのモードでは、Bさんの人えらびは出さない（Aと同じ人になる）
-        var selfMode=(cmp2Mode==='self-best'||cmp2Mode==='self-race');
-        $('cmpRowB').classList.toggle('hide', selfMode);
-        cmp2RefreshAll();
-      };
-    }
-    $('cmpModeBack').onclick=function(){
-      $('cmp2Cond').classList.add('hide');
-      $('cmp2Sum').classList.add('hide');
-      $('cmpModePanel').classList.remove('hide');
-      $('cmp2Body').innerHTML='<div class="df-empty">上から くらべ方を えらんでください。</div>';
-    };
-  })();
-  // ベストのモードでは、レースを一番はやいもの（一覧の先頭）に固定する
-  function cmp2ApplyBestLocks(){
-    var bestA=(cmp2Mode==='self-best'||cmp2Mode==='other-best');
-    var bestB=(cmp2Mode==='other-best');
-    var ra=$('cmpRaceA'), rb=$('cmpRaceB');
-    ra.disabled=bestA; if(bestA && ra.options.length) ra.selectedIndex=0;
-    rb.disabled=bestB; if(bestB && rb.options.length) rb.selectedIndex=0;
-  }
-  // 人・種目がかわったとき（じぶんモードならBさんをAと同じ人にそろえる）
-  function cmp2RefreshAll(){
-    if(cmp2Mode==='self-best'||cmp2Mode==='self-race'){ $('cmpB').value=$('cmpA').value; }
-    cmp2FillEvents();
-    cmp2FillRaces();
-    cmp2ApplyBestLocks();
-    cmp2Render();
-  }
-  // 距離だけがかわったとき
-  function cmp2RefreshRaces(){
-    cmp2FillRaces();
-    cmp2ApplyBestLocks();
-    cmp2Render();
   }
   function cmp2People(){
     var seen={}, people=[];
@@ -4589,59 +3930,10 @@
     people.sort(function(a,b){ return a.name<b.name? -1:1; });
     return people;
   }
-  // Aさん（ふつうは自分）とBさんのえらび
-  // 一覧の中から「登録者（自分）」をさがす共通の部品。
-  // 順番：じぶんの記録で設定したID → この携帯のプロフィールの名前 → この携帯で登録した選手
-  function jibunIdIn(people){
-    if(myId()){
-      for(var i=0; i<people.length; i++){
-        if(String(people[i].id)===String(myId())) return people[i].id;
-      }
-    }
-    var jibun=(riProfile().name||'').replace(/[\s\u3000]+/g,'');
-    if(jibun){
-      for(var j=0; j<people.length; j++){
-        var nm=String(people[j].name||'').replace(/[\s\u3000]+/g,'');
-        if(nm && (nm.indexOf(jibun)===0 || jibun.indexOf(nm)===0)) return people[j].id;
-      }
-    }
-    var mine=getAthletes();
-    for(var g=0; g<mine.length; g++){
-      for(var k=0; k<people.length; k++){
-        if(String(people[k].id)===String(mine[g].id)) return people[k].id;
-      }
-    }
-    return '';
-  }
+  // Aサン（ふつうは自分）とBサンのえらび
   function cmp2FillPeople(){
     var people=cmp2People();
-    // 先に「自分（登録者）」をさがしておく。
-    // 順番：じぶんの記録で設定したID → この携帯のプロフィールの名前 → この携帯で登録した選手
-    var jibunId='';
-    if(myId()){
-      for(var mi=0; mi<people.length; mi++){
-        if(String(people[mi].id)===String(myId())){ jibunId=people[mi].id; break; }
-      }
-    }
-    if(!jibunId){
-      var jibun=(riProfile().name||'').replace(/[\s\u3000]+/g,'');
-      if(jibun){
-        for(var pi=0; pi<people.length; pi++){
-          var nm=String(people[pi].name||'').replace(/[\s\u3000]+/g,'');
-          if(nm && (nm.indexOf(jibun)===0 || jibun.indexOf(nm)===0)){ jibunId=people[pi].id; break; }
-        }
-      }
-    }
-    if(!jibunId && getAthletes().length){
-      var mine=getAthletes();
-      for(var gi=0; gi<mine.length; gi++){
-        for(var pj=0; pj<people.length; pj++){
-          if(String(people[pj].id)===String(mine[gi].id)){ jibunId=people[pj].id; break; }
-        }
-        if(jibunId) break;
-      }
-    }
-    [['cmpA', jibunId], ['cmpB', '']].forEach(function(pair){
+    [['cmpA', myId()], ['cmpB', '']].forEach(function(pair){
       var sel=$(pair[0]); var keep=sel.value; sel.innerHTML='';
       if(pair[0]==='cmpB'){
         var o0=document.createElement('option'); o0.value=''; o0.textContent='えらんでください';
@@ -4652,18 +3944,14 @@
         o.textContent=p.name+(p.group? '　'+p.group:'');
         sel.appendChild(o);
       });
-      // 前に自分でえらんだ人がいれば、それを尊重する。
-      // いなければ、Aさんは登録者（自分）を最初からえらんでおく。
-      var keepAri=false;
-      if(keep){
-        for(var oi=0; oi<sel.options.length; oi++){
-          if(sel.options[oi].value===keep){ keepAri=true; break; }
-        }
-      }
-      if(keepAri) sel.value=keep;
-      else if(pair[1]) sel.value=pair[1];
-      else if(pair[0]==='cmpB') sel.value='';
+      if(keep) sel.value=keep;
+      if(!sel.value && pair[1]) sel.value=pair[1];
     });
+    if(!$('cmpA').value){
+      if(getAthletes().length) $('cmpA').value=getAthletes()[0].id;
+      var people2=cmp2People();
+      if(!$('cmpA').value && people2.length) $('cmpA').value=people2[0].id;
+    }
   }
   function cmp2RacesOf(aid){
     return (cmpAll||[]).filter(function(r){
@@ -4802,8 +4090,8 @@
         s+='<text class="anim-txt" style="animation-delay:'+dl+'s" x="'+cx+'" y="'+(above? cy-11 : cy+21).toFixed(1)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="'+col+'">'+p.y.toFixed(opts.decimals)+'</text>';
       });
     }
-    draw(ptsA, CMP_A_COL, true, 0.15);    // Aさんの線が先に走る
-    draw(ptsB, CMP_B_COL, false, 0.55);   // Bさんの線が追いかける
+    draw(ptsA, CMP_A_COL, true, 0.15);    // Aサンの線が先に走る
+    draw(ptsB, CMP_B_COL, false, 0.55);   // Bサンの線が追いかける
     s+='</svg>';
     var wrap=document.createElement('div'); wrap.className='cmp-scroll';
     wrap.innerHTML=s;
@@ -4835,7 +4123,7 @@
       }
     }, 0);
   }
-  // 局面ごとの棒グラフ。青がAさん、黄がBさん。棒が短いほど速い。
+  // 局面ごとの棒グラフ。青がAサン、黄がBサン。棒が短いほど速い。
   function cmp2Phases(box, lapsA, lapsB, dist, naA, naB){
     naA=naA||'A'; naB=naB||'B';
     var wrap=document.createElement('div');
@@ -4949,14 +4237,12 @@
   function cmp2Render(){
     var box=$('cmp2Body'); box.innerHTML='';
     if(!$('cmpB').value){
-      box.innerHTML='<div class="df-empty">'+((cmp2Mode==='self-best'||cmp2Mode==='self-race')
-        ? '選手（Aさん）を えらんでください。'
-        : 'Bさんを えらんでください。Aさんは ふつうは自分です。')+'</div>';
+      box.innerHTML='<div class="df-empty">Bサンを えらんでください。Aサンは ふつうは自分です。</div>';
       return;
     }
     var rA=$('cmpRaceA').value, rB=$('cmpRaceB').value;
     if(!rA || !rB){
-      box.innerHTML='<div class="df-empty">'+(!rA? 'Aさん':'Bさん')+'には この種目・距離のレースが ありません。</div>';
+      box.innerHTML='<div class="df-empty">'+(!rA? 'Aサン':'Bサン')+'には この種目・距離のレースが ありません。</div>';
       return;
     }
     box.innerHTML='<div class="df-empty">レースの中身を 取り寄せ中…</div>';
@@ -4994,10 +4280,10 @@
       });
     });
   }
-  $('cmpA').onchange=cmp2RefreshAll;
-  $('cmpB').onchange=cmp2RefreshAll;
-  $('cmp2Stroke').onchange=cmp2RefreshAll;
-  $('cmp2Dist').onchange=cmp2RefreshRaces;
+  $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
+  $('cmpB').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Dist').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
   $('cmpRaceA').onchange=function(){ cmp2Render(); };
   $('cmpRaceB').onchange=function(){ cmp2Render(); };
   $('cmp2Edit').onclick=function(){
@@ -6154,18 +5440,7 @@
       if(splitTimes[selDist]!=null){
         if(!confirm(selDist+'m は すでに記録があります。今の場面で 上書きしますか？')) return;
       }
-      // 順番の点検：距離が長い地点ほど、動画の時刻もあとでなければおかしい。
-      // 矛盾を見つけたら、まちがえた記録のほうを消して記録し直す提案をする。
-      var stamp=getStampTime();
-      var conflict=checkStampOrder(selDist, stamp);
-      if(conflict){
-        var names=conflict.dists.map(distName).join('・');
-        var q=conflict.msg+'\n\nまちがえて記録した '+names+' のほうを消して、いまの場面で '+selDist+'m を記録しますか？';
-        if(!confirm(q)){ toast('記録を やめました'); return; }
-        conflict.dists.forEach(function(k){ delete splitTimes[k]; delete officialTimes[k]; });
-        toast(names+' の記録を消しました');
-      }
-      splitTimes[selDist]=stamp;
+      splitTimes[selDist]=getStampTime();
       buildScale(); renderRecords();
       toast(selDist+'m を きろくしました');
       // 0m（スタート）が無いと通過タイムの基準が作れないので、気づかせる
@@ -6201,13 +5476,12 @@
       // 入水の瞬間を1つ記録する
       tempoMarks.push(now);
       if(tempoMethod==='3stroke'){
-        // 3ストローク法：入水（1かき目）でスタート、3かき目の入水でストップの2回押し。
-        // かかった時間÷3が 1かきのテンポになる
-        if(tempoMarks.length>=2){
+        // 3ストローク法：1つ目＝始点、4つ目＝3かき目の入水で完了（3かき）
+        if(tempoMarks.length>=4){
           finalizeTempo();
         } else {
           updateTempoUI();
-          toast('ストップウォッチ開始。3かき目の入水で もう一度おしてね');
+          toast('入水 '+tempoMarks.length+' を記録');
         }
       } else {
         // 1つずつ：押すたびに記録。2つ以上たまれば途中経過も出す。
@@ -6221,22 +5495,14 @@
   function finalizeTempo(){
     if(tempoMarks.length<2){ toast('もう1回 入水を記録してね'); return; }
     var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
+    var strokes=marks.length-1;                 // かき数＝間隔の数
     var total=marks[marks.length-1]-marks[0];   // 全体の時間
-    if(total<=0){
-      tempoMarks.pop();   // 止めた場面が始めた場面より前なら、その記録は取り消してやり直し
-      toast('ストップは スタートより あとの場面で おしてね');
-      updateTempoUI();
-      return;
-    }
-    // 3ストローク法は 1かき目→3かき目の入水なので、かき数は3で固定。
-    // 1つずつ法は 押した回数−1 がかき数。
-    var strokes=(tempoMethod==='3stroke') ? 3 : (marks.length-1);
     var perStroke=total/strokes;                // 1かきの秒数
     var spm=perStroke>0 ? (60/perStroke) : 0;   // 毎分かき数
     tempoValues[selFrom+'-'+selTo]={ method:tempoMethod, strokes:strokes, perStroke:perStroke, spm:spm };
     tempoMarks=[];
     updateTempoUI(); renderRecords();
-    toast(selFrom+'〜'+selTo+'m ストロークタイム '+perStroke.toFixed(2)+'秒／かき（'+total.toFixed(2)+'秒÷'+strokes+'）　テンポ 毎分'+Math.round(spm)+'かき');
+    toast(selFrom+'〜'+selTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき');
   }
 
   // テンポの状態表示と、ラップボタン・確定ボタンの文字を更新
@@ -6246,16 +5512,16 @@
     var lb=$('lapBtnMain');
     var n=tempoMarks.length;
     if(tempoMethod==='3stroke'){
-      // 3ストローク法：入水（1かき目）でスタート、3かき目の入水でストップ
-      if(n===0){
-        st.textContent='3ストローク法 ： 入水（1かき目）で スタート';
-        lb.textContent='入水① で スタート';
-      } else {
-        st.textContent='3ストローク法 ： 計測中。3かき目の入水で ストップ';
-        lb.textContent='3かき目の入水で ストップ';
-      }
+      // 3ストローク法：1つ目→始点、2・3→途中、4つ目→完了
+      var steps=['入水①（始点）を記録','入水②を記録','入水③を記録','入水④（3かき目）で完了'];
+      st.textContent='3ストローク法 ： '+(n<4?steps[n]:'完了');
+      lb.textContent = (n===0)?'入水① を記録' : (n<3?('入水'+'②③'.charAt(n-1)+' を記録'):'入水④ で完了');
+      // 分かりやすく作り直し
+      if(n===0) lb.textContent='入水① を記録';
+      else if(n===1) lb.textContent='入水② を記録';
+      else if(n===2) lb.textContent='入水③ を記録';
+      else lb.textContent='入水④ で完了';
       showTempoFinishBtn(false);
-      tempoWatchShow(n>=1);
     } else {
       // 1つずつ：途中経過を出し、確定ボタンで終える
       if(n===0){ st.textContent='1つずつ ： 入水①から記録'; lb.textContent='入水① を記録'; }
@@ -6263,14 +5529,13 @@
         var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
         if(n>=2){
           var strokes=n-1, total=marks[n-1]-marks[0], per=total/strokes, spm=60/per;
-          st.textContent='1つずつ ： '+n+'回記録　ストロークタイム '+per.toFixed(2)+'秒　テンポ 毎分'+Math.round(spm)+'かき';
+          st.textContent='1つずつ ： '+n+'回記録　'+per.toFixed(2)+'秒／かき　毎分'+Math.round(spm)+'かき';
         } else {
           st.textContent='1つずつ ： 入水①を記録ずみ。次を記録';
         }
         lb.textContent='入水'+(n+1)+' を記録';
       }
       showTempoFinishBtn(n>=2);
-      tempoWatchShow(n>=1);
     }
   }
   // 1つずつ測定の確定ボタンを出し入れ
@@ -6286,60 +5551,10 @@
     var ts=Object.keys(splitTimes).map(function(k){return splitTimes[k];});
     return ts.length ? Math.min.apply(null, ts) : 0;
   }
-  // 地点の順番点検：記録しようとしている場面が、前後の地点と矛盾していないか調べる。
-  // 矛盾があれば、その理由と矛盾している地点の一覧を返す。問題なければnullを返す。
-  function checkStampOrder(d, stamp){
-    var ks=Object.keys(splitTimes).map(Number);
-    var bad=[], msg='';
-    for(var i=0;i<ks.length;i++){
-      var k=ks[i];
-      if(k===Number(d) || splitTimes[k]==null) continue;
-      var name=(k===0)?'0m（スタート）':(k+'m');
-      if(k<Number(d) && stamp<=splitTimes[k]){
-        bad.push(k);
-        msg='この場面は '+name+' の記録より前です。'+d+'m は もっとあとの場面のはずです';
-      }
-      if(k>Number(d) && stamp>=splitTimes[k]){
-        bad.push(k);
-        msg='この場面は '+name+' の記録よりあとです。'+d+'m は もっと前の場面のはずです';
-      }
-    }
-    return bad.length ? { dists:bad, msg:msg } : null;
-  }
-  // 地点の名前（0mだけ特別あつかい）
-  function distName(k){ return (Number(k)===0)?'0m（スタート）':(k+'m'); }
   // たて画面用：データ一覧を組み立てる。
   // 先頭にR.T（リアクションタイム）、距離ごとにタイムと区間、
   // テンポは区間の値なので、行と行のあいだに挟んで表示する。
-  // 縦画面のプロフィールカード：登録者の情報を出し、分析したい選手の名前をきく
-  // 名前欄の最初の中身は登録者本人。書きかえると、ほぞんのときの選手名にも流れる
-  function dvRenderProfile(){
-    var box=$('dvProfile'); if(!box) return;
-    var p=riProfile();
-    $('dvpName').textContent  = p.name  || '—';
-    $('dvpBirth').textContent = p.birth ? hiJa(p.birth) : '—';
-    $('dvpHeight').textContent= p.height? (p.height+' cm') : '—';
-    $('dvpWeight').textContent= p.weight? (p.weight+' kg') : '—';
-    var h=Number(p.height), w=Number(p.weight);
-    $('dvpBmi').textContent   = (h>0 && w>0) ? (w/Math.pow(h/100,2)).toFixed(1) : '—';
-    var inp=$('dvSwimmer');
-    // 人が打ちこんでいる最中や、一度自分で書きかえたあとは、機械が上書きしない
-    if(document.activeElement!==inp && !inp.dataset.touched){
-      inp.value=(raceInfo && raceInfo.swimmer) ? raceInfo.swimmer : (p.name||'');
-    }
-  }
-  $('dvSwimmer').addEventListener('change', function(){
-    this.dataset.touched='1';
-    var name=this.value.trim();
-    if(!name) return;
-    if(raceInfo) raceInfo.swimmer=name;
-    else raceInfo={ swimmer:name };
-    rememberSwimmer(name);   // 名前ちょうに入れて、次から候補に出す
-    fillSwimmerList();
-    toast(name+' さんのレースとして分析します');
-  });
   function renderDataView(){
-    dvRenderProfile();
     var body=$('dvBody'); if(!body) return;
     body.innerHTML='';
     var dists=allDists();
@@ -6373,7 +5588,7 @@
           var row=document.createElement('div');
           row.className='dv-row tempo';
           row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'秒/かき<small>テンポ 毎分'+Math.round(v.spm)+'かき</small></span>';
+                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
           (function(kk){ row.querySelector('.dv-p').onclick=function(){ openTempoModal(kk); }; })(k);
           body.appendChild(row);
         }
@@ -6405,7 +5620,7 @@
         var row=document.createElement('div');
         row.className='dv-row tempo';
         row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>テンポ 毎分'+Math.round(v.spm)+'かき</small></span>';
+                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
         body.appendChild(row);
       });
     // かき数：登録画面で入れた50mごとの値と合計を出す
@@ -6419,12 +5634,11 @@
         lines+='<div class="dv-srow"><span>'+(i+1)+'回目 '+from+'〜'+to+'m</span><span>'+(v!=null? v+' かき':'-')+'</span></div>';
         if(v!=null) total+=v;
       });
-      foot.innerHTML='<div class="dv-shead">かき数（50mごと）　タップで直せます</div>'+lines+
+      foot.innerHTML='<div class="dv-shead">かき数（50mごと）</div>'+lines+
                      '<div class="dv-srow total"><span>合計</span><span>'+total+' かき</span></div>';
     } else {
-      foot.textContent='かき数： まだ登録がありません。ここをタップして入れられます。';
+      foot.textContent='かき数： まだ登録がありません。よこ画面の「かき数」ボタンから入れられます。';
     }
-    foot.onclick=openStrokeModal;   // 縦画面からも かき数を直せる
     body.appendChild(foot);
   }
   // その距離の表示タイム。正式タイムがあればそれを、なければ動画からの計測を使う。
@@ -6530,7 +5744,7 @@
           seconds: mae.seconds || null
         };
         renderRecords();
-        toast(key+'m のストロークタイムを '+v.toFixed(2)+'秒／かきに なおしました');
+        toast(key+'m のテンポを '+v.toFixed(2)+'秒／かきに なおしました');
       },
       function(){
         delete tempoValues[key];
@@ -6588,21 +5802,8 @@
       var lap=split-prevSplit;
       var row=document.createElement('div');
       row.className='rec';
-      // 区間がマイナス＝地点の順番がおかしい記録。赤い警告を付けて気づかせる
-      var lapWarn=(lap<0)?'⚠ ':'';
-      var lapNote=(lap<0)?'<div class="lap" style="color:#fca5a5;font-weight:800;">順番がおかしい記録です。'+d+'m を正しい場面で 上書きしてください</div>':'';
-      row.innerHTML='<div class="top"><span class="d">'+d+'m</span><span class="t'+(isOff?' toff':'')+'">'+fmt(split)+'</span>'+
-                    '<button type="button" class="rec-del" aria-label="'+d+'mの記録を消す">✕</button></div>'+
-                    '<div class="lap"><span class="lap-edit" data-d="'+d+'" data-pd="'+prevD+'" data-ps="'+prevSplit+'" data-lap="'+lap+'">'+lapWarn+'区間 '+prevD+'→'+d+'m ： '+fmt(lap)+'</span>'+(isOff?'　正式':'')+'</div>'+lapNote;
-      // ✕を押すと、その地点の記録を消せる（まちがえたときのやり直し用）
-      row.querySelector('.rec-del').onclick=function(ev){
-        ev.stopPropagation();
-        if(!confirm(d+'m の記録を消しますか？')) return;
-        delete splitTimes[d];
-        delete officialTimes[d];
-        buildScale(); renderRecords();
-        toast(d+'m の記録を消しました');
-      };
+      row.innerHTML='<div class="top"><span class="d">'+d+'m</span><span class="t'+(isOff?' toff':'')+'">'+fmt(split)+'</span></div>'+
+                    '<div class="lap"><span class="lap-edit" data-d="'+d+'" data-pd="'+prevD+'" data-ps="'+prevSplit+'" data-lap="'+lap+'">区間 '+prevD+'→'+d+'m ： '+fmt(lap)+'</span>'+(isOff?'　正式':'')+'</div>';
       // 通過タイムを押すと 正式タイムの画面。区間タイムを押すと 区間だけ直せる画面。
       row.querySelector('.t').onclick=function(){ openOfficialModal(d); };
       var le=row.querySelector('.lap-edit');
@@ -6623,7 +5824,7 @@
         var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
         var spm=(v.spm!=null)?Math.round(v.spm):'-';
         row.innerHTML='<div class="top"><span class="d">'+o.k.replace('-','〜')+'m</span><span class="t">'+per+'</span></div>'+
-                      '<div class="lap">ストロークタイム '+per+'秒／かき　テンポ 毎分'+spm+'かき</div>';
+                      '<div class="lap">テンポ '+per+'秒／かき　毎分'+spm+'かき</div>';
         var kk=o.k;
         row.querySelector('.t').onclick=function(){ openTempoModal(kk); };
         box.appendChild(row);
@@ -6818,7 +6019,6 @@
     videoEl.src=URL.createObjectURL(f); videoEl.load();
     app.classList.add('hasvideo');
     app.classList.remove('homeover');   // ホームの重ね掛けが残っていたら片づける
-    app.classList.remove('editview');   // 記録の修正モードも終わりにする（測定にもどる）
     vScale=1; vTx=0; vTy=0; applyT();
     // 距離をきく
     setTimeout(openDistModal, 200);
@@ -6872,22 +6072,19 @@
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
-    ['#smEdit','ほぞんずみのレースを その場で直せるッチ。えらんで、かき数やR.Tを入れて、上書きするだけッチ。タイムなどほかの項目は そのまま守られるッチ。'],
-    ['#smInput','動画がなくても記録を打ちこめるッチ。きょりをえらぶと、分析と同じ地点の表（50mならR.T・15m・25m・35m・45m・50m）が出て、通過タイムを入れられるッチ。ゴールのタイムだけでもOKだッチ！'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
-    ['#smCompare','くらべ方は4つあるッチ。じぶんのベストと他のレース、じぶんのレースどうし、じぶんとあいてのベストどうし、じぶんとあいてのレース。えらぶだけで はじまるッチ！'],
+    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
     ['#newsBar','きょうの水泳ニュースだッチ。押すと元の記事がひらくッチ。つぎに開くと 新しい見出しに かわるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],
-    ['#smRecords','世界記録・日本記録・アジア記録が ぜんぶ見られるッチ。長水路と短水路の切りかえもできて、だれが いつ出した記録かも わかるッチ！'],
     ['#toolsBtn','ここは道具箱だッチ。動画や距離の変更、ほぞんとよびだしが入っているッチ。'],
     ['#changeBtn','べつの動画にとりかえるッチ。いまの記録はのこったままだッチ。'],
     ['#distBtn','レースの距離をえらびなおすッチ。記録はリセットされるから気をつけるッチ。'],
     ['#saveBtn','タイムやテンポをスプレッドシートにほぞんするッチ。はじめてのときだけ選手登録があるッチ。'],
     ['#loadBtn','ほぞんした記録をよびもどすッチ。過去のレースが一覧で出てくるッチ。'],
     ['#mtTime','地点の通過タイムをはかるモードだッチ。まず目盛りで地点をえらぶッチ。'],
-    ['#mtTempo','区間のテンポをはかるモードだッチ。1かきにかかった時間（秒）を「ストロークタイム」とよぶッチ。1かきだけだと誤差が大きいから、3かき分の時間をはかって3で割るのが 3ストローク法だッチ。それを1分あたりの回数になおしたものが「ストロークテンポ（回/分）」だッチ！'],
+    ['#mtTempo','区間のテンポをはかるモードにかわるッチ。目盛りで区間をえらぶッチ。'],
     ['#tm3','入水を4回おして、3かき分の時間からテンポを出すはかり方だッチ。'],
     ['#tmEach','入水のたびにおして、さいごに確定ボタンでしめくくるはかり方だッチ。かき数もかぞえられるッチ。'],
     ['#lapBtn','いちばん大事なボタンだッチ。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするッチ。'],
@@ -6932,7 +6129,17 @@
     var g=$('guide');
     if(g){ g.addEventListener('click', function(){ if(!guideMode) hideGuide(); }); }
   })();
+  // シャッチーくんは、次の三つのときだけ話す。
+  //   1) 押して解説モードに入っているとき(guideMode)
+  //   2) 初めて開いたときのあいさつ(seenTut のところで一時的に許可)
+  //   3) 部員が「ここをきろく」を押した直後のよいしょ(短い時間だけ許可)
+  // それ以外の場面で自動で吹き出しが出るのを、この関門でまとめて止める。
+  var shacchiCanSpeak=false;
   function shacchiSay(text, ms){
+    if(guideMode || shacchiCanSpeak) return shacchiSayCore(text, ms);
+    // それ以外は 何もしない
+  }
+  function shacchiSayCore(text, ms){
     if(!guideMode && shacchiOff()) return;
     $('gMode').style.display = guideMode ? '' : 'none';
     showGuide(text);
@@ -6962,7 +6169,9 @@
   try{ seenTut = (localStorage.getItem('swimiq_seen_tut')==='1'); }catch(e){ seenTut = !!window.__swimiqSeenTut; }
   if(!seenTut && !shacchiOff()){
     $('gMode').style.display='none';
+    shacchiCanSpeak=true;
     showGuide('やあ！ぼくシャッチーくん。ぼくをおすと解説モードになって、ボタンのはたらきをおしえるッチ！');
+    setTimeout(function(){ shacchiCanSpeak=false; }, 1000);
     setTimeout(function(){ if(!guideMode) hideGuide(); }, 9000);
     try{ localStorage.setItem('swimiq_seen_tut','1'); }catch(e){ window.__swimiqSeenTut=true; }
   }
@@ -7073,9 +6282,6 @@
 
   // ========== 正式レース結果（3つの公式サイトへの入り口） ==========
   $('officialBtn').onclick=function(){ $('officialModal').classList.remove('hide'); };
-  // 世界・日本記録：記録一覧ページ（世界・日本・アジア）を新しいタブでひらく
-  // ホーム画面アプリとして動いているときも迷わないよう、省略なしの完全な住所で指定する
-  $('smRecords').onclick=function(){ window.open('https://sskyou1971chukyo-web.github.io/swimiq/records.html', '_blank'); };
   document.querySelectorAll('.official-link').forEach(function(b){
     b.onclick=function(){
       window.open(b.getAttribute('data-url'), '_blank');
@@ -7129,14 +6335,7 @@
     if(!videoEl.paused) videoEl.pause();   // 動画はいったん止めるだけ。とじない
     app.classList.add('homeover');
   }
-  $('homeBtn').onclick=function(){
-    // 記録の修正モード（動画なし）のときは、モードを終えてホームにもどる
-    if(app.classList.contains('editview') && !app.classList.contains('hasvideo')){
-      app.classList.remove('editview');
-      return;
-    }
-    openHomeOver(); homeNyujo();
-  };
+  $('homeBtn').onclick=function(){ openHomeOver(); homeNyujo(); };
   $('smBackVideo').onclick=function(){ app.classList.remove('homeover'); };
   // 起動したときに、すべての画面の下に「前に戻る」と「『動画を開く』に戻る」を置く
   document.querySelectorAll('.modal-card').forEach(function(card){

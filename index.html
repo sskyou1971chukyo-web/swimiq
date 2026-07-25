@@ -269,6 +269,13 @@
   .tm-method:not(.active){ opacity:.55; }
 
   /* テンポ測定の状態表示（狙い表示のすぐ上・テンポ中だけ） */
+  /* テンポ測定中に、入水①からの経過秒数を大きく出す(何かき目かの目安) */
+  #tempoElapsed{ display:flex; align-items:center; justify-content:center;
+    padding:0 14px; margin:0 6px; border-radius:12px;
+    background:rgba(56,189,248,.22); border:1.5px solid rgba(56,189,248,.6);
+    color:#fff; font-weight:900; font-size:18px; min-width:88px;
+    font-variant-numeric:tabular-nums; }
+  #tempoElapsed.hide{ display:none; }
   #tempoStatus{ display:none; align-items:center; gap:5px; padding:3px 9px; max-width:60vw;
     background:rgba(8,145,178,.85); border:1px solid #fff; border-radius:12px;
     font-size:10px; font-weight:800; text-shadow:var(--shadow); white-space:nowrap;
@@ -1077,6 +1084,7 @@
       <button id="lineChip">線<span class="rs">通過ライン</span></button>
       <button id="strokeChip">かき数<span class="rs">とうろく</span></button>
       <button id="rtChip">R.T<span class="rs">スタート反応</span></button>
+      <div id="tempoElapsed" class="hide">0.00秒</div>
       <button id="lapBtn" class="time"><span id="lapBtnMain">ここを きろく</span></button>
     </div>
   </div>
@@ -1539,8 +1547,20 @@
   function tickLoop(){ paintClock(); requestAnimationFrame(tickLoop); }
   function paintClock(){
     if(!isVideoReady()) return;
-    var val=fmt(elapsed(getStampTime()));
+    var t=getStampTime();
+    var val=fmt(elapsed(t));
     var hud=$('bigTimeHud'); if(hud) hud.textContent=val;
+    // テンポ測定中は、入水①からの経過秒数を毎コマ更新する
+    updateTempoElapsedDisplay(t);
+  }
+  // テンポ経過の表示を、いまの動画時刻から刻々と更新する
+  function updateTempoElapsedDisplay(t){
+    var el=$('tempoElapsed'); if(!el) return;
+    if(mode!=='tempo' || tempoMarks.length===0){ el.classList.add('hide'); return; }
+    var marks=tempoMarks.slice().sort(function(a,b){ return a-b; });
+    var keika = (n=>n<0?0:n)( t - marks[0] );
+    el.textContent = keika.toFixed(2)+'秒';
+    el.classList.remove('hide');
   }
   function step(frames){
     if(!isVideoReady())return;
@@ -1768,6 +1788,7 @@
 
   // モードを切り替える（'time'＝地点タイム / 'tempo'＝区間テンポ）
   function setMode(m){
+    if(m!=='tempo'){ var e=$('tempoElapsed'); if(e) e.classList.add('hide'); }
     mode=m;
     $('mtTime').classList.toggle('active', m==='time');
     $('mtTempo').classList.toggle('active', m==='tempo');
@@ -5443,11 +5464,16 @@
         openRtModal();
         return;
       }
-      // すでに記録済みの地点なら、上書きしてよいか確認する
-      if(splitTimes[selDist]!=null){
+      // すでに記録済みの地点(動画か、直接編集で入れた値がある)なら、上書き確認
+      var hasSplit = (splitTimes[selDist]!=null);
+      var hasOff = (officialTimes[selDist]!=null);
+      if(hasSplit || hasOff){
         if(!confirm(selDist+'m は すでに記録があります。今の場面で 上書きしますか？')) return;
       }
       splitTimes[selDist]=getStampTime();
+      // 動画で上書きしたときは、直接編集で入れた古い正式タイムを消す
+      // (これをしないと、直接編集の値が優先されて動画の新しい値が見えない)
+      if(hasOff){ delete officialTimes[selDist]; }
       buildScale(); renderRecords();
       toast(selDist+'m を きろくしました');
       // 0m（スタート）が無いと通過タイムの基準が作れないので、気づかせる
@@ -5483,12 +5509,13 @@
       // 入水の瞬間を1つ記録する
       tempoMarks.push(now);
       if(tempoMethod==='3stroke'){
-        // 3ストローク法：1つ目＝始点、4つ目＝3かき目の入水で完了（3かき）
-        if(tempoMarks.length>=4){
+        // 3ストローク法：1回目＝入水①(始点)、2回目＝3かき目の入水で完了(3かき)
+        // 3かき目までの秒数を3で割ったのが1かきの秒数
+        if(tempoMarks.length>=2){
           finalizeTempo();
         } else {
           updateTempoUI();
-          toast('入水 '+tempoMarks.length+' を記録');
+          toast('入水①を記録。次は3かき目の入水で完了');
         }
       } else {
         // 1つずつ：押すたびに記録。2つ以上たまれば途中経過も出す。
@@ -5502,7 +5529,10 @@
   function finalizeTempo(){
     if(tempoMarks.length<2){ toast('もう1回 入水を記録してね'); return; }
     var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
-    var strokes=marks.length-1;                 // かき数＝間隔の数
+    // かき数の決め方:
+    //   3ストローク法は 2回押し(入水①と3かき目の入水)なので、間は必ず3かき
+    //   1つずつは 押した回数-1 が間の数(=かき数)
+    var strokes=(tempoMethod==='3stroke') ? 3 : (marks.length-1);
     var total=marks[marks.length-1]-marks[0];   // 全体の時間
     var perStroke=total/strokes;                // 1かきの秒数
     var spm=perStroke>0 ? (60/perStroke) : 0;   // 毎分かき数
@@ -5514,20 +5544,23 @@
 
   // テンポの状態表示と、ラップボタン・確定ボタンの文字を更新
   function updateTempoUI(){
-    if(mode!=='tempo') return;
+    if(mode!=='tempo'){ $('tempoElapsed').classList.add('hide'); return; }
     var st=$('tempoStatus');
     var lb=$('lapBtnMain');
     var n=tempoMarks.length;
+    // 入水①を押した直後に、すぐ表示を出しておく(以降は動画の再生に合わせて刻々と更新される)
+    if(n>=1){
+      updateTempoElapsedDisplay(getStampTime());
+    } else {
+      $('tempoElapsed').classList.add('hide');
+    }
     if(tempoMethod==='3stroke'){
-      // 3ストローク法：1つ目→始点、2・3→途中、4つ目→完了
-      var steps=['入水①（始点）を記録','入水②を記録','入水③を記録','入水④（3かき目）で完了'];
-      st.textContent='3ストローク法 ： '+(n<4?steps[n]:'完了');
-      lb.textContent = (n===0)?'入水① を記録' : (n<3?('入水'+'②③'.charAt(n-1)+' を記録'):'入水④ で完了');
-      // 分かりやすく作り直し
+      // 3ストローク法：入水①(始点)を押し、3かき目の入水を押す。この2回だけ。
+      // 2回目の入水から1回目の入水までの時間を3で割ったのが、1かきの秒数。
+      var steps=['入水①（始点）を記録','3かき目の入水で完了'];
+      st.textContent='3ストローク法 ： '+(n<2?steps[n]:'完了');
       if(n===0) lb.textContent='入水① を記録';
-      else if(n===1) lb.textContent='入水② を記録';
-      else if(n===2) lb.textContent='入水③ を記録';
-      else lb.textContent='入水④ で完了';
+      else lb.textContent='3かき目の入水 で完了';
       showTempoFinishBtn(false);
     } else {
       // 1つずつ：途中経過を出し、確定ボタンで終える
@@ -6092,7 +6125,7 @@
     ['#loadBtn','ほぞんした記録をよびもどすッチ。過去のレースが一覧で出てくるッチ。'],
     ['#mtTime','地点の通過タイムをはかるモードだッチ。まず目盛りで地点をえらぶッチ。'],
     ['#mtTempo','区間のテンポをはかるモードにかわるッチ。目盛りで区間をえらぶッチ。'],
-    ['#tm3','入水を4回おして、3かき分の時間からテンポを出すはかり方だッチ。'],
+    ['#tm3','入水①と3かき目の入水の2回だけ押すと、その差の時間からテンポを出すはかり方だッチ。'],
     ['#tmEach','入水のたびにおして、さいごに確定ボタンでしめくくるはかり方だッチ。かき数もかぞえられるッチ。'],
     ['#lapBtn','いちばん大事なボタンだッチ。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするッチ。'],
     ['#rtChip','スタートの反応時間をあつかうッチ。せいかくに はかるコツは二つあるッチ。一つは、ピストルの光が光ったら、①をおすッチ。もう一つは、ピストルの音が鳴ったら、①をおすッチ。だけど、会場が広いと、音はおそく届くッチ。だから光で合わせるのが おすすめだッチ。'],

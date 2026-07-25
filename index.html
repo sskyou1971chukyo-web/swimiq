@@ -155,7 +155,7 @@
   #loadBtn:active{ transform:translateY(1px); }
 
   /* ===== 右：きょり目盛り（均等） ===== */
-  #scale{ position:absolute; right:0; top:0; bottom:120px; width:96px; z-index:5;
+  #scale{ position:absolute; right:0; top:0; bottom:80px; width:96px; z-index:5;
     display:none; flex-direction:column; padding:calc(env(safe-area-inset-top) + 14px) 6px 14px;
     background:linear-gradient(90deg,rgba(10,42,72,0),rgba(10,42,72,.55) 40%); }
   #app.hasvideo #scale{ display:flex; }
@@ -5352,6 +5352,8 @@
     c.classList.toggle('done', rtTime!=null);
   }
   function pickDist(d){
+    // 二クリック(すでに選ばれている地点を もう一度おす)なら、動画をその時刻へ飛ばす
+    var futatabi = (d===selDist);
     selDist=d;
     if(mode!=='time') setMode('time'); else updateAim();
     buildScale();
@@ -5361,7 +5363,12 @@
       toast(rtStep===2 ? '②足が はなれる瞬間に 合わせてね' : '①合図の瞬間に 合わせてね');
       return;
     }
-    // この地点がすでに記録済みなら、動画をその瞬間に移動する（見直し・修正に便利）
+    // 一クリック目(ちがう地点を押した)は、選ぶだけ。飛ばない。
+    if(!futatabi){
+      toast(d+'m を ねらう');
+      return;
+    }
+    // 二クリック目(同じ地点を もう一度おした)で、記録があれば動画をその瞬間に飛ばす
     if(splitTimes[d]!=null && isVideoReady()){
       if(!videoEl.paused) videoEl.pause();
       var t=splitTimes[d];
@@ -5369,7 +5376,7 @@
       videoEl.currentTime=t; lastFrameTime=t; paintClock();
       toast(d+'m の きろくへ 移動');
     } else {
-      toast(d+'m を ねらう');
+      toast(d+'m は まだ記録が ありません');
     }
   }
   // 区間を選ぶ（テンポモードにして、その区間を狙う）＝開閉もする

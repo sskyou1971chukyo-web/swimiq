@@ -6419,32 +6419,22 @@
   function updRepo(){ return localStorage.getItem('swimiq_gh_repo') || 'sskyou1971chukyo-web/swimiq'; }
   var updLatest=null;
   function updCheck(){
-    fetch('https://api.github.com/repos/'+updRepo()+'/commits?path=index.html&per_page=1')
+    fetch('https://api.github.com/repos/'+updRepo()+'/commits?path=index.html&per_page=1', { cache:'no-store' })
       .then(function(r){ if(!r.ok) throw 0; return r.json(); })
       .then(function(list){
         if(!list || !list[0] || !list[0].sha) return;
         updLatest=list[0].sha;
         var seen=localStorage.getItem('swimiq_seen_sha');
         if(!seen){
-          // はじめての起動でも、いま見ている版が最新でなければお知らせを出す
-          // (前回このアプリを閉じたあと、コーチが新しい版を上げているかもしれない)
+          // はじめての起動：いま見ている版を「確認ずみ」として覚えるだけ。帯は出さない。
           localStorage.setItem('swimiq_seen_sha', updLatest);
+          return;
         }
-        // 「あとで」を押した回は黙る。それ以外は、いま見ている版と比べて違えば知らせる
+        // GitHubの最新が、確認ずみの版と同じなら 新しい版は無い → 帯は出さない
+        if(updLatest === seen) return;
+        // ここまで来たら本当に新しい版がある。「あとで」を押した回だけは黙る。
         if(!sessionStorage.getItem('swimiq_upd_later')){
-          // ページの中身(HTML)が本当に古いかを、軽く見に行って判定する
-          fetch(location.pathname+'?nocache='+Date.now(), { cache:'no-store' })
-            .then(function(r){ return r.text(); })
-            .then(function(text){
-              // 自分の中身と、いま取ってきた中身の長さが違えば古い
-              try{
-                var mine=document.documentElement.outerHTML.length;
-                if(Math.abs(text.length - mine) > 100){
-                  $('updBanner').classList.remove('hide');
-                }
-              }catch(e){}
-            })
-            .catch(function(){});
+          $('updBanner').classList.remove('hide');
         }
       })
       .catch(function(){});  // 電波が無いときなどは、だまって何もしない

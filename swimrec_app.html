@@ -381,7 +381,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.07.23.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.08.03.6';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -404,6 +404,130 @@ let STROKES = [
   { code:'IM',  ja:'個人メドレー', dists:[100,200,400] }
 ];
 const strokeJa = c => (STROKES.find(s=>s.code===c)||{ja:c}).ja;
+
+/* ===== 大会の「系統(シリーズ)」を見分ける =====
+   同じ試合の毎年の回を、ひとまとめにして探せるようにします。
+   例) 第20回 梅村杯長水路水泳競技大会 → 「梅村杯長水路」
+       2025年度中部学生短水路水泳競技大会 → 「中部学生短水路」
+   大会名から「第◯回」「◯◯年度」などの、回ごとに変わる部分を
+   取りのぞいて、残った文字を見出しにします。
+   書き方のゆれ(全角/半角のカッコ、よぶんな空白)もそろえます。 */
+function meetSeries(name){
+  let t = String(name||'').replace(/[\s\u3000]+/g, '');
+  if(!t) return '';
+  // 全角の数字とカッコを半角にそろえる
+  t = t.replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  t = t.replace(/[（]/g,'(').replace(/[）]/g,')').replace(/[ｍ]/g,'m').replace(/[Ｍ]/g,'m');
+  // 回ごとに変わる部分をとりのぞく
+  t = t.replace(/第\d+回/g, '');       // 第20回
+  t = t.replace(/\d{4}年度?/g, '');    // 2025年度 / 2025年
+  t = t.replace(/^\d+回/, '');         // 「第」が抜けている 101回…
+  t = t.replace(/(20\d{2})(?![\d])/g, '');   // 名前にまぎれた西暦(ジャパンオープン2025 など)
+  // 言い方のゆれをそろえる
+  t = t.replace(/水泳競技大会|水泳大会|競技大会/g, '');
+  t = t.replace(/[・･]/g, '・');
+  /* 「◯◯チャレンジレース」「◯◯タイムトライアル」は、その大会の中で
+     いっしょに行われる種目なので、本体の大会と同じ仲間にまとめる。
+     (例: 第26回津田チャンピオンズカップチャレンジレース → 津田チャンピオンズカップ) */
+  t = t.replace(/(スプリントタイムトライアル|ｽﾌﾟﾘﾝﾄﾀｲﾑﾄﾗｲｱﾙ)\s*$/,'スプリントタイムトライアル');
+  t = t.replace(/(チャレンジレース|ﾁｬﾚﾝｼﾞﾚｰｽ|タイムトライアル|ﾀｲﾑﾄﾗｲｱﾙ|タイムレース)\s*$/,'');
+  /* 名前に(25m)(50m)が入っていない回があるので、水路から補って
+     同じ系統にまとめる。三重とこわかは秋の(25m)と春の(50m)の
+     2つの系統があり、名前だけでは見わけられない回があるため。 */
+  t = seriesPool_(t, arguments[1]);
+  return t || String(name||'').trim();
+}
+
+/* いくつかの大会は、名前がちがっても同じ仲間としてまとめる。
+   ここに書いた順に見ていき、最初に当てはまったものになります。
+   まとめ方を変えたいときは、この表を書きかえてください。 */
+const SERIES_RULES = [
+  // 愛知県選手権(7月・兼 国体/国スポ予選)と 愛知県室内選手権(2月)を一つに
+  // ※「国民…」より先に見ることで、県予選が国体側に行かないようにする
+  { test: /愛知県選手権|愛知県室内選手権/, name: '愛知県選手権' },
+  // 国民体育大会 と 国民スポーツ大会 は、名前が変わっただけの同じ大会
+  { test: /国民体育大会|国民スポーツ大会|国スポ/, name: '国民体育大会・国民スポーツ大会' },
+  // 中部学生の大会(短水路・選手権・春季・秋季・記録会など)は、ぜんぶ一つに
+  { test: /中部学生|中部春季|中部秋季/,   name: '中部学生' },
+  // 梅村杯(長水路・冬季)も一つに
+  { test: /梅村杯/,                       name: '梅村杯' },
+  // 日本選手権(長水路)と 日本選手権(25m)(短水路)を一つに
+  { test: /日本学生選手権/,               name: '日本学生選手権' },
+  { test: /日本選手権/,                   name: '日本選手権' },
+  // JSCA新年フェスティバル(東海会場・静岡会場)を一つに
+  { test: /新年フェスティバル/,           name: 'JSCA新年フェスティバル' },
+  // 略した名前と正式な名前が混ざっているもの
+  { test: /伊豆駿河湾/,                   name: '伊豆駿河湾選手権' },
+  { test: /静岡県ジュニア/,               name: '静岡県ジュニア選手権兼県選手権' },
+  { test: /代表選手選考会/,               name: '国際大会代表選手選考会' },
+  // 三重とこわか((25m)・(50m)・選手権)も一つに
+  { test: /三重とこわか/,                 name: '三重とこわか' },
+];
+
+/* 名前だけでは系統が分からない大会を、水路などで見わける */
+function seriesPool_(t, course){
+  for(let i=0; i<SERIES_RULES.length; i++){
+    if(SERIES_RULES[i].test.test(t)) return SERIES_RULES[i].name;
+  }
+  /* ジャパンオープンは名前に年が入っているため、そのままだと
+     毎年べつの大会になってしまう。年をとりのぞいて1つにまとめる。
+     「JAPANOPEN2025」のようなローマ字の書き方も同じあつかいにする。 */
+  if(/ジャパンオープン|JAPANOPEN|JAPAN\s*OPEN/i.test(t)) return 'ジャパンオープン';
+  return t;
+}
+
+/* その系統の中で「何回目か」を取り出す(並べ替え用。分からなければ0) */
+function meetRoundNo(name){
+  const m = String(name||'').replace(/[\s\u3000]/g,'')
+    .replace(/[０-９]/g, c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .match(/第?(\d+)回/);
+  return m ? Number(m[1]) : 0;
+}
+
+/* 大会の一覧を、系統ごとにまとめて返す。
+   [{ key:'梅村杯長水路', list:[大会…], n:回数 }, …] 開催回数の多い順 */
+function meetSeriesGroups(meets){
+  const box = {};
+  (meets||[]).forEach((m,i)=>{
+    const k = meetSeries(m.meet, m.course);
+    if(!box[k]) box[k] = { key:k, list:[] };
+    box[k].list.push({ m, i });
+  });
+  return Object.keys(box).map(k=>{
+    const g = box[k];
+    g.list.sort((a,b)=>(b.m.year*100+b.m.month)-(a.m.year*100+a.m.month));
+    g.n = g.list.length;
+    return g;
+  }).sort((a,b)=> b.n - a.n || (a.key < b.key ? -1 : 1));
+}
+
+/* ===== 種目の並び順（アプリ全体で共通） =====
+   泳法: 自由形 → 背泳ぎ → 平泳ぎ → バタフライ → 個人メドレー
+   距離: 50m → 100m → 200m → 400m → 800m → 1500m
+   男女: 男子 → 女子
+   一覧にない泳法・距離は、いちばん後ろにまわします。 */
+const STROKE_ORDER = ['Fr','Ba','Br','Fly','IM'];
+const DIST_ORDER   = [50,100,200,400,800,1500];
+const strokeRank = c => { const i = STROKE_ORDER.indexOf(c); return i<0 ? 99 : i; };
+const distRank   = d => { const i = DIST_ORDER.indexOf(Number(d)); return i<0 ? 99 : i; };
+const sexRank    = s => String(s).indexOf('男')===0 ? 0 : (String(s).indexOf('女')===0 ? 1 : 2);
+
+/* 記録を種目ごとにまとめ、上の順番に並べて返す。
+   返すのは [{key:'50m自由形・男子', dist, stroke, sex, list:[記録…]}, …] */
+function eventGroups(rows){
+  const box = {};
+  rows.forEach(r=>{
+    const key = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
+    if(!box[key]) box[key] = { key, dist:Number(r.dist), stroke:r.stroke, sex:r.sex, list:[] };
+    box[key].list.push(r);
+  });
+  return Object.keys(box).map(k=>box[k]).sort((a,b)=>
+      strokeRank(a.stroke) - strokeRank(b.stroke)
+   || distRank(a.dist)    - distRank(b.dist)
+   || a.dist              - b.dist
+   || sexRank(a.sex)      - sexRank(b.sex)
+   || (a.key < b.key ? -1 : 1));
+}
 // 種目と水路の短い表記 (携帯の画面で折り返さないため)
 const STROKE_SHORT = { Fr:'FR', Ba:'BA', Br:'BR', Fly:'FLY', IM:'IM' };
 const strokeShort = c => STROKE_SHORT[c] || String(c).toUpperCase();
@@ -1327,15 +1451,11 @@ function viewFyTab(){
     }
     const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
-    const groups = {};
-    rows.forEach(r=>{
-      const k = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
-      (groups[k] = groups[k]||[]).push(r);
-    });
+    const groups = eventGroups(rows);   // 決まった順番(自由形→背泳ぎ→…／50m→100m→…)に並べる
     let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。</p>`;
-    Object.keys(groups).forEach(k=>{
-      const g = groups[k].sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
-      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(k)}</h3>
+    groups.forEach(gr=>{
+      const g = gr.list.sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
+      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(gr.key)}</h3>
         <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
       g.forEach(r=>{
         html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
@@ -1384,7 +1504,12 @@ async function appendRelays(mt, outId, stamp){
     (groups[k] = groups[k]||[]).push(r);
   });
   let html = '<h3 style="margin:22px 0 6px; font-size:1.15rem; color:var(--red); text-align:center">リレー</h3>';
-  Object.keys(groups).forEach(k=>{
+  /* リレーも決まった順に並べる: 男子→女子、そのあと距離の短い順 */
+  const relayKeys = Object.keys(groups).sort((a,b)=>{
+    const num = t => { const m = String(t).match(/(\d+)\s*m/); return m ? Number(m[1]) : 9999; };
+    return sexRank(a) - sexRank(b) || num(a) - num(b) || (a < b ? -1 : 1);
+  });
+  relayKeys.forEach(k=>{
     const g = groups[k].sort((a,b)=>(toSec(a.time)??9e9)-(toSec(b.time)??9e9));
     html += `<h3 style="margin:14px 0 6px; font-size:1.05rem; color:var(--blue); text-align:center">${esc(k)}</h3>`;
     g.forEach(r=>{
@@ -1486,15 +1611,11 @@ async function viewNationalTab(){
     const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     const out = document.getElementById('vnOut');
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
-    const groups = {};
-    rows.forEach(r=>{
-      const k = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
-      (groups[k] = groups[k]||[]).push(r);
-    });
+    const groups = eventGroups(rows);   // 決まった順番(自由形→背泳ぎ→…／50m→100m→…)に並べる
     let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。</p>`;
-    Object.keys(groups).forEach(k=>{
-      const g = groups[k].sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
-      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(k)}</h3>
+    groups.forEach(gr=>{
+      const g = gr.list.sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
+      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(gr.key)}</h3>
         <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
       g.forEach(r=>{
         html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
@@ -1515,7 +1636,11 @@ function viewMeet(){
     <div class="card">
       <h2>試合で探す</h2>
       <p class="hint">年と月を選ぶと、その年月の試合が試合名の欄に並びます。年度(4月〜翌年3月)でまとめて探すときは、上の「年度」のタブを使ってください。</p>
+      <p class="hint"><b>大会の種類</b>を選ぶと、その試合の毎年の回だけが並びます（例:「梅村杯長水路」を選ぶと、第17回から第21回までが年の新しい順に出ます）。去年の同じ試合と見くらべたいときに便利です。</p>
       <div class="pick2">
+        <label class="fld wide">大会の種類<select id="vmSeries" onchange="vmSeriesChanged()"></select></label>
+      </div>
+      <div class="pick2" style="margin-top:10px">
         <label class="fld">年<select id="vmYear"></select></label>
         <label class="fld">月<select id="vmMonth"></select></label>
         <label class="fld wide">試合名<select id="vmName"></select></label>
@@ -1523,10 +1648,45 @@ function viewMeet(){
       <div id="meetOut" style="margin-top:16px"></div>
     </div>`;
 
+  const sSel = document.getElementById('vmSeries');
   const ySel = document.getElementById('vmYear');
   const mSel = document.getElementById('vmMonth');
   const nSel = document.getElementById('vmName');
   const years = [...new Set(DATA.meets.map(m=>m.year).filter(y=>y>0))].sort((a,b)=>b-a);
+
+  // 大会の種類(系統)の一覧を作る。開催回数の多いものが上に来る
+  const SERIES = meetSeriesGroups(DATA.meets);
+  function fillSeries(){
+    sSel.innerHTML = '<option value="">すべての大会（年と月で探す）</option>';
+    SERIES.forEach(g=>{
+      const o = document.createElement('option');
+      o.value = g.key;
+      o.textContent = g.key + '（' + g.n + '回）';
+      sSel.appendChild(o);
+    });
+  }
+  // 種類を選んだら、その試合の回だけを試合名の欄に並べる
+  window.vmSeriesChanged = function(){
+    const key = sSel.value;
+    const byYM = !key;
+    ySel.disabled = !byYM; mSel.disabled = !byYM;
+    ySel.parentElement.style.opacity = byYM ? '1' : '.45';
+    mSel.parentElement.style.opacity = byYM ? '1' : '.45';
+    if(byYM){ fillNames(); return; }
+    const g = SERIES.find(g=>g.key===key);
+    nSel.innerHTML = '';
+    (g ? g.list : []).forEach(x=>{
+      const o = document.createElement('option');
+      o.value = x.i;
+      o.textContent = `${x.m.year}年${x.m.month}月 ${meetLapMark(x.m)}${x.m.meet} ${x.m.course||''}${x.m.ref?'(参考)':''}`;
+      nSel.appendChild(o);
+    });
+    if(nSel.options.length===0){
+      nSel.innerHTML = '<option value="">この大会の記録はありません</option>';
+      document.getElementById('meetOut').innerHTML = ''; return;
+    }
+    draw();
+  };
 
   function fillYears(){
     ySel.innerHTML = '';
@@ -1582,15 +1742,11 @@ function viewMeet(){
     const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
     // 種目ごとにまとめる
-    const groups = {};
-    rows.forEach(r=>{
-      const k = r.dist + 'm' + strokeJa(r.stroke) + '・' + r.sex;
-      (groups[k] = groups[k]||[]).push(r);
-    });
+    const groups = eventGroups(rows);   // 決まった順番(自由形→背泳ぎ→…／50m→100m→…)に並べる
     let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。</p>`;
-    Object.keys(groups).forEach(k=>{
-      const g = groups[k].sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
-      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(k)}</h3>
+    groups.forEach(gr=>{
+      const g = gr.list.sort((a,b)=>(a.sec??9e9)-(b.sec??9e9));
+      html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(gr.key)}</h3>
         <div class="tablewrap" style="max-height:300px"><table><tr><th>名前</th><th>記録</th><th>大会前ベスト</th></tr>`;
       g.forEach(r=>{
         html += `<tr><td class="nw" style="font-weight:700">${esc(r.name)}</td>
@@ -1608,7 +1764,7 @@ function viewMeet(){
   ySel.onchange = ()=>{ fillMonths(); fillNames(); };
   mSel.onchange = fillNames;
   nSel.onchange = draw;
-  fillYears(); fillMonths(); fillNames();
+  fillSeries(); fillYears(); fillMonths(); fillNames();
 }
 
 /* ============================================================
@@ -2812,7 +2968,7 @@ function renderAdmin(){
   const body = document.getElementById('adminBody');
   body.innerHTML = `
     <div class="card redline"><h2>試合名の登録</h2>
-      <p class="hint">ここで登録した大会は、入力画面の大会選びの一覧に出ます。一覧の「削除」は<b>登録簿から外すだけ</b>で、レースの記録データは消えません(記録は大会名で結びついて別に保存されています)。<b>年月を間違えたとき</b>は、その大会を「削除」してから、まったく同じ大会名・正しい年月でもう一度「登録する」だけで直ります。<b>大会名も直したいとき</b>は、正しい名前で新しく登録して、下の「重複の点検と大会の統合」で間違えた大会を統合してください。記録は新しい名前へそのまま移ります。 <a href="${SHEET_URL}" target="_blank" rel="noopener">記録の保存先スプレッドシートを開く</a></p>
+      <p class="hint">ここで登録した大会は、入力画面の大会選びの一覧に出ます。一覧の「削除」は<b>登録簿から外すだけ</b>で、レースの記録データは消えません(記録は大会名で結びついて別に保存されています)。<b>大会名・年月・実施日・会場をまちがえたとき</b>は、下の「大会の情報を直す」でそのまま書きかえられます(登録し直す必要はありません)。 <a href="${SHEET_URL}" target="_blank" rel="noopener">記録の保存先スプレッドシートを開く</a></p>
       <div class="stack" style="align-items:end">
         <label class="fld" style="flex:1; min-width:220px">大会名<input type="text" id="amName" placeholder="例: 中部学生選手権"></label>
         <label class="fld">年<input type="text" id="amYear" inputmode="numeric" style="max-width:110px" value="${new Date().getFullYear()}"></label>
@@ -2822,6 +2978,34 @@ function renderAdmin(){
       </div>
       <div id="amList" style="margin-top:14px"></div>
       <div id="amMsg"></div>
+    </div>
+
+    <div class="card redline"><h2>大会の情報を直す</h2>
+      <p class="hint">大会を選ぶと、いまの内容が下の欄に入ります。直したいところだけ書きかえて「この大会を直す」を押してください。<b>大会名・実施日・会場・水路</b>をまとめて直せます。その大会の記録・リレー・登録簿が、いっしょに書きかわります。日付や会場を入れておくと、同じ名前の試合でも見わけがつくようになります。</p>
+      <p class="hint">一覧のあたまの目印: <b>⏱</b>=ラップがぜんぶ入っている / <b>✔</b>=ラップなしで確定にした / <b>△</b>=一部の種目だけ入っている / 目印なし=ラップが入っていない。△と目印なしの大会は、その大会のPDFを取り込み直すとラップが入ります。<br>件数は「ラップが入るはずの記録」だけで数えています（50m種目には通過タイムがなく、棄権にはタイムそのものが無いため、分母には入れていません）。</p>
+      <div class="stack" style="align-items:end">
+        <label class="fld" style="flex:1; min-width:260px">直したい大会
+          <select id="meName" onchange="adminPickMeetEdit()" onfocus="if(this.options.length<=1)adminDrawMeetEditSelect()"></select></label>
+      </div>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld" style="flex:1; min-width:220px">大会名<input type="text" id="meMeet" placeholder="例: 第12回アクアリーナ豊橋カップ水泳大会"></label>
+        <label class="fld">実施日<input type="text" id="meDate" placeholder="2025-06-29" style="max-width:160px"></label>
+      </div>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld" style="flex:1; min-width:220px">会場<input type="text" id="mePlace" placeholder="例: アクアリーナ豊橋"></label>
+        <label class="fld">水路<select id="meCourse"><option>長水路</option><option>短水路</option></select></label>
+        <button class="btn solid" onclick="adminUpdateMeet()">この大会を直す</button>
+      </div>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld" style="flex:1; min-width:220px">ラップが手に入らない理由（任意）<input type="text" id="meLapWhy" placeholder="例: 通過タイムが公表されない大会"></label>
+        <label style="display:flex; align-items:center; gap:6px; padding-bottom:10px; white-space:nowrap">
+          <input type="checkbox" id="meLapDone"> この大会はラップなしで確定
+        </label>
+        <button class="btn" onclick="adminSetLapDone()">この印を保存する</button>
+      </div>
+      <p class="hint">通過タイムが公表されない大会や、結果が表・紙しか残っていない大会は、ここにチェックを入れると一覧で <b>✔</b> と表示され、△や目印なしになりません。やり残しの一覧から外れます。</p>
+      <div id="meNow" class="hint" style="margin-top:10px"></div>
+      <div id="meMsg" aria-live="polite"></div>
     </div>
 
     <div class="card"><h2>全国大会の登録</h2>
@@ -2834,7 +3018,7 @@ function renderAdmin(){
     </div>
 
     <div class="card"><h2>記録の修正</h2>
-      <p class="hint">選手の名前で記録を探して、その場で直せます。直した内容はスプレッドシート(全レース)にも書き込まれて、全員の画面に反映されます。名前・種目・タイム・ラウンド・水路を直せます。大会名や年月を直したいときは、上の「試合名の登録」と「大会の統合」を使ってください。</p>
+      <p class="hint">選手の名前で記録を探して、その場で直せます。直した内容はスプレッドシート(全レース)にも書き込まれて、全員の画面に反映されます。名前・種目・タイム・ラウンド・水路を直せます。大会名・実施日・会場・水路を直したいときは、上の「大会の情報を直す」を使ってください。</p>
       <div class="stack" style="align-items:end">
         <label class="fld" style="flex:1; min-width:200px">選手の名前(一部でもOK)<input type="text" id="rfName" placeholder="例: 山本"></label>
         <button class="btn solid" onclick="adminFixSearch()">記録を探す</button>
@@ -2913,7 +3097,7 @@ function renderAdmin(){
     </div>
 
     <div class="card"><h2>大会結果の取り込み(Excel・CSV・PDF)</h2>
-      <p class="hint">ExcelファイルやCSVファイルのほか、東洋電子(TDSystem)・セイコー(swim.seiko.co.jp)・アクアクルー(関西中部対抗戦など)の種目別結果PDFもそのまま読み取れます。どのボタンでも、形がちがえば自動で読み分けます。セイコーは大会ページから結果PDFをダウンロードして、ここで選ぶだけです。全種目まとめの大きなPDF(all_ranking)にも対応しています。Excel・CSVは表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格・欠場の行もそのまま取り込みます(記録欄に「棄権」などの言葉が入ります)。タイムも棄権もない行と、リレー種目は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。省く名前や所属を入れると、その言葉を含む選手を外します。たとえば探すに中京大、省くに中京大中京と入れると、大学の選手だけを拾えます。<b>国体(国民スポーツ大会)の結果</b>は所属が「東京」「愛知」のような県名になっているため、大学名では絞れません。かわりに「国体のPDFを読み取る(名簿と照合)」のボタンを使うと、選手情報の名簿に載っている名前と同じ選手だけを自動で拾います。同姓同名の別人が混ざることがあるので、一覧の所属の県を見て、ちがう人はチェックを外してから登録してください。</p>
+      <p class="hint">ExcelファイルやCSVファイルのほか、東洋電子(TDSystem)・セイコー(swim.seiko.co.jp)・アクアクルー(関西中部対抗戦など)の種目別結果PDFのほか、レーンごとに並んだ<b>速報</b>のPDF(わかやまオープンなど)もそのまま読み取れます。どのボタンでも、形がちがえば自動で読み分けます。セイコーは大会ページから結果PDFをダウンロードして、ここで選ぶだけです。全種目まとめの大きなPDF(all_ranking)にも対応しています。Excel・CSVは表の1行目(見出し)に「氏名」と「記録」(または「タイム」)の列があれば読み取れます。「種目」「性別」「ラウンド」「所属」の列もあれば自動で使います。棄権・失格・欠場の行もそのまま取り込みます(記録欄に「棄権」などの言葉が入ります)。タイムも棄権もない行と、リレー種目は自動で飛ばします。探す名前や所属を入れると、その選手だけを拾います。省く名前や所属を入れると、その言葉を含む選手を外します。たとえば探すに中京大、省くに中京大中京と入れると、大学の選手だけを拾えます。<b>国体(国民スポーツ大会)の結果</b>は所属が「東京」「愛知」のような県名になっているため、大学名では絞れません。かわりに「国体のPDFを読み取る(名簿と照合)」のボタンを使うと、選手情報の名簿に載っている名前と同じ選手だけを自動で拾います。同姓同名の別人が混ざることがあるので、一覧の所属の県を見て、ちがう人はチェックを外してから登録してください。</p>
       <label class="fld">探す名前や所属(カンマ区切り。空なら全員)
         <input type="text" id="xlWho" placeholder="例: 中京大 または 山本大地,石渡遥"></label>
       <div id="xlWhoChips" aria-label="探す言葉の記憶"></div>
@@ -3062,12 +3246,22 @@ function renderAdmin(){
         const cells = [];
         r.items.forEach(it=>{
           const x = it.transform[4];
-          if(prevEnd!==null && x - prevEnd > 1) line += ' ';
+          const gap = (prevEnd!==null) ? x - prevEnd : null;
+          if(gap!==null && gap > 1) line += ' ';
           line += it.str;
+          /* ★となり合っていて、すき間のない文字は1つのマスにまとめる。
+             PDFによっては記録の欄が 1 : 5 2 . 7 5 のように
+             1文字ずつバラバラに置かれていることがあり、
+             そのままだと「1:52.75 という形のマス」を見つけられないため。 */
+          if(gap!==null && gap <= 1 && cells.length){
+            cells[cells.length-1].str += it.str;
+          } else {
+            cells.push({ x, str: it.str });
+          }
           prevEnd = x + (it.width || 0);
-          cells.push({ x, str: it.str.trim() });
         });
-        allRows.push({ text: line, cells });
+        cells.forEach(c=>{ c.str = c.str.trim(); });
+        allRows.push({ text: line, cells, page: p });
       });
     }
     return allRows;
@@ -3077,6 +3271,124 @@ function renderAdmin(){
     const rows = await pdfToRows(buf);
     return rows.map(r=>r.text);
   }
+  /* ============================================================
+     速報(レーンごとの一覧)PDFの読み取り
+     わかやまオープンなど、関西方面の大会でよく使われる形です。
+
+     見た目:
+       No. 1 女子 200m 個人メドレー 予選
+       １組 着順 時間            ６組 着順 時間
+       0. 山田 花子 (○○SS ) 中2 3 2:52.20   0. 鈴木 太郎 (△△SC ) 高1 5 2:29.06
+
+     やっかいな点:
+       ・1ページが左右2段に分かれていて、左と右は「別の種目・別の組」
+       ・種目の見出しは、その段に1回しか出てこない
+         (次のページまで見出しなしで続くことがある)
+     そこで、レーン番号(0. 1. 2. …)の横位置から段の境目を見つけて
+     左右に切り分け、左の段 → 右の段 の順に種目を引きついで読みます。
+     この形には通過タイムがないので、ラップは空になります。
+  ============================================================ */
+  function parseSokuho(rows){
+    const evRe   = /No\.\s*(\d+)\s+(男子|女子)\s+(\d{2,4})\s*m\s*(自由形|背泳ぎ|平泳ぎ|バタフライ|個人メドレー)\s*(予選|タイム決勝|Ｂ決勝|B決勝|決勝)/;
+    const heatRe = /^[０-９0-9]+\s*組/;
+    const ageRe  = /^(無差別|\d+歳以下|\d+歳[-－―]\d+歳|\d+歳以上)$/;
+    const resRe  = /^(\d+)\.\s*(.*?)\s*[(（]\s*(.*?)\s*[)）]\s*(.*)$/;
+    const timeRe = /^(?:\d+:)?\d{1,2}\.\d{2}$/;
+    const gradeRe = /^(小|中|高|大)\d$/;
+    /* レーン番号。「0.」は名前とくっついて「0. 村上」になることがある。
+       59.24 のようなタイムと区別するため、ドットの後ろが数字でないものだけにする。 */
+    const laneRe = /^\d{1,2}\.(?!\d)/;
+    const SJ = { '自由形':'Fr', '背泳ぎ':'Ba', '平泳ぎ':'Br', 'バタフライ':'Fly', '個人メドレー':'IM' };
+
+    // ページごとにまとめる(ページの情報がないときは、ぜんぶ1ページ扱い)
+    const pages = {};
+    const order = [];
+    rows.forEach(r=>{
+      const p = r.page || 1;
+      if(!pages[p]){ pages[p] = []; order.push(p); }
+      pages[p].push(r);
+    });
+
+    const hits = [];
+    let ev = null;
+    order.sort((a,b)=>a-b).forEach(p=>{
+      const pr = pages[p];
+      /* レーン番号(0. 1. 2. …)は、その段のいちばん左に必ず並ぶ。
+         その横位置を集めて近いものをまとめると、段の左端が分かる。
+         2つのかたまりがあれば2段組み、その2つ目の左端が右の段のはじまり。 */
+      const lanes = [];
+      pr.forEach(r=>r.cells.forEach(c=>{ if(laneRe.test(c.str)) lanes.push(c.x); }));
+      lanes.sort((a,b)=>a-b);
+      const groups = [];
+      lanes.forEach(x=>{
+        const g = groups.find(g=>Math.abs(g[0] - x) < 25);
+        if(g) g.push(x); else groups.push([x]);
+      });
+      let mid = Infinity;
+      if(groups.length >= 2){
+        const starts = groups.map(g=>g[0]).sort((a,b)=>a-b);
+        if(starts[1] - starts[0] >= 80) mid = starts[1] - 8;   // 右の段のすこし手前で切る
+      }
+
+      for(let side=0; side<2; side++){
+        if(side===1 && mid===Infinity) break;
+        pr.forEach(r=>{
+          const cells = r.cells.filter(c=> (c.x < mid) === (side===0));
+          if(!cells.length) return;
+          const line = cells.map(c=>c.str).join(' ').replace(/\s+/g,' ').trim();
+          const m = evRe.exec(line);
+          if(m){
+            ev = { sex:m[2], dist:Number(m[3]), stroke:SJ[m[4]], round:m[5] };
+            return;
+          }
+          if(heatRe.test(line) || ageRe.test(line) || !ev) return;
+          const g = resRe.exec(line);
+          if(!g) return;
+          const name = g[2].replace(/[\s\u3000]/g, '');
+          const team = g[3].replace(/[\s\u3000]/g, '');
+          if(!name || !team) return;
+          let time = '';
+          g[4].split(/\s+/).forEach(tok=>{
+            if(gradeRe.test(tok)) return;                 // 学年
+            if(/^(棄権|失格|欠場)$/.test(tok)) time = tok;
+            else if(timeRe.test(tok)) time = tok;
+          });
+          if(!time) return;
+          hits.push({ name, team, sex: ev.sex, dist: ev.dist, stroke: ev.stroke,
+                      round: ev.round, time, splits: [] });
+        });
+      }
+    });
+    return hits;
+  }
+
+  /* 速報PDFの見出しから、大会名・会場・実施日を読み取る。
+     1ページ目のあたまが
+       第9回わかやまオープン水泳競技大会
+       秋葉山公園県民水泳場
+       競泳競技
+       2024年2月3日
+     のように並んでいます。水路は書かれていないので空にします。 */
+  function sokuhoMeta(rows){
+    let meet = '', place = '', year = 0, month = 0, date = '';
+    const lines = rows.slice(0, 12).map(r=>String(r.text||'').trim()).filter(t=>t);
+    lines.forEach((t, i)=>{
+      const dm = t.match(/(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+      if(dm && !date){
+        year = Number(dm[1]); month = Number(dm[2]);
+        date = dm[1] + '-' + String(dm[2]).padStart(2,'0') + '-' + String(dm[3]).padStart(2,'0');
+      }
+      if(!meet && /大会|選手権|カップ|フェスティバル|記録会|competition/i.test(t) &&
+         !/競泳競技|プールコンディション|備\s*考/.test(t)){
+        meet = t.replace(/\s+/g,' ').trim();
+        // 大会名のつぎの行が会場のことが多い
+        const nx = (lines[i+1] || '').replace(/\s+/g,' ').trim();
+        if(nx && nx.length >= 3 && !/競泳競技|\d{4}年/.test(nx)) place = nx;
+      }
+    });
+    return (meet || date) ? { meet, place, year, month, date, course:'' } : null;
+  }
+
   /* ============================================================
      セイコーの「種目別競技結果」PDFの読み取り
      行の作りは 1人あたり2行以上:
@@ -3165,15 +3477,31 @@ function renderAdmin(){
         }
         continue;
       }
+      /* 通過タイムの列の見出し行(「50m」や「50m 100m 150m」)の横位置をおぼえる。
+         この位置が分かると、通過タイムを記録とまちがえなくなる。 */
+      if(col && row.cells.length && row.cells.every(c=>/^\d{2,4}\s*m$/.test(c.str.trim()))){
+        col.splits = row.cells.map(c=>c.x);
+        continue;
+      }
       if(!event || !col) continue;
       const thr = (col.rec!=null) ? col.rec - 30 : col.team + 40;  // 記録欄のはじまり
+      /* そのマスが「記録」の列のものか、「通過タイム」の列のものかを見わける。
+         記録の見出しと通過の見出しの、どちらに近いかで決める。
+         100mのPDFでは通過(50m)の列が記録の列のすぐ左にあり、
+         「記録欄のはじまり」だけでは見わけられないため。 */
+      const nearRec = x => {
+        if(col.rec == null || !col.splits || !col.splits.length) return x >= thr;
+        const dRec = Math.abs(x - col.rec);
+        const dSpl = Math.min.apply(null, col.splits.map(sx=>Math.abs(x - sx)));
+        return dRec < dSpl;
+      };
       // 1行目かどうか: 氏名の欄より左に「組/水路」(例 4/6 や 1/ 4)があるか
       const leftJoin = row.cells.filter(c=>c.x < col.name - 6).map(c=>c.str).join('');
       if(/\d+\/\s*\d+/.test(leftJoin)){
         flush();
         const pick = (x0, x1) => row.cells.filter(c=>c.x >= x0 && c.x < x1).map(c=>c.str).join('');
         // 旧形式にそなえて、1行目の記録欄にあるタイムや棄権も拾っておく
-        const tc = row.cells.filter(c=>c.x >= thr && timeRe.test(c.str.trim()));
+        const tc = row.cells.filter(c=>nearRec(c.x) && timeRe.test(c.str.trim()));
         let l1 = tc.length ? fmtTime(tc[tc.length-1].str.trim()) : null;
         if(/棄権|欠場|失格/.test(plain)){
           l1 = /失格/.test(plain) ? '失格' : /欠場/.test(plain) ? '欠場' : '棄権';
@@ -3201,7 +3529,7 @@ function renderAdmin(){
         } else {
           // 記録の行はタイムが1個だけ。通過タイムの行(タイムが並ぶ)は読まない
           const tcells = row.cells.filter(c=>timeRe.test(c.str.trim()));
-          if(tcells.length===1 && tcells[0].x >= thr) time = fmtTime(tcells[0].str.trim());
+          if(tcells.length===1 && nearRec(tcells[0].x)) time = fmtTime(tcells[0].str.trim());
         }
         if(time!=null){
           // 棄権・失格には通過タイムを付けない(次の選手の値を拾わないため)
@@ -4115,7 +4443,7 @@ function renderAdmin(){
       const cSex   = findCol(header, ['性別','男女','sex','Sex'], ['性別']);
       const cRound = findCol(header, ['ラウンド','round','Round'], ['ラウンド']);
       const cTeam  = findCol(header, ['所属','チーム','team','Team'], ['所属']);
-      const hits = []; let skipped = 0;
+      const hits = []; let skipped = 0; let filtered = 0;   // filtered = 探す/省くで外した数
       for(let r=hi+1; r<grid.length; r++){
         const row = grid[r]||[];
         const name = String(row[cName]==null?'':row[cName]).replace(/[\s\u3000]+/g,'');
@@ -4134,11 +4462,11 @@ function renderAdmin(){
         let sex = cSex>=0 ? String(row[cSex]||'') : '';
         sex = /女/.test(sex) ? '女' : /男/.test(sex) ? '男' : (ev.sex||'');
         const team = cTeam>=0 ? String(row[cTeam]||'') : '';
-        if(!termKeep(name + team, kws, exs || [])) continue;
+        if(!termKeep(name + team, kws, exs || [])){ filtered++; continue; }
         hits.push({ name, team, sex, dist:ev.dist, stroke:ev.stroke,
           round: cRound>=0 ? String(row[cRound]||'') : '', time });
       }
-      return { hits, skipped };
+      return { hits, skipped, filtered, hasTeam: cTeam >= 0 };
     }
     return null;
   }
@@ -4202,6 +4530,14 @@ function renderAdmin(){
             }
             if(hitsThis.length===0 && (parseTdsystem(pdfRows.map(r=>r.text)).length>0 || parseTdsystem2(pdfRows.map(r=>r.text)).length>0)){
               perFile.push({ name:f.name, err:'東洋電子の形のPDFです(東洋電子のボタンで読んでください)' }); continue;
+            }
+          }
+          if(hitsThis.length===0){
+            // 最後に、速報(レーンごとの一覧)の形も試す
+            const sk = parseSokuho(pdfRows);
+            if(sk.length > 0){
+              hitsThis = sk;
+              if(!meta) meta = sokuhoMeta(pdfRows);
             }
           }
           if(hitsThis.length===0){ perFile.push({ name:f.name, err:'記録を読み取れませんでした' }); continue; }
@@ -4314,8 +4650,21 @@ function renderAdmin(){
         }
       }
     }
+    /* ★大会名をPDFから読み取れなかったときは、大会名の欄に「前に取り込んだときの名前」が
+       そのまま残ります。気づかずに登録すると、別の大会が同じ名前で混ざってしまうので、
+       はっきり赤字で知らせます。 */
+    if(isPdfKind && (!meta || !meta.meet)){
+      const cur = (document.getElementById('xlMeet').value || '').trim();
+      metaNote = '<b style="color:var(--red)">大会名をPDFから読み取れませんでした。</b>' +
+        (cur ? '大会名の欄は<b>「' + esc(cur) + '」</b>のままです。前に取り込んだ大会の名前が残っているかもしれません。' +
+               '<b style="color:var(--red)">登録する前に必ず確かめてください。</b>'
+             : '大会名を手で入れてください。') +
+        (metaNote ? '<br>' + metaNote : '');
+    }
     const isPdf = isPdfKind;
     let skipped = 0; let readSheets = 0;
+    let xlFiltered = 0;      // 探す/省くで外した行の数
+    let xlHasTeam = false;   // 表に「所属」の列があったか
 
     if(!isPdf){
       grids.forEach(g=>{
@@ -4324,6 +4673,8 @@ function renderAdmin(){
         readSheets++;
         XL_HITS = XL_HITS.concat(res.hits);
         skipped += res.skipped;
+        xlFiltered += res.filtered || 0;
+        if(res.hasTeam) xlHasTeam = true;
       });
       if(readSheets===0){
         msg.innerHTML = '<div class="errmsg">表の見出しが見つかりませんでした。1行目に「氏名」と「記録」(またはタイム)の列名があるか確認してください。</div>'; return;
@@ -4337,7 +4688,23 @@ function renderAdmin(){
       if(uniq[k]) return false; uniq[k] = 1; return true;
     });
     if(XL_HITS.length===0){
-      msg.innerHTML = '<div class="errmsg">取り込める記録が見つかりませんでした。探す名前や所属の書き方を、ファイルの書き方に合わせてみてください。</div>'; return;
+      let why = '取り込める記録が見つかりませんでした。';
+      if(!isPdf && xlFiltered > 0 && kws.length){
+        /* ★よくある行きちがい: 中京大の部内シートには「所属」の列がないため、
+           「探す言葉」に中京大と入れているとすべて外れてしまう。 */
+        why = `${xlFiltered}行を読み取りましたが、<b>探す言葉「${esc(kws.join('・'))}」に当てはまらない</b>ので全部外しました。`;
+        if(!xlHasTeam){
+          why += '<br>この表には<b>「所属」の列がありません</b>。所属が無い表では<b>名前だけ</b>で探します。' +
+                 '<br>→ <b>探す欄を空にする</b>か、表に「所属」の列を足してください。';
+        } else {
+          why += '<br>→ 探す言葉を、表の所属の書き方に合わせてください。';
+        }
+      } else if(!isPdf && kws.length){
+        why += '探す名前や所属の書き方を、ファイルの書き方に合わせてみてください。';
+      } else {
+        why += '探す名前や所属の書き方を、ファイルの書き方に合わせてみてください。';
+      }
+      msg.innerHTML = '<div class="errmsg">' + why + '</div>'; return;
     }
     const dqCount = XL_HITS.filter(h=>toSec(h.time)==null).length;
     let note = '';
@@ -4464,7 +4831,7 @@ function adminDrawCmpSelects(){
     && (x.course||'')===(m.course||''));
   let opts = '<option value="">選んでください</option>';
   meets.forEach((m, i)=>{
-    const label = `${isReg(m)?'★':''}${m.meet} ${m.year||'?'}年${m.month||'?'}月 ${m.course||''}`;
+    const label = (isReg(m)?'★':'') + meetLabel(m);
     opts += `<option value="${i}">${esc(label)}</option>`;
   });
   selA.innerHTML = opts; selB.innerHTML = opts;
@@ -4779,6 +5146,7 @@ window.adminFixSave = async function(k){
 function adminDrawMeets(){
   const box = document.getElementById('amList');
   adminDrawCmpSelects();
+  adminDrawMeetEditSelect();
   if(!box) return;
   // 大会一覧のデータがまだ無い(または読み直しに失敗した)ときは、自動で読み直す
   if(!INIT || !INIT.meets){
@@ -4821,6 +5189,190 @@ async function adminChangeCourse(meet, course, year, month){
   }catch(err){
     msg.innerHTML = '<div class="errmsg">切り替えられませんでした: ' + esc(err.message) +
       '。GAS側に changeMeetCourse の窓口(今回のパッチ)が入っているか確認してください。</div>';
+  }
+}
+// ----- 大会の見出しを作る共通部品 -----
+// ラップの入りぐあいを、行のあたまに目印として出します
+//   ⏱ … その大会の記録ぜんぶにラップが入っている
+//   △ … 一部の種目にだけ入っている(残りのPDFを取り込むとよい)
+//   (空白) … まったく入っていない
+/* ラップの分母は「ラップが入るはずの記録の数」を使います。
+   50m種目には通過タイムがなく、棄権・失格にはタイムそのものがないので、
+   これらを分母に入れると、完全に取り込めた大会でも△になってしまいます。 */
+function lapNeedOf(m){
+  if(!m) return 0;
+  if(m.lapNeed !== undefined) return Number(m.lapNeed) || 0;
+  return Number(m.count) || 0;   // 古いGASのときは今までどおり
+}
+function meetLapMark(m){
+  if(!m || m.lap === undefined) return '';   // 古いGASのときは目印なし
+  if(m.lapDone) return '✔ ';                 // ラップなしで確定にした大会
+  const need = lapNeedOf(m);
+  if(need === 0) return '\u3000';            // ラップ対象がない大会(50m種目のみ)
+  if(m.lap >= need) return '⏱ ';
+  if(m.lap > 0) return '△ ';
+  return '\u3000';   // 全角スペース(頭をそろえるため)
+}
+// プルダウンに出す1行分の文字を作る
+function meetLabel(m){
+  let s = meetLapMark(m) + `${m.meet} ${m.year||'?'}年${m.month||'?'}月 ${m.course||''}`;
+  if(m.date) s += ` / ${m.date}`;
+  if(m.place) s += ` / ${m.place}`;
+  if(m.lapDone) s += ' / ラップなしで確定';
+  else if(m.lap !== undefined){
+    const need = lapNeedOf(m);
+    s += need ? ` / ラップ${m.lap}/${need}` : ' / ラップ対象なし';
+  }
+  return s;
+}
+
+// ----- 大会の情報を直す(大会名・実施日・会場・水路) -----
+// 直したい大会を選ぶプルダウンを、全レースの大会一覧で作り直す
+function adminDrawMeetEditSelect(){
+  const sel = document.getElementById('meName');
+  if(!sel) return;
+  const meets = (DATA && DATA.meets) ? DATA.meets : [];
+  const keep = sel.value;
+  let opts = '<option value="">選んでください</option>';
+  meets.forEach((m,i)=>{
+    opts += `<option value="${i}">${esc(meetLabel(m))}</option>`;
+  });
+  sel.innerHTML = opts;
+  sel.value = keep;
+  const now = document.getElementById('meNow');
+  if(now && meets.length===0){
+    now.textContent = '大会一覧を読み込み中です。少し待つと選べるようになります。';
+  }
+}
+// 大会を選んだら、いまの内容を入力欄に入れる
+function adminPickMeetEdit(){
+  const sel = document.getElementById('meName');
+  const now = document.getElementById('meNow');
+  const msg = document.getElementById('meMsg');
+  if(msg) msg.innerHTML = '';
+  const m = (sel && sel.value && DATA && DATA.meets) ? DATA.meets[Number(sel.value)] : null;
+  if(!m){
+    ['meMeet','meDate','mePlace','meLapWhy'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    const cb0 = document.getElementById('meLapDone');
+    if(cb0) cb0.checked = false;
+    if(now) now.textContent = '';
+    return;
+  }
+  document.getElementById('meMeet').value = m.meet || '';
+  document.getElementById('meDate').value = m.date || '';
+  document.getElementById('mePlace').value = m.place || '';
+  document.getElementById('meCourse').value = m.course || '長水路';
+  let s = `いまの内容: ${m.meet} / ${m.year||'?'}年${m.month||'?'}月 / ${m.course||'(水路なし)'}`
+        + ` / 実施日 ${m.date||'(なし)'} / 会場 ${m.place||'(なし)'}`;
+  if(m.lapDone){
+    s += ` / ✔ラップなしで確定${m.lapDoneWhy ? '（' + m.lapDoneWhy + '）' : ''}`;
+  } else if(m.lap !== undefined){
+    const need = lapNeedOf(m);
+    if(need === 0) s += ' / ラップ対象なし (50m種目だけの大会です)';
+    else if(m.lap >= need) s += ` / ⏱ラップ ${m.lap}/${need} (ぜんぶ入っています)`;
+    else if(m.lap > 0) s += ` / △ラップ ${m.lap}/${need} (一部だけ。残りの種目のPDFを取り込むと入ります)`;
+    else s += ` / ラップなし (この大会のPDFを取り込み直すと入ります)`;
+  }
+  const cb = document.getElementById('meLapDone');
+  if(cb) cb.checked = !!m.lapDone;
+  const wy = document.getElementById('meLapWhy');
+  if(wy) wy.value = m.lapDoneWhy || '';
+  if(m.dateCount > 1){
+    s += ` ※この大会には日付が${m.dateCount}種類あります(日をまたぐ大会)。`
+       + `実施日を書きかえると、全部おなじ日付になります`;
+  }
+  if(now) now.textContent = s;
+}
+// 「ラップなしで確定」の印を保存する
+async function adminSetLapDone(){
+  const msg = document.getElementById('meMsg');
+  const sel = document.getElementById('meName');
+  const m = (sel && sel.value && DATA && DATA.meets) ? DATA.meets[Number(sel.value)] : null;
+  if(!m){ msg.innerHTML = '<div class="errmsg">先に大会を選んでください。</div>'; return; }
+  const on = document.getElementById('meLapDone').checked;
+  const why = document.getElementById('meLapWhy').value.trim();
+  msg.innerHTML = '<div class="loading">保存しています…</div>';
+  try{
+    const r = await apiSave({ action:'setLapDone', password:ADMIN_PW,
+      meet: m.meet, year: m.year||0, month: m.month||0, course: m.course||'',
+      on, why });
+    if(r && r.error) throw new Error(r.error);
+    localStorage.removeItem('cust_rec_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
+    adminDrawMeetEditSelect();
+    adminDrawCmpSelects();
+    const idx = (DATA && DATA.meets)
+      ? DATA.meets.findIndex(x=>x.meet===m.meet && (x.course||'')===(m.course||'')
+          && Number(x.year||0)===Number(m.year||0) && Number(x.month||0)===Number(m.month||0)) : -1;
+    const sel2 = document.getElementById('meName');
+    if(sel2) sel2.value = (idx>=0) ? String(idx) : '';
+    adminPickMeetEdit();
+    document.getElementById('meMsg').innerHTML = on
+      ? '<div class="okmsg">「ラップなしで確定」にしました。一覧では ✔ と表示されます。</div>'
+      : '<div class="okmsg">確定の印をはずしました。</div>';
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">保存できませんでした: ' + esc(err.message) +
+      '。GAS側に setLapDone の窓口(v26パッチ)が入っていて、' +
+      '「新バージョン」でデプロイされているか確認してください。</div>';
+  }
+}
+// 直した内容をGASへ送る
+async function adminUpdateMeet(){
+  const msg = document.getElementById('meMsg');
+  const sel = document.getElementById('meName');
+  const m = (sel && sel.value && DATA && DATA.meets) ? DATA.meets[Number(sel.value)] : null;
+  if(!m){ msg.innerHTML = '<div class="errmsg">直したい大会を選んでください。</div>'; return; }
+  const newMeet = document.getElementById('meMeet').value.trim();
+  const newDate = document.getElementById('meDate').value.trim();
+  const newPlace = document.getElementById('mePlace').value.trim();
+  const newCourse = document.getElementById('meCourse').value;
+  if(!newMeet){ msg.innerHTML = '<div class="errmsg">大会名を入れてください。</div>'; return; }
+  if(newDate && !/^\d{4}\D{1,2}\d{1,2}/.test(newDate)){
+    msg.innerHTML = '<div class="errmsg">実施日は 2025-06-29 の形で入れてください。</div>'; return;
+  }
+  const changes = [];
+  if(newMeet !== m.meet) changes.push(`大会名: ${m.meet} → ${newMeet}`);
+  if(newDate !== (m.date||'')) changes.push(`実施日: ${m.date||'(なし)'} → ${newDate||'(なし)'}`);
+  if(newPlace !== (m.place||'')) changes.push(`会場: ${m.place||'(なし)'} → ${newPlace||'(なし)'}`);
+  if(newCourse !== (m.course||'')) changes.push(`水路: ${m.course||'(なし)'} → ${newCourse}`);
+  if(changes.length===0){ msg.innerHTML = '<div class="errmsg">変わったところがありません。</div>'; return; }
+  if(!confirm('つぎのように直します。\n\n' + changes.join('\n') +
+    '\n\nこの大会の記録すべてに反映されます。よろしいですか。')) return;
+  msg.innerHTML = '<div class="loading">直しています…</div>';
+  try{
+    const r = await apiSave({ action:'updateMeet', password:ADMIN_PW,
+      meet: m.meet, year: m.year||0, month: m.month||0, course: m.course||'',
+      newMeet, newDate, newPlace, newCourse });
+    if(r && r.error) throw new Error(r.error);
+    localStorage.removeItem('cust_rec_cache');
+    localStorage.removeItem('cust_init_cache');
+    DATA = null;
+    try{ await loadRecords(true); }catch(e){}
+    try{ await loadInit(); }catch(e){}
+    // 直したあとの大会を選びなおす
+    adminDrawMeetEditSelect();
+    adminDrawCmpSelects();
+    const idx = (DATA && DATA.meets)
+      ? DATA.meets.findIndex(x=>x.meet===newMeet && (x.course||'')===newCourse) : -1;
+    const sel2 = document.getElementById('meName');
+    if(sel2) sel2.value = (idx>=0) ? String(idx) : '';
+    adminPickMeetEdit();
+    let ok = `<div class="okmsg">直しました。記録 ${r.count||0} 件`;
+    if(r.relayFixed) ok += ` / リレー ${r.relayFixed} 件`;
+    if(r.regFixed) ok += ` / 登録簿 ${r.regFixed} 件`;
+    ok += ' を書きかえました。</div>';
+    if(r.courseChanged){
+      ok += '<div class="hint">※水路が変わりました。大会前ベストと「！」の付けなおしが必要です。'
+          + '上の「試合名の登録」の一覧にある水路のボタンを2回押すと付けなおせます。</div>';
+    }
+    document.getElementById('meMsg').innerHTML = ok;
+  }catch(err){
+    msg.innerHTML = '<div class="errmsg">直せませんでした: ' + esc(err.message) +
+      '。GAS側に updateMeet の窓口(v20パッチ)が入っていて、' +
+      '「新バージョン」でデプロイされているか確認してください。</div>';
   }
 }
 async function adminAddMeet(){

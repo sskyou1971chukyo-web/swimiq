@@ -57,7 +57,7 @@
   /* 注意: このパネルは中身(#recList)がスクロールするため、backdrop-filterを使うと
      iOS Safariの不具合で黒い矩形が描画されることがある。ぼかしは使わず色を濃くして対応。 */
   #recPanel{ position:absolute; left:12px; top:calc(env(safe-area-inset-top) + 54px);
-    bottom:calc(env(safe-area-inset-bottom) + 72px); width:150px; z-index:6;
+    bottom:calc(env(safe-area-inset-bottom) + 72px); width:178px; z-index:6;
     max-height:calc(100% - 120px);
     display:none; flex-direction:column;
     background:rgba(6,24,42,.85); transform:translateZ(0);
@@ -84,6 +84,28 @@
   #recList .rec .lap{ font-size:11px; font-weight:700; color:#bfe3ff; text-align:right; }
   #recList .rec.tempo{ border-left-color:#22d3ee; }
   #recList .rec.stroke{ border-left-color:#a78bfa; }
+  /* ===== 二列の表：左が地点の通過タイム、右がその間の区間タイムとテンポ =====
+     地点は「線の上」、区間は「線と線のあいだ」に置くことで、
+     どの区間の話なのかを見ただけで分かるようにしている。 */
+  #recList .rtab{ display:grid; grid-template-columns:74px minmax(0,1fr);
+    font-variant-numeric:tabular-nums; }
+  #recList .rtab .h{ font-size:9px; font-weight:800; color:#8ab8dd; padding:0 2px 3px; }
+  #recList .rtab .h.r{ border-left:1px solid rgba(255,255,255,.16); padding-left:6px; }
+  #recList .rtab .p, #recList .rtab .pe{ border-top:1px solid rgba(255,255,255,.28); }
+  #recList .rtab .p.fin, #recList .rtab .pe.fin{ border-top-width:2px; border-top-color:rgba(255,255,255,.55); }
+  #recList .rtab .pe, #recList .rtab .se{ border-left:1px solid rgba(255,255,255,.16); }
+  #recList .rtab .p{ display:flex; justify-content:space-between; align-items:baseline;
+    gap:2px; padding:2px 5px 2px 1px; }
+  #recList .rtab .p .d{ font-size:10px; font-weight:800; color:#bfe3ff; }
+  #recList .rtab .p .t{ font-size:13px; font-weight:900; letter-spacing:-.2px; cursor:pointer; }
+  #recList .rtab .p .t.toff{ color:var(--yellow); }
+  #recList .rtab .s{ padding:2px 2px 4px 6px; border-left:1px solid rgba(255,255,255,.16);
+    line-height:1.2; }
+  #recList .rtab .s .sg{ font-size:9px; font-weight:800; color:#8ab8dd; margin-right:4px; }
+  #recList .rtab .s .lap{ font-size:13px; font-weight:900; letter-spacing:-.2px; cursor:pointer; }
+  #recList .rtab .s .tp{ font-size:9.5px; font-weight:800; color:#7dd3fc; cursor:pointer;
+    white-space:nowrap; }
+  #recList .rtab .s .tp.none{ color:rgba(255,255,255,.28); }
   #recList .empty{ font-size:11px; font-weight:600; opacity:.7; text-align:center; padding:14px 4px; line-height:1.5; }
 
   /* ===== 左上：動画を開くボタン（1つだけ） ===== */
@@ -1001,6 +1023,92 @@
   #toast.show{ opacity:1; }
 
   input[type=file]{ display:none; }
+
+  /* ===== レース分析レポート（画面で見る紙 ＝ そのまま印刷・PDFになる） ===== */
+  #rptModal{ position:fixed; inset:0; z-index:60; background:#4b5c6b; overflow:auto;
+    -webkit-overflow-scrolling:touch; }
+  #rptModal.hide{ display:none; }
+  #rptBar{ position:sticky; top:0; z-index:2; display:flex; gap:8px; justify-content:center;
+    padding:10px; background:rgba(10,42,72,.96); }
+  #rptBar button{ padding:11px 18px; border:none; border-radius:12px; cursor:pointer; color:#fff;
+    font-size:14px; font-weight:900; text-shadow:var(--shadow); }
+  #rptPrint{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
+  #rptClose{ background:rgba(255,255,255,.22); }
+  #rptPages{ display:flex; flex-direction:column; align-items:center; gap:18px; padding:16px 6px 60px; }
+  .rpage{ width:min(210mm, 98vw); background:#fff; color:#111; padding:11mm 10mm 8mm;
+    box-shadow:0 8px 26px rgba(0,0,0,.45); user-select:text; -webkit-user-select:text;
+    font-family:"Hiragino Sans","Noto Sans JP",sans-serif; font-size:11px; font-weight:500;
+    font-variant-numeric:tabular-nums; }
+  .rhead{ display:flex; align-items:flex-start; justify-content:space-between; }
+  .rlogo{ font-size:15px; font-weight:900; color:#0e3a5c; letter-spacing:.5px; }
+  .rsub{ font-size:11px; font-weight:700; color:#5a6b78; margin-left:8px; }
+  .rh-r{ text-align:right; }
+  .rmeet{ font-size:10px; color:#5a6b78; font-weight:700; }
+  .rdate{ font-size:11px; color:#111; font-weight:800; }
+  .rpg{ font-size:9px; color:#9aa8b4; font-weight:700; }
+  .rtitle{ display:flex; align-items:baseline; gap:12px; margin:6px 0 6px; }
+  .rname{ font-size:20px; font-weight:900; color:#111; }
+  .revent{ font-size:14px; font-weight:900; color:#1d6fa5; }
+  .rrule{ height:2.4px; background:#123a56; margin-bottom:9px; }
+  .rkeys{ display:flex; flex-wrap:wrap; gap:6px; }
+  .rk{ flex:1 1 90px; background:#eef2f6; border-radius:7px; padding:8px 9px; min-width:88px; }
+  .rk span{ display:block; font-size:9.5px; color:#5a6b78; font-weight:700; line-height:1.35; }
+  .rk b{ font-size:15px; font-weight:900; color:#111; }
+  .rk em{ font-size:9px; font-style:normal; color:#5a6b78; font-weight:700; margin-left:2px; }
+  .rk.main{ flex:2 1 200px; background:#0f2233; }
+  .rk.main span{ color:#a9bdcc; }
+  .rk.main b{ display:block; font-size:30px; color:#fff; line-height:1.15; margin:1px 0 2px; }
+  .rk.main i{ font-style:normal; font-size:9.5px; color:#a9bdcc; font-weight:700; }
+  .rsec{ font-size:13px; font-weight:900; color:#111; margin:12px 0 6px; }
+  .rleg{ font-size:9.5px; font-weight:700; color:#5a6b78; margin-left:8px; }
+  .rleg i{ font-style:normal; }
+  .rleg .lb{ color:#1558a8; }
+  .rleg .lt{ color:#0d9488; }
+  .rgraph{ display:flex; gap:3px; align-items:flex-end; }
+  .gcol{ flex:1 1 0; min-width:0; text-align:center; }
+  .gsp{ position:relative; height:30px; }
+  .gsp .gsval{ position:absolute; left:0; right:0; font-size:8.5px; font-weight:900; color:#0d9488; }
+  .gsp .gsline{ position:absolute; left:0; right:0; height:2px; background:#0d9488; }
+  .glap{ font-size:10px; font-weight:900; color:#111; margin:1px 0 2px; }
+  .gbar{ height:42px; display:flex; align-items:flex-end; }
+  .gbarfill{ width:100%; background:#1558a8; border-radius:2px 2px 0 0; }
+  .gseg{ font-size:8px; font-weight:700; color:#5a6b78; margin-top:3px; word-break:keep-all; }
+  .rdrop{ display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; margin-top:10px;
+    background:#eef4fa; border-left:3px solid #1558a8; border-radius:0 6px 6px 0; padding:7px 10px; }
+  .rdrop .dl{ font-size:11px; font-weight:900; color:#1558a8; }
+  .rdrop .dv{ font-size:16px; font-weight:900; color:#111; }
+  .rdrop .dd{ font-size:9.5px; font-weight:700; color:#5a6b78; }
+  .rnote{ font-size:9px; color:#7a8896; font-weight:600; margin:7px 0 0; }
+  .rk u{ display:block; text-decoration:none; font-size:8.5px; color:#5a6b78; font-weight:700; }
+  .rcharts{ display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; }
+  .rchart{ border:1px solid #e2e8ee; border-radius:6px; padding:5px 6px 2px; }
+  .rct{ font-size:9.5px; font-weight:900; color:#111; margin-bottom:1px; }
+  .rct span{ font-size:8.5px; font-weight:700; color:#5a6b78; margin-left:5px; }
+  .rsvg{ display:block; width:100%; height:auto; }
+  .rsvg .rax{ font-size:6px; font-weight:700; fill:#7a8896; }
+  .rsvg .rval{ font-size:6.5px; font-weight:900; fill:#111; }
+  .rtbl{ width:100%; border-collapse:collapse; font-size:10.5px; }
+  .rtbl th{ background:#0f2233; color:#fff; font-weight:900; font-size:9.5px; padding:6px 5px; text-align:right; }
+  .rtbl th:first-child{ text-align:left; }
+  .rtbl td{ padding:5px 5px; text-align:right; color:#111; font-weight:600; border-bottom:1px solid #e2e8ee; }
+  .rtbl td:first-child{ text-align:left; font-weight:900; }
+  .rtbl tr:nth-child(even) td{ background:#f6f9fb; }
+  .rtbl.blue th{ background:#1d6fa5; }
+  .rfoot{ display:flex; align-items:flex-start; gap:8px; margin-top:12px; padding-top:7px;
+    border-top:1px solid #dbe3ea; font-size:9px; color:#7a8896; font-weight:600; }
+  .rfoot .fl{ color:#1558a8; font-weight:900; }
+  .rfoot .fr{ margin-left:auto; color:#9fb6c7; font-weight:900; }
+
+  @media print{
+    html,body{ height:auto; overflow:visible; background:#fff; }
+    body > *{ display:none !important; }
+    body > #rptModal{ display:block !important; position:static; background:#fff; overflow:visible; }
+    #rptBar{ display:none !important; }
+    #rptPages{ display:block; padding:0; gap:0; }
+    .rpage{ width:auto; box-shadow:none; padding:0; page-break-after:always; break-after:page; }
+    .rpage:last-child{ page-break-after:auto; break-after:auto; }
+    @page{ size:A4 portrait; margin:11mm 10mm; }
+  }
 </style>
 </head>
 <body>
@@ -1287,7 +1395,7 @@
     <canvas id="anaCanvas" aria-hidden="true"></canvas>
     <div id="anaSummary"></div>
     <div id="anaTable"></div>
-    <div class="stroke-btns"><button id="anaClose">とじる</button></div>
+    <div class="stroke-btns"><button id="anaReport">🖨 PDF表示（印刷）</button><button id="anaClose">とじる</button></div>
   </div>
 </div>
 
@@ -1515,6 +1623,15 @@
     <button class="official-link" data-url="https://swim.seiko.co.jp/">⏱ セイコーリザルト<span class="ol-sub">大会の速報・結果</span></button>
     <button class="official-link" data-url="https://www.tdsystem.co.jp/">🖥 東洋電子システム<span class="ol-sub">TDシステムのリザルト</span></button>
   </div>
+</div>
+
+<!-- レース分析レポート：画面に紙のかたちで出して、そのまま印刷・PDFにできる -->
+<div id="rptModal" class="hide">
+  <div id="rptBar">
+    <button id="rptPrint" type="button">🖨 印刷・PDFにする</button>
+    <button id="rptClose" type="button">とじる</button>
+  </div>
+  <div id="rptPages"></div>
 </div>
 
 <div id="toast"></div>
@@ -3099,6 +3216,8 @@
           applyLoadedRace(res2);
           $('mineModal').classList.add('hide');
           anaLabel=(res2.meetName||'')+' '+r.raceDist+'m '+(r.stroke||'');
+          anaMeta={ name:myName()||'', meet:res2.meetName||r.meetName||'',
+                    date:res2.meetDate||r.meetDate||'', stroke:r.stroke||'' };
           openAnaModal();
         }).catch(function(err){
           row.querySelector('.db-ana').disabled=false;
@@ -5057,7 +5176,13 @@
         });
       }
       row.querySelector('.db-load').onclick=function(){ loadIt(function(res2){ toast((res2.meetName||'記録')+' を よびだしました'); }); };
-      row.querySelector('.db-ana').onclick=function(){ loadIt(function(res2){ anaLabel=(res2.meetName||'')+' '+r.raceDist+'m '+(r.stroke||''); openAnaModal(); }); };
+      row.querySelector('.db-ana').onclick=function(){ loadIt(function(res2){
+        anaLabel=(res2.meetName||'')+' '+r.raceDist+'m '+(r.stroke||'');
+        var selA=$('dfAthlete'), aName='';
+        if(selA && selA.options[selA.selectedIndex]) aName=selA.options[selA.selectedIndex].textContent||'';
+        anaMeta={ name:aName, meet:res2.meetName||r.meetName||'',
+                  date:res2.meetDate||r.meetDate||'', stroke:r.stroke||'' };
+        openAnaModal(); }); };
       box.appendChild(row);
     });
   }
@@ -5142,6 +5267,7 @@
           applyLoadedRace(whToRace(r, eventName));
           $('findModal').classList.add('hide');
           anaLabel=(r.name||'')+'　'+eventName+' '+(r.stroke||'');
+          anaMeta={ name:r.name||'', meet:r.meet||'', date:String(r.year||''), stroke:r.stroke||'' };
           openAnaModal();
         };
       }
@@ -5174,6 +5300,7 @@
   // ===== データを分析（グラフ・まとめ・表） =====
   var anaType='lap';     // いま見ているグラフの種類
   var anaLabel='';       // 分析画面の見出しにそえる説明
+  var anaMeta=null;      // レポートの見出しに使う情報 {name, meet, date, stroke}
   // いま画面にある記録から、区間ごとの数字を組み立てる
   function anaRows(){
     var origin=originTime(), ds=allDists(), rows=[], prevP=0, prevD=0;
@@ -5332,6 +5459,40 @@
       });
       ctx.restore();
     }
+    // テンポ専用。秒/かきは小さいほど速いので、速いほど上にくるように上下をひっくり返す
+    function tempoLine(items, color, unit){
+      if(!items.length){ empty('この項目の記録は まだありません'); return; }
+      var vs=items.map(function(x){return x.v;});
+      var mx=Math.max.apply(null,vs), mn=Math.min.apply(null,vs);
+      var sp=(mx-mn)||(mx*0.2)||1;
+      var lo=Math.max(0, mn-sp*0.35), hi=mx+sp*0.35;
+      if(hi<=lo) hi=lo+1;
+      function yy(v){ return padT+(v-lo)/(hi-lo)*ih; }
+      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.fillStyle='#bfe3ff'; ctx.textAlign='right';
+      for(var g=0;g<=4;g++){
+        var gv=lo+(hi-lo)*g/4, gy=yy(gv);
+        ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(W-padR,gy); ctx.stroke();
+        ctx.fillText(gv.toFixed(2)+unit, padL-5, gy+4);
+      }
+      ctx.textAlign='center';
+      ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('上ほど速い', padL+2, padT-4);
+      ctx.textAlign='center';
+      ctx.save(); ctx.beginPath(); ctx.rect(0,0,padL+iw*P+8,H); ctx.clip();
+      ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath();
+      items.forEach(function(it,i){
+        var x=padL+iw*(i+0.5)/items.length;
+        if(i===0) ctx.moveTo(x,yy(it.v)); else ctx.lineTo(x,yy(it.v));
+      });
+      ctx.stroke();
+      items.forEach(function(it,i){
+        var x=padL+iw*(i+0.5)/items.length, y2=yy(it.v);
+        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y2,5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.fillText(it.v.toFixed(2), x, y2-9);
+        ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif'; ctx.fillText(it.label, x, H-10);
+      });
+      ctx.restore();
+    }
     if(anaType==='lap'){
       bars(rows.map(function(r){ return {v:r.lap, label:r.from+'→'+r.to, dec:2}; }), '#fbbf24', '秒');
     } else if(anaType==='speed'){
@@ -5340,7 +5501,7 @@
       var items=Object.keys(tempoValues).map(function(k){
         return {from:parseInt(k.split('-')[0],10), v:tempoValues[k].perStroke, label:k.replace('-','→')};
       }).sort(function(a,b){return a.from-b.from;});
-      bars(items.map(function(x){ return {v:x.v, label:x.label, dec:2}; }), '#22d3ee', '秒');
+      tempoLine(items.map(function(x){ return {v:x.v, label:x.label, dec:2}; }), '#22d3ee', '秒');
     } else if(anaType==='stroke'){
       var items2=[];
       strokeCounts.forEach(function(v,i){
@@ -5414,12 +5575,37 @@
     if(openSegKey){ toast(from+'〜'+to+'m を ひらきました'); }
   }
   // 細かい区間を選んで、その区間のテンポを狙う
-  function selectTempoSeg(from, to){
+  // quiet を true にすると、右下の知らせ（トースト）を出さない（続けて別の知らせを出したいとき用）
+  function selectTempoSeg(from, to, quiet){
     selFrom=from; selTo=to;
     tempoMarks=[];   // 別の区間に移ったら、途中の測定はリセット
     if(mode!=='tempo') setMode('tempo'); else { updateAim(); updateTempoUI(); }
     buildScale();
-    toast(from+'〜'+to+'m の テンポ');
+    if(!quiet) toast(from+'〜'+to+'m の テンポ');
+  }
+  // 目盛りに出る細かい区間を、はじめから順にならべる（0〜15、15〜25、…）
+  function tempoSegList(){
+    var ds=pointsFor(raceDist).map(function(p){ return p.d; })
+      .sort(function(a,b){ return a-b; });
+    var segs=[];
+    for(var i=0; i<ds.length-1; i++) segs.push({from:ds[i], to:ds[i+1]});
+    return segs;
+  }
+  // いまの区間のつぎの区間を返す（最後まで来ていたら null）
+  function nextTempoSeg(from, to){
+    var segs=tempoSegList();
+    for(var i=0; i<segs.length; i++){
+      if(segs[i].from===from && segs[i].to===to) return segs[i+1] || null;
+    }
+    return null;
+  }
+  // 長いレースでは、その区間が入っている節目を開いておかないと目盛りに出てこない
+  function openNodeFor(seg){
+    if(!zoomableScale()) return;
+    var nl=nodesFor(raceDist);
+    for(var i=0; i<nl.length-1; i++){
+      if(nl[i]<=seg.from && nl[i+1]>=seg.to){ openSegKey=nl[i]+'-'+nl[i+1]; return; }
+    }
   }
   function updateAim(){
     var a=$('aimText');
@@ -5543,8 +5729,19 @@
     var spm=perStroke>0 ? (60/perStroke) : 0;   // 毎分かき数
     tempoValues[selFrom+'-'+selTo]={ method:tempoMethod, strokes:strokes, perStroke:perStroke, spm:spm };
     tempoMarks=[];
+    var doneFrom=selFrom, doneTo=selTo;
     updateTempoUI(); renderRecords();
-    toast(selFrom+'〜'+selTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき');
+    // つぎの区間へ自動で進む。0〜15mが終われば15〜25m、という具合。
+    var nx=nextTempoSeg(doneFrom, doneTo);
+    if(nx){
+      openNodeFor(nx);
+      selectTempoSeg(nx.from, nx.to, true);
+      toast(doneFrom+'〜'+doneTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき　→ つぎは '+nx.from+'〜'+nx.to+'m');
+      shacchiSay(doneFrom+'〜'+doneTo+'mは '+perStroke.toFixed(2)+'秒／かきだッチ。そのまま '+nx.from+'〜'+nx.to+'m にうつったから、つづけて はかれるッチ。', 7000);
+    } else {
+      toast(doneFrom+'〜'+doneTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき　これで最後の区間です');
+      shacchiSay('さいごの区間まで はかりおわったッチ！左の表で、区間タイムとテンポを見くらべてみるッチ。', 8000);
+    }
   }
 
   // テンポの状態表示と、ラップボタン・確定ボタンの文字を更新
@@ -5840,38 +6037,72 @@
       rtRow.querySelector('.t').onclick=function(){ openRtModal(); };
       box.appendChild(rtRow);
     }
-    var prevSplit=0, prevD=0;
-    dists.forEach(function(d){
-      var split=passOf(d, origin);
-      var isOff=(officialTimes[d]!=null);
-      var lap=split-prevSplit;
-      var row=document.createElement('div');
-      row.className='rec';
-      row.innerHTML='<div class="top"><span class="d">'+d+'m</span><span class="t'+(isOff?' toff':'')+'">'+fmt(split)+'</span></div>'+
-                    '<div class="lap"><span class="lap-edit" data-d="'+d+'" data-pd="'+prevD+'" data-ps="'+prevSplit+'" data-lap="'+lap+'">区間 '+prevD+'→'+d+'m ： '+fmt(lap)+'</span>'+(isOff?'　正式':'')+'</div>';
-      // 通過タイムを押すと 正式タイムの画面。区間タイムを押すと 区間だけ直せる画面。
-      row.querySelector('.t').onclick=function(){ openOfficialModal(d); };
-      var le=row.querySelector('.lap-edit');
-      if(le) le.onclick=function(){
-        openLapModal(Number(le.dataset.d), Number(le.dataset.pd),
-                     Number(le.dataset.ps), Number(le.dataset.lap));
+    // ===== 二列の表 =====
+    // 左の列は地点そのもの（通過タイム）、右の列は地点と地点のあいだ（区間タイム＋テンポ）。
+    // 区間の値を線と線のあいだに置くので、どの区間の話かが見ただけで分かる。
+    var usedTempo={};
+    if(dists.length){
+      var tab=document.createElement('div');
+      tab.className='rtab';
+      tab.innerHTML='<div class="h">地点／通過</div><div class="h r">区間／テンポ</div>';
+      // 地点の行（線の上にのる値）
+      var addPoint=function(label, timeText, isOff, onTap, fin){
+        var L=document.createElement('div');
+        L.className='p'+(fin?' fin':'');
+        L.innerHTML='<span class="d">'+label+'</span>'+
+                    '<span class="t'+(isOff?' toff':'')+'">'+timeText+'</span>';
+        if(onTap) L.querySelector('.t').onclick=onTap;
+        var R=document.createElement('div');
+        R.className='pe'+(fin?' fin':'');
+        tab.appendChild(L); tab.appendChild(R);
       };
-      box.appendChild(row);
-      prevSplit=split; prevD=d;
-    });
-    // 次にテンポ（区間の距離順）
-    tempoKeys.map(function(k){ return {k:k, from:parseInt(k.split('-')[0],10)}; })
-      .sort(function(a,b){return a.from-b.from;})
-      .forEach(function(o){
-        var v=tempoValues[o.k];
+      // 区間の行（線と線のあいだにはさまる値）
+      var addSeg=function(pd, d, lap, onLap){
+        var L=document.createElement('div'); L.className='se';
+        var R=document.createElement('div'); R.className='s';
+        var key=pd+'-'+d;
+        var v=tempoValues[key];
+        var tp;
+        if(v){
+          usedTempo[key]=true;
+          var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
+          var spm=(v.spm!=null)?Math.round(v.spm):'-';
+          tp='<div class="tp">'+per+'秒 毎分'+spm+'</div>';
+        }else{
+          tp='<div class="tp none">テンポ未測定</div>';
+        }
+        R.innerHTML='<div><span class="sg">'+pd+'→'+d+'</span>'+
+                    '<span class="lap">'+fmt(lap)+'</span></div>'+tp;
+        R.querySelector('.lap').onclick=onLap;
+        if(v) R.querySelector('.tp').onclick=function(){ openTempoModal(key); };
+        tab.appendChild(L); tab.appendChild(R);
+      };
+      addPoint('0m', fmt(0), false, null, false);
+      var prevSplit=0, prevD=0;
+      dists.forEach(function(d, i){
+        var split=passOf(d, origin);
+        var isOff=(officialTimes[d]!=null);
+        var lap=split-prevSplit;
+        (function(dd, pd, ps, lp, off, last){
+          addSeg(pd, dd, lp, function(){ openLapModal(dd, pd, ps, lp); });
+          addPoint(dd+'m', fmt(ps+lp), off, function(){ openOfficialModal(dd); }, last);
+        })(d, prevD, prevSplit, lap, isOff, i===dists.length-1);
+        prevSplit=split; prevD=d;
+      });
+      box.appendChild(tab);
+    }
+    // 表の区間に当てはまらないテンポ（地点が未記録の区間など）は、下にまとめて出す
+    tempoKeys.filter(function(k){ return !usedTempo[k]; })
+      .sort(function(a,b){ return parseInt(a.split('-')[0],10)-parseInt(b.split('-')[0],10); })
+      .forEach(function(k){
+        var v=tempoValues[k];
         var row=document.createElement('div');
         row.className='rec tempo';
         var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
         var spm=(v.spm!=null)?Math.round(v.spm):'-';
-        row.innerHTML='<div class="top"><span class="d">'+o.k.replace('-','〜')+'m</span><span class="t">'+per+'</span></div>'+
+        row.innerHTML='<div class="top"><span class="d">'+k.replace('-','〜')+'m</span><span class="t">'+per+'</span></div>'+
                       '<div class="lap">テンポ '+per+'秒／かき　毎分'+spm+'かき</div>';
-        var kk=o.k;
-        row.querySelector('.t').onclick=function(){ openTempoModal(kk); };
+        row.querySelector('.t').onclick=function(){ openTempoModal(k); };
         box.appendChild(row);
       });
     // 最後にかき数（50mごと・登録があるときだけ）
@@ -6502,6 +6733,315 @@
     }
     sm.classList.add('nyujo');
   }
+  // ===== レース分析レポート（PDF表示・印刷） =====
+  // 分析画面でいま見ている中身を、そのまま紙のかたちに組み直す。
+  // 50m〜400mは1枚におさめ、800m以上は15区間ずつ次の紙に送る。
+  var RPT_PER_PAGE=12;   // 紙1枚にのせる区間の数
+
+  function rptEsc(s){
+    return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  // 符号つきの百分率（+0.0% / −4.9%）
+  function rptPct(v){ if(Math.abs(v)<0.05) v=0; return (v>=0?'+':'−')+Math.abs(v).toFixed(1)+'%'; }
+  // 符号つきの秒数（+0.25 / −0.10）
+  function rptSec(v){ if(Math.abs(v)<0.005) v=0; return (v>=0?'+':'−')+Math.abs(v).toFixed(2); }
+  // 見出しに出す名前・大会名・日付・種目をそろえる
+  function rptMeta(){
+    var m=anaMeta||{};
+    var name=String(m.name||'').trim() || (raceInfo&&raceInfo.swimmer) || myName() || '（選手名）';
+    var stroke=String(m.stroke||'').trim() || (raceInfo&&raceInfo.stroke) || '';
+    var meet=String(m.meet||'').trim() || (raceInfo&&raceInfo.meetName) || '';
+    var date=String(m.date||'').trim() || todayStr();
+    return { name:name, stroke:stroke, meet:meet, date:date, event:raceDist+'m '+stroke };
+  }
+  // 区間ごとの数字に、テンポとかき数を合わせて持たせる
+  function rptRows(){
+    var rows=anaRows();
+    var strokeAt={};
+    strokeCounts.forEach(function(v,i){
+      if(v!=null) strokeAt[Math.min((i+1)*50, raceDist)]=v;
+    });
+    rows.forEach(function(r){
+      var t=tempoValues[r.from+'-'+r.to];
+      r.tempo=(t&&t.perStroke)?t.perStroke:null;
+      r.spm=(t&&t.spm)?t.spm:null;
+      r.count=(strokeAt[r.to]!=null)?strokeAt[r.to]:null;
+    });
+    return rows;
+  }
+  // 泳区間（飛び込みの1本目をのぞいた区間）だけを取り出す
+  function rptSwim(rows){ return (rows.length>1)? rows.slice(1) : rows.slice(0); }
+
+  // 上のかたまり（総合タイムと、おもな数字の箱）
+  function rptKeys(rows, page, chunk, meta){
+    var last=rows[rows.length-1], html='';
+    html+='<div class="rk main"><span>総合タイム</span><b>'+rptEsc(fmt(last.pass))+'</b>'+
+          '<i>'+rptEsc(meta.event)+'</i></div>';
+    function box(label, val, unit, sub){
+      html+='<div class="rk"><span>'+rptEsc(label)+'</span><b>'+rptEsc(val)+'</b>'+
+            (unit? '<em>'+rptEsc(unit)+'</em>':'')+
+            (sub? '<u>'+rptEsc(sub)+'</u>':'')+'</div>';
+    }
+    if(page===0){
+      if(rtTime!=null) box('リアクション', rtTime.toFixed(2), '秒');
+      box('スタート（'+rows[0].to+'m）', fmt(rows[0].pass), '秒');
+      if(last.pass>0) box('平均泳速', (last.to/last.pass).toFixed(2), 'm/s');
+      box('フィニッシュ（'+last.dist+'m）', fmt(last.lap), '秒');
+      // いちばん速い区間と、いちばん遅い区間
+      var fast=rows[0], slow=rows[0];
+      rows.forEach(function(r){ if(r.speed>fast.speed) fast=r; if(r.speed<slow.speed) slow=r; });
+      box('最速区間', fast.from+'-'+fast.to+'m', '', fast.speed.toFixed(2)+' m/s');
+      box('最遅区間', slow.from+'-'+slow.to+'m', '', slow.speed.toFixed(2)+' m/s');
+      var tps=rows.filter(function(r){ return r.tempo!=null; });
+      if(tps.length){
+        var at=tps.reduce(function(a,r){ return a+r.tempo; },0)/tps.length;
+        box('平均テンポ', at.toFixed(2), '秒/かき');
+      }
+      var cs=rows.filter(function(r){ return r.count!=null; });
+      if(cs.length){
+        box('かき数 合計', String(cs.reduce(function(a,r){ return a+r.count; },0)), 'かき');
+      }
+      // ちょうど半分の地点が記録されていれば、前半と後半を出す
+      var half=raceDist/2, hp=null;
+      rows.forEach(function(r){ if(r.to===half) hp=r.pass; });
+      if(hp!=null && last.to===raceDist){
+        var bk=last.pass-hp;
+        box('前半 / 後半 '+half+'m', fmt(hp)+' / '+fmt(bk), '',
+            '後半差 '+(bk-hp>=0?'+':'−')+Math.abs(bk-hp).toFixed(2)+'秒');
+      }
+    } else {
+      var first=chunk[0], cl=chunk[chunk.length-1];
+      var sum=chunk.reduce(function(a,r){ return a+r.lap; },0);
+      var dist=cl.to-first.from;
+      box('このページ '+first.from+'〜'+cl.to+'m', fmt(sum), '');
+      if(sum>0) box('平均泳速（この間）', (dist/sum).toFixed(2), 'm/s');
+      box('ラスト '+cl.dist+'m', fmt(cl.lap), '秒');
+    }
+    return '<div class="rkeys">'+html+'</div>';
+  }
+  // 区間タイムの棒と、泳速の線をならべた図
+  function rptGraph(chunk, longLabel){
+    var maxLap=0, maxS=0, minS=1e9;
+    chunk.forEach(function(r){
+      if(r.lap>maxLap) maxLap=r.lap;
+      if(r.speed>maxS) maxS=r.speed;
+      if(r.speed<minS) minS=r.speed;
+    });
+    var html='<div class="rgraph">';
+    chunk.forEach(function(r){
+      var frac=(maxS===minS)?0.5:(r.speed-minS)/(maxS-minS);
+      var lineBottom=4+frac*10;
+      var barH=Math.max(6, 42*(maxLap? r.lap/maxLap : 0));
+      var label=longLabel? String(r.to) : (r.from+'-'+r.to);
+      html+='<div class="gcol">'+
+        '<div class="gsp">'+
+          '<span class="gsval" style="bottom:'+(lineBottom+3).toFixed(1)+'px">'+r.speed.toFixed(2)+'</span>'+
+          '<span class="gsline" style="bottom:'+lineBottom.toFixed(1)+'px"></span>'+
+        '</div>'+
+        '<div class="glap">'+rptEsc(fmt(r.lap))+'</div>'+
+        '<div class="gbar"><div class="gbarfill" style="height:'+barH.toFixed(1)+'px"></div></div>'+
+        '<div class="gseg">'+rptEsc(label)+'</div>'+
+      '</div>';
+    });
+    return html+'</div>';
+  }
+  // 分析画面の4つのグラフ（区間タイム・スピード・テンポ・かき数）を、
+  // 紙にそのまま置けるように小さな図として描き直す。
+  // opt: {title, unit, items:[{label,value}], type:'bar'|'line', color, dec, zero}
+  function rptSvgChart(opt){
+    var items=opt.items;
+    if(!items.length) return '';
+    var W=340, H=132, padL=30, padR=6, padT=14, padB=18;
+    var iw=W-padL-padR, ih=H-padT-padB;
+    var vals=items.map(function(i){ return i.value; });
+    var mx=Math.max.apply(null, vals), mn=Math.min.apply(null, vals);
+    var lo, hi;
+    if(opt.zero){ lo=0; hi=(mx>0? mx*1.2 : 1); }
+    else { var sp=(mx-mn)||(mx*0.2)||1; lo=Math.max(0, mn-sp*0.35); hi=mx+sp*0.35; }
+    if(hi<=lo) hi=lo+1;
+    // invert が true のときは、小さい数ほど上にくる（テンポは秒が小さいほど速いため）
+    function y(v){
+      var f=(v-lo)/(hi-lo);
+      return opt.invert ? (padT+f*ih) : (padT+ih-f*ih);
+    }
+    var dec=(opt.dec==null)?2:opt.dec;
+    var g='<svg viewBox="0 0 '+W+' '+H+'" class="rsvg" xmlns="http://www.w3.org/2000/svg">';
+    // よこの目もり線と、その数字
+    for(var t=0;t<=3;t++){
+      var v=lo+(hi-lo)*t/3, yy=y(v);
+      g+='<line x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yy.toFixed(1)+
+         '" stroke="#e2e8ee" stroke-width="0.7"/>';
+      g+='<text x="'+(padL-3)+'" y="'+(yy+2.4).toFixed(1)+'" text-anchor="end" class="rax">'+
+         v.toFixed(dec)+'</text>';
+    }
+    var n=items.length, step=iw/n;
+    var skip=(n>9)?2:1;   // 数が多いときは、下の目もりを1つおきにする
+    items.forEach(function(it,i){
+      var cx=padL+step*(i+0.5);
+      if(opt.type==='line'){
+        if(i>0){
+          var px=padL+step*(i-0.5);
+          g+='<line x1="'+px.toFixed(1)+'" y1="'+y(items[i-1].value).toFixed(1)+
+             '" x2="'+cx.toFixed(1)+'" y2="'+y(it.value).toFixed(1)+
+             '" stroke="'+opt.color+'" stroke-width="1.6"/>';
+        }
+        g+='<circle cx="'+cx.toFixed(1)+'" cy="'+y(it.value).toFixed(1)+'" r="2.2" fill="'+opt.color+'"/>';
+      } else {
+        var bw=Math.min(step*0.66, 26), yv=y(it.value);
+        g+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yv.toFixed(1)+'" width="'+bw.toFixed(1)+
+           '" height="'+Math.max(0.8, padT+ih-yv).toFixed(1)+'" fill="'+opt.color+'" rx="1.5"/>';
+      }
+      g+='<text x="'+cx.toFixed(1)+'" y="'+(y(it.value)-3.5).toFixed(1)+
+         '" text-anchor="middle" class="rval">'+it.value.toFixed(dec)+'</text>';
+      if(i%skip===0){
+        g+='<text x="'+cx.toFixed(1)+'" y="'+(H-5)+'" text-anchor="middle" class="rax">'+
+           rptEsc(it.label)+'</text>';
+      }
+    });
+    g+='</svg>';
+    return '<div class="rchart"><div class="rct">'+rptEsc(opt.title)+
+           '<span>'+rptEsc(opt.unit||'')+'</span></div>'+g+'</div>';
+  }
+  // 4つのグラフをならべる（記録のないものは出さない）
+  function rptCharts(chunk, longLabel){
+    function lab(r){ return longLabel? String(r.to) : (r.from+'-'+r.to); }
+    var out='';
+    out+=rptSvgChart({ title:'区間タイム', unit:'秒', type:'bar', color:'#1558a8', dec:2, zero:true,
+      items:chunk.map(function(r){ return {label:lab(r), value:r.lap}; }) });
+    out+=rptSvgChart({ title:'スピード', unit:'m/s', type:'line', color:'#0d9488', dec:2, zero:false,
+      items:chunk.map(function(r){ return {label:lab(r), value:r.speed}; }) });
+    out+=rptSvgChart({ title:'テンポ', unit:'秒/かき（上ほど速い）', type:'line', color:'#c2410c',
+      dec:2, zero:false, invert:true,
+      items:chunk.filter(function(r){ return r.tempo!=null; })
+                 .map(function(r){ return {label:lab(r), value:r.tempo}; }) });
+    out+=rptSvgChart({ title:'かき数', unit:'回', type:'bar', color:'#7c3aed', dec:0, zero:true,
+      items:chunk.filter(function(r){ return r.count!=null; })
+                 .map(function(r){ return {label:(r.to-50)+'-'+r.to, value:r.count}; }) });
+    return out? '<div class="rcharts">'+out+'</div>' : '';
+  }
+  // 泳速の低下率のひとこと
+  function rptDrop(rows, chunk){
+    var swim=rptSwim(rows);
+    if(!swim.length) return '';
+    var base=swim[0], last=chunk[chunk.length-1];
+    if(!base.speed) return '';
+    var d=(last.speed/base.speed-1)*100;
+    var inSwim=chunk.filter(function(r){ return r!==rows[0]; });
+    var avg=inSwim.length? inSwim.reduce(function(a,r){ return a+r.speed; },0)/inSwim.length : base.speed;
+    var da=(avg/base.speed-1)*100;
+    return '<div class="rdrop">'+
+      '<span class="dl">泳速の低下率</span><span class="dv">'+rptPct(d)+'</span>'+
+      '<span class="dd">基準 '+base.from+'-'+base.to+'m（'+base.speed.toFixed(2)+' m/s）</span>'+
+      '<span class="dd">最終区間 '+last.speed.toFixed(2)+' m/s '+rptPct(d)+'</span>'+
+      '<span class="dd">泳区間の平均 '+avg.toFixed(2)+' m/s '+rptPct(da)+'</span>'+
+    '</div>';
+  }
+  // 区間ごとの表
+  function rptTable(rows, chunk){
+    var swim=rptSwim(rows);
+    var base=swim.length? swim[0] : rows[0];
+    var hasTempo=rows.some(function(r){ return r.tempo!=null; });
+    var hasCount=rows.some(function(r){ return r.count!=null; });
+    var h='<table class="rtbl"><tr><th>区間</th><th>通過タイム</th><th>区間タイム</th>'+
+          '<th>基準差</th><th>泳速 m/s</th><th>低下率</th>';
+    if(hasTempo) h+='<th>テンポ</th><th>毎分かき</th>';
+    if(hasCount) h+='<th>かき数</th>';
+    h+='</tr>';
+    chunk.forEach(function(r){
+      var isDive=(r===rows[0] && rows.length>1);
+      var diff='—', drop='—';
+      if(isDive){ diff='基準外'; drop='基準外'; }
+      else {
+        if(base.speed>0) diff=rptSec(r.lap-r.dist/base.speed);
+        if(base.speed>0) drop=rptPct((r.speed/base.speed-1)*100);
+      }
+      h+='<tr><td>'+r.from+'-'+r.to+'m</td><td>'+rptEsc(fmt(r.pass))+'</td>'+
+         '<td>'+rptEsc(fmt(r.lap))+'</td><td>'+rptEsc(diff)+'</td>'+
+         '<td>'+r.speed.toFixed(2)+'</td><td>'+rptEsc(drop)+'</td>';
+      if(hasTempo) h+='<td>'+(r.tempo!=null? r.tempo.toFixed(2):'—')+'</td>'+
+                     '<td>'+(r.spm!=null? Math.round(r.spm):'—')+'</td>';
+      if(hasCount) h+='<td>'+(r.count!=null? r.count:'—')+'</td>';
+      h+='</tr>';
+    });
+    return h+'</table>';
+  }
+  // かき数とテンポ（50mごと）の表。登録があるページだけ出す
+  function rptStrokeTable(chunk){
+    if(raceDist>200) return '';
+    var anyTempo=false;
+    Object.keys(tempoValues).forEach(function(k){ if(tempoValues[k]&&tempoValues[k].perStroke) anyTempo=true; });
+    if(!anyTempo) return '';
+    var from=chunk[0].from, to=chunk[chunk.length-1].to, lines='';
+    strokeCounts.forEach(function(v,i){
+      var f=i*50, t=Math.min((i+1)*50, raceDist);
+      if(v==null || t<=from || f>=to) return;
+      // その50mの中に入っているテンポの平均を出す
+      var ts=[];
+      Object.keys(tempoValues).forEach(function(k){
+        var p=k.split('-'), a=parseInt(p[0],10), b=parseInt(p[1],10);
+        if(a>=f && b<=t && tempoValues[k] && tempoValues[k].perStroke) ts.push(tempoValues[k].perStroke);
+      });
+      var av=ts.length? (ts.reduce(function(x,y){return x+y;},0)/ts.length) : null;
+      lines+='<tr><td>'+f+'-'+t+'m</td><td>'+v+'</td>'+
+             '<td>'+(av!=null? av.toFixed(2):'—')+'</td>'+
+             '<td>'+(av!=null? Math.round(60/av):'—')+'</td></tr>';
+    });
+    if(!lines) return '';
+    return '<h3 class="rsec">かき数とテンポ（50mごと）</h3>'+
+      '<table class="rtbl blue"><tr><th>区間</th><th>かき数 回</th><th>テンポ 秒/かき</th><th>毎分かき</th></tr>'+
+      lines+'</table>';
+  }
+  // 紙1枚ぶんを組み立てる
+  function rptPage(rows, chunk, page, total, meta){
+    var longLabel=(chunk.length>10);
+    var range=(total>1)? '　'+chunk[0].from+'〜'+chunk[chunk.length-1].to+'m' : '';
+    var h='<div class="rpage">';
+    h+='<div class="rhead"><div class="rh-l"><span class="rlogo">swimIQ</span>'+
+       '<span class="rsub">レース分析レポート</span></div>'+
+       '<div class="rh-r"><div class="rmeet">'+rptEsc(meta.meet||'（大会名）')+'</div>'+
+       '<div class="rdate">'+rptEsc(meta.date)+'</div>'+
+       '<div class="rpg">'+(page+1)+' / '+total+'</div></div></div>';
+    h+='<div class="rtitle"><span class="rname">'+rptEsc(meta.name)+'</span>'+
+       '<span class="revent">'+rptEsc(meta.event)+'</span></div>';
+    h+='<div class="rrule"></div>';
+    h+=rptKeys(rows, page, chunk, meta);
+    h+=rptDrop(rows, chunk);
+    h+='<h3 class="rsec">グラフ<span class="rleg">区間タイム／スピード／テンポ／かき数</span></h3>';
+    h+=rptCharts(chunk, longLabel);
+    if(page===0 && rows.length>1){
+      h+='<p class="rnote">'+rows[0].from+'-'+rows[0].to+'mは飛び込みを含むため、泳速がほかの区間より高く出ます。</p>';
+    }
+    h+='<h3 class="rsec">区間ごとの記録'+rptEsc(range)+'</h3>';
+    h+=rptTable(rows, chunk);
+    h+='<div class="rfoot"><span class="fl">メモ</span>'+
+       '<span>基準差は、基準の区間と同じペースで泳いだ場合との差です。'+
+       '低下率は、'+(rows.length>1? rows[1].from+'-'+rows[1].to : rows[0].from+'-'+rows[0].to)+
+       'mの泳速を基準にした割合です。</span>'+
+       '<span class="fr">swimIQ</span></div>';
+    return h+'</div>';
+  }
+  // レポートをひらく
+  function openReport(){
+    var rows=rptRows();
+    if(!rows.length){ toast('まだ区間の記録が ありません'); return; }
+    var meta=rptMeta(), chunks=[];
+    for(var i=0;i<rows.length;i+=RPT_PER_PAGE) chunks.push(rows.slice(i, i+RPT_PER_PAGE));
+    var box=$('rptPages'); box.innerHTML='';
+    chunks.forEach(function(ch,i){
+      box.insertAdjacentHTML('beforeend', rptPage(rows, ch, i, chunks.length, meta));
+    });
+    $('rptModal').classList.remove('hide');
+    $('rptModal').scrollTop=0;
+  }
+  $('anaReport').onclick=openReport;
+  $('rptClose').onclick=function(){ $('rptModal').classList.add('hide'); };
+  $('rptPrint').onclick=function(){
+    if(typeof window.print==='function') window.print();
+    else toast('この端末では 印刷が つかえません');
+  };
+
   // ========== 初期化 ==========
   buildScale(); setMode('time'); renderRecords(); homeNyujo();
 })();

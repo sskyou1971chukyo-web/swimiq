@@ -1029,13 +1029,18 @@
     -webkit-overflow-scrolling:touch; }
   #rptModal.hide{ display:none; }
   #rptBar{ position:sticky; top:0; z-index:2; display:flex; gap:8px; justify-content:center;
-    padding:10px; background:rgba(10,42,72,.96); }
-  #rptBar button{ padding:11px 18px; border:none; border-radius:12px; cursor:pointer; color:#fff;
-    font-size:14px; font-weight:900; text-shadow:var(--shadow); }
+    padding:calc(env(safe-area-inset-top) + 12px) 10px 12px; background:rgba(10,42,72,.96); }
+  #rptBar button{ padding:11px 14px; border:none; border-radius:12px; cursor:pointer; color:#fff;
+    font-size:14px; font-weight:900; text-shadow:var(--shadow); white-space:nowrap; }
   #rptPrint{ background:linear-gradient(135deg,#34d399,#0ea5e9); }
+  #rptZoom{ background:rgba(255,255,255,.22); }
   #rptClose{ background:rgba(255,255,255,.22); }
-  #rptPages{ display:flex; flex-direction:column; align-items:center; gap:18px; padding:16px 6px 60px; }
-  .rpage{ width:min(210mm, 98vw); background:#fff; color:#111; padding:11mm 10mm 8mm;
+  #rptPages.zoomed{ align-items:flex-start; }
+  #rptPages{ display:flex; flex-direction:column; align-items:center; gap:18px;
+    padding:16px 6px calc(env(safe-area-inset-bottom) + 60px); }
+  /* 紙はいつもA4の幅で組み、せまい画面では全体をそのまま縮めて見せる。
+     こうすると、文字が折り返さず、印刷した紙とおなじ形で見える。 */
+  .rpage{ width:210mm; background:#fff; color:#111; padding:11mm 10mm 8mm;
     box-shadow:0 8px 26px rgba(0,0,0,.45); user-select:text; -webkit-user-select:text;
     font-family:"Hiragino Sans","Noto Sans JP",sans-serif; font-size:11px; font-weight:500;
     font-variant-numeric:tabular-nums; }
@@ -1052,7 +1057,7 @@
   .rrule{ height:2.4px; background:#123a56; margin-bottom:9px; }
   .rkeys{ display:flex; flex-wrap:wrap; gap:6px; }
   .rk{ flex:1 1 90px; background:#eef2f6; border-radius:7px; padding:8px 9px; min-width:88px; }
-  .rk span{ display:block; font-size:9.5px; color:#5a6b78; font-weight:700; line-height:1.35; }
+  .rk span{ display:block; font-size:9.5px; color:#5a6b78; font-weight:700; line-height:1.35; white-space:nowrap; }
   .rk b{ font-size:15px; font-weight:900; color:#111; }
   .rk em{ font-size:9px; font-style:normal; color:#5a6b78; font-weight:700; margin-left:2px; }
   .rk.main{ flex:2 1 200px; background:#0f2233; }
@@ -1096,7 +1101,8 @@
   .rtbl.blue th{ background:#1d6fa5; }
   .rfoot{ display:flex; align-items:flex-start; gap:8px; margin-top:12px; padding-top:7px;
     border-top:1px solid #dbe3ea; font-size:9px; color:#7a8896; font-weight:600; }
-  .rfoot .fl{ color:#1558a8; font-weight:900; }
+  .rfoot .fl{ color:#1558a8; font-weight:900; white-space:nowrap; }
+  .rtbl th, .rtbl td{ white-space:nowrap; }
   .rfoot .fr{ margin-left:auto; color:#9fb6c7; font-weight:900; }
 
   @media print{
@@ -1104,7 +1110,7 @@
     body > *{ display:none !important; }
     body > #rptModal{ display:block !important; position:static; background:#fff; overflow:visible; }
     #rptBar{ display:none !important; }
-    #rptPages{ display:block; padding:0; gap:0; }
+    #rptPages{ display:block; padding:0; gap:0; zoom:1 !important; }
     .rpage{ width:auto; box-shadow:none; padding:0; page-break-after:always; break-after:page; }
     .rpage:last-child{ page-break-after:auto; break-after:auto; }
     @page{ size:A4 portrait; margin:11mm 10mm; }
@@ -1629,6 +1635,7 @@
 <div id="rptModal" class="hide">
   <div id="rptBar">
     <button id="rptPrint" type="button">🖨 印刷・PDFにする</button>
+    <button id="rptZoom" type="button">🔍 大きく</button>
     <button id="rptClose" type="button">とじる</button>
   </div>
   <div id="rptPages"></div>
@@ -7032,9 +7039,35 @@
     chunks.forEach(function(ch,i){
       box.insertAdjacentHTML('beforeend', rptPage(rows, ch, i, chunks.length, meta));
     });
+    rptBig=false; $('rptZoom').textContent='🔍 大きく';
     $('rptModal').classList.remove('hide');
     $('rptModal').scrollTop=0;
+    rptFit();
   }
+  // せまい画面では、A4の紙まるごとを画面の幅に合わせて縮める。
+  // 文字の大きさの関係はそのままなので、折り返しがおきず、印刷した紙と同じ形で見える。
+  var rptBig=false;   // true のあいだは実物の大きさで見る（よこにずらして読む）
+  function rptFit(){
+    var box=$('rptPages'), modal=$('rptModal');
+    if(!box || modal.classList.contains('hide')) return;
+    box.classList.toggle('zoomed', rptBig);
+    if(rptBig){ box.style.zoom='1'; return; }
+    box.style.zoom='1';
+    var page=box.querySelector('.rpage');
+    if(!page) return;
+    var pw=page.offsetWidth || 794;
+    var avail=modal.clientWidth-14;
+    var z=Math.min(1, avail/pw);
+    box.style.zoom=(z<1)? String(Math.round(z*1000)/1000) : '1';
+  }
+  window.addEventListener('resize', rptFit);
+  window.addEventListener('orientationchange', function(){ setTimeout(rptFit, 250); });
+  $('rptZoom').onclick=function(){
+    rptBig=!rptBig;
+    this.textContent=rptBig? '🔍 全体' : '🔍 大きく';
+    rptFit();
+    $('rptModal').scrollTop=0; $('rptModal').scrollLeft=0;
+  };
   $('anaReport').onclick=openReport;
   $('rptClose').onclick=function(){ $('rptModal').classList.add('hide'); };
   $('rptPrint').onclick=function(){

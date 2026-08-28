@@ -1475,6 +1475,7 @@
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
     <div id="cmp2Cond">
+      <div class="sv-row"><span>水路</span><select id="cmp2Course"></select></div>
       <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
       <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
       <div class="sv-row"><span>ならべ方</span><select id="cmp2Order">
@@ -4039,7 +4040,8 @@
     $('cmp2Modal').classList.remove('hide');
     $('cmp2Body').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
     loadAllRaces().then(function(){
-      cmp2FillEvents();      // さきに種目と距離をきめる
+      cmp2FillCourses();     // まず水路をきめる（長水路と短水路は比べない）
+      cmp2FillEvents();      // つぎに種目と距離
       cmp2FillPeople();      // その種目に出た人だけをならべる
       cmp2FillRaces();
       cmp2Render();
@@ -4053,7 +4055,7 @@
   function cmp2People(){
     var st=$('cmp2Stroke').value, di=$('cmp2Dist').value;
     var box={};
-    (cmpAll||[]).forEach(function(r){
+    cmp2Pool().forEach(function(r){
       var id=String(r.athleteId||'');
       if(!id) return;
       if(st && String(r.stroke||'')!==st) return;
@@ -4105,8 +4107,39 @@
     });
   }
   // 種目と距離のえらび：AかBが泳いだものだけをならべる
+  // 水路は、長水路と短水路でタイムのものさしが違うので、必ず分ける
+  function cmp2Course(){ return ($('cmp2Course')||{}).value || ''; }
+  function cmp2Pool(){
+    var cs=cmp2Course();
+    return (cmpAll||[]).filter(function(r){
+      if(parseT(r.finalTime)==null) return false;
+      if(cs && String(r.course||'')!==cs) return false;
+      return true;
+    });
+  }
+  function cmp2FillCourses(){
+    var sel=$('cmp2Course'); if(!sel) return;
+    var keep=sel.value, box={};
+    (cmpAll||[]).forEach(function(r){
+      if(parseT(r.finalTime)==null) return;
+      box[String(r.course||'（水路なし）')]=1;
+    });
+    var list=Object.keys(box).sort(function(a,b){
+      var rank=function(x){ return x==='長水路'? 0 : (x==='短水路'? 1 : 2); };
+      return rank(a)-rank(b);
+    });
+    sel.innerHTML='';
+    list.forEach(function(c){
+      var o=document.createElement('option');
+      o.value=(c==='（水路なし）')? '' : c;
+      o.textContent=c;
+      sel.appendChild(o);
+    });
+    if(keep){ sel.value=keep; }
+    if(!sel.value && sel.options.length) sel.selectedIndex=0;
+  }
   function cmp2FillEvents(){
-    var pool=(cmpAll||[]).filter(function(r){ return parseT(r.finalTime)!=null; });
+    var pool=cmp2Pool();
     var sSel=$('cmp2Stroke'); var sKeep=sSel.value; sSel.innerHTML='';
     var strokes={}, latest={};
     pool.forEach(function(r){
@@ -4138,7 +4171,9 @@
     [['cmpRaceA','cmpA'],['cmpRaceB','cmpB']].forEach(function(pair){
       var sel=$(pair[0]); var keep=sel.value; sel.innerHTML='';
       var aid=$(pair[1]).value;
+      var cs=cmp2Course();
       var list=cmp2RacesOf(aid).filter(function(r){
+        if(cs && String(r.course||'')!==cs) return false;
         return String(r.raceDist)===$('cmp2Dist').value && String(r.stroke||'')===$('cmp2Stroke').value;
       });
       if(!list.length){
@@ -4428,6 +4463,7 @@
   }
   $('cmpA').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
   $('cmpB').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Course').onchange=function(){ cmp2FillEvents(); cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
   $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
   $('cmp2Dist').onchange=function(){ cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
   $('cmp2Order').onchange=function(){ cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
@@ -7327,7 +7363,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.28.c';
+  var SWIMIQ_BUILD='2026.08.28.d';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();
   // 記録アプリから呼ばれていたら、その1本を自動でよびだす

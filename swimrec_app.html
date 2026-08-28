@@ -461,7 +461,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.08.28.8';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.08.28.9';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -2279,10 +2279,15 @@ function raceLapTable(r){
 
 // SwimIQ にわたす合言葉(あとで自動で選べるようにするため)
 function swimiqLink(r, mode){
+  // 通過タイムと記録も一緒に渡す。こうすると SwimIQ 側で探し直す必要がなくなる
   const q = new URLSearchParams({
     mode: mode, name: r.name, meet: r.meet.meet || '',
     year: String(r.meet.year || ''), month: String(r.meet.month || ''),
-    course: r.meet.course || '', dist: String(r.dist || ''), stroke: r.stroke || ''
+    date: r.meet.date || '', course: r.meet.course || '',
+    dist: String(r.dist || ''), stroke: r.stroke || '',
+    sex: r.sex || '', round: r.round || '',
+    time: String(r.time || ''),
+    splits: (r.splits || []).join(',')
   });
   return SWIMIQ_URL + '?' + q.toString();
 }

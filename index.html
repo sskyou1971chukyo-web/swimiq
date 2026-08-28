@@ -1022,6 +1022,10 @@
     opacity:0; transition:.25s; pointer-events:none; white-space:nowrap; }
   #toast.show{ opacity:1; }
 
+  /* 水路をえらび忘れたときに、赤く目立たせる */
+  #svCourse.needpick{ border:2px solid #f87171; background:rgba(248,113,113,.18); }
+  #svCourseHint{ color:#fca5a5; font-weight:800; }
+  #svCourseHint.ok{ color:#86efac; font-weight:700; }
   input[type=file]{ display:none; }
 
   /* ===== レース分析レポート（画面で見る紙 ＝ そのまま印刷・PDFになる） ===== */
@@ -1290,7 +1294,8 @@
       <button id="svUpCancel" type="button">⏹ 強制終了</button>
     </div>
     <div class="sv-row"><span>泳法</span><select id="svStroke"><option>自由形</option><option>背泳ぎ</option><option>平泳ぎ</option><option>バタフライ</option><option>個人メドレー</option></select>
-      <span>水路</span><select id="svCourse"><option>長水路</option><option>短水路</option></select></div>
+      <span>水路</span><select id="svCourse"><option value="">えらんでください</option><option>長水路</option><option>短水路</option></select></div>
+    <div class="sv-row"><span></span><span id="svCourseHint" class="note"></span></div>
     <div class="sv-row"><span>ラウンド</span><select id="svRound"><option>予選</option><option>準決勝</option><option>決勝</option><option>タイムレース</option><option>記録会</option><option>練習</option></select></div>
     <div class="stroke-btns"><button id="svClose">とじる</button><button id="svSave">ほぞんする</button></div>
   </div>
@@ -2591,6 +2596,9 @@
     var course=opt.dataset.course||'';
     if(course.indexOf('短')>=0) $('svCourse').value='短水路';
     else if(course.indexOf('長')>=0) $('svCourse').value='長水路';
+    else if(!$('svCourse').value) $('svCourse').value=guessCourse($('svMeet').value, raceDist);
+    updateCourseUI();
+  }
   // 「2026-04-11」を「2026年4月11日」の書き方にする
   function hiJa(s){
     var m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2614,8 +2622,41 @@
     note.textContent=moji;
     note.classList.toggle('hide', !moji);
   }
-
+  /* ------------------------------------------------------------
+     水路の えらび忘れを へらすしくみ
+       ・はじめは「えらんでください」にしておく（かってに長水路にしない）
+       ・大会名や距離から見当がつくときは、それを候補として そえる
+       ・えらぶまでは 赤く目立たせ、保存のときにも止める
+  ------------------------------------------------------------ */
+  // 大会名と距離から、水路の見当をつける。分からなければ空を返す
+  function guessCourse(meetName, dist){
+    var t=String(meetName||'').replace(/[\s\u3000]+/g,'');
+    var d=Number(dist)||0;
+    // 25の倍数だが50の倍数でない距離（25m・75mなど）は、短水路のプールでしか泳げない
+    if(d>0 && d%25===0 && d%50!==0) return '短水路';
+    if(/短水路|短水/.test(t)) return '短水路';
+    if(/長水路|長水/.test(t)) return '長水路';
+    if(/冬季|ウィンター/.test(t)) return '短水路';
+    return '';
   }
+  // 水路の欄の見た目と、そえ書きを更新する
+  function updateCourseUI(){
+    var sel=$('svCourse'), hint=$('svCourseHint');
+    if(!sel || !hint) return;
+    if(sel.value){
+      sel.classList.remove('needpick');
+      hint.classList.add('ok');
+      hint.textContent=sel.value+' で ほぞんします';
+      return;
+    }
+    sel.classList.add('needpick');
+    hint.classList.remove('ok');
+    var g=guessCourse($('svMeet').value, raceDist);
+    hint.textContent = g
+      ? '水路が えらばれていません。大会名からすると ' + g + ' かもしれません'
+      : '水路を えらんでください（長水路か 短水路か）';
+  }
+
   $('svMeetSel').onchange=function(){
       meetDateMise('svMeetSel', 'svMeetDateNote');
       // えらんだ試合の日程(開始日)を、試合日に自動で入れる。
@@ -2689,6 +2730,7 @@
     $('svUploadBtn').textContent='⬆️ いまの動画を ドライブへ送る';
     $('svUploadBtn').disabled=false;
     $('svUpProg').classList.add('hide');
+    $('svCourse').value='';   // かってに長水路にせず、えらんでもらう
     // 「レースの じょうほう」で入れた中身を、最初から入れておく
     meetNoAuto=false; svMeetTouched=false;
     $('svMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
@@ -2710,6 +2752,7 @@
           else if(raceInfo.meetCourse.indexOf('長')>=0) $('svCourse').value='長水路';
         }
       }
+      if(!$('svCourse').value) $('svCourse').value=guessCourse($('svMeet').value, raceDist);
       if(raceInfo.swimmer){
         // 泳ぐ人の名前が選手一覧にあれば、えらんでおく
         var selA=$('svAthlete');
@@ -2722,6 +2765,7 @@
       }
     }
     refreshMeets();   // 試合名の一覧を、えらぶ式メニューに用意する（引きついだ試合はそのまま）
+    updateCourseUI();  // 水路がえらばれているかを、目で分かるようにする
     $('saveModal').classList.remove('hide');
     // この携帯の登録がまだなら、サーバーにも問い合わせて同期しておく
     if(!getAthletes().length){
@@ -2735,6 +2779,10 @@
     }
   }
   // ほぞんボタン → まず「この内容でいい？」の確認だけを出す。
+  // 水路の欄を見張る（えらんだら赤い印が消える）
+  $('svCourse').onchange=updateCourseUI;
+  $('svMeet').addEventListener('input', function(){ if(!$('svCourse').value) updateCourseUI(); });
+
   // 中身は「レースの じょうほう」で決めた内容が すでに入っているので、
   // 合っていれば ✅ ひとつで保存。ちがうときだけ ✏️ で入力画面をひらく。
   function openSaveFlow(){
@@ -2765,6 +2813,13 @@
   $('saveBtn').addEventListener('click', openSaveFlow);
   // ✅ この内容で ほぞんする：入力画面のほぞんボタンを、かわりに押してあげる
   $('svcOk').onclick=function(){
+    if(!$('svCourse').value){
+      $('svConfirmModal').classList.add('hide');
+      $('saveModal').classList.remove('hide');
+      updateCourseUI();
+      toast('水路（長水路か 短水路か）を えらんでください');
+      return;
+    }
     $('svConfirmModal').classList.add('hide');
     $('svSave').click();
   };
@@ -2793,6 +2848,11 @@
     var athleteSel=$('svAthlete').value;
     var isNew=(athleteSel==='__new__'||!athleteSel);
     if(isNew && !$('svName').value.trim()){ toast('選手の名前を 入れてね'); return; }
+    if(!$('svCourse').value){
+      updateCourseUI();
+      toast('水路（長水路か 短水路か）を えらんでください');
+      return;
+    }
     btn.disabled=true; btn.textContent='送信中…';
     function done(msg){ btn.disabled=false; btn.textContent='ほぞんする'; if(msg) toast(msg); }
     var p;
@@ -7363,7 +7423,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.28.d';
+  var SWIMIQ_BUILD='2026.08.28.e';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();
   // 記録アプリから呼ばれていたら、その1本を自動でよびだす

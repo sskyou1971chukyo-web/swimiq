@@ -1475,10 +1475,15 @@
   <div class="modal-card df-card">
     <h2>データを 比較</h2>
     <div id="cmp2Cond">
-      <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
-      <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
       <div class="sv-row"><span>種目</span><select id="cmp2Stroke"></select></div>
       <div class="sv-row"><span>距離</span><select id="cmp2Dist"></select></div>
+      <div class="sv-row"><span>ならべ方</span><select id="cmp2Order">
+        <option value="fast">速い順</option>
+        <option value="name">名前順</option>
+        <option value="group">学年・グループ順</option>
+      </select></div>
+      <div class="sv-row"><span>Aサン</span><select id="cmpA" aria-label="Aサンをえらぶ"></select></div>
+      <div class="sv-row"><span>Bサン</span><select id="cmpB" aria-label="Bサンをえらぶ"></select></div>
       <div class="sv-row"><span>Aのレース</span><select id="cmpRaceA"></select></div>
       <div class="sv-row"><span>Bのレース</span><select id="cmpRaceB"></select></div>
     </div>
@@ -4034,46 +4039,65 @@
     $('cmp2Modal').classList.remove('hide');
     $('cmp2Body').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
     loadAllRaces().then(function(){
-      cmp2FillPeople();
-      cmp2FillEvents();
+      cmp2FillEvents();      // さきに種目と距離をきめる
+      cmp2FillPeople();      // その種目に出た人だけをならべる
       cmp2FillRaces();
       cmp2Render();
     }).catch(function(err){
       $('cmp2Body').innerHTML='<div class="df-empty">読み込みに失敗しました： '+err.message+'</div>';
     });
   }
+  /* いま えらんでいる種目と距離に出た人だけを集める。
+     ならべ方は「速い順」「名前順」「学年・グループ順」からえらべる。
+     速い順は、その種目のベストがはやい人が上に来る。 */
   function cmp2People(){
-    var seen={}, people=[];
+    var st=$('cmp2Stroke').value, di=$('cmp2Dist').value;
+    var box={};
     (cmpAll||[]).forEach(function(r){
       var id=String(r.athleteId||'');
-      if(!id || seen[id]) return; seen[id]=1;
-      people.push({ id:id, name:String(r.name||''), group:String(r.group||'') });
+      if(!id) return;
+      if(st && String(r.stroke||'')!==st) return;
+      if(di && String(r.raceDist)!==di) return;
+      var t=parseT(r.finalTime);
+      if(t==null) return;
+      if(!box[id]) box[id]={ id:id, name:String(r.name||''), group:String(r.group||''), best:t };
+      else if(t<box[id].best) box[id].best=t;
     });
-    people.sort(function(a,b){ return a.name<b.name? -1:1; });
+    var people=Object.keys(box).map(function(k){ return box[k]; });
+    var order=($('cmp2Order')||{}).value || 'fast';
+    function byName(a,b){ return String(a.name).localeCompare(String(b.name), 'ja'); }
+    if(order==='name') people.sort(byName);
+    else if(order==='group') people.sort(function(a,b){
+      return String(a.group).localeCompare(String(b.group), 'ja') || byName(a,b);
+    });
+    else people.sort(function(a,b){ return a.best-b.best || byName(a,b); });
     return people;
   }
-  // Aサン（ふつうは自分）とBサンのえらび
+  // Aサンは、ふつうは自分。Bサンはあとから えらぶ
   function cmp2FillPeople(){
     var people=cmp2People();
+    function label(p){
+      return p.name + (p.group? '　'+p.group : '') + '　' + fmt(p.best);
+    }
     [['cmpA', myId()], ['cmpB', '']].forEach(function(pair){
       var sel=$(pair[0]); var keep=sel.value; sel.innerHTML='';
       if(pair[0]==='cmpB'){
         var o0=document.createElement('option'); o0.value=''; o0.textContent='えらんでください';
         sel.appendChild(o0);
       }
+      if(!people.length){
+        var oe=document.createElement('option'); oe.value=''; oe.textContent='この種目に出た人が いません';
+        sel.appendChild(oe);
+      }
       people.forEach(function(p){
-        var o=document.createElement('option'); o.value=p.id;
-        o.textContent=p.name+(p.group? '　'+p.group:'');
+        var o=document.createElement('option'); o.value=p.id; o.textContent=label(p);
         sel.appendChild(o);
       });
-      if(keep) sel.value=keep;
-      if(!sel.value && pair[1]) sel.value=pair[1];
+      // 前にえらんでいた人が、この種目にも出ていれば そのまま残す
+      if(keep){ sel.value=keep; if(sel.value!==keep) sel.value=''; }
+      if(!sel.value && pair[1]){ sel.value=pair[1]; if(sel.value!==pair[1]) sel.value=''; }
     });
-    if(!$('cmpA').value){
-      if(getAthletes().length) $('cmpA').value=getAthletes()[0].id;
-      var people2=cmp2People();
-      if(!$('cmpA').value && people2.length) $('cmpA').value=people2[0].id;
-    }
+    if(!$('cmpA').value && people.length) $('cmpA').value=people[0].id;
   }
   function cmp2RacesOf(aid){
     return (cmpAll||[]).filter(function(r){
@@ -4082,7 +4106,7 @@
   }
   // 種目と距離のえらび：AかBが泳いだものだけをならべる
   function cmp2FillEvents(){
-    var pool=cmp2RacesOf($('cmpA').value).concat(cmp2RacesOf($('cmpB').value));
+    var pool=(cmpAll||[]).filter(function(r){ return parseT(r.finalTime)!=null; });
     var sSel=$('cmp2Stroke'); var sKeep=sSel.value; sSel.innerHTML='';
     var strokes={}, latest={};
     pool.forEach(function(r){
@@ -4402,10 +4426,11 @@
       });
     });
   }
-  $('cmpA').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
-  $('cmpB').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
-  $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillRaces(); cmp2Render(); };
-  $('cmp2Dist').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
+  $('cmpA').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
+  $('cmpB').onchange=function(){ cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Stroke').onchange=function(){ cmp2FillEvents(); cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Dist').onchange=function(){ cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
+  $('cmp2Order').onchange=function(){ cmp2FillPeople(); cmp2FillRaces(); cmp2Render(); };
   $('cmpRaceA').onchange=function(){ cmp2Render(); };
   $('cmpRaceB').onchange=function(){ cmp2Render(); };
   $('cmp2Edit').onclick=function(){
@@ -7302,7 +7327,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.28.b';
+  var SWIMIQ_BUILD='2026.08.28.c';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();
   // 記録アプリから呼ばれていたら、その1本を自動でよびだす

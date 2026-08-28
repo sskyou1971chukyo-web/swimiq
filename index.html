@@ -3293,9 +3293,31 @@
   }
   $('cfgUpdateBtn').onclick=function(){
     var tok=localStorage.getItem('swimiq_gh_token')||'';
-    var repo=localStorage.getItem('swimiq_gh_repo')||'';
+    var repo=(localStorage.getItem('swimiq_gh_repo')||'').trim();
     if(!tok || !repo){
       toast('さきに GitHubトークンとリポジトリを入れて「ほぞんする」してね');
+      return;
+    }
+    // ファイルを直接ひらいているときは、GitHubが受け付けてくれません
+    if(location.protocol !== 'https:'){
+      $('cfgUpMsg').textContent='いまアプリを「ファイルとして」ひらいています（'+location.protocol+'）。'
+        +'この状態では GitHubに送れません。'
+        +'https://sskyou1971chukyo-web.github.io/swimiq/ のように、'
+        +'ウェブの住所からひらき直してから もう一度どうぞ。';
+      toast('ウェブの住所から ひらき直してね');
+      return;
+    }
+    if(navigator.onLine === false){
+      $('cfgUpMsg').textContent='ネットにつながっていません。電波かWi-Fiを確かめてください。';
+      toast('ネットにつながっていません');
+      return;
+    }
+    // リポジトリは「ユーザー名/倉庫名」の形でないと、GitHubにたどりつけません
+    if(repo.split('/').length!==2 || !repo.split('/')[1]){
+      $('cfgUpMsg').textContent='リポジトリの書き方が ちがいます。'
+        +'「ユーザー名/倉庫名」の形にしてください（例: '+repo.split('/')[0]+'/swimiq）。'
+        +'直したら「ほぞんする」を押してから、もう一度どうぞ。';
+      toast('リポジトリの書き方を 直してね');
       return;
     }
     $('cfgUpdateFile').click();  // 新しいindex.htmlをえらんでもらう
@@ -3338,7 +3360,12 @@
     }).catch(function(err){
       btn.disabled=false;
       btn.textContent='⬆️ アプリを アップデート（新しいindex.htmlをえらぶ）';
-      $('cfgUpMsg').textContent='アップデート失敗： '+err.message;
+      var extra = (String(err.message).indexOf('Failed to fetch')>=0)
+        ? 'ネットにつながっていないか、リポジトリの書き方（ユーザー名/倉庫名）がちがうか、'
+          +'トークンが切れている可能性があります。'
+        : '';
+      $('cfgUpMsg').textContent='アップデート失敗： '+err.message
+        +'　送り先: '+url+(extra? '　'+extra : '');
       toast('アップデート失敗。くわしい理由は ボタンの下に出ています');
     });
   });

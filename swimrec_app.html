@@ -79,6 +79,66 @@ header{ background:var(--white); padding:18px 24px 14px; }
 
 main{ max-width:1180px; margin:0 auto; padding:20px 24px 80px; }
 
+/* ---------- 下の帯（どの画面からでも移れる4つの入口） ---------- */
+body.hasnav main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+#navbar{ position:fixed; left:0; right:0; bottom:0; z-index:60;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:0;
+  background:var(--white); border-top:3px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -3px 14px rgba(0,0,0,.10); }
+#navbar button{ min-height:72px; border:none; background:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  font-family:inherit; font-size:.84rem; font-weight:800; color:var(--gray); padding:6px 2px;
+  white-space:nowrap; letter-spacing:-.02em; }
+#navbar button .nvi{ font-size:1.4rem; line-height:1; }
+#navbar button[aria-selected="true"]{ color:var(--blue); background:#EAF2FB; }
+#navbar button:focus-visible{ outline:4px solid var(--gold); outline-offset:-4px; }
+/* 画面の中の切りかえ（横に並べて、はみ出たら指でずらす） */
+.subs{ display:flex; gap:10px; overflow-x:auto; padding:2px 2px 12px;
+  -webkit-overflow-scrolling:touch; }
+.sub{ flex:0 0 auto; min-height:52px; padding:6px 18px; white-space:nowrap;
+  border:2px solid var(--line); border-radius:26px; background:var(--white);
+  color:var(--navy); font-family:inherit; font-size:1.02rem; font-weight:700; cursor:pointer; }
+.sub[aria-selected="true"]{ background:var(--blue); border-color:var(--blue); color:var(--white); }
+.sub:focus-visible{ outline:4px solid var(--gold); outline-offset:2px; }
+/* ---------- レースの画面（1本の泳ぎをくわしく見る） ---------- */
+#raceModal{ position:fixed; inset:0; z-index:70; background:rgba(15,34,51,.55);
+  display:flex; align-items:flex-start; justify-content:center; overflow:auto;
+  padding:0 0 40px; -webkit-overflow-scrolling:touch; }
+#raceModal.hide{ display:none; }
+#raceCard{ width:min(720px, 100%); background:var(--white); min-height:100%;
+  padding:calc(env(safe-area-inset-top) + 16px) 20px calc(env(safe-area-inset-bottom) + 40px); }
+.rcTop{ display:flex; align-items:flex-start; gap:10px; margin-bottom:6px; }
+.rcTop > div:first-child{ min-width:0; }
+.rcTop .rcClose{ flex:0 0 auto; margin-left:auto; min-height:48px; padding:6px 18px; border-radius:12px;
+  white-space:nowrap;
+  border:2px solid var(--line); background:var(--white); color:var(--gray);
+  font-family:inherit; font-weight:800; font-size:1rem; cursor:pointer; }
+.rcMeet{ font-size:.95rem; font-weight:700; color:var(--gray); }
+.rcName{ font-size:1.5rem; font-weight:800; color:var(--navy); margin:2px 0 0; }
+.rcEvent{ font-size:1.1rem; font-weight:800; color:var(--blue); }
+.rcTime{ font-size:2.6rem; font-weight:800; color:var(--navy); line-height:1.1; margin:10px 0 2px; }
+.rcSub{ font-size:.95rem; font-weight:700; color:var(--gray); }
+.rcActs{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+.rcActs button{ min-height:62px; border:none; border-radius:14px; cursor:pointer;
+  font-family:inherit; font-size:1.05rem; font-weight:800; color:var(--white); padding:8px; }
+.rcActs .a1{ background:#E58E00; } .rcActs .a2{ background:var(--blue); }
+.rcActs .a3{ background:#6D28D9; } .rcActs .a4{ background:#0F766E; }
+.rcActs button:disabled{ background:#B9C4CE; cursor:default; }
+/* 入力・設定の画面から、記録を見る画面へもどるボタン */
+.backrow{ margin-bottom:14px; }
+.backbtn{ min-height:52px; padding:6px 20px; font-size:1.02rem; font-weight:700; }
+/* 補助のボタンは横一列にして、場所をとらないようにする */
+.toolrow{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.toolrow .btn{ min-height:46px; padding:6px 6px; font-size:.92rem; font-weight:700;
+  line-height:1.25; white-space:normal; }
+@media (max-width:400px){ .toolrow .btn{ font-size:.82rem; } }
+/* スタッフ用の小さなボタン（ヘッダーの右） */
+.staffbtn{ min-height:44px; padding:6px 16px; border:2px solid var(--line); border-radius:12px;
+  background:var(--white); color:var(--gray); font-family:inherit; font-weight:700;
+  font-size:.95rem; cursor:pointer; }
+.staffbtn[aria-selected="true"]{ background:var(--navy); border-color:var(--navy); color:var(--white); }
+
 /* ---------- 閲覧のモード選択 ---------- */
 .modes{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
 .modehead{ font-weight:800; font-size:1.02rem; margin:0 0 6px; color:var(--navy); }
@@ -291,7 +351,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 }
 </style>
 </head>
-<body>
+<body class="hasnav">
 <header>
   <div class="brand">
     <h1><img class="logo" src="data:image/png;base64,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" alt="CUST DATABASE 中京大学水泳部"></h1>
@@ -300,10 +360,10 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 </header>
 <div class="rope" aria-hidden="true"></div>
 
-<div class="tabs" role="tablist" aria-label="画面の切りかえ">
-  <button class="tab red" id="tabInput" role="tab" aria-selected="true" onclick="showTab('input')">記録を入力する</button>
-  <button class="tab" id="tabView" role="tab" aria-selected="false" onclick="showTab('view')">記録を見る</button>
-  <button class="tab" id="tabAdmin" role="tab" aria-selected="false" onclick="showTab('admin')">設定</button>
+<div class="tabs" role="tablist" aria-label="スタッフ用の画面" style="justify-content:flex-end; gap:8px; padding:10px 24px 0">
+  <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" onclick="showTab('input')">記録を入力する</button>
+  <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" onclick="showTab('admin')">設定</button>
+  <button class="staffbtn" id="tabView" role="tab" aria-selected="true" hidden onclick="showTab('view')">記録を見る</button>
 </div>
 
 <main>
@@ -311,12 +371,18 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 
   <!-- ================= 入力画面 ================= -->
   <section id="paneInput" role="tabpanel" aria-label="記録を入力する">
+    <div class="backrow">
+      <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
+    </div>
     <div class="steps" id="inSteps"></div>
     <div id="inBody"></div>
   </section>
 
   <!-- ================= 設定画面 (パスワード必要) ================= -->
   <section id="paneAdmin" role="tabpanel" aria-label="設定" hidden>
+    <div class="backrow">
+      <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
+    </div>
     <div id="adminBody"></div>
   </section>
 
@@ -328,28 +394,14 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
         onclick="reloadAll()" title="最新の記録を取り直して、アプリも新しくします">最新の状態にする</button>
     </div>
     <div id="reloadMsg" aria-live="polite"></div>
-    <p class="modehead">探す</p>
-    <div class="modes" role="tablist" aria-label="探しかた">
-      <button class="mode" data-m="meet"  role="tab" aria-label="試合で探す" onclick="showMode('meet')">試合</button>
-      <button class="mode" data-m="national" role="tab" aria-label="全国大会で探す" onclick="showMode('national')">全国大会</button>
-      <button class="mode" data-m="world" role="tab" aria-label="国際大会で探す" onclick="showMode('world')">国際大会</button>
-      <button class="mode" data-m="fy" role="tab" aria-label="年度で探す" onclick="showMode('fy')">年度</button>
-      <button class="mode" data-m="name"  role="tab" aria-label="名前で探す" onclick="showMode('name')">名前</button>
-      <button class="mode" data-m="event" role="tab" aria-label="種目で探す" onclick="showMode('event')">種目</button>
+    <div class="subs" id="subBar" role="tablist" aria-label="この画面の中の切りかえ"></div>
+    <div class="toolrow">
+      <button type="button" class="btn ghost" onclick="forceReloadData()">最新のデータに読み直す</button>
+      <button type="button" class="btn ghost" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
+        onclick="toggleOfficial()">正式記録検索</button>
+      <button type="button" class="btn ghost" id="fixToggle" aria-expanded="false" aria-controls="fixPanel"
+        onclick="toggleFix()">記録の訂正を連絡する</button>
     </div>
-    <p class="modehead">記録</p>
-    <div class="modes" role="tablist" aria-label="記録の見かた">
-      <button class="mode" data-m="rank"  role="tab" onclick="showMode('rank')">ランキング</button>
-      <button class="mode" data-m="best"  role="tab" aria-label="歴代記録" onclick="showMode('best')">歴代</button>
-      <button class="mode" data-m="std"   role="tab" aria-label="標準記録" onclick="showMode('std')">標準</button>
-      <button class="mode" data-m="records" role="tab" aria-label="記録一覧" onclick="showMode('records')">一覧</button>
-      <button class="mode" data-m="kentai" role="tab" onclick="showMode('kentai')">県大会</button>
-      <button class="mode" data-m="graph" role="tab" onclick="showMode('graph')">グラフ</button>
-    </div>
-    <button type="button" class="btn ghost" onclick="forceReloadData()"
-      style="width:100%; margin-bottom:12px">最新のデータに読み直す</button>
-    <button type="button" class="btn ghost big" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
-      onclick="toggleOfficial()" style="width:100%; margin-bottom:12px">正式記録検索</button>
     <div id="officialLinks" hidden>
       <a class="offbtn" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener" onclick="return openOfficial(this)" aria-label="セイコーリザルト速報">
         <span class="officon" style="background:linear-gradient(135deg,#F5C518 0%,#F5C518 30%,#fff 30%,#fff 100%)">
@@ -364,8 +416,6 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
         <span class="officon" style="background:#fff">
           <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 24 a12 12 0 0 1 22 -6" stroke="#1565C0" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M32 16 a12 12 0 0 1 -22 6" stroke="#E8570F" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="26" cy="14" r="3" fill="#E8570F"/><circle cx="14" cy="26" r="3" fill="#1565C0"/></svg></span></a>
     </div>
-    <button type="button" class="btn ghost big" id="fixToggle" aria-expanded="false" aria-controls="fixPanel"
-      onclick="toggleFix()" style="width:100%; margin-bottom:12px">記録の訂正を連絡する</button>
     <div class="card redline" id="fixPanel" hidden>
       <h2>記録の訂正の連絡</h2>
       <p class="hint">おかしいところを選んで送ると、スタッフに届きます。わかるところだけで大丈夫です。</p>
@@ -396,11 +446,22 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   </section>
 </main>
 
+<div id="raceModal" class="hide" role="dialog" aria-modal="true" aria-label="レースの画面">
+  <div id="raceCard"></div>
+</div>
+
+<nav id="navbar" role="tablist" aria-label="おもな画面">
+  <button role="tab" data-n="meet" aria-selected="true" onclick="showNav('meet')"><span class="nvi" aria-hidden="true">🏊</span>試合</button>
+  <button role="tab" data-n="best" aria-selected="false" onclick="showNav('best')"><span class="nvi" aria-hidden="true">⏱</span>ベストタイム</button>
+  <button role="tab" data-n="rank" aria-selected="false" onclick="showNav('rank')"><span class="nvi" aria-hidden="true">🏅</span>ランキング</button>
+  <button role="tab" data-n="cmp" aria-selected="false" onclick="showNav('cmp')"><span class="nvi" aria-hidden="true">⚖️</span>比較</button>
+</nav>
+
 <script>
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.08.22.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.08.28.7';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -991,6 +1052,8 @@ window.toggleLap = function(id, el){
 ============================================================ */
 let inputBuilt = false;
 function showTab(t){
+  // 同じボタンをもう一度押したら、記録を見る画面にもどる
+  if((t==='input'||t==='admin') && currentTab===t) t = 'view';
   currentTab = t;
   document.getElementById('tabInput').setAttribute('aria-selected', t==='input');
   document.getElementById('tabView').setAttribute('aria-selected', t==='view');
@@ -998,9 +1061,48 @@ function showTab(t){
   document.getElementById('paneInput').hidden = t!=='input';
   document.getElementById('paneView').hidden = t!=='view';
   document.getElementById('paneAdmin').hidden = t!=='admin';
+  const nav = document.getElementById('navbar');
+  if(nav) nav.hidden = (t!=='view');       // スタッフ画面のときは下の帯を隠す
+  document.body.classList.toggle('hasnav', t==='view');
   if(t==='input' && !inputBuilt){ inputBuilt = true; startInput(); }
   if(t==='view') showMode(currentMode);
   if(t==='admin') startAdmin();
+}
+
+/* ============================================================
+   下の帯（4つの入口）と、その中の切りかえ
+   試合・ベストタイム・ランキング・比較 の4つにまとめました。
+============================================================ */
+const NAV = {
+  meet: { subs:[['meet','校内・記録会'],['national','全国大会'],['world','国際大会'],['fy','年度でみる']] },
+  best: { subs:[['name','選手のベスト'],['graph','伸びのグラフ'],['records','記録の一覧']] },
+  rank: { subs:[['rank','ランキング'],['legend','歴代'],['std','標準記録'],['event','種目べつ'],['kentai','県大会']] },
+  cmp:  { subs:[['cmp','ふたりを比べる']] }
+};
+let currentNav = 'meet';
+const NAV_LAST = { meet:'meet', best:'name', rank:'rank', cmp:'cmp' };
+// そのモードが、どの入口のものかを調べる
+function navOfMode(m){
+  for(const k in NAV){ if(NAV[k].subs.some(x=>x[0]===m)) return k; }
+  return 'meet';
+}
+function showNav(n){
+  currentNav = n;
+  if(currentTab !== 'view') showTab('view');
+  document.querySelectorAll('#navbar button').forEach(b=>{
+    b.setAttribute('aria-selected', b.dataset.n===n);
+  });
+  showMode(NAV_LAST[n] || NAV[n].subs[0][0]);
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function drawSubBar(m){
+  const bar = document.getElementById('subBar');
+  if(!bar) return;
+  const subs = NAV[currentNav].subs;
+  bar.innerHTML = subs.map(([k,label])=>
+    `<button class="sub" role="tab" data-m="${k}" aria-selected="${k===m}" onclick="showMode('${k}')">${label}</button>`
+  ).join('');
+  bar.hidden = (subs.length <= 1);
 }
 // 記録の訂正連絡: 開閉と送信
 let FX_READY = false;
@@ -1149,10 +1251,14 @@ function gotoPerson(name){
   window.scrollTo(0, 0);
 }
 function showMode(m){
+  if(m==='best') m = 'legend';          // 歴代の呼び名を変えました
   currentMode = m;
-  document.querySelectorAll('.mode').forEach(b=>{
-    b.setAttribute('aria-selected', b.dataset.m===m);
+  currentNav = navOfMode(m);
+  NAV_LAST[currentNav] = m;
+  document.querySelectorAll('#navbar button').forEach(b=>{
+    b.setAttribute('aria-selected', b.dataset.n===currentNav);
   });
+  drawSubBar(m);
   const body = document.getElementById('viewBody');
   body.innerHTML = '<div class="loading">データを読み込んでいます…</div>';
   // 県大会はアプリの中にデータを持っているので、通信せずにすぐ表示する
@@ -1165,10 +1271,11 @@ function showMode(m){
     if(m==='name') viewName(JUMP_NAME || null);
     if(m==='event') viewEvent();
     if(m==='rank') viewRank();
-    if(m==='best') viewLegend();
+    if(m==='legend') viewLegend();
     if(m==='std') viewStd();
     if(m==='records') viewRecords();
     if(m==='graph') viewGraph();
+    if(m==='cmp') viewCompare();
   }).catch(err=>{
     body.innerHTML = '<div class="errmsg">読み込めませんでした: '+esc(err.message)+
       '。GAS_URLの設定と、GASのデプロイを確認してください。</div>';
@@ -1683,7 +1790,7 @@ function viewFyTab(){
     const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec).filter(r=>DATA.meets.indexOf(r.meet)===idx);
     if(rows.length===0){ out.innerHTML = '<p class="hint">この大会の記録はありません。</p>'; return; }
     const groups = eventGroups(rows);   // 決まった順番(自由形→背泳ぎ→…／50m→100m→…)に並べる
-    let html = `<p class="hint">${rows.length}件の記録。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。名前のうしろは、その大会のときの学年です。OB・OGは順位に入れず、その種目のいちばん下にまとめています。</p>`;
+    let html = `<p class="hint">${rows.length}件の記録。記録を押すと、そのレースの画面がひらきます。ベスト更新は記録のうしろに赤い丸のベの印がつきます。各種目は5人まで表示、残りは表の中を下にすべらせて見られます。名前のうしろは、その大会のときの学年です。OB・OGは順位に入れず、その種目のいちばん下にまとめています。</p>`;
     groups.forEach(gr=>{
       const g = sortActiveThenOb(gr.list);   // 現役→OB・OGの順
       html += `<h3 style="margin:16px 0 6px; font-size:1.1rem; color:var(--blue); text-align:center">${esc(gr.key)}</h3>
@@ -1691,7 +1798,7 @@ function viewFyTab(){
       g.forEach(x=>{
         const r = x.r;
         html += `<tr><td class="nw">${nameWithGrade(r.name, x.g)}</td>
-          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${raceLink(r, esc(fmtTime(r.time)))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
           <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
@@ -1869,7 +1976,7 @@ async function viewNationalTab(){
       g.forEach(x=>{
         const r = x.r;
         html += `<tr><td class="nw">${nameWithGrade(r.name, x.g)}</td>
-          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${raceLink(r, esc(fmtTime(r.time)))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
           <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
@@ -1950,7 +2057,7 @@ async function viewWorldTab(){
       g.forEach(x=>{
         const r = x.r;
         html += `<tr><td class="nw">${nameWithGrade(r.name, x.g)}</td>
-          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${raceLink(r, esc(fmtTime(r.time)))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
           <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
@@ -2112,7 +2219,7 @@ function viewMeet(){
       g.forEach(x=>{
         const r = x.r;
         html += `<tr><td class="nw">${nameWithGrade(r.name, x.g)}</td>
-          <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
+          <td class="num nw">${r.pb? BEST_MARK :''}${raceLink(r, esc(fmtTime(r.time)))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td>
           <td class="num nw">${esc(fmtTime(r.best))}</td></tr>`;
       });
       html += '</table></div>';
@@ -2128,6 +2235,106 @@ function viewMeet(){
   nSel.onchange = draw;
   fillSeries(); fillYears(); fillMonths(); fillNames();
 }
+
+/* ============================================================
+   レースの画面
+     1本の泳ぎだけを取り出して、くわしく見る画面です。
+     試合の一覧や、選手の記録の一覧から、記録を押すとひらきます。
+     ここから 動画・分析・レポート・声かけ へ進みます。
+============================================================ */
+const RACE_STORE = {};       // ひらいたレースを覚えておく箱
+let RACE_SEQ = 0;
+const SWIMIQ_URL = './index.html';   // 分析アプリ(SwimIQ)の場所
+
+// 表の中の記録を、押せるボタンにする
+function raceLink(r, inner){
+  const id = 'rc' + (++RACE_SEQ);
+  RACE_STORE[id] = r;
+  return `<button type="button" class="ktcell" style="font-weight:800"
+    onclick="openRace('${id}')" aria-label="このレースをくわしく見る">${inner}</button>`;
+}
+
+// 区間タイムから、通過・ラップ・泳速の表を作る
+function raceLapTable(r){
+  if(!r.splits || !r.splits.length) return '';
+  const all = r.splits.concat([r.time]);
+  const step = r.dist && all.length ? Math.round(r.dist / all.length) : 50;
+  let h = `<h3 style="margin:18px 0 6px; font-size:1.1rem; color:var(--blue)">区間ごとの記録</h3>
+    <div class="tablewrap"><table><tr><th>距離</th><th>通過</th><th>ラップ</th><th>泳速 m/s</th></tr>`;
+  for(let i=0; i<all.length; i++){
+    const a = toSec(all[i]), b = (i===0) ? 0 : toSec(all[i-1]);
+    const lap = (a!=null && b!=null) ? (a-b) : null;
+    const sp = (lap && lap>0) ? (step/lap).toFixed(2) : '';
+    h += `<tr><td class="nw">${step*(i+1)}m</td>
+      <td class="num nw">${esc(fmtTime(all[i]))}</td>
+      <td class="num nw" style="color:var(--blue); font-weight:700">${lap!=null? lap.toFixed(2):''}</td>
+      <td class="num nw">${sp}</td></tr>`;
+  }
+  return h + '</table></div>';
+}
+
+// SwimIQ にわたす合言葉(あとで自動で選べるようにするため)
+function swimiqLink(r, mode){
+  const q = new URLSearchParams({
+    mode: mode, name: r.name, meet: r.meet.meet || '',
+    year: String(r.meet.year || ''), month: String(r.meet.month || ''),
+    course: r.meet.course || '', dist: String(r.dist || ''), stroke: r.stroke || ''
+  });
+  return SWIMIQ_URL + '?' + q.toString();
+}
+function raceGo(id, mode){
+  const r = RACE_STORE[id];
+  if(!r) return;
+  window.open(swimiqLink(r, mode), '_blank', 'noopener');
+}
+
+function openRace(id){
+  const r = RACE_STORE[id];
+  if(!r) return;
+  const card = document.getElementById('raceCard');
+  const cs = r.meet.course || '長水路';
+  const when = `${r.meet.year}年${r.meet.month}月` + (r.meet.date ? `（${esc(r.meet.date)}）` : '');
+  const hasLap = !!(r.splits && r.splits.length);
+  card.innerHTML = `
+    <div class="rcTop">
+      <div>
+        <div class="rcMeet">${esc(r.meet.meet)}　${when}　${courseTag(cs)}${r.meet.place? '　'+esc(r.meet.place):''}</div>
+        <div class="rcName">${esc(r.name)}</div>
+      </div>
+      <button type="button" class="rcClose" onclick="closeRace()">とじる</button>
+    </div>
+    <div class="rcEvent">${evShort(r.dist, r.stroke)}${r.round? '　'+esc(r.round):''}</div>
+    <div class="rcTime">${r.pb ? BEST_MARK : ''}${esc(toStr(r.sec) || fmtTime(r.time))}</div>
+    <div class="rcSub">大会前のベスト ${esc(fmtTime(r.best) || '—')}
+      ${recordBadges(r.sec, r.stroke, r.dist, r.sex, cs, {name:r.name, meet:r.meet, sex:r.sex})}</div>
+    ${raceLapTable(r)}
+    ${hasLap ? '' : '<p class="hint" style="margin-top:16px">このレースには通過タイムが入っていません。動画から自分で取ることもできます。</p>'}
+    <div class="rcActs">
+      <button type="button" class="a1" onclick="raceGo('${id}','video')">動画を見る</button>
+      <button type="button" class="a2" onclick="raceGo('${id}','analyze')">分析する</button>
+      <button type="button" class="a3" onclick="raceGo('${id}','report')">レポートを出す</button>
+      <button type="button" class="a4" disabled>声かけ（準備中）</button>
+    </div>
+    <p class="hint" style="margin-top:12px">動画・分析・レポートは、分析アプリ(SwimIQ)が別の画面でひらきます。</p>`;
+  document.getElementById('raceModal').classList.remove('hide');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('raceModal').scrollTop = 0;
+}
+function closeRace(){
+  document.getElementById('raceModal').classList.add('hide');
+  document.body.style.overflow = '';
+}
+// 背景を押しても閉じる
+document.addEventListener('click', function(e){
+  const m = document.getElementById('raceModal');
+  if(m && !m.classList.contains('hide') && e.target === m) closeRace();
+});
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    const m = document.getElementById('raceModal');
+    if(m && !m.classList.contains('hide')) closeRace();
+  }
+});
 
 /* ============================================================
    閲覧 2: 名前で探す
@@ -2203,11 +2410,12 @@ function viewName(autoName){
     });
     html += `</table></div></div>
       <div class="card"><h2>すべての出場記録 (新しい順)</h2>
+      <p class="hint">記録を押すと、そのレースの画面がひらきます。区間タイムや、動画・分析・レポートへ進めます。</p>
       <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th></tr>`;
     rows.forEach(r=>{
       html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)} ${courseTag(r.meet.course)}</td>
         <td class="nw">${evShort(r.dist, r.stroke)}</td>
-        <td class="num nw">${r.pb? BEST_MARK :''}${lapCell(r)}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td></tr>`;
+        <td class="num nw">${r.pb? BEST_MARK :''}${raceLink(r, esc(fmtTime(r.time)))}${recordBadges(r.sec, r.stroke, r.dist, r.sex, r.meet.course, {name:r.name, meet:r.meet, sex:r.sex})}</td></tr>`;
     });
     html += '</table></div></div>';
     out.innerHTML = html;
@@ -2444,6 +2652,7 @@ function renderProgress(canvasId, titleId, boxId, p, stroke, dist, course){
   const sex = (INIT.roster.find(x=>x.name===p.name)||{}).sex==='女'?'女子':'男子';
   const std = stdFor(stroke, dist, sex, course);
   const lines = stdLineList(std, 'y');
+  avgLineList(rows, 'y').forEach(L=>lines.push(L));
   const bestSec = Math.min(...rows.map(r=>r.sec));
   const secs = rows.map(r=>r.sec).concat(lines.map(L=>L.value));
   const min = Math.min(...secs), max = Math.max(...secs), padPx=(max-min)*0.12||1;
@@ -2509,6 +2718,11 @@ function renderProgressMulti(people, stroke, dist, course){
   const sexes = [...new Set(people.map(p=>(INIT.roster.find(x=>x.name===p.name)||{}).sex==='女'?'女子':'男子'))];
   const std = sexes.length===1 ? stdFor(stroke, dist, sexes[0], course) : null;
   const lines = std ? stdLineList(std, 'y') : [];
+  // ひとりだけを見ているときは、直近3レースの平均も引く
+  if(people.length===1){
+    const sorted = perRows[0].slice().sort((a,b)=>a.stamp-b.stamp);
+    avgLineList(sorted, 'y').forEach(L=>lines.push(L));
+  }
   const allSecs = [].concat(...datasets.map(d=>d.data.filter(v=>v!=null))).concat(lines.map(L=>L.value));
   const min = Math.min(...allSecs), max = Math.max(...allSecs), padPx=(max-min)*0.12||1;
   const title = (people.length===1
@@ -2560,6 +2774,55 @@ function stdFor(stroke, dist, sex, course){
            inc:toSec(incStr),    incStr };
 }
 // グラフに引く標準記録のライン一式を作る (赤=日本選手権 緑=インカレ)
+/* ------------------------------------------------------------
+   平均の線
+     直近3レース … いちばん新しい方から3本の平均
+     半年平均     … いちばん新しい記録の日から、6か月さかのぼった間の平均
+     年間平均     … 同じく12か月さかのぼった間の平均
+   どれも「いまの実力」の目安です。ベストは一度きりの記録なので、
+   ふだんどのあたりで泳げているかは、この線のほうがよく分かります。
+------------------------------------------------------------ */
+// 大会の年月を「通しの月数」に直す(引き算しやすくするため)
+function monthNo(r){ return (r.meet.year||0)*12 + ((r.meet.month||1)-1); }
+
+// 直近3レースの平均。まだ3本ないときは、あるぶんだけで平均を出す
+function recentAvgLine(rows, axis){
+  const secs = rows.filter(r=>r.sec!=null).slice(-3).map(r=>r.sec);
+  if(secs.length===0) return null;
+  const avg = secs.reduce((a,b)=>a+b,0) / secs.length;
+  return { axis, value:avg, color:'#7B2D8B',
+           label:'直近'+secs.length+'レース平均 '+toStr(avg) };
+}
+
+// ある月数のあいだの平均。months は 6 なら半年、12 なら1年
+function periodAvgLine(rows, months, name, color, axis){
+  const list = rows.filter(r=>r.sec!=null);
+  if(list.length===0) return null;
+  const newest = Math.max(...list.map(monthNo));
+  const from = newest - (months - 1);          // その月もふくめて数える
+  const secs = list.filter(r=>monthNo(r) >= from).map(r=>r.sec);
+  if(secs.length===0) return null;
+  const avg = secs.reduce((a,b)=>a+b,0) / secs.length;
+  return { axis, value:avg, color,
+           label:name+' '+toStr(avg)+'（'+secs.length+'本）' };
+}
+
+// 3本の平均線をまとめて作る。中身が同じになる線は、重ねずに1本だけ残す
+function avgLineList(rows, axis){
+  const out = [];
+  const cand = [
+    recentAvgLine(rows, axis),
+    periodAvgLine(rows, 6,  '半年平均', '#E58E00', axis),
+    periodAvgLine(rows, 12, '年間平均', '#008B9E', axis)
+  ];
+  cand.forEach(L=>{
+    if(!L) return;
+    if(out.some(x=>Math.abs(x.value - L.value) < 0.005)) return;
+    out.push(L);
+  });
+  return out;
+}
+
 function stdLineList(std, axis){
   const L = [];
   if(std.japan) L.push({axis, value:std.japan, color:'#E5372E', label:'JPN '+fmtTime(std.japanStr)});
@@ -2607,6 +2870,84 @@ function viewEvent(){
    閲覧 4: ランキング
    1位=金 2位=銀 3位=銅。標準記録のラインも重ねます
 ============================================================ */
+/* ============================================================
+   比較: ふたりの選手を並べて、種目ごとのベストを見くらべる
+============================================================ */
+let CMP_A = null, CMP_B = null;
+function viewCompare(){
+  const body = document.getElementById('viewBody');
+  body.innerHTML = `
+    <div class="card"><h2>ひとり目をえらぶ</h2><div id="cmpF1"></div></div>
+    <div class="card"><h2>ふたり目をえらぶ</h2><div id="cmpF2"></div></div>
+    <div id="cmpOut"></div>`;
+  makeFinder(document.getElementById('cmpF1'), p=>{ CMP_A = p; cmpDraw(); });
+  makeFinder(document.getElementById('cmpF2'), p=>{ CMP_B = p; cmpDraw(); });
+  cmpDraw();
+}
+// その選手の、種目と水路ごとのベストを取り出す
+function cmpBests(name){
+  const box = {};
+  ((DATA&&DATA.records)?DATA.records:[]).map(rec).forEach(r=>{
+    if(r.name !== name || r.sec == null) return;
+    const k = r.dist + '_' + r.stroke + '_' + (r.meet.course || '長水路');
+    if(!box[k] || r.sec < box[k].sec) box[k] = r;
+  });
+  return box;
+}
+function cmpDraw(){
+  const out = document.getElementById('cmpOut');
+  if(!out) return;
+  if(!CMP_A || !CMP_B){
+    out.innerHTML = `<div class="card"><p class="hint">ふたりえらぶと、種目ごとのベストが並びます。</p></div>`;
+    return;
+  }
+  if(CMP_A.name === CMP_B.name){
+    out.innerHTML = `<div class="card"><p class="hint">同じ選手が えらばれています。ちがう選手をえらんでください。</p></div>`;
+    return;
+  }
+  const A = cmpBests(CMP_A.name), B = cmpBests(CMP_B.name);
+  const keys = [...new Set([...Object.keys(A), ...Object.keys(B)])].sort((x,y)=>{
+    const px = x.split('_'), py = y.split('_');
+    return (Number(px[0]) - Number(py[0])) || px[1].localeCompare(py[1]);
+  });
+  if(!keys.length){
+    out.innerHTML = `<div class="card"><p class="hint">ふたりとも、まだ記録がありません。</p></div>`;
+    return;
+  }
+  const gA = CMP_A.grade || '', gB = CMP_B.grade || '';
+  let html = `<div class="card"><h2>${esc(CMP_A.name)} と ${esc(CMP_B.name)} のくらべ</h2>
+    <p class="hint">両方に記録がある種目だけ、差が出ます。速いほうに色がつきます。
+      ${esc(CMP_A.name)}（${esc(gA||'学年未設定')}）／${esc(CMP_B.name)}（${esc(gB||'学年未設定')}）</p>
+    <div class="tablewrap"><table>
+      <tr><th>種目</th><th>水路</th><th>${esc(CMP_A.name)}</th><th>${esc(CMP_B.name)}</th><th>差</th></tr>`;
+  let winA = 0, winB = 0;
+  keys.forEach(k=>{
+    const p = k.split('_'), dist = Number(p[0]), stroke = p[1], course = p[2];
+    const a = A[k], b = B[k];
+    const ta = a ? (toStr(a.sec) || fmtTime(a.time)) : '—';
+    const tb = b ? (toStr(b.sec) || fmtTime(b.time)) : '—';
+    let diff = '—', sa = '', sb = '';
+    if(a && b){
+      const d = a.sec - b.sec;
+      if(d < 0){ winA++; sa = 'font-weight:800; color:var(--blue)'; }
+      else if(d > 0){ winB++; sb = 'font-weight:800; color:var(--blue)'; }
+      diff = (d === 0) ? '同じ'
+           : (Math.abs(d).toFixed(2) + '秒 ' + (d < 0 ? esc(CMP_A.name) : esc(CMP_B.name)) + 'が速い');
+    }
+    html += `<tr><td class="nw" style="font-weight:700">${evShort(dist, stroke)}</td>
+      <td class="nw">${courseTag(course)}</td>
+      <td class="num nw" style="${sa}">${esc(ta)}</td>
+      <td class="num nw" style="${sb}">${esc(tb)}</td>
+      <td class="nw">${diff}</td></tr>`;
+  });
+  html += `</table></div>
+    <p class="hint" style="margin-top:10px">両方に記録がある種目のうち、
+      ${esc(CMP_A.name)} が速いのは ${winA} 種目、${esc(CMP_B.name)} が速いのは ${winB} 種目です。</p>
+    </div>`;
+  out.innerHTML = html;
+  out.scrollIntoView({behavior:'smooth'});
+}
+
 function viewRank(){
   const body = document.getElementById('viewBody');
   body.innerHTML = `
@@ -3330,7 +3671,7 @@ async function startAdmin(){
   }
   body.innerHTML = '<div class="loading">読み込んでいます…</div>';
   try{
-    await Promise.all([loadInit(), loadRecords()]);
+    await Promise.all([loadInit(), loadRecords(), loadCategories()]);
     renderAdmin();
   }catch(err){
     body.innerHTML = '<div class="errmsg">読み込めませんでした: '+esc(err.message)+'</div>';
@@ -3394,7 +3735,7 @@ function renderAdmin(){
       <p class="hint">大会を選ぶと、いまの内容が下の欄に入ります。直したいところだけ書きかえて「この大会を直す」を押してください。<b>大会名・実施日・会場・水路</b>をまとめて直せます。その大会の記録・リレー・登録簿が、いっしょに書きかわります。日付や会場を入れておくと、同じ名前の試合でも見わけがつくようになります。</p>
       <p class="hint">一覧のあたまの目印: <b>⏱</b>=ラップがぜんぶ入っている / <b>✔</b>=ラップなしで確定にした / <b>△</b>=一部の種目だけ入っている / 目印なし=ラップが入っていない。△と目印なしの大会は、その大会のPDFを取り込み直すとラップが入ります。<br>件数は「ラップが入るはずの記録」だけで数えています（50m種目には通過タイムがなく、棄権にはタイムそのものが無いため、分母には入れていません）。</p>
       <div class="stack" style="align-items:end">
-        <label class="fld" style="flex:1; min-width:260px">直したい大会
+        <label class="fld" style="flex:1; min-width:260px">直したい大会（県大会・全国大会などのまとまりに分かれます。新しい大会が上）
           <select id="meName" onchange="adminPickMeetEdit()" onfocus="if(this.options.length<=1)adminDrawMeetEditSelect()"></select></label>
       </div>
       <div class="stack" style="align-items:end; margin-top:10px">
@@ -6717,11 +7058,38 @@ function adminDrawMeetEditSelect(){
   if(!sel) return;
   const meets = (DATA && DATA.meets) ? DATA.meets : [];
   const keep = sel.value;
-  let opts = '<option value="">選んでください</option>';
-  meets.forEach((m,i)=>{
-    opts += `<option value="${i}">${esc(meetLabel(m))}</option>`;
-  });
-  sel.innerHTML = opts;
+  sel.innerHTML = '<option value="">選んでください</option>';
+  const cats = MEET_CATS || [];
+  // 新しい大会が上に来るように並べる（番号は元のまま持っておく）
+  const list = meets.map((m,i)=>({ m, i }))
+                    .sort((a,b)=>(b.m.year*100+(b.m.month||0)) - (a.m.year*100+(a.m.month||0)));
+  function addOpt(parent, x){
+    const o = document.createElement('option');
+    o.value = x.i;
+    o.textContent = meetLabel(x.m);
+    parent.appendChild(o);
+  }
+  if(!cats.length){
+    // カテゴリーの設定がまだ無いときは、これまでどおり順に並べます
+    list.forEach(x=>addOpt(sel, x));
+  } else {
+    // 県大会・全国大会などのまとまりごとに、見出しを付けて分けます
+    const box = new Map();
+    list.forEach(x=>{
+      const c = catOf(x.m.meet);
+      if(!box.has(c)) box.set(c, []);
+      box.get(c).push(x);
+    });
+    const order = cats.map(c=>c.name).concat(['その他の大会']);
+    order.forEach(cname=>{
+      const arr = box.get(cname);
+      if(!arr || !arr.length) return;
+      const grp = document.createElement('optgroup');
+      grp.label = cname + '（' + arr.length + '件）';
+      arr.forEach(x=>addOpt(grp, x));
+      sel.appendChild(grp);
+    });
+  }
   sel.value = keep;
   const now = document.getElementById('meNow');
   if(now && meets.length===0){
@@ -7144,6 +7512,7 @@ async function syncMyProfile(my){
 
 function showWelcome(){
   showTabBare('view');
+  const sb = document.getElementById('subBar'); if(sb) sb.hidden = true;
   const body = document.getElementById('viewBody');
   body.innerHTML = `
     <div class="card redline" style="max-width:720px; margin:0 auto">
@@ -7208,12 +7577,18 @@ function showTabBare(t){
   document.getElementById('paneInput').hidden = t!=='input';
   document.getElementById('paneView').hidden = t!=='view';
   document.getElementById('paneAdmin').hidden = t!=='admin';
+  const nav = document.getElementById('navbar');
+  if(nav) nav.hidden = (t!=='view');
+  document.body.classList.toggle('hasnav', t==='view');
 }
 
 async function openMyPage(name){
   showTabBare('view');
   currentMode = 'graph';
-  document.querySelectorAll('.mode').forEach(b=>b.setAttribute('aria-selected', b.dataset.m==='graph'));
+  currentNav = 'best'; NAV_LAST.best = 'graph';
+  document.querySelectorAll('#navbar button').forEach(b=>
+    b.setAttribute('aria-selected', b.dataset.n==='best'));
+  drawSubBar('graph');
   const body = document.getElementById('viewBody');
   body.innerHTML = '<div class="loading">あなたの記録を読み込んでいます…</div>';
   try{

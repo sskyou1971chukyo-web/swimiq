@@ -461,7 +461,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.08.28.7';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.08.28.8';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -2244,7 +2244,11 @@ function viewMeet(){
 ============================================================ */
 const RACE_STORE = {};       // ひらいたレースを覚えておく箱
 let RACE_SEQ = 0;
-const SWIMIQ_URL = './index.html';   // 分析アプリ(SwimIQ)の場所
+// 分析アプリ(SwimIQ)の場所。ふつうは同じ場所の index.html。
+// ただし、このアプリをパソコンの中のファイルとして直接ひらいているときは、
+// 同じ場所に index.html が無いので、ウェブの住所のほうを使います。
+const SWIMIQ_WEB = 'https://sskyou1971chukyo-web.github.io/swimiq/index.html';
+const SWIMIQ_URL = (location.protocol === 'file:') ? SWIMIQ_WEB : './index.html';
 
 // 表の中の記録を、押せるボタンにする
 function raceLink(r, inner){

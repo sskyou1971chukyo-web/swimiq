@@ -5288,8 +5288,43 @@
     var mode=q.get('mode');
     if(!mode) return null;
     return { mode:mode, name:q.get('name')||'', meet:q.get('meet')||'',
-             year:q.get('year')||'', month:q.get('month')||'', course:q.get('course')||'',
-             dist:q.get('dist')||'', stroke:q.get('stroke')||'' };
+             year:q.get('year')||'', month:q.get('month')||'', date:q.get('date')||'',
+             course:q.get('course')||'', dist:q.get('dist')||'', stroke:q.get('stroke')||'',
+             sex:q.get('sex')||'', round:q.get('round')||'',
+             time:q.get('time')||'', splits:q.get('splits')||'' };
+  }
+
+  // 「1:01.42」や「28.60」を秒の数に直す
+  function timeToSec(s){
+    s=String(s==null?'':s).trim();
+    var m=s.match(/^(\d+):(\d+(?:\.\d+)?)$/);
+    if(m) return Math.round((Number(m[1])*60+Number(m[2]))*100)/100;
+    if(/^\d+(\.\d+)?$/.test(s)) return Number(s);
+    return null;
+  }
+  // 泳法の記号（Fr, br など）を日本語に直す
+  function strokeName(x){
+    var k=String(x||'').toLowerCase().replace(/[\s\u3000]+/g,'');
+    return STROKE_JA[k] || x || '';
+  }
+  // 記録アプリから届いた通過タイムだけで、レースを組み立てる
+  // （大会データを探しに行かなくてよいので、確実で速い）
+  function raceFromUrl(q){
+    var dist=parseInt(q.dist,10)||50;
+    var arr=String(q.splits||'').split(',').map(function(x){ return x.trim(); })
+                                .filter(function(x){ return x; });
+    var all=arr.concat([q.time]);
+    var step=Math.round(dist/all.length) || 50;
+    var official={};
+    var ok=false;
+    all.forEach(function(t,i){
+      var sec=timeToSec(t);
+      if(sec!=null){ official[step*(i+1)]=sec; ok=true; }
+    });
+    if(!ok) return null;
+    return { meetName:q.meet||'', meetDate:q.date||q.year||'', stroke:strokeName(q.stroke),
+      raceDist:dist, course:q.course||'', round:q.round||'',
+      data:{ official:official, splits:{}, tempo:{}, strokes:[], rt:null } };
   }
 
   // 受け取った合言葉で、大会データから1本をさがしてよびだす
@@ -5297,6 +5332,29 @@
     var q=URLQ;
     if(!q) return;
     toast('記録アプリから '+(q.name||'')+' の '+(q.dist||'')+'m を受け取りました');
+    // 通過タイムが一緒に届いていれば、それだけでレースを作れる
+    if(q.splits || q.time){
+      var race=raceFromUrl(q);
+      if(race && Object.keys(race.data.official).length>1){
+        URLQ=null;
+        applyLoadedRace(race);
+        anaLabel=(q.name||'')+'　'+(q.dist||'')+'m '+strokeName(q.stroke);
+        anaMeta={ name:q.name||'', meet:q.meet||'', date:q.date||q.year||'',
+                  stroke:strokeName(q.stroke) };
+        if(q.mode==='video'){
+          toast('記録を よびだしました。動画は「動画をひらく」から');
+          return;
+        }
+        openAnaModal();
+        if(q.mode==='report') setTimeout(openReport, 300);
+        return;
+      }
+      if(q.mode!=='video'){
+        toast('このレースには くわしい通過タイムが ありません');
+        URLQ=null;
+        return;
+      }
+    }
     if(!warehouseUrl()){
       toast('先に 設定で 大会データのURLを 入れてください');
       URLQ=null;
@@ -7244,7 +7302,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.28.a';
+  var SWIMIQ_BUILD='2026.08.28.b';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();
   // 記録アプリから呼ばれていたら、その1本を自動でよびだす

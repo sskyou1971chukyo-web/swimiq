@@ -466,7 +466,7 @@
   }
 
   /* ===== R.T・正式タイムのモーダル ===== */
-  #rtModal, #padModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+  #rtModal, #padModal{ position:fixed; inset:0; z-index:34; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #rtModal.hide, #padModal.hide{ display:none; }
   /* 光か音かを選ぶモーダルと、やり方チュートリアル（R.Tモーダルより手前に出す） */
@@ -963,7 +963,7 @@
     background:transparent; color:#fff; font-size:14px; font-weight:800; }
 
   /* ===== かき数の登録モーダル ===== */
-  #strokeModal{ position:fixed; inset:0; z-index:31; display:flex; align-items:center; justify-content:center;
+  #strokeModal{ position:fixed; inset:0; z-index:34; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #strokeModal.hide{ display:none; }
   #strokeList{ max-height:52vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -1026,6 +1026,30 @@
   #svCourse.needpick{ border:2px solid #f87171; background:rgba(248,113,113,.18); }
   #svCourseHint{ color:#fca5a5; font-weight:800; }
   #svCourseHint.ok{ color:#86efac; font-weight:700; }
+  /* 記録アプリの中に、窓として置かれたときの見た目 */
+  body.embed #smMine, body.embed #smFind, body.embed #smCompare,
+  body.embed #smProgress, body.embed #officialBtn, body.embed #newsBar{ display:none !important; }
+  body.embed #homeBtn{ display:none !important; }
+  #embedBack{ position:fixed; left:calc(env(safe-area-inset-left) + 10px);
+    top:calc(env(safe-area-inset-top) + 10px); z-index:70; display:none;
+    min-height:48px; padding:8px 18px; border:none; border-radius:14px; cursor:pointer;
+    background:rgba(255,255,255,.92); color:#0a2a48;
+    font-family:inherit; font-size:15px; font-weight:900; box-shadow:0 6px 18px rgba(0,0,0,.35); }
+  body.embed #embedBack{ display:none; }
+  /* 区間をえらぶ窓（分析画面より前に出す） */
+  #segPickModal{ position:fixed; inset:0; z-index:34; display:flex;
+    align-items:center; justify-content:center; padding:16px;
+    background:rgba(3,20,36,.72); }
+  #segPickModal.hide{ display:none; }
+  /* 区間をえらぶボタン */
+
+  .segpick-card{ background:#0d2f4d; }
+  #anaSegPick{ display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin:6px 0 14px; }
+  .segpick{ min-height:62px; border:2px solid rgba(255,255,255,.28); border-radius:14px;
+    background:rgba(255,255,255,.08); color:#fff; cursor:pointer;
+    font-family:inherit; font-size:16px; font-weight:800; padding:8px; }
+  .segpick small{ display:block; font-size:12px; font-weight:600; opacity:.75; margin-top:3px; }
+  .segpick:active{ background:rgba(255,255,255,.18); }
   input[type=file]{ display:none; }
 
   /* ===== レース分析レポート（画面で見る紙 ＝ そのまま印刷・PDFになる） ===== */
@@ -1243,6 +1267,14 @@
 </div>
 
 <!-- 数字キーパッドのモーダル（正式タイム・R.Tの打ち込みに使う） -->
+<div id="segPickModal" class="hide">
+  <div class="modal-card segpick-card">
+    <h2>どの区間の テンポですか</h2>
+    <div id="anaSegPick"></div>
+    <div class="stroke-btns"><button id="segPickClose">とじる</button></div>
+  </div>
+</div>
+
 <div id="padModal" class="hide">
   <div class="modal-card pad-card">
     <h2 id="padTitle">タイムの 入力</h2>
@@ -1347,7 +1379,9 @@
     <canvas id="anaCanvas" aria-hidden="true"></canvas>
     <div id="anaSummary"></div>
     <div id="anaTable"></div>
-    <div class="stroke-btns"><button id="anaReport">🖨 PDF表示（印刷）</button><button id="anaClose">とじる</button></div>
+    <p class="note" id="anaVer" style="text-align:right; opacity:.6"></p>
+    <div class="stroke-btns"><button id="anaTempoIn">✏️ テンポを入れる</button><button id="anaCountIn">✏️ かき数を入れる</button></div>
+    <div class="stroke-btns"><button id="anaReport">🖨 PDF表示（印刷）</button><button id="anaPush">✅ 決定</button><button id="anaClose">とじる</button></div>
   </div>
 </div>
 
@@ -1585,6 +1619,8 @@
 </div>
 
 <!-- レース分析レポート：画面に紙のかたちで出して、そのまま印刷・PDFにできる -->
+<button id="embedBack" type="button">← もどる</button>
+
 <div id="rptModal" class="hide">
   <div id="rptBar">
     <button id="rptPrint" type="button">🖨 印刷・PDF</button>
@@ -2414,7 +2450,9 @@
       strokeCounts[i]=(isNaN(v)||v<0)?null:v;
     }
     $('strokeModal').classList.add('hide');
+    saveDraft();          // この端末に ひかえを取る
     updateStrokeChip(); renderRecords();
+    backToAna();
     toast('かき数を とうろくしました');
   };
   $('strokeClose').onclick=function(){ $('strokeModal').classList.add('hide'); };
@@ -5462,6 +5500,11 @@
         anaLabel=(q.name||'')+'　'+(q.dist||'')+'m '+strokeName(q.stroke);
         anaMeta={ name:q.name||'', meet:q.meet||'', date:q.date||q.year||'',
                   stroke:strokeName(q.stroke) };
+        pushedOnce=false;
+        // 前に はかりかけの ひかえがあれば、つづきから
+        if(loadDraft()){
+          setTimeout(function(){ toast('前に はかったところから つづけます'); }, 900);
+        }
         if(q.mode==='video'){
           toast('記録を よびだしました。動画は「動画をひらく」から');
           return;
@@ -5982,6 +6025,7 @@
     var perStroke=total/strokes;                // 1かきの秒数
     var spm=perStroke>0 ? (60/perStroke) : 0;   // 毎分かき数
     tempoValues[selFrom+'-'+selTo]={ method:tempoMethod, strokes:strokes, perStroke:perStroke, spm:spm };
+    saveDraft();          // この端末に ひかえを取る
     tempoMarks=[];
     var doneFrom=selFrom, doneTo=selTo;
     updateTempoUI(); renderRecords();
@@ -6239,11 +6283,14 @@
           spm: v>0 ? Math.round(60/v) : null,
           seconds: mae.seconds || null
         };
+        saveDraft();      // この端末に ひかえを取る
         renderRecords();
+        backToAna();
         toast(key+'m のテンポを '+v.toFixed(2)+'秒／かきに なおしました');
       },
       function(){
         delete tempoValues[key];
+        saveDraft();
         renderRecords();
         toast(key+'m のテンポを けしました');
       }
@@ -6987,6 +7034,228 @@
     }
     sm.classList.add('nyujo');
   }
+  /* ============================================================
+     下書きの ひかえ（この端末の中に、じどうで のこす）
+       テンポやかき数を はかるたびに、この端末に ひかえを取ります。
+       電池が切れても、うっかり閉じても、つぎに同じレースをひらけば
+       つづきから はかれます。
+       ひかえは この端末の中だけ。決定ボタンを押すまで、みんなには見えません。
+  ============================================================ */
+  // どのレースの ひかえかを見分ける合言葉
+  function draftKey(){
+    var m = anaMeta || {};
+    if(!m.name || !m.meet) return '';
+    return 'swimiq_draft:' + [m.name, m.meet, m.date||'', raceDist, m.stroke||''].join('|');
+  }
+  function saveDraft(){
+    var k = draftKey();
+    if(!k) return;
+    try{
+      localStorage.setItem(k, JSON.stringify({
+        t: Date.now(), tempo: tempoValues, strokes: strokeCounts
+      }));
+    }catch(e){}
+  }
+  // ひかえがあれば読み込む。読み込んだら true を返す
+  function loadDraft(){
+    var k = draftKey();
+    if(!k) return false;
+    try{
+      var d = JSON.parse(localStorage.getItem(k) || 'null');
+      if(!d) return false;
+      var atta = false;
+      if(d.tempo && Object.keys(d.tempo).length){ tempoValues = d.tempo; atta = true; }
+      if(d.strokes && d.strokes.length){ strokeCounts = d.strokes; atta = true; }
+      return atta;
+    }catch(e){ return false; }
+  }
+  function clearDraft(){
+    var k = draftKey();
+    if(!k) return;
+    try{ localStorage.removeItem(k); }catch(e){}
+  }
+  // まだ決定していない中身があるか
+  var pushedOnce = false;   // このレースで 決定ボタンを押したか
+  function hasUnsaved(){
+    if(pushedOnce) return false;
+    return !!(custTempoText() || custCountText());
+  }
+
+  /* ============================================================
+     テンポとかき数を、記録アプリ（CUSTきろく帳）に書き戻す
+       レースの中身はそのままに、Q列のテンポと R列のかき数だけを
+       上書きします。記録は増えも減りもしません。
+  ============================================================ */
+  var STROKE_CODE={ '自由形':'Fr', '背泳ぎ':'Ba', '平泳ぎ':'Br',
+                    'バタフライ':'Fly', '個人メドレー':'IM' };
+  // 記録アプリの窓口。アプリの中に書いてあるので、利用者は何も入れなくてよい
+  var CUST_URL='https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
+  function custUrl(){
+    try{ return localStorage.getItem('swimiq_cust_url') || CUST_URL; }catch(e){ return CUST_URL; }
+  }
+  // この端末の見分け番号。はじめて使うときに作って、ずっと覚えておく
+  function deviceTag(){
+    try{
+      var d=localStorage.getItem('swimiq_devtag');
+      if(!d){
+        d='D'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+        localStorage.setItem('swimiq_devtag', d);
+      }
+      return d;
+    }catch(e){ return 'D-nashi'; }
+  }
+  // 書いた人の名前。記録アプリでえらんだ「じぶんの選手」を使う
+  function writerName(){
+    try{
+      return localStorage.getItem('cust_my_athlete')
+          || localStorage.getItem('swimiq_writer') || '';
+    }catch(e){ return ''; }
+  }
+  function askWriter(){
+    var n = prompt('お名前を入れてください（だれが はかったかを のこします）', '');
+    n = String(n||'').trim();
+    if(!n) return '';
+    try{ localStorage.setItem('swimiq_writer', n); }catch(e){}
+    return n;
+  }
+
+  // 「50Fr」のような、記録アプリの種目の書き方に直す
+  function custEventName(){
+    var st=(anaMeta && anaMeta.stroke) ? anaMeta.stroke : (raceInfo && raceInfo.stroke) || '';
+    var code=STROKE_CODE[String(st).replace(/[\s\u3000]+/g,'')] || '';
+    return code ? (raceDist + code) : '';
+  }
+  // テンポを「1.15 / 1.20 / 1.22」の形にする（区間の順にならべる）
+  function custTempoText(){
+    var keys=Object.keys(tempoValues).filter(function(k){
+      return tempoValues[k] && tempoValues[k].perStroke;
+    });
+    keys.sort(function(a,b){ return parseInt(a,10)-parseInt(b,10); });
+    return keys.map(function(k){ return tempoValues[k].perStroke.toFixed(2); }).join(' / ');
+  }
+  // かき数を「36 / 43」の形にする（50mごと）
+  function custCountText(){
+    var out=[], any=false;
+    strokeCounts.forEach(function(v){
+      if(v==null || v===''){ out.push(''); }
+      else { out.push(String(v)); any=true; }
+    });
+    // うしろの空はけずる
+    while(out.length && out[out.length-1]==='') out.pop();
+    return any ? out.join(' / ') : '';
+  }
+
+  // おかしな数字がないか、送る前に調べる
+  function checkOkashii(tempo, count){
+    var warn=[];
+    String(tempo||'').split('/').forEach(function(x){
+      var v=Number(String(x).trim()); if(isNaN(v)||!String(x).trim()) return;
+      if(v<0.5) warn.push('テンポ '+v+' 秒／かき は 速すぎます');
+      if(v>4)   warn.push('テンポ '+v+' 秒／かき は 遅すぎます');
+    });
+    String(count||'').split('/').forEach(function(x){
+      var v=Number(String(x).trim()); if(isNaN(v)||!String(x).trim()) return;
+      if(v<5)  warn.push('かき数 '+v+' 回 は 少なすぎます');
+      if(v>80) warn.push('かき数 '+v+' 回 は 多すぎます');
+    });
+    return warn;
+  }
+
+  function anaPushToCust(){
+    var meta=anaMeta||{};
+    var ev=custEventName();
+    if(!meta.name || !meta.meet || !meta.date || !ev){
+      toast('記録アプリから ひらいたレースだけ 決定できます');
+      return;
+    }
+    var tempo=custTempoText(), count=custCountText();
+    if(!tempo && !count){
+      toast('まだ テンポも かき数も はかっていません');
+      return;
+    }
+    var writer=writerName();
+    if(!writer){
+      writer=askWriter();
+      if(!writer){ toast('お名前がないと 決定できません'); return; }
+    }
+    // おかしな数字があれば、いちど たずねる
+    var warn=checkOkashii(tempo, count);
+    if(warn.length){
+      if(!confirm('つぎの数字が ふつうと ちがいます。\n\n' + warn.join('\n')
+        + '\n\nこのまま 決定しますか。')) return;
+    }
+    var mesg='この内容で 決定します。\n\n'
+      + meta.name + '　' + ev + '\n' + meta.meet + '　' + meta.date + '\n\n'
+      + 'テンポ ' + (tempo||'なし') + '\n'
+      + 'かき数 ' + (count||'なし') + '\n\n'
+      + 'はかった人　' + writer + '\n\nよろしいですか。';
+    if(!confirm(mesg)) return;
+
+    var btn=$('anaPush'); btn.disabled=true; btn.textContent='送信中…';
+    fetch(custUrl(), { method:'POST', headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify({
+        action:'saveSplitsExtra',
+        meet:meta.meet, date:meta.date, name:meta.name,
+        event:ev, round:(meta.round||''), tempo:tempo, count:count,
+        writer:writer, device:deviceTag()
+      })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if(res && res.ok){
+        pushedOnce=true;
+        clearDraft();
+        toast('記録にのこしました。ありがとう');
+      } else {
+        var msg=(res && (res.error||res.message)) || 'うまくいきませんでした';
+        alert('のこせませんでした。\n\n'+msg
+          + (res && res.sagashita ? '\n\nさがした中身\n'+JSON.stringify(res.sagashita, null, 1) : ''));
+      }
+    }).catch(function(err){
+      alert('記録アプリに つながりませんでした。\n\n'+err.message);
+    }).then(function(){
+      btn.disabled=false; btn.textContent='✅ 決定';
+    });
+  }
+  // 入力の窓から出たら、分析画面にもどる（分析画面から来たときだけ）
+  var cameFromAna=false;
+  function backToAna(){
+    if(!cameFromAna) return;
+    cameFromAna=false;
+    $('anaModal').classList.remove('hide');
+    openAnaModal();
+  }
+  // 分析画面から、その場で かき数を入れる
+  $('anaCountIn').onclick=function(){
+    cameFromAna=true;
+    $('anaModal').classList.add('hide');
+    openStrokeModal();
+  };
+  // 分析画面から、その場で テンポを入れる（どの区間かを えらんでもらう）
+  $('anaTempoIn').onclick=function(){
+    var rows=anaRows();
+    if(!rows.length){ toast('先に 区間タイムが 必要です'); return; }
+    var box=$('anaSegPick');
+    box.innerHTML=rows.map(function(r){
+      var k=r.from+'-'+r.to;
+      var t=tempoValues[k];
+      return '<button type="button" class="segpick" data-k="'+k+'">'+
+        r.from+'〜'+r.to+'m'+
+        '<small>'+(t&&t.perStroke? t.perStroke.toFixed(2)+' 秒／かき' : 'まだ')+'</small></button>';
+    }).join('');
+    box.querySelectorAll('.segpick').forEach(function(b){
+      b.onclick=function(){
+        cameFromAna=true;
+        $('segPickModal').classList.add('hide');
+        $('anaModal').classList.add('hide');
+        openTempoModal(this.dataset.k);
+      };
+    });
+    $('segPickModal').classList.remove('hide');
+  };
+  $('segPickClose').onclick=function(){ $('segPickModal').classList.add('hide'); };
+  $('strokeClose').addEventListener('click', backToAna);
+
+  $('anaPush').onclick=anaPushToCust;
+
   // ===== レース分析レポート（PDF表示・印刷） =====
   // 分析画面でいま見ている中身を、そのまま紙のかたちに組み直す。
   // 50m〜400mは1枚におさめ、800m以上は15区間ずつ次の紙に送る。
@@ -7423,9 +7692,28 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.28.e';
+  var SWIMIQ_BUILD='2026.08.30.b';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
+  if($('anaVer')) $('anaVer').textContent='分析画面 '+SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();
+  // 記録アプリの中に窓として置かれているときは、ホームの列を出さない
+  (function(){
+    var q;
+    try{ q=new URLSearchParams(location.search); }catch(e){ q=null; }
+    if(q && q.get('embed')==='1'){
+      document.body.classList.add('embed');
+      $('embedBack').onclick=function(){
+        if(hasUnsaved() && !confirm('まだ 決定していません。このまま とじますか。')) return;
+        try{ window.parent.postMessage({ swimiq:'close' }, '*'); }catch(e){}
+      };
+      // 記録アプリ側の「記録にもどる」からも、同じ問いかけをする
+      window.addEventListener('message', function(ev){
+        if(!ev.data || ev.data.swimiq !== 'askClose') return;
+        var ok = !hasUnsaved() || confirm('まだ 決定していません。このまま とじますか。');
+        try{ window.parent.postMessage({ swimiq: ok ? 'close' : 'stay' }, '*'); }catch(e){}
+      });
+    }
+  })();
   // 記録アプリから呼ばれていたら、その1本を自動でよびだす
   URLQ=readUrlQuery();
   if(URLQ) setTimeout(openFromUrl, 300);

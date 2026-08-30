@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CUST 記録帳 | 中京大学水泳部</title>
+<title>SwimIQ | 中京大学水泳部</title>
 <!-- ホーム画面に追加したとき、アプリのように全画面で開くための設定 -->
 <meta name="theme-color" content="#1663C7">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -125,6 +125,33 @@ body.hasnav main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
 .rcActs .a1{ background:#E58E00; } .rcActs .a2{ background:var(--blue); }
 .rcActs .a3{ background:#6D28D9; } .rcActs .a4{ background:#0F766E; }
 .rcActs button:disabled{ background:#B9C4CE; cursor:default; }
+/* 分析の画面を、このアプリの中に窓としてひらく */
+#iqModal{ position:fixed; inset:0; z-index:90; background:#0a2a48;
+  display:flex; flex-direction:column; }
+#iqModal.hide{ display:none; }
+#iqBar{ flex:0 0 auto; display:flex; align-items:center; gap:10px;
+  padding:calc(env(safe-area-inset-top) + 8px) 12px 8px; background:#0a2a48; }
+#iqBar button{ min-height:46px; padding:6px 18px; border:none; border-radius:12px;
+  background:rgba(255,255,255,.92); color:#0a2a48; cursor:pointer;
+  font-family:inherit; font-size:1rem; font-weight:800; }
+#iqBar .iqt{ color:#fff; font-weight:800; font-size:1rem; }
+#iqFrame{ flex:1 1 auto; width:100%; border:none; display:block; }
+/* アプリの名前（文字のロゴ） */
+.wordmark{ margin:0; font-size:2.1rem; font-weight:800; letter-spacing:-.02em; color:var(--navy); }
+.wordmark span{ color:var(--blue); }
+@media (max-width:640px){ .wordmark{ font-size:1.7rem; } }
+/* はじめての人に、立場をたずねる画面 */
+#roleAsk{ position:fixed; inset:0; z-index:80; background:rgba(15,34,51,.72);
+  display:flex; align-items:center; justify-content:center; padding:20px; }
+#roleAsk.hide{ display:none; }
+#roleCard{ width:min(460px,100%); background:var(--white); border-radius:18px; padding:26px 22px; }
+#roleCard h2{ margin:0 0 6px; font-size:1.35rem; color:var(--navy); }
+#roleCard p{ margin:0 0 18px; color:var(--gray); font-size:1rem; line-height:1.6; }
+.rolebtn{ width:100%; min-height:72px; margin-bottom:12px; border:2px solid var(--line);
+  border-radius:14px; background:var(--white); cursor:pointer; font-family:inherit;
+  font-size:1.12rem; font-weight:800; color:var(--navy); padding:10px 14px; text-align:left; }
+.rolebtn small{ display:block; font-size:.9rem; font-weight:600; color:var(--gray); margin-top:4px; }
+.rolebtn:hover{ border-color:var(--blue); }
 /* 入力・設定の画面から、記録を見る画面へもどるボタン */
 .backrow{ margin-bottom:14px; }
 .backbtn{ min-height:52px; padding:6px 20px; font-size:1.02rem; font-weight:700; }
@@ -354,15 +381,16 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 <body class="hasnav">
 <header>
   <div class="brand">
-    <h1><img class="logo" src="data:image/png;base64,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" alt="CUST DATABASE 中京大学水泳部"></h1>
-    <span class="sub">中京大学水泳部 記録の入力と閲覧</span>
+    <h1 class="wordmark">Swim<span>IQ</span></h1>
+    <span class="sub">中京大学水泳部</span>
   </div>
 </header>
 <div class="rope" aria-hidden="true"></div>
 
 <div class="tabs" role="tablist" aria-label="スタッフ用の画面" style="justify-content:flex-end; gap:8px; padding:10px 24px 0">
-  <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" onclick="showTab('input')">記録を入力する</button>
-  <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" onclick="showTab('admin')">設定</button>
+  <button class="staffbtn" id="staffOpen" type="button" onclick="toggleStaff()" aria-expanded="false">スタッフ</button>
+  <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" hidden onclick="showTab('input')">記録を入力する</button>
+  <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" hidden onclick="showTab('admin')">設定</button>
   <button class="staffbtn" id="tabView" role="tab" aria-selected="true" hidden onclick="showTab('view')">記録を見る</button>
 </div>
 
@@ -382,6 +410,8 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   <section id="paneAdmin" role="tabpanel" aria-label="設定" hidden>
     <div class="backrow">
       <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
+      <button type="button" class="btn ghost backbtn" style="margin-left:8px"
+        onclick="document.getElementById('roleAsk').classList.remove('hide')">立場を えらび直す</button>
     </div>
     <div id="adminBody"></div>
   </section>
@@ -446,6 +476,27 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   </section>
 </main>
 
+<div id="iqModal" class="hide" role="dialog" aria-modal="true" aria-label="レースの分析">
+  <div id="iqBar">
+    <button type="button" onclick="closeIQ()">← 記録にもどる</button>
+    <span class="iqt" id="iqTitle"></span>
+  </div>
+  <iframe id="iqFrame" title="レースの分析" allow="fullscreen"></iframe>
+</div>
+
+<div id="roleAsk" class="hide" role="dialog" aria-modal="true" aria-label="どの立場で使いますか">
+  <div id="roleCard">
+    <h2>ようこそ SwimIQ へ</h2>
+    <p>どの立場で使いますか。あとから いつでも変えられます。</p>
+    <button type="button" class="rolebtn" onclick="setRole('swimmer')">選手として使う
+      <small>じぶんの記録を見て、泳ぎをよくしていく</small></button>
+    <button type="button" class="rolebtn" onclick="setRole('coach')">コーチとして使う
+      <small>選手の記録を見て、練習の中身を決める</small></button>
+    <button type="button" class="rolebtn" onclick="setRole('parent')">保護者として使う
+      <small>子どもの記録を見て、声をかける</small></button>
+  </div>
+</div>
+
 <div id="raceModal" class="hide" role="dialog" aria-modal="true" aria-label="レースの画面">
   <div id="raceCard"></div>
 </div>
@@ -453,15 +504,15 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 <nav id="navbar" role="tablist" aria-label="おもな画面">
   <button role="tab" data-n="meet" aria-selected="true" onclick="showNav('meet')"><span class="nvi" aria-hidden="true">🏊</span>試合</button>
   <button role="tab" data-n="best" aria-selected="false" onclick="showNav('best')"><span class="nvi" aria-hidden="true">⏱</span>ベストタイム</button>
-  <button role="tab" data-n="rank" aria-selected="false" onclick="showNav('rank')"><span class="nvi" aria-hidden="true">🏅</span>ランキング</button>
-  <button role="tab" data-n="cmp" aria-selected="false" onclick="showNav('cmp')"><span class="nvi" aria-hidden="true">⚖️</span>比較</button>
+  <button role="tab" data-n="cmp" aria-selected="false" onclick="showNav('cmp')"><span class="nvi" aria-hidden="true">🏅</span>くらべる</button>
+  <button role="tab" data-n="me" aria-selected="false" onclick="showNav('me')"><span class="nvi" aria-hidden="true">🙋</span>自分</button>
 </nav>
 
 <script>
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.08.28.9';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.08.30.1';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -1076,11 +1127,43 @@ function showTab(t){
 const NAV = {
   meet: { subs:[['meet','校内・記録会'],['national','全国大会'],['world','国際大会'],['fy','年度でみる']] },
   best: { subs:[['name','選手のベスト'],['graph','伸びのグラフ'],['records','記録の一覧']] },
-  rank: { subs:[['rank','ランキング'],['legend','歴代'],['std','標準記録'],['event','種目べつ'],['kentai','県大会']] },
-  cmp:  { subs:[['cmp','ふたりを比べる']] }
+  cmp:  { subs:[['rank','ランキング'],['cmp','ふたりを比べる'],['legend','歴代'],
+                ['std','標準記録'],['event','種目べつ'],['kentai','県大会']] },
+  me:   { subs:[['me','じぶんのページ']] }
 };
 let currentNav = 'meet';
-const NAV_LAST = { meet:'meet', best:'name', rank:'rank', cmp:'cmp' };
+const NAV_LAST = { meet:'meet', best:'name', cmp:'rank', me:'me' };
+
+/* ============================================================
+   立場（選手・コーチ・保護者）と、じぶんの選手
+     はじめて開いたときに一度だけ たずねます。
+     あとから 設定でも変えられます。
+============================================================ */
+const ROLE_NAME = { swimmer:'選手', coach:'コーチ', parent:'保護者' };
+function myRole(){ try{ return localStorage.getItem('cust_role')||''; }catch(e){ return ''; } }
+function setRole(r){
+  try{ localStorage.setItem('cust_role', r); }catch(e){}
+  document.getElementById('roleAsk').classList.add('hide');
+  if(currentNav === 'me') showMode('me');
+}
+function myAthlete(){ try{ return localStorage.getItem('cust_my_athlete')||''; }catch(e){ return ''; } }
+function setMyAthlete(n){
+  try{ n ? localStorage.setItem('cust_my_athlete', n) : localStorage.removeItem('cust_my_athlete'); }catch(e){}
+  showMode('me');
+}
+function askRoleIfNeeded(){
+  if(!myRole()) document.getElementById('roleAsk').classList.remove('hide');
+}
+
+// スタッフ用のボタンは、ふだんは隠しておく
+function toggleStaff(){
+  const btn = document.getElementById('staffOpen');
+  const open = btn.getAttribute('aria-expanded') !== 'true';
+  btn.setAttribute('aria-expanded', open);
+  document.getElementById('tabInput').hidden = !open;
+  document.getElementById('tabAdmin').hidden = !open;
+  btn.textContent = open ? '✕ とじる' : 'スタッフ';
+}
 // そのモードが、どの入口のものかを調べる
 function navOfMode(m){
   for(const k in NAV){ if(NAV[k].subs.some(x=>x[0]===m)) return k; }
@@ -1276,6 +1359,7 @@ function showMode(m){
     if(m==='records') viewRecords();
     if(m==='graph') viewGraph();
     if(m==='cmp') viewCompare();
+    if(m==='me') viewMe();
   }).catch(err=>{
     body.innerHTML = '<div class="errmsg">読み込めませんでした: '+esc(err.message)+
       '。GAS_URLの設定と、GASのデプロイを確認してください。</div>';
@@ -1289,7 +1373,13 @@ function showMode(m){
 function makeFinder(container, onPick, multiDone, preselected, doneLabel){
   // 学年・男女は複数選べる(空っぽのときは絞り込みなし)
   const state = { grade:new Set(), sex:new Set(), text:'' };
-  const grades = [...new Set(INIT.roster.map(r=>r.grade).filter(Boolean))];
+  // 学年は 1年 2年 3年 4年 の順にならべ、OB・OGは そのあとに置く
+  const grades = [...new Set(INIT.roster.map(r=>r.grade).filter(Boolean))]
+    .sort((a,b)=>{
+      const num = x=>{ const m=String(x).match(/^(\d+)/); return m? Number(m[1]) : 900; };
+      const rank = x=> x==='OB'? 901 : (x==='OG'? 902 : num(x));
+      return rank(a)-rank(b) || String(a).localeCompare(String(b),'ja');
+    });
 
   container.innerHTML = `
     <div class="finder">
@@ -2294,8 +2384,51 @@ function swimiqLink(r, mode){
 function raceGo(id, mode){
   const r = RACE_STORE[id];
   if(!r) return;
-  window.open(swimiqLink(r, mode), '_blank', 'noopener');
+  const ttl = { video:'動画', analyze:'分析', report:'レポート' }[mode] || '';
+  // うしろに毎回ちがう番号を付けて、古い写しが使われないようにする
+  openIQ(swimiqLink(r, mode) + '&embed=1&v=' + Date.now(),
+         r.name + '　' + evShort(r.dist, r.stroke) + '　' + ttl);
 }
+// 分析の画面を、このアプリの中でひらく
+function openIQ(url, title){
+  const m = document.getElementById('iqModal');
+  const f = document.getElementById('iqFrame');
+  document.getElementById('iqTitle').textContent = title || '';
+  f.src = url;
+  m.classList.remove('hide');
+  document.body.style.overflow = 'hidden';
+}
+// まず分析の画面にたずねる。まだ決定していなければ、あちらで問いかけが出る
+function closeIQ(){
+  const f = document.getElementById('iqFrame');
+  try{
+    if(f && f.contentWindow){
+      f.contentWindow.postMessage({ swimiq:'askClose' }, '*');
+      // 返事が来なければ、2秒後にそのままとじる（古い画面のとき用）
+      clearTimeout(window.__iqWait);
+      window.__iqWait = setTimeout(closeIQnow, 2000);
+      return;
+    }
+  }catch(e){}
+  closeIQnow();
+}
+function closeIQnow(){
+  clearTimeout(window.__iqWait);
+  const m = document.getElementById('iqModal');
+  const f = document.getElementById('iqFrame');
+  m.classList.add('hide');
+  f.src = 'about:blank';        // 動画の再生を止めるため、中身を空にする
+  document.body.style.overflow = '';
+}
+// 分析の画面から「もどる」が押されたら、窓をとじる
+window.addEventListener('message', function(ev){
+  if(!ev.data) return;
+  if(ev.data.swimiq === 'close') closeIQnow();
+  if(ev.data.swimiq === 'stay') clearTimeout(window.__iqWait);
+});
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && !document.getElementById('iqModal').classList.contains('hide')) closeIQ();
+});
 
 function openRace(id){
   const r = RACE_STORE[id];
@@ -2880,6 +3013,88 @@ function viewEvent(){
    1位=金 2位=銀 3位=銅。標準記録のラインも重ねます
 ============================================================ */
 /* ============================================================
+   じぶんのページ
+     いまは、じぶんの選手をえらんで ベストと最近のレースを見る画面です。
+     つぎの段で「強みと弱み」のまとめを ここに足します。
+============================================================ */
+function viewMe(){
+  const body = document.getElementById('viewBody');
+  const role = myRole(), name = myAthlete();
+  const roleJa = ROLE_NAME[role] || '';
+  if(!name){
+    body.innerHTML = `
+      <div class="card"><h2>じぶんの選手を えらぶ</h2>
+      <p class="hint">${roleJa? roleJa+'として使っています。':''}
+        よく見る選手を えらんでおくと、つぎからは この画面にすぐ出ます。</p>
+      <div id="meFinder"></div></div>`;
+    makeFinder(document.getElementById('meFinder'), p=>setMyAthlete(p.name));
+    return;
+  }
+  // その選手の記録を集める
+  const rows = ((DATA&&DATA.records)?DATA.records:[]).map(rec)
+    .filter(r=>r.name===name && r.sec!=null);
+  const best = {};
+  rows.forEach(r=>{
+    const k = r.dist+'_'+r.stroke+'_'+(r.meet.course||'長水路');
+    if(!best[k] || r.sec < best[k].sec) best[k] = r;
+  });
+  const keys = Object.keys(best).sort((a,b)=>{
+    const x=a.split('_'), y=b.split('_');
+    return (Number(x[0])-Number(y[0])) || x[1].localeCompare(y[1]);
+  });
+  const saikin = rows.slice().sort((a,b)=>b.stamp-a.stamp).slice(0,5);
+
+  let html = `<div class="card">
+    <h2>${esc(name)} さんのページ</h2>
+    <p class="hint">${roleJa? roleJa+'として使っています。':''}
+      <button type="button" class="btn ghost" style="min-height:40px; padding:4px 12px; font-size:.9rem"
+        onclick="setMyAthlete('')">選手を えらび直す</button></p></div>`;
+
+  if(!keys.length){
+    html += `<div class="card"><p class="hint">まだ記録がありません。</p></div>`;
+  } else {
+    html += `<div class="card"><h2>ベストタイム</h2>
+      <p class="hint">種目を押すと、その種目の伸びのグラフがひらきます。</p>
+      <div class="tablewrap"><table><tr><th>種目</th><th>水路</th><th>記録</th><th>いつ</th></tr>`;
+    keys.forEach(k=>{
+      const r = best[k];
+      html += `<tr><td class="nw">${jumpEventBtn(r)}</td>
+        <td class="nw">${courseTag(r.meet.course)}</td>
+        <td class="num nw" style="font-weight:800">${esc(toStr(r.sec)||fmtTime(r.time))}</td>
+        <td class="nw">${r.meet.year}年${r.meet.month}月</td></tr>`;
+    });
+    html += `</table></div></div>`;
+  }
+
+  if(saikin.length){
+    html += `<div class="card"><h2>さいきんのレース</h2>
+      <p class="hint">記録を押すと、そのレースの画面がひらきます。</p>
+      <div class="tablewrap"><table><tr><th>大会</th><th>種目</th><th>記録</th></tr>`;
+    saikin.forEach(r=>{
+      html += `<tr><td>${r.meet.year}年${r.meet.month}月 ${esc(r.meet.meet)}</td>
+        <td class="nw">${evShort(r.dist, r.stroke)}</td>
+        <td class="num nw">${r.pb? BEST_MARK :''}${raceLink(r, esc(fmtTime(r.time)))}</td></tr>`;
+    });
+    html += `</table></div></div>`;
+  }
+  body.innerHTML = html;
+}
+// ベストの種目を押したら、その種目のグラフへ
+function jumpEventBtn(r){
+  const id = 'me' + (++RACE_SEQ);
+  RACE_STORE[id] = r;
+  return `<button type="button" class="ktcell" style="font-weight:800"
+    onclick="jumpToGraph('${id}')">${evShort(r.dist, r.stroke)}</button>`;
+}
+function jumpToGraph(id){
+  const r = RACE_STORE[id];
+  if(!r) return;
+  JUMP_NAME = r.name;
+  currentNav = 'best'; NAV_LAST.best = 'graph';
+  showMode('graph');
+}
+
+/* ============================================================
    比較: ふたりの選手を並べて、種目ごとのベストを見くらべる
 ============================================================ */
 let CMP_A = null, CMP_B = null;
@@ -2896,7 +3111,10 @@ function viewCompare(){
 // その選手の、種目と水路ごとのベストを取り出す
 function cmpBests(name){
   const box = {};
-  ((DATA&&DATA.records)?DATA.records:[]).map(rec).forEach(r=>{
+  ((DATA&&DATA.records)?DATA.records:[]).forEach(row=>{
+    let r;
+    try{ r = rec(row); }catch(e){ return; }      // 読めない行はとばす
+    if(!r || !r.meet) return;
     if(r.name !== name || r.sec == null) return;
     const k = r.dist + '_' + r.stroke + '_' + (r.meet.course || '長水路');
     if(!box[k] || r.sec < box[k].sec) box[k] = r;
@@ -2904,10 +3122,22 @@ function cmpBests(name){
   return box;
 }
 function cmpDraw(){
+  try{ cmpDrawInner(); }
+  catch(err){
+    const box = document.getElementById('cmpOut');
+    if(box) box.innerHTML = '<div class="card"><div class="errmsg">くらべる表を作れませんでした: '
+      + esc(String(err && err.message ? err.message : err)) + '</div></div>';
+  }
+}
+function cmpDrawInner(){
   const out = document.getElementById('cmpOut');
   if(!out) return;
   if(!CMP_A || !CMP_B){
-    out.innerHTML = `<div class="card"><p class="hint">ふたりえらぶと、種目ごとのベストが並びます。</p></div>`;
+    const ima = [CMP_A?('ひとり目 '+CMP_A.name):'', CMP_B?('ふたり目 '+CMP_B.name):'']
+      .filter(x=>x).join('　');
+    out.innerHTML = `<div class="card"><h2>くらべる</h2>
+      <p class="hint">ふたりえらぶと、種目ごとのベストが ここに並びます。
+      ${ima? '<br>いま えらんでいるのは　'+esc(ima) : ''}</p></div>`;
     return;
   }
   if(CMP_A.name === CMP_B.name){
@@ -7693,6 +7923,7 @@ async function boot(){
   checkMeetNews();
   checkAppUpdate();
   announceAppNews();
+  askRoleIfNeeded();   // はじめての人には、立場をたずねる
   const my = myProfile();
   if(my && my.staff){
     showTab('view');   // 標準は記録を見るタブ

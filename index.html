@@ -503,7 +503,7 @@
   .atab{ padding:8px 14px; border-radius:11px; cursor:pointer; border:1.5px solid var(--line);
     background:rgba(16,44,74,.85); color:#fff; font-size:13px; font-weight:900; text-shadow:var(--shadow); }
   .atab.active{ background:linear-gradient(135deg,#34d399,#0ea5e9); border-color:#fff; }
-  #anaCanvas{ width:100%; height:250px; display:block; background:rgba(255,255,255,.05); border-radius:12px; }
+  #anaCanvas{ width:100%; height:280px; display:block; background:rgba(255,255,255,.05); border-radius:12px; }
   #anaSummary{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
   #anaSummary .as{ flex:1 1 45%; background:rgba(255,255,255,.07); border-radius:12px; padding:8px 10px;
     font-size:12px; font-weight:800; }
@@ -1084,6 +1084,69 @@
     .rpage:last-child{ page-break-after:auto; break-after:auto; }
     @page{ size:A4 portrait; margin:0; }
   }
+
+/* ============================================================
+   黄色ばん (2026.09.01)
+   記録アプリと同じ配色にそろえます。動画の上にのる部分は
+   暗いままにして、読むための窓だけを 黄色と白と黒にします。
+============================================================ */
+:root{
+  --y:       #F5CE1E;
+  --y-deep:  #E4BB10;
+  --y-pale:  #FFF6D2;
+  --k:       #12120E;
+  --k-sub:   #6B5300;
+  --k-gray:  #6E6E66;
+  --k-line:  #E6E6E0;
+  --k-red:   #C8102E;
+}
+#anaModal, #segPickModal, #strokeModal, #padModal, #tempoModal,
+#findModal, #loadModal, #rptModal, #cmpInfoModal, #cmp2Modal, #distModal{
+  background:rgba(60,48,0,.55) !important;
+}
+.modal-card{
+  background:var(--y) !important;
+  border:none !important;
+  color:var(--k) !important;
+  box-shadow:0 24px 60px rgba(60,48,0,.45) !important;
+}
+.modal-card h2{ color:var(--k) !important; text-shadow:none !important; }
+.modal-card .note{ color:var(--k-sub) !important; opacity:1 !important; }
+.modal-card label, .modal-card .lb{ color:var(--k-sub) !important; }
+
+#anaCanvas{
+  background:#fff !important; border-radius:14px;
+  box-shadow:0 1px 0 rgba(110,86,0,.16), 0 6px 16px -6px rgba(110,86,0,.34);
+}
+#anaSummary .as{
+  background:#fff !important; color:var(--k) !important;
+  border-radius:14px; padding:11px 13px;
+  box-shadow:0 1px 0 rgba(110,86,0,.16), 0 6px 16px -6px rgba(110,86,0,.34);
+}
+#anaSummary .as b{ color:var(--k) !important; font-size:22px !important; letter-spacing:-.02em; }
+#anaTable{
+  background:#fff; border-radius:14px; padding:4px 2px; color:var(--k);
+  box-shadow:0 1px 0 rgba(110,86,0,.16), 0 6px 16px -6px rgba(110,86,0,.34);
+}
+#anaTable .ar{ border-bottom:1px solid var(--k-line) !important; }
+#anaTable .ar.h{ color:var(--k-gray) !important; font-weight:900; }
+#anaTable .ar:last-child{ border-bottom:none !important; }
+
+.atab{
+  background:transparent !important; color:var(--k) !important;
+  border:2px solid var(--k) !important; text-shadow:none !important;
+  border-radius:11px !important;
+}
+.atab.active{ background:var(--k) !important; color:var(--y) !important; border-color:var(--k) !important; }
+
+.modal-card .stroke-btns button, .modal-card .navrow button,
+.modal-card .df-race button, .dist-grid button, .dist-custom button{ text-shadow:none !important; }
+.dist-grid button{
+  background:#fff !important; color:var(--k) !important; border:2px solid var(--k) !important;
+  box-shadow:0 3px 0 rgba(60,48,0,.25) !important;
+}
+.dist-custom{ background:#fff !important; border:2px solid var(--k) !important; }
+.dist-custom input{ background:#fff !important; color:var(--k) !important; border-color:var(--k-line) !important; }
 </style>
 </head>
 <body>
@@ -5712,124 +5775,172 @@
     }
     anaAnimId=requestAnimationFrame(frame);
   }
-  // P は 0から1 の進み具合。1 になったら完成の姿
+  // P は 0から1 の進み具合。1 になったら完成の姿。
+  // 区間が多いレース(1500mだと30区間)でも文字が重ならないように、
+  // 入りきらない目盛りと数字は とばして描きます。
   function drawAnaFrame(rows, P){
     var c=$('anaCanvas');
-    var W=c.clientWidth||600, H=250, dpr=window.devicePixelRatio||1;
+    var W=c.clientWidth||600, H=c.clientHeight||260, dpr=window.devicePixelRatio||1;
     c.width=W*dpr; c.height=H*dpr;
     var ctx=c.getContext('2d');
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,W,H);
-    ctx.font='11px sans-serif'; ctx.textAlign='center';
-    var padL=44, padR=12, padT=16, padB=30;
+    ctx.textAlign='center';
+    var padL=60, padR=16, padT=24, padB=34;
     var iw=W-padL-padR, ih=H-padT-padB;
-    function grid(maxV, unit){
-      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.fillStyle='#bfe3ff'; ctx.textAlign='right';
+
+    var INK='#12120E', SUB='#6E6E66', GRID='#EAEAE4';
+
+    // 何個おきに書けば重ならないか
+    function everyN(n, textW){ return Math.max(1, Math.ceil((textW+6)/(iw/n))); }
+    // 目盛りの文字。長いときは 終わりの数字だけにする
+    function shortLab(lab, n){ return (n>8)? String(lab).split('→').pop() : lab; }
+
+    function grid(lo, hi, unit, dec){
+      ctx.strokeStyle=GRID; ctx.lineWidth=1; ctx.fillStyle=SUB;
+      ctx.font='600 11px sans-serif'; ctx.textAlign='right';
       for(var i=0;i<=4;i++){
-        var y=padT+ih-ih*i/4;
+        var v=lo+(hi-lo)*i/4, y=padT+ih-ih*(v-lo)/(hi-lo);
         ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
-        ctx.fillText((maxV*i/4).toFixed(1)+unit, padL-5, y+4);
+        ctx.fillText(v.toFixed(dec==null?1:dec)+unit, padL-7, y+4);
       }
       ctx.textAlign='center';
     }
-    function empty(msg){ ctx.fillStyle='#bfe3ff'; ctx.font='14px sans-serif'; ctx.fillText(msg, W/2, H/2); }
-    function bars(items, color, unit){
-      if(!items.length){ empty('この項目の記録は まだありません'); return; }
-      var maxV=Math.max.apply(null, items.map(function(x){return x.v;}))*1.15||1;
-      grid(maxV, unit);
-      var bw=Math.min(56, iw/items.length*0.6);
+    function empty(msg){
+      ctx.fillStyle=SUB; ctx.font='700 14px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(msg, W/2, H/2);
+    }
+    // 下の目盛り
+    function xLabels(items){
+      var n=items.length;
+      ctx.fillStyle=SUB; ctx.font='600 10px sans-serif';
+      var lab0=shortLab(items[0].label, n);
+      var step=everyN(n, ctx.measureText(lab0).width);
+      var last=-99;
       items.forEach(function(it,i){
-        var x=padL+iw*(i+0.5)/items.length;
-        var h2=ih*it.v/maxV*P;   // 進み具合ぶんだけ伸びる
+        var want=(i%step===0) || (i===n-1);
+        if(!want) return;
+        if(i-last < step) return;          // ひとつ前の目盛りと近すぎるときは とばす
+        last=i;
+        ctx.fillText(shortLab(it.label, n), padL+iw*(i+0.5)/n, H-12);
+      });
+    }
+    // 点や棒の上の数字。入りきらないときは 最初・最後・いちばん速い・いちばん遅い だけ
+    function valueLabels(items, xy, dec, alpha){
+      var n=items.length;
+      ctx.font='900 11px sans-serif'; ctx.fillStyle=INK;
+      ctx.globalAlpha=(alpha==null?1:alpha);
+      var w=ctx.measureText((items[0].v).toFixed(dec)).width;
+      var step=everyN(n, w);
+      var mxI=0, mnI=0;
+      items.forEach(function(it,i){ if(it.v>items[mxI].v) mxI=i; if(it.v<items[mnI].v) mnI=i; });
+      var shown=[];
+      items.forEach(function(it,i){
+        var keep=(step===1) || i===0 || i===n-1 || i===mxI || i===mnI;
+        if(!keep) return;
+        for(var q=0;q<shown.length;q++){ if(Math.abs(i-shown[q])<step) return; }
+        shown.push(i);
+        var p=xy(i);
+        ctx.fillText(it.v.toFixed(dec), p[0], p[1]);
+      });
+      ctx.globalAlpha=1;
+    }
+
+    function bars(items, color, unit, dec){
+      if(!items.length){ empty('この項目の記録は まだありません'); return; }
+      var mx=Math.max.apply(null, items.map(function(x){return x.v;}))*1.18||1;
+      grid(0, mx, unit, dec===0?0:1);
+      var n=items.length, bw=Math.min(46, Math.max(3, iw/n*0.66));
+      items.forEach(function(it,i){
+        var x=padL+iw*(i+0.5)/n, h2=ih*it.v/mx*P;
         ctx.fillStyle=color;
         ctx.beginPath();
-        if(ctx.roundRect) ctx.roundRect(x-bw/2, padT+ih-h2, bw, h2, 5); else ctx.rect(x-bw/2, padT+ih-h2, bw, h2);
+        if(ctx.roundRect) ctx.roundRect(x-bw/2, padT+ih-h2, bw, h2, Math.min(4,bw/2));
+        else ctx.rect(x-bw/2, padT+ih-h2, bw, h2);
         ctx.fill();
-        // 数字は伸びきる直前から ふわっと出す
-        if(P>0.85){
-          ctx.globalAlpha=(P-0.85)/0.15;
-          ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif';
-          ctx.fillText(it.v.toFixed(it.dec!=null?it.dec:2), x, padT+ih-h2-5);
-          ctx.globalAlpha=1;
-        }
-        ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif';
-        ctx.fillText(it.label, x, H-10);
       });
+      if(P>0.85) valueLabels(items, function(i){
+        return [padL+iw*(i+0.5)/n, padT+ih-ih*items[i].v/mx*P-6];
+      }, (dec==null?2:dec), (P-0.85)/0.15);
+      xLabels(items);
     }
-    function line(items, color, unit){
-      if(!items.length){ empty('この項目の記録は まだありません'); return; }
-      var maxV=Math.max.apply(null, items.map(function(x){return x.v;}))*1.15||1;
-      grid(maxV, unit);
-      // 左から進み具合ぶんだけ「窓」をあけて、線が描かれていくように見せる
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, 0, padL+iw*P+8, H);
-      ctx.clip();
-      ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath();
-      items.forEach(function(it,i){
-        var x=padL+iw*(i+0.5)/items.length, y=padT+ih-ih*it.v/maxV;
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke();
-      items.forEach(function(it,i){
-        var x=padL+iw*(i+0.5)/items.length, y=padT+ih-ih*it.v/maxV;
-        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.fillText(it.v.toFixed(2), x, y-9);
-        ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif'; ctx.fillText(it.label, x, H-10);
-      });
-      ctx.restore();
-    }
-    // テンポ専用。秒/かきは小さいほど速いので、速いほど上にくるように上下をひっくり返す
-    function tempoLine(items, color, unit){
+
+    // 折れ線。0からではなく、値のある範囲だけを見せるので ちがいが分かります
+    function line(items, color, unit, opt){
+      opt=opt||{};
       if(!items.length){ empty('この項目の記録は まだありません'); return; }
       var vs=items.map(function(x){return x.v;});
       var mx=Math.max.apply(null,vs), mn=Math.min.apply(null,vs);
-      var sp=(mx-mn)||(mx*0.2)||1;
-      var lo=Math.max(0, mn-sp*0.35), hi=mx+sp*0.35;
+      var sp=(mx-mn)||(mx*0.15)||1;
+      var lo=Math.max(0, mn-sp*0.45), hi=mx+sp*0.55;
       if(hi<=lo) hi=lo+1;
-      function yy(v){ return padT+(v-lo)/(hi-lo)*ih; }
-      ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.fillStyle='#bfe3ff'; ctx.textAlign='right';
+      var flip=!!opt.invert;                       // テンポは 小さいほど速いので上下を返す
+      function yy(v){
+        var f=(v-lo)/(hi-lo);
+        return flip? (padT+f*ih) : (padT+ih-f*ih);
+      }
+      // 目盛り
+      ctx.strokeStyle=GRID; ctx.lineWidth=1; ctx.fillStyle=SUB;
+      ctx.font='600 11px sans-serif'; ctx.textAlign='right';
       for(var g=0;g<=4;g++){
         var gv=lo+(hi-lo)*g/4, gy=yy(gv);
         ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(W-padR,gy); ctx.stroke();
-        ctx.fillText(gv.toFixed(2)+unit, padL-5, gy+4);
+        ctx.fillText(gv.toFixed(2)+unit, padL-7, gy+4);
       }
+      ctx.textAlign='left'; ctx.fillStyle=SUB; ctx.font='700 10px sans-serif';
+      ctx.fillText(opt.hint||'上ほど速い', padL+2, padT-8);
       ctx.textAlign='center';
-      ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif'; ctx.textAlign='left';
-      ctx.fillText('上ほど速い', padL+2, padT-4);
-      ctx.textAlign='center';
+
+      var n=items.length;
+      function X(i){ return padL+iw*(i+0.5)/n; }
       ctx.save(); ctx.beginPath(); ctx.rect(0,0,padL+iw*P+8,H); ctx.clip();
-      ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.beginPath();
+      // 線
+      ctx.strokeStyle=color; ctx.lineWidth=n>18?2:3; ctx.lineJoin='round'; ctx.beginPath();
       items.forEach(function(it,i){
-        var x=padL+iw*(i+0.5)/items.length;
-        if(i===0) ctx.moveTo(x,yy(it.v)); else ctx.lineTo(x,yy(it.v));
+        if(i===0) ctx.moveTo(X(i),yy(it.v)); else ctx.lineTo(X(i),yy(it.v));
       });
       ctx.stroke();
+      // 点。数が多いときは小さくする
+      var r=(n>26)?2.2:(n>14?3.2:5);
       items.forEach(function(it,i){
-        var x=padL+iw*(i+0.5)/items.length, y2=yy(it.v);
-        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y2,5,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.fillText(it.v.toFixed(2), x, y2-9);
-        ctx.fillStyle='#bfe3ff'; ctx.font='10px sans-serif'; ctx.fillText(it.label, x, H-10);
+        ctx.fillStyle=color; ctx.beginPath(); ctx.arc(X(i),yy(it.v),r,0,Math.PI*2); ctx.fill();
+      });
+      // いちばん速い区間といちばん遅い区間に印をつける
+      var best=0, worst=0;
+      items.forEach(function(it,i){
+        if(flip? (it.v<items[best].v) : (it.v>items[best].v)) best=i;
+        if(flip? (it.v>items[worst].v) : (it.v<items[worst].v)) worst=i;
+      });
+      [[best,'#12120E'],[worst,'#C8102E']].forEach(function(pair){
+        var i=pair[0];
+        ctx.strokeStyle=pair[1]; ctx.lineWidth=2.4;
+        ctx.beginPath(); ctx.arc(X(i),yy(items[i].v), r+3.6, 0, Math.PI*2); ctx.stroke();
       });
       ctx.restore();
+      valueLabels(items, function(i){ return [X(i), yy(items[i].v)-10]; }, 2);
+      xLabels(items);
     }
+
     if(anaType==='lap'){
-      bars(rows.map(function(r){ return {v:r.lap, label:r.from+'→'+r.to, dec:2}; }), '#fbbf24', '秒');
+      bars(rows.map(function(r){ return {v:r.lap, label:r.from+'→'+r.to}; }), '#E4BB10', '秒', 2);
     } else if(anaType==='speed'){
-      line(rows.map(function(r){ return {v:r.speed, label:r.from+'→'+r.to}; }), '#34d399', 'm/s');
+      line(rows.map(function(r){ return {v:r.speed, label:r.from+'→'+r.to}; }), '#0D9488', 'm/s',
+           {hint:'上ほど速い'});
     } else if(anaType==='tempo'){
       var items=Object.keys(tempoValues).map(function(k){
         return {from:parseInt(k.split('-')[0],10), v:tempoValues[k].perStroke, label:k.replace('-','→')};
       }).sort(function(a,b){return a.from-b.from;});
-      tempoLine(items.map(function(x){ return {v:x.v, label:x.label, dec:2}; }), '#22d3ee', '秒');
+      line(items.map(function(x){ return {v:x.v, label:x.label}; }), '#C2410C', '秒',
+           {invert:true, hint:'上ほど速いリズム'});
     } else if(anaType==='stroke'){
       var items2=[];
       strokeCounts.forEach(function(v,i){
-        if(v!=null) items2.push({v:v, label:(i*50)+'→'+((i+1)*50), dec:0});
+        if(v!=null) items2.push({v:v, label:(i*50)+'→'+((i+1)*50)});
       });
-      bars(items2, '#a78bfa', 'かき');
+      bars(items2, '#7C3AED', 'かき', 0);
     }
   }
+
   $('ldAthlete').onchange=function(){ renderLoadList(this.value); };
   $('ldClose').onclick=function(){ $('loadModal').classList.add('hide'); };
 
@@ -7802,7 +7913,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.31.b';
+  var SWIMIQ_BUILD='2026.09.01.a';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   if($('anaVer')) $('anaVer').textContent='分析画面 '+SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();

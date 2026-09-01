@@ -435,6 +435,28 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   .rc2 .fin .tm{ font-size:2.6rem; }
   .rc2 .ev{ font-size:1.35rem; }
 }
+
+/* ============================================================
+   画面の説明文を たたんでおくしくみ (2026.09.01)
+   長い説明は はじめ閉じておき、「説明」を押したときだけ ひらきます。
+   読みこみ中や 見つかりませんでした のような おしらせは たたみません。
+============================================================ */
+.hintFold{ margin:0 0 10px; }
+.hintFold > summary{
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+  list-style:none; width:auto;
+  font-size:.85rem; font-weight:700; color:var(--blue);
+  background:#f1f5f9; border:1px solid #dbe4ec; border-radius:999px;
+  padding:4px 12px; min-height:32px; user-select:none;
+}
+.hintFold > summary::-webkit-details-marker{ display:none; }
+.hintFold > summary::before{ content:'？'; font-weight:900; }
+.hintFold > summary::after{ content:'ひらく'; font-weight:700; opacity:.7; }
+.hintFold[open] > summary::after{ content:'とじる'; }
+.hintFold > summary:hover{ background:#e6edf5; }
+.hintFold[open] > summary{ margin-bottom:8px; }
+.hintFold .hint{ margin-bottom:8px; }
+.hintFold .hint:last-child{ margin-bottom:0; }
 </style>
 </head>
 <body class="hasnav">
@@ -571,7 +593,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.08.31.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.01.1';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -2597,6 +2619,58 @@ function raceLapBars(r){
   });
   return h + '</div></div>';
 }
+
+
+/* ============================================================
+   説明文を たたむ (2026.09.01)
+   画面に出ている長い説明を、はじめは閉じた状態にします。
+   ・「？ 説明 ひらく」を押すと出てきます
+   ・読みこみ中などの おしらせは たたみません
+     (入れ物の中にそれ一つしかない文は おしらせとみなします)
+============================================================ */
+(function(){
+  var MIN = 24;                       // これより短い文は そのまま出す
+  function foldable(el){
+    if(!el || el.tagName !== 'P') return false;
+    if(!el.classList.contains('hint')) return false;
+    if(el.dataset.nofold === '1') return false;
+    if(el.closest('.hintFold')) return false;
+    var txt = (el.textContent || '').trim();
+    if(txt.length < MIN) return false;
+    // 入れ物の中に これ一つしかないときは、おしらせの文とみなして そのままにする
+    var par = el.parentElement;
+    if(par && par.children.length <= 1) return false;
+    return true;
+  }
+  function foldIn(root){
+    var list = (root || document).querySelectorAll('p.hint');
+    for(var i=0; i<list.length; i++){
+      var el = list[i];
+      if(!foldable(el)) continue;
+      var group = [el], nx = el.nextElementSibling;
+      while(nx && foldable(nx)){ group.push(nx); nx = nx.nextElementSibling; }   // つづきの説明はまとめる
+      var d = document.createElement('details');
+      d.className = 'hintFold';
+      var sm = document.createElement('summary');
+      sm.textContent = '説明';
+      d.appendChild(sm);
+      el.parentNode.insertBefore(d, el);
+      group.forEach(function(g){ d.appendChild(g); });
+    }
+  }
+  function run(){ try{ foldIn(document); }catch(e){} }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', run);
+  }else{ run(); }
+  // 画面が組み直されるたびに、新しく出てきた説明もたたむ
+  var timer = null;
+  try{
+    new MutationObserver(function(){
+      if(timer) return;
+      timer = setTimeout(function(){ timer = null; run(); }, 60);
+    }).observe(document.body || document.documentElement, {childList:true, subtree:true});
+  }catch(e){}
+})();
 
 function openRace(id){
   const r = RACE_STORE[id];

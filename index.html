@@ -1224,6 +1224,105 @@
 .modal-card button.atab.active, .modal-card .atab.active{
   background:var(--k) !important; color:var(--y) !important;
 }
+
+/* ============================================================
+   トップ画面（案3 まとまり） 2026.09.01
+   入口を「とる」「見る」「くらべる」に分けます。
+   主役は 動画をひらく の一つだけ。ほかは白い一覧に落とします。
+============================================================ */
+#startHint{ background:linear-gradient(170deg,#F5CE1E,#EEC518) !important; }
+#startHint .logo, #startHint p{ display:none !important; }
+
+#startMenu{
+  align-items:stretch !important; gap:0 !important;
+  padding:0 0 16px !important;
+}
+#app.hasvideo.homeover #startMenu{
+  background:rgba(245,206,30,.97) !important;
+  backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+}
+#startMenu > *{ width:100%; max-width:380px; margin-left:auto; margin-right:auto; }
+
+/* 見出し */
+#startMenu .smHead{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+  padding:0 20px; margin-bottom:18px;
+}
+#startMenu .logo{
+  font-family:Impact,"Anton","Arial Narrow",sans-serif;
+  font-size:clamp(26px,7vw,36px) !important; font-weight:400 !important;
+  letter-spacing:.01em !important; line-height:1 !important;
+  color:var(--k) !important; text-shadow:none !important; margin:0 !important;
+  white-space:nowrap;
+}
+#startMenu .logo span{ -webkit-text-stroke:1.5px var(--k); color:transparent !important; }
+#startMenu .logo .tm{ -webkit-text-stroke:0; color:var(--k); font-size:.3em; vertical-align:super; }
+#startMenu .smSub{ font-size:12px; font-weight:700; color:var(--k-sub); margin-top:3px; }
+
+/* まとまりの小見出し */
+#startMenu .smGrp{ padding:0 20px; margin-bottom:16px; }
+#startMenu .smGl{
+  font-size:11px; font-weight:900; color:var(--k-sub);
+  letter-spacing:.08em; margin-bottom:7px;
+}
+#startMenu .smList{
+  background:#fff; border-radius:15px; overflow:hidden;
+  box-shadow:0 1px 0 rgba(110,86,0,.16), 0 6px 16px -6px rgba(110,86,0,.34);
+}
+#startMenu .smList.one{ background:transparent; box-shadow:none; border-radius:0; }
+
+/* ボタンの見た目をそろえる */
+#startMenu button, #startMenu label{
+  width:100% !important; max-width:none !important; height:auto !important;
+  min-height:52px; padding:13px 15px !important;
+  border-radius:0 !important; background:transparent !important;
+  color:var(--k) !important; font-size:15px !important; font-weight:800 !important;
+  text-shadow:none !important; box-shadow:none !important;
+  border-bottom:1px solid var(--k-line) !important;
+}
+#startMenu .smList > *:last-child{ border-bottom:none !important; }
+#startMenu button svg, #startMenu label svg{ filter:none !important; }
+#startMenu button:active, #startMenu label:active{
+  transform:none !important; background:#F7F7F3 !important;
+}
+
+/* 主役：動画をひらく */
+#startMenu #smOpen{
+  background:var(--k) !important; color:var(--y) !important;
+  border-radius:16px !important; border-bottom:none !important;
+  min-height:64px; padding:16px !important; font-size:17px !important;
+}
+#startMenu #smOpen svg{ width:26px !important; height:26px !important; flex:0 0 26px !important; }
+#startMenu #smOpen:active{ background:#2A2A22 !important; }
+
+/* 分析にもどる */
+#startMenu #smBackVideo{
+  background:var(--k) !important; color:var(--y) !important;
+  border-radius:14px !important; border-bottom:none !important;
+  margin:0 20px 16px; width:calc(100% - 40px) !important; max-width:340px;
+}
+
+/* 設定は見出しの右に小さく */
+#startMenu #smSettings{
+  width:auto !important; min-height:38px; flex:0 0 auto;
+  padding:5px 13px !important; border-radius:10px !important;
+  border:2px solid var(--k) !important; font-size:12px !important;
+  justify-content:center;
+}
+#startMenu #smSettings svg{ display:none; }
+
+/* ニュースは いちばん下に、黒い帯で */
+#startMenu #newsBar{
+  background:var(--k) !important; color:#D9CE95 !important;
+  border-radius:14px !important; border-bottom:none !important;
+  margin:4px 20px 0; width:calc(100% - 40px) !important;
+  font-size:12px !important; font-weight:700 !important; min-height:46px;
+}
+#startMenu #newsBar svg{ stroke:var(--y) !important; width:17px !important; height:17px !important; flex:0 0 17px !important; }
+#startMenu #newsBar span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* 記録アプリの中に窓として出したときは「見る」のまとまりごと隠す */
+body.embed .smGrp[data-g="see"]{ display:none !important; }
 </style>
 </head>
 <body>
@@ -1250,17 +1349,31 @@
 
   <!-- 動画を開く（最初だけ／隅に小さくも） -->
   <div id="startMenu">
-    <div class="logo">Swim<span>IQ</span></div>
+    <div class="smHead">
+      <div>
+        <div class="logo">SWIM<span>IQ</span><sup class="tm">&#8482;</sup></div>
+        <div class="smSub">レース分析</div>
+      </div>
+      <button id="smSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9.5" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
+    </div>
     <button id="smBackVideo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.5 5.5 4 12l6.5 6.5"/><path d="M4 12h16"/></svg><span>分析に もどる</span></button>
-    <label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label>
-    <button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button>
-    <button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button>
-    <button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button>
-    <button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button>
-    <button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button>
-    <button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button>
+
+    <div class="smGrp" data-g="take">
+      <div class="smGl">とる</div>
+      <div class="smList one"><label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label></div>
+    </div>
+
+    <div class="smGrp" data-g="see">
+      <div class="smGl">見る</div>
+      <div class="smList"><button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button><button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button><button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button></div>
+    </div>
+
+    <div class="smGrp" data-g="cmp">
+      <div class="smGl">くらべる</div>
+      <div class="smList"><button id="smAnalyze"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 4.5v15h15"/><path d="M7.5 15l4-5 3 3 5-6.5"/></svg><span>データを分析</span></button><button id="smCompare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="4.5" height="8" rx="1"/><rect x="14" y="5.5" width="4.5" height="13" rx="1"/></svg><span>データを比較</span></button><button id="smProgress"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-6 3.8 3.8 6.7-8"/><path d="M14.5 7.3h5v5"/></svg><span>進捗</span></button></div>
+    </div>
+
     <button id="newsBar" type="button" aria-label="きょうの水泳ニュース。押すと元の記事がひらきます"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 9.5h8M8 13h8M8 16.5h5"/></svg><span id="newsText">きょうの水泳ニュース</span></button>
-    <button id="smSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><circle cx="9.5" cy="7.5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="16.5" r="2" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
   <label id="changeBtn" for="videoFile">🎬 動画をかえる</label>
@@ -7990,7 +8103,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.09.01.c';
+  var SWIMIQ_BUILD='2026.09.01.d';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   if($('anaVer')) $('anaVer').textContent='分析画面 '+SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();

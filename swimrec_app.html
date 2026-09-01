@@ -52,7 +52,7 @@ header{ background:var(--white); padding:18px 24px 14px; }
 /* タイトルは、下のタブや本文と左右のはしをそろえる(中央に寄せる) */
 .brand{ display:flex; align-items:center; gap:18px; flex-wrap:wrap;
         max-width:1180px; margin:0 auto; width:100%; }
-.brand h1{ font-size:1.6rem; font-weight:700; letter-spacing:.02em; margin:0; line-height:0; flex:0 0 auto; }
+.brand h1{ margin:0; flex:0 0 auto; }
 /* ロゴは横長なので、幅で大きさを決める(画面が広いほど大きく) */
 .brand img.logo{ width:clamp(280px, 34vw, 460px); height:auto; display:block; }
 .brand .sub{ color:var(--gray); font-size:clamp(.95rem, 1.5vw, 1.35rem);
@@ -472,14 +472,27 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 body{ background:var(--yellow); }
 
 header{ background:var(--yellow); padding:14px 24px 6px; }
-.brand{ align-items:center; flex-wrap:nowrap; gap:12px; }
-.brand .bmark{ flex:1 1 auto; min-width:0; }
-.wordmark{ color:var(--black); font-weight:900; letter-spacing:-.01em; line-height:1.05; }
-.wordmark span{ -webkit-text-stroke:1.6px var(--black); color:transparent; }
-/* チーム名。切りかえの丸ボタン(.sub)と 名前がぶつからないよう別名にしています */
+.brand{ align-items:baseline; flex-wrap:nowrap; gap:10px; }
+/* ロゴ。SWIM はふとい書体、IQ は中ぬき、右かたに ™。
+   Impact は iPhone に入っていないので、よく似た Anton を control にしています */
+.brand h1.wordmark{
+  flex:0 0 auto; margin:0; line-height:1;
+  font-family:Impact,"Anton","Haettenschweiler","Arial Narrow",sans-serif;
+  font-size:2rem; font-weight:400; letter-spacing:.01em;
+  color:var(--black); white-space:nowrap;
+}
+.wordmark .w1{ color:var(--black); }
+.wordmark .w2{ -webkit-text-stroke:1.5px var(--black); color:transparent; }
+.wordmark .tm{
+  -webkit-text-stroke:0; color:var(--black);
+  font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  font-size:.3em; font-weight:800; vertical-align:super; margin-left:1px;
+}
+/* チーム名。ロゴの右どなりに置きます。
+   切りかえの丸ボタン(.sub)と 名前がぶつからないよう別名にしています */
 .brand .teamname{
-  display:block; margin-top:2px;
-  font-size:.8rem; font-weight:700; color:var(--sub-ink); letter-spacing:.01em;
+  flex:1 1 auto; min-width:0;
+  font-size:.72rem; font-weight:700; color:var(--sub-ink); letter-spacing:.01em;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 #menuBtn{
@@ -521,19 +534,28 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
 .hintFold > summary:hover{ background:#FBEDBE; }
 
 @media (max-width:640px){
-  header{ padding:12px 18px 4px; }
-  #toolMenu .tmIn{ padding:6px 18px 12px; }
-  #menuBtn{ font-size:.84rem; padding:6px 13px; min-height:42px; }
+  header{ padding:12px 16px 4px; }
+  #toolMenu .tmIn{ padding:6px 16px 12px; }
+  #menuBtn{ font-size:.8rem; padding:6px 11px; min-height:42px; }
+  .brand{ gap:8px; }
+  .brand h1.wordmark{ font-size:1.6rem; }
+  .brand .teamname{ font-size:.66rem; }
+}
+@media (max-width:360px){
+  .brand h1.wordmark{ font-size:1.4rem; }
+  .brand .teamname{ font-size:.6rem; }
 }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
 </head>
 <body class="hasnav">
 <header>
   <div class="brand">
-    <div class="bmark">
-      <h1 class="wordmark">Swim<span>IQ</span></h1>
-      <span class="teamname">中京大学水泳部データベース</span>
-    </div>
+    <h1 class="wordmark" aria-label="SwimIQ"><span class="w1">SWIM</span><span
+        class="w2">IQ<sup class="tm">&#8482;</sup></span></h1>
+    <span class="teamname">中京大学水泳部データベース</span>
     <button type="button" id="menuBtn" onclick="toggleToolMenu()" aria-expanded="false"
             aria-controls="toolMenu">メニュー</button>
   </div>
@@ -671,7 +693,7 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.01.3';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.01.4';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';

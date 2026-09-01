@@ -376,6 +376,65 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 @media (min-width:641px) and (max-width:1024px){
   .modes{ grid-template-columns:repeat(3,1fr); }
 }
+
+/* ============================================================
+   レース分析の画面 (2026.08.31)
+   この中だけで使う色と形。rc2 で始まる名前にして、
+   ほかの画面に影響しないようにしています。
+============================================================ */
+.rc2{ --y:#F5FF19; --y2:#FFE23A; --rd:#E4002B; --ik:#111418; --sb:#6B6B6B; --ln:#E5E5E5; }
+.rc2 .hero{ position:relative; overflow:hidden; border-radius:16px;
+  background:linear-gradient(150deg,var(--y) 0%,var(--y2) 70%,#FFD400 100%);
+  padding:18px 18px 20px; margin-bottom:6px; }
+.rc2 .hero .tex{ position:absolute; inset:0; width:100%; height:100%; }
+.rc2 .hero .in{ position:relative; }
+.rc2 .meta{ display:flex; flex-wrap:wrap; gap:4px 10px; font-size:.82rem;
+  font-weight:600; color:#5A5200; }
+.rc2 .ev{ font-size:1.6rem; font-weight:900; letter-spacing:-.02em; margin-top:4px; color:#111418; }
+.rc2 .who{ font-size:.95rem; font-weight:700; color:#3A3400; margin-top:2px; }
+.rc2 .fin{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:14px; }
+.rc2 .fin .lb{ font-size:.72rem; font-weight:800; color:#5A5200; letter-spacing:.04em; }
+.rc2 .fin .tm{ font-size:3.2rem; font-weight:900; color:var(--rd);
+  letter-spacing:-.04em; line-height:.92; font-variant-numeric:tabular-nums; }
+.rc2 .fin .rt{ text-align:right; font-size:.75rem; color:#3A3400; font-weight:600; line-height:1.5; }
+.rc2 .fin .rt b{ display:block; font-size:1.05rem; font-weight:900; letter-spacing:-.02em; }
+.rc2 .fin .rt b.up{ color:#1A7A2E; }
+.rc2 .fin .rt b.dn{ color:#B3261E; }
+.rc2 .sec{ margin-top:18px; }
+.rc2 .sechd{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.rc2 .sechd .bar{ width:4px; height:16px; background:var(--rd); border-radius:2px; }
+.rc2 .sechd h3{ font-size:.98rem; font-weight:900; margin:0; }
+.rc2 .sechd .nt{ margin-left:auto; font-size:.72rem; color:var(--sb); font-weight:600; }
+.rc2 .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.rc2 .cell{ background:#FAFAFA; border:1px solid var(--ln); border-radius:12px; padding:11px 12px 12px; }
+.rc2 .cell .k{ font-size:.76rem; font-weight:600; color:var(--sb); line-height:1.3; }
+.rc2 .cell .v{ font-size:1.7rem; font-weight:900; color:var(--rd);
+  letter-spacing:-.03em; line-height:1.05; margin-top:4px; font-variant-numeric:tabular-nums; }
+.rc2 .cell .v .u{ font-size:.8rem; font-weight:800; color:#9A0020; margin-left:3px; }
+.rc2 .cell .d{ font-size:.7rem; color:var(--sb); margin-top:3px; font-weight:600; }
+.rc2 .cell .d.up{ color:#1A7A2E; }
+.rc2 .cell .d.dn{ color:#B3261E; }
+.rc2 .cell.dark{ background:var(--ik); border-color:var(--ik); }
+.rc2 .cell.dark .k{ color:#A8A8A8; }
+.rc2 .cell.dark .v{ color:var(--y); }
+.rc2 .cell.dark .v .u{ color:#C9D400; }
+.rc2 .cell.dark .d{ color:#8A8A8A; }
+.rc2 .laps{ border:1px solid var(--ln); border-radius:12px; overflow:hidden; }
+.rc2 .lap{ display:grid; grid-template-columns:74px 1fr 68px; align-items:center; gap:10px;
+  padding:8px 12px; border-bottom:1px solid var(--ln); }
+.rc2 .lap:last-child{ border-bottom:0; }
+.rc2 .lap .no{ font-size:.74rem; color:var(--sb); font-weight:600; }
+.rc2 .lap .tr{ height:8px; background:#EDEDED; border-radius:4px; overflow:hidden; }
+.rc2 .lap .fl{ height:100%; background:var(--ik); border-radius:4px; }
+.rc2 .lap .fl.best{ background:var(--rd); }
+.rc2 .lap .t{ font-size:.95rem; font-weight:900; text-align:right;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.rc2 .empty{ font-size:.8rem; color:var(--sb); font-weight:600;
+  background:#FAFAFA; border:1px dashed var(--ln); border-radius:12px; padding:12px; }
+@media (max-width:380px){
+  .rc2 .fin .tm{ font-size:2.6rem; }
+  .rc2 .ev{ font-size:1.35rem; }
+}
 </style>
 </head>
 <body class="hasnav">
@@ -512,7 +571,7 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.08.30.1';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.08.31.2';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -959,12 +1018,16 @@ async function loadRecords(force){
 function rec(r){
   const mt = (DATA && DATA.meets) ? DATA.meets[r[0]] : null;
   if(!mt) return { meet:{meet:'',year:0,month:0,course:''}, name:'', sex:'', stroke:'', dist:0,
-                   time:'', best:'', pb:false, round:'', splits:[], sec:null, stamp:0 };
+                   time:'', best:'', pb:false, round:'', splits:[],
+                   tempo:'', count:'', sec:null, stamp:0 };
   // r[8]はラウンド、r[9]は通過タイム(「30.23 / 1:02.72 / …」の形)
+  // r[10]はテンポ(「1.15 / 1.20」の形)、r[11]はかき数(「36 / 43」の形)
   const spRaw = String(r[9] || '').trim();
   return { meet:mt, name:r[1], sex:r[2], stroke:r[3], dist:r[4],
            time:r[5], best:r[6], pb:r[7]===1, round:r[8]||'',
            splits: spRaw ? spRaw.split('/').map(s=>s.trim()).filter(s=>s) : [],
+           tempo: String(r[10] || '').trim(),
+           count: String(r[11] || '').trim(),
            sec:toSec(r[5]), stamp:mt.year*100+mt.month };
 }
 
@@ -2377,7 +2440,9 @@ function swimiqLink(r, mode){
     dist: String(r.dist || ''), stroke: r.stroke || '',
     sex: r.sex || '', round: r.round || '',
     time: String(r.time || ''),
-    splits: (r.splits || []).join(',')
+    splits: (r.splits || []).join(','),
+    tempo: String(r.tempo || ''),
+    count: String(r.count || '')
   });
   return SWIMIQ_URL + '?' + q.toString();
 }
@@ -2430,6 +2495,109 @@ document.addEventListener('keydown', function(e){
   if(e.key === 'Escape' && !document.getElementById('iqModal').classList.contains('hide')) closeIQ();
 });
 
+/* ============================================================
+   レース分析の画面をつくる部品 (2026.08.31)
+   いまスプレッドシートにある値だけで組み立てます。
+   まだ測れないもの(飛び込み反応・ターン・ドルフィンキックなど)は
+   枠ごと出しません。空欄が並ぶと こわれて見えるからです。
+============================================================ */
+
+// 「1.15 / 1.20」のような文字を、数の列にひらく
+function splitNums(txt){
+  return String(txt || '').split('/').map(x=>{
+    const v = parseFloat(String(x).trim());
+    return isNaN(v) ? null : v;
+  });
+}
+// 同じ選手・同じ種目・同じ水路で、これより前のいちばん新しい一本をさがす
+function prevRaceOf(r){
+  const all = ((DATA && DATA.records) ? DATA.records : []).map(rec);
+  let best = null;
+  all.forEach(x=>{
+    if(x.name !== r.name) return;
+    if(Number(x.dist) !== Number(r.dist)) return;
+    if(x.stroke !== r.stroke) return;
+    if((x.meet.course||'') !== (r.meet.course||'')) return;
+    if(x.stamp >= r.stamp) return;
+    if(x.sec == null) return;
+    if(!best || x.stamp > best.stamp) best = x;
+  });
+  return best;
+}
+// 区間データの枠をつくる。中身のあるものだけ返す
+function raceCells(r){
+  const cells = [];
+  const cnt = splitNums(r.count).filter(v=>v!=null && v>0);
+  const tmp = splitNums(r.tempo).filter(v=>v!=null && v>0);
+
+  if(cnt.length){
+    const total = cnt.reduce((a,b)=>a+b, 0);
+    const per = (Number(r.dist) > 0 && total > 0) ? (Number(r.dist)/total).toFixed(2) : null;
+    cells.push(`<div class="cell dark"><div class="k">総ストローク数</div>
+      <div class="v">${total}<span class="u">回</span></div>
+      ${per ? `<div class="d">1かきあたり ${per}m</div>` : '<div class="d">かき数の合計</div>'}</div>`);
+  }
+  if(tmp.length){
+    const avg = tmp.reduce((a,b)=>a+b, 0) / tmp.length;
+    cells.push(`<div class="cell dark"><div class="k">平均テンポ</div>
+      <div class="v">${avg.toFixed(2)}<span class="u">秒</span></div>
+      <div class="d">1かきにかかる時間</div></div>`);
+    cells.push(`<div class="cell dark"><div class="k">毎分のかき数</div>
+      <div class="v">${Math.round(60/(tmp.reduce((a,b)=>a+b,0)/tmp.length))}<span class="u">回</span></div>
+      <div class="d">テンポから計算</div></div>`);
+  }
+  // 区間ごとのテンポが2つ以上あれば、前半と後半のちがいを出す
+  if(tmp.length >= 2){
+    const half = Math.floor(tmp.length/2);
+    const a = tmp.slice(0, half).reduce((x,y)=>x+y,0)/half;
+    const b = tmp.slice(half).reduce((x,y)=>x+y,0)/(tmp.length-half);
+    const df = b - a;
+    cells.push(`<div class="cell"><div class="k">後半のテンポの変化</div>
+      <div class="v">${(df>=0?'+':'')}${df.toFixed(2)}<span class="u">秒</span></div>
+      <div class="d ${df<=0?'up':'dn'}">${df<=0 ? '後半のほうが速いかき' : '後半はかきが遅くなった'}</div></div>`);
+  }
+  const pv = prevRaceOf(r);
+  if(pv && r.sec != null){
+    const df = r.sec - pv.sec;
+    cells.push(`<div class="cell"><div class="k">前回の同じ種目との差</div>
+      <div class="v">${(df>=0?'+':'')}${df.toFixed(2)}<span class="u">秒</span></div>
+      <div class="d ${df<=0?'up':'dn'}">${esc(pv.meet.year+'年'+pv.meet.month+'月')}　${esc(toStr(pv.sec)||'')}</div></div>`);
+  }
+  if(!cells.length) return '';
+  // 奇数のときは、最後の枠を横いっぱいにする
+  if(cells.length % 2 === 1){
+    cells[cells.length-1] = cells[cells.length-1].replace('class="cell', 'style="grid-column:1 / -1" class="cell');
+  }
+  return `<div class="sec"><div class="sechd"><span class="bar"></span><h3>区間データ</h3>
+    <span class="nt">入っている分だけ</span></div>
+    <div class="grid">${cells.join('')}</div></div>`;
+}
+// ラップの棒グラフ
+function raceLapBars(r){
+  if(!r.splits || !r.splits.length) return '';
+  const all = r.splits.concat([r.time]);
+  const step = (r.dist && all.length) ? Math.round(r.dist/all.length) : 50;
+  const laps = [];
+  for(let i=0; i<all.length; i++){
+    const a = toSec(all[i]), b = (i===0) ? 0 : toSec(all[i-1]);
+    laps.push((a!=null && b!=null) ? (a-b) : null);
+  }
+  const ok = laps.filter(v=>v!=null && v>0);
+  if(!ok.length) return '';
+  const mx = Math.max.apply(null, ok), mn = Math.min.apply(null, ok);
+  let h = `<div class="sec"><div class="sechd"><span class="bar"></span><h3>ラップタイム</h3>
+    <span class="nt">${step}m ごと</span></div><div class="laps">`;
+  laps.forEach((v,i)=>{
+    const from = step*i + 1, to = step*(i+1);
+    const w = (v!=null && v>0 && mx>0) ? Math.round(v/mx*100) : 0;
+    const isBest = (v!=null && v===mn);
+    h += `<div class="lap"><span class="no">${from} 〜 ${to}</span>
+      <span class="tr"><span class="fl${isBest?' best':''}" style="width:${w}%"></span></span>
+      <span class="t">${v!=null ? v.toFixed(2) : '—'}</span></div>`;
+  });
+  return h + '</div></div>';
+}
+
 function openRace(id){
   const r = RACE_STORE[id];
   if(!r) return;
@@ -2437,20 +2605,65 @@ function openRace(id){
   const cs = r.meet.course || '長水路';
   const when = `${r.meet.year}年${r.meet.month}月` + (r.meet.date ? `（${esc(r.meet.date)}）` : '');
   const hasLap = !!(r.splits && r.splits.length);
+  // 大会前のベストとの差（ベストが入っていれば）
+  const bsec = toSec(r.best);
+  let deltaHtml = '';
+  if(bsec != null && r.sec != null){
+    const df = r.sec - bsec;
+    deltaHtml = `<div class="rt">${df <= 0 ? '自己ベスト更新' : '大会前のベストとの差'}
+      <b class="${df <= 0 ? 'up' : 'dn'}">${df <= 0 ? '' : '+'}${df.toFixed(2)}</b>
+      ${esc(toStr(bsec))}</div>`;
+  }else{
+    deltaHtml = `<div class="rt">大会前のベスト<b>—</b></div>`;
+  }
+  // 学年が分かれば名前のよこに出す（名簿にあるときだけ）
+  let team = '';
+  try{
+    const g = (typeof gradeAtMeet === 'function') ? gradeAtMeet(r.name, r.meet, r.sex) : '';
+    if(g) team = String(g);
+  }catch(e){}
+
   card.innerHTML = `
-    <div class="rcTop">
-      <div>
-        <div class="rcMeet">${esc(r.meet.meet)}　${when}　${courseTag(cs)}${r.meet.place? '　'+esc(r.meet.place):''}</div>
-        <div class="rcName">${esc(r.name)}</div>
+    <div class="rc2">
+      <div class="rcTop" style="margin-bottom:10px">
+        <div></div>
+        <button type="button" class="rcClose" onclick="closeRace()">とじる</button>
       </div>
-      <button type="button" class="rcClose" onclick="closeRace()">とじる</button>
+
+      <div class="hero">
+        <svg class="tex" viewBox="0 0 460 220" preserveAspectRatio="none" aria-hidden="true">
+          <g fill="none" stroke="#000" stroke-opacity=".06" stroke-width="4" stroke-linecap="round">
+            <path d="M-20 40 C 60 20, 110 60, 190 40 S 330 20, 400 40 S 470 60, 490 40"/>
+            <path d="M-20 176 C 60 156, 110 196, 190 176 S 330 156, 400 176 S 470 196, 490 176"/>
+            <path d="M-20 200 C 60 180, 110 220, 190 200 S 330 180, 400 200 S 470 220, 490 200"/>
+          </g>
+          <circle cx="400" cy="20" r="60" fill="#fff" fill-opacity=".25"/>
+        </svg>
+        <div class="in">
+          <div class="meta">
+            <span>${esc(when)}</span>
+            <span>${esc(r.meet.meet)}</span>
+            ${r.round ? '<span>'+esc(r.round)+'</span>' : ''}
+            <span>${esc(cs)}</span>
+          </div>
+          <div class="ev">${r.dist}m ${esc(strokeJa(r.stroke))}</div>
+          <div class="who">${esc(r.name)}${team ? ' ・ '+esc(team) : ''}</div>
+          <div class="fin">
+            <div>
+              <div class="lb">レースタイム</div>
+              <div class="tm">${r.pb ? BEST_MARK : ''}${esc(toStr(r.sec) || fmtTime(r.time))}</div>
+            </div>
+            ${deltaHtml}
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">${recordBadges(r.sec, r.stroke, r.dist, r.sex, cs, {name:r.name, meet:r.meet, sex:r.sex})}</div>
+
+      ${raceCells(r)}
+      ${raceLapBars(r)}
+      ${hasLap ? '' : '<div class="sec"><div class="empty">このレースには通過タイムが入っていません。動画から自分で取ることもできます。</div></div>'}
     </div>
-    <div class="rcEvent">${evShort(r.dist, r.stroke)}${r.round? '　'+esc(r.round):''}</div>
-    <div class="rcTime">${r.pb ? BEST_MARK : ''}${esc(toStr(r.sec) || fmtTime(r.time))}</div>
-    <div class="rcSub">大会前のベスト ${esc(fmtTime(r.best) || '—')}
-      ${recordBadges(r.sec, r.stroke, r.dist, r.sex, cs, {name:r.name, meet:r.meet, sex:r.sex})}</div>
-    ${raceLapTable(r)}
-    ${hasLap ? '' : '<p class="hint" style="margin-top:16px">このレースには通過タイムが入っていません。動画から自分で取ることもできます。</p>'}
     <div class="rcActs">
       <button type="button" class="a1" onclick="raceGo('${id}','video')">動画を見る</button>
       <button type="button" class="a2" onclick="raceGo('${id}','analyze')">分析する</button>

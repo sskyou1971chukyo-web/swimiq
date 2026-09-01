@@ -1138,6 +1138,7 @@
   border-radius:11px !important;
 }
 .atab.active{ background:var(--k) !important; color:var(--y) !important; border-color:var(--k) !important; }
+.modal-card button.atab.active{ background:var(--k) !important; color:var(--y) !important; }
 
 .modal-card .stroke-btns button, .modal-card .navrow button,
 .modal-card .df-race button, .dist-grid button, .dist-custom button{ text-shadow:none !important; }
@@ -1174,10 +1175,54 @@
   background:#fff !important; color:var(--k) !important;
   border:2px solid var(--k) !important; box-shadow:none !important;
 }
-/* 窓の中の ふつうのボタンは 黒地に黄色 */
-.modal-card .stroke-btns button, .modal-card .df-race button,
-.modal-card .seg-row button, .modal-card .pad-keys button{
-  color:#fff;
+/* 窓の中のボタンは、まず白地に黒として読めるようにしてから、
+   目立たせたいものだけ 黒地に黄色にします。 */
+.modal-card button{
+  color:var(--k) !important;
+  border-color:rgba(18,18,14,.55) !important;
+  text-shadow:none !important;
+}
+.modal-card button:not(.atab):not(.pad-keys button){
+  background:#fff !important;
+  border:2px solid var(--k) !important;
+  box-shadow:0 2px 0 rgba(60,48,0,.22) !important;
+}
+.modal-card button:disabled{ opacity:.45 !important; }
+/* いちばん押してほしいボタンだけ 黒地に黄色 */
+.modal-card #anaPush, .modal-card #svSave, .modal-card #padOk,
+.modal-card .db-ana, .modal-card .mine-graph, .modal-card #rptPrint{
+  background:var(--k) !important; color:var(--y) !important;
+  border:2px solid var(--k) !important;
+}
+/* えらび直しなど、そえもののボタンは 枠だけ */
+.modal-card .mine-switch{
+  background:transparent !important; color:var(--k) !important;
+  border:2px dashed rgba(18,18,14,.5) !important; box-shadow:none !important;
+}
+/* 数字を打つ盤は 白地に黒のまま */
+.modal-card .pad-keys button{
+  background:#fff !important; color:var(--k) !important;
+  border:2px solid rgba(18,18,14,.3) !important;
+}
+/* 白い箱の中にある行（記録の一覧など） */
+.modal-card .mine-row, .modal-card .df-race{
+  background:#fff !important; border:2px solid rgba(18,18,14,.18) !important;
+}
+/* 窓の中の 文字は すべて黒を基本にします。
+   白のままにするのは、黒い地の上にのっているものだけです。 */
+.modal-card div, .modal-card span, .modal-card p, .modal-card li, .modal-card td, .modal-card th{
+  color:inherit;
+}
+.modal-card .rt-step, .modal-card #rtTutStep, .modal-card #svUpText,
+.modal-card .ri-sec, .modal-card .ri-row, .modal-card #riBmi, .modal-card #riSwBmi,
+.modal-card #riDist, .modal-card #riMsg{
+  color:var(--k) !important;
+}
+.modal-card .ri-sec, .modal-card #svUpText{
+  background:#fff !important; border-radius:12px;
+}
+.modal-card button.atab.active, .modal-card .atab.active{
+  background:var(--k) !important; color:var(--y) !important;
 }
 </style>
 </head>
@@ -7945,7 +7990,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.09.01.b';
+  var SWIMIQ_BUILD='2026.09.01.c';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   if($('anaVer')) $('anaVer').textContent='分析画面 '+SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();

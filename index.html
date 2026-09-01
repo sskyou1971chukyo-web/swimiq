@@ -5450,7 +5450,8 @@
              year:q.get('year')||'', month:q.get('month')||'', date:q.get('date')||'',
              course:q.get('course')||'', dist:q.get('dist')||'', stroke:q.get('stroke')||'',
              sex:q.get('sex')||'', round:q.get('round')||'',
-             time:q.get('time')||'', splits:q.get('splits')||'' };
+             time:q.get('time')||'', splits:q.get('splits')||'',
+             tempo:q.get('tempo')||'', count:q.get('count')||'' };
   }
 
   // 「1:01.42」や「28.60」を秒の数に直す
@@ -5481,9 +5482,30 @@
       if(sec!=null){ official[step*(i+1)]=sec; ok=true; }
     });
     if(!ok) return null;
+
+    // 記録アプリから届いた テンポとかき数を、もとの形に組み立て直す。
+    // テンポは「1.15 / 1.20」、かき数は「36 / 43」の形で届く。
+    // どちらも区間の順にならんでいるので、順番どおりに割りあてる。
+    var tempo={};
+    var tp=String(q.tempo||'').split('/');
+    var ds=Object.keys(official).map(Number).sort(function(a,b){ return a-b; });
+    var prev=0;
+    ds.forEach(function(d,i){
+      var v=parseFloat(String(tp[i]||'').trim());
+      if(!isNaN(v) && v>0){
+        tempo[prev+'-'+d]={ method:'cust', strokes:0, perStroke:v, spm:60/v };
+      }
+      prev=d;
+    });
+    var strokes=String(q.count||'').split('/').map(function(x){
+      var n=parseInt(String(x).trim(),10);
+      return isNaN(n) ? null : n;
+    });
+    while(strokes.length && strokes[strokes.length-1]==null) strokes.pop();
+
     return { meetName:q.meet||'', meetDate:q.date||q.year||'', stroke:strokeName(q.stroke),
       raceDist:dist, course:q.course||'', round:q.round||'',
-      data:{ official:official, splits:{}, tempo:{}, strokes:[], rt:null } };
+      data:{ official:official, splits:{}, tempo:tempo, strokes:strokes, rt:null } };
   }
 
   // 受け取った合言葉で、大会データから1本をさがしてよびだす
@@ -5494,7 +5516,8 @@
     // 通過タイムが一緒に届いていれば、それだけでレースを作れる
     if(q.splits || q.time){
       var race=raceFromUrl(q);
-      if(race && Object.keys(race.data.official).length>1){
+      // 50mのように通過タイムが1つだけでも、テンポとかき数は入れられるので受け入れる
+      if(race && Object.keys(race.data.official).length>=1){
         URLQ=null;
         applyLoadedRace(race);
         anaLabel=(q.name||'')+'　'+(q.dist||'')+'m '+strokeName(q.stroke);
@@ -7127,11 +7150,16 @@
   }
   // テンポを「1.15 / 1.20 / 1.22」の形にする（区間の順にならべる）
   function custTempoText(){
-    var keys=Object.keys(tempoValues).filter(function(k){
-      return tempoValues[k] && tempoValues[k].perStroke;
+    // 区間の順にならべる。入っていない区間は空にしておく。
+    // こうしておくと、あとで読みもどしたときに区間がずれない。
+    var rows=anaRows(), out=[], any=false;
+    rows.forEach(function(r){
+      var t=tempoValues[r.from+'-'+r.to];
+      if(t && t.perStroke){ out.push(t.perStroke.toFixed(2)); any=true; }
+      else out.push('');
     });
-    keys.sort(function(a,b){ return parseInt(a,10)-parseInt(b,10); });
-    return keys.map(function(k){ return tempoValues[k].perStroke.toFixed(2); }).join(' / ');
+    while(out.length && out[out.length-1]==='') out.pop();
+    return any ? out.join(' / ') : '';
   }
   // かき数を「36 / 43」の形にする（50mごと）
   function custCountText(){
@@ -7297,20 +7325,37 @@
   // 泳区間（飛び込みの1本目をのぞいた区間）だけを取り出す
   function rptSwim(rows){ return (rows.length>1)? rows.slice(1) : rows.slice(0); }
 
-  // 上のかたまり（総合タイムと、おもな数字の箱）
   // ===== ここから、紙1枚を「1枚の絵（SVG）」として組み立てる =====
   // 絵にしておくと、画面表示・印刷・画像保存の3つを同じ中身でまかなえる。
-  var RP_W=794, RP_H=1123, RP_M=38;              // A4の大きさと、まわりの余白
-  var RP_IW=RP_W-RP_M*2;                          // 中身の横はば
+  var RP_W=794, RP_H=1123, RP_M=40;               // A4の大きさと、まわりの余白
+  var RP_IW=RP_W-RP_M*2;                           // 中身の横はば
 
-  // 文字のおおよその横はばを見つもる（全角は1文字ぶん、半角は約0.55文字ぶん）
-  function rpW(t, size){
-    t=String(t==null?'':t); var w=0;
+  // 使う色をひとまとめにしておく
+  var RPC={ ink:'#0f2233', blue:'#1558a8', sky:'#eef4fb', line:'#dbe4ec',
+            teal:'#0d9488', orange:'#c2410c', purple:'#7c3aed',
+            gray:'#5a6b78', pale:'#f4f7fa' };
+
+  // 文字のはばを、実際にはかる。
+  // 目分量だと太い欧文で足りなくなり、文字どうしが重なるため。
+  var _rpCtx=null;
+  function rpFont(size, weight){
+    return (weight||700)+' '+size+'px "Hiragino Sans","Hiragino Kaku Gothic ProN",'+
+           '"Noto Sans JP","Yu Gothic","Meiryo",sans-serif';
+  }
+  function rpW(t, size, weight){
+    t=String(t==null?'':t);
+    try{
+      if(!_rpCtx) _rpCtx=document.createElement('canvas').getContext('2d');
+      _rpCtx.font=rpFont(size, weight);
+      var w=_rpCtx.measureText(t).width;
+      if(w>0) return w;
+    }catch(e){}
+    var w2=0;                                   // はかれないときの見つもり
     for(var i=0;i<t.length;i++){
       var c=t.charCodeAt(i);
-      w+=(c>0x2E80 && c<0xFF61)? 1 : ((c>=0xFF61&&c<=0xFF9F)? 0.5 : 0.55);
+      w2+=(c>0x2E80 && c<0xFF61)? 1 : ((c>=0xFF61&&c<=0xFF9F)? 0.5 : 0.64);
     }
-    return w*size;
+    return w2*size;
   }
   function rpT(x,y,txt,cls,anchor){
     return '<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" class="'+cls+'"'+
@@ -7318,126 +7363,171 @@
   }
   function rpBox(x,y,w,h,fill,r){
     return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+
-           '" height="'+h.toFixed(1)+'" rx="'+(r==null?7:r)+'" fill="'+fill+'"/>';
+           '" height="'+h.toFixed(1)+'" rx="'+(r==null?8:r)+'" fill="'+fill+'"/>';
   }
-  // 絵の中で使う文字や色の決めごと
+  function rpLine(x1,y1,x2,y2,col,wd){
+    return '<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+
+           '" y2="'+y2.toFixed(1)+'" stroke="'+col+'" stroke-width="'+(wd||0.9)+'"/>';
+  }
+  // 絵の中で使う文字の決めごと。前より一回り大きくしています。
   var RP_STYLE=
     'text{font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",'+
     '"Meiryo",sans-serif;}'+
-    '.logo{font-size:17px;font-weight:900;fill:#0e3a5c}'+
-    '.sub{font-size:11px;font-weight:700;fill:#5a6b78}'+
-    '.meet{font-size:10px;font-weight:700;fill:#5a6b78}'+
-    '.date{font-size:12px;font-weight:800;fill:#111}'+
-    '.pg{font-size:9px;font-weight:700;fill:#9aa8b4}'+
-    '.nm{font-size:22px;font-weight:900;fill:#111}'+
-    '.ev{font-size:15px;font-weight:900;fill:#1d6fa5}'+
-    '.klab{font-size:9.5px;font-weight:700;fill:#5a6b78}'+
-    '.kval{font-size:15px;font-weight:900;fill:#111}'+
-    '.kunit{font-size:9px;font-weight:700;fill:#5a6b78}'+
-    '.ksub{font-size:8.5px;font-weight:700;fill:#5a6b78}'+
-    '.mlab{font-size:10px;font-weight:700;fill:#a9bdcc}'+
-    '.mval{font-size:30px;font-weight:900;fill:#fff}'+
-    '.msub{font-size:9.5px;font-weight:700;fill:#a9bdcc}'+
-    '.sec{font-size:13px;font-weight:900;fill:#111}'+
-    '.leg{font-size:9.5px;font-weight:700;fill:#5a6b78}'+
-    '.dl{font-size:11px;font-weight:900;fill:#1558a8}'+
-    '.dv{font-size:16px;font-weight:900;fill:#111}'+
-    '.dd{font-size:9.5px;font-weight:700;fill:#5a6b78}'+
-    '.note{font-size:9px;font-weight:600;fill:#7a8896}'+
-    '.th{font-size:9.5px;font-weight:900;fill:#fff}'+
-    '.td{font-size:10.5px;font-weight:600;fill:#111}'+
-    '.td1{font-size:10.5px;font-weight:900;fill:#111}'+
-    '.ct{font-size:9.5px;font-weight:900;fill:#111}'+
-    '.cu{font-size:8.5px;font-weight:700;fill:#5a6b78}'+
-    '.ax{font-size:6.5px;font-weight:700;fill:#7a8896}'+
-    '.cv{font-size:7px;font-weight:900;fill:#111}'+
-    '.ft{font-size:9px;font-weight:600;fill:#7a8896}'+
-    '.fl{font-size:9px;font-weight:900;fill:#1558a8}'+
-    '.fr{font-size:9px;font-weight:900;fill:#9fb6c7}';
+    '.logo{font-size:21px;font-weight:900;fill:'+RPC.ink+'}'+
+    '.sub{font-size:11.5px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.meet{font-size:11.5px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.date{font-size:14px;font-weight:900;fill:#111}'+
+    '.pg{font-size:10px;font-weight:700;fill:#9aa8b4}'+
+    '.nm{font-size:27px;font-weight:900;fill:#111}'+
+    '.ev{font-size:18px;font-weight:900;fill:'+RPC.blue+'}'+
+    '.mlab{font-size:12px;font-weight:800;fill:#a9bdcc}'+
+    '.mval{font-size:48px;font-weight:900;fill:#fff}'+
+    '.msub{font-size:11.5px;font-weight:700;fill:#a9bdcc}'+
+    '.hlab{font-size:11px;font-weight:800;fill:#9fb8cc}'+
+    '.hval{font-size:23px;font-weight:900;fill:#fff}'+
+    '.hunit{font-size:11px;font-weight:800;fill:#9fb8cc}'+
+    '.klab{font-size:11px;font-weight:800;fill:'+RPC.gray+'}'+
+    '.kval{font-size:23px;font-weight:900;fill:#111}'+
+    '.kunit{font-size:11px;font-weight:800;fill:'+RPC.gray+'}'+
+    '.ksub{font-size:10.5px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.sec{font-size:15px;font-weight:900;fill:#111}'+
+    '.leg{font-size:11px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.say{font-size:13.5px;font-weight:800;fill:#12324a}'+
+    '.say2{font-size:12px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.th{font-size:11px;font-weight:900;fill:#fff}'+
+    '.td{font-size:12px;font-weight:700;fill:#111}'+
+    '.td1{font-size:12px;font-weight:900;fill:#111}'+
+    '.ct{font-size:12.5px;font-weight:900;fill:#111}'+
+    '.cu{font-size:10px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.ax{font-size:8.5px;font-weight:700;fill:#7a8896}'+
+    '.cv{font-size:9.5px;font-weight:900;fill:#111}'+
+    '.note{font-size:10.5px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.ft{font-size:10px;font-weight:700;fill:'+RPC.gray+'}'+
+    '.fl{font-size:10px;font-weight:900;fill:'+RPC.blue+'}'+
+    '.fr{font-size:10px;font-weight:900;fill:#9fb6c7}';
 
-  // 上のかたまり（総合タイムの黒い箱と、まわりの数字の箱）。えがいた高さを返す
-  function rpKeys(rows, page, chunk, meta, y0){
-    var last=rows[rows.length-1], g='', items=[];
-    function box(label, val, unit, sub){ items.push({l:label, v:val, u:unit||'', s:sub||''}); }
+  // 上のかたまり。総合タイムの濃い箱と、その右に大きな数字を3つ。
+  function rpHero(rows, page, chunk, meta, y0){
+    var last=rows[rows.length-1], H=108, g='';
+    var items=[];
     if(page===0){
-      if(rtTime!=null) box('リアクション', rtTime.toFixed(2), '秒');
-      box('スタート（'+rows[0].to+'m）', fmt(rows[0].pass), '秒');
-      if(last.pass>0) box('平均泳速', (last.to/last.pass).toFixed(2), 'm/s');
-      box('フィニッシュ（'+last.dist+'m）', fmt(last.lap), '秒');
-      var fast=rows[0], slow=rows[0];
-      rows.forEach(function(r){ if(r.speed>fast.speed) fast=r; if(r.speed<slow.speed) slow=r; });
-      box('最速区間', fast.from+'-'+fast.to+'m', '', fast.speed.toFixed(2)+' m/s');
-      box('最遅区間', slow.from+'-'+slow.to+'m', '', slow.speed.toFixed(2)+' m/s');
-      var tps=rows.filter(function(r){ return r.tempo!=null; });
-      if(tps.length){
-        box('平均テンポ', (tps.reduce(function(a,r){return a+r.tempo;},0)/tps.length).toFixed(2), '秒/かき');
-      }
-      var cs=rows.filter(function(r){ return r.count!=null; });
-      if(cs.length) box('かき数 合計', String(cs.reduce(function(a,r){return a+r.count;},0)), 'かき');
-      var half=raceDist/2, hp=null;
-      rows.forEach(function(r){ if(r.to===half) hp=r.pass; });
-      if(hp!=null && last.to===raceDist){
-        var bk=last.pass-hp;
-        box('前半 / 後半 '+half+'m', fmt(hp)+' / '+fmt(bk), '',
-            '後半差 '+(bk-hp>=0?'+':'−')+Math.abs(bk-hp).toFixed(2)+'秒');
-      }
-    } else {
+      items.push({l:'スタート '+rows[0].to+'m', v:fmt(rows[0].pass), u:'秒'});
+      if(last.pass>0) items.push({l:'平均の速さ', v:(last.to/last.pass).toFixed(2), u:'m/s'});
+      items.push({l:'ラスト '+last.dist+'m', v:fmt(last.lap), u:'秒'});
+    }else{
       var f0=chunk[0], cl=chunk[chunk.length-1];
       var sum=chunk.reduce(function(a,r){ return a+r.lap; },0);
-      box('このページ '+f0.from+'〜'+cl.to+'m', fmt(sum), '');
-      if(sum>0) box('平均泳速（この間）', ((cl.to-f0.from)/sum).toFixed(2), 'm/s');
-      box('ラスト '+cl.dist+'m', fmt(cl.lap), '秒');
+      items.push({l:f0.from+'〜'+cl.to+'m', v:fmt(sum), u:'秒'});
+      if(sum>0) items.push({l:'平均の速さ', v:((cl.to-f0.from)/sum).toFixed(2), u:'m/s'});
+      items.push({l:'ラスト '+cl.dist+'m', v:fmt(cl.lap), u:'秒'});
     }
-    var gap=7, mainW=283, mainH=76, smallH=52;
-    // 1段目：黒い箱＋小さい箱3つ
-    var sw=(RP_IW-mainW-gap-gap*2)/3;
-    g+=rpBox(RP_M, y0, mainW, mainH, '#0f2233');
-    g+=rpT(RP_M+13, y0+20, '総合タイム', 'mlab');
-    g+=rpT(RP_M+13, y0+52, fmt(last.pass), 'mval');
-    g+=rpT(RP_M+13, y0+67, meta.event, 'msub');
-    function drawSmall(it, x, y, w, h){
-      var s=rpBox(x, y, w, h, '#eef2f6');
-      s+=rpT(x+9, y+16, it.l, 'klab');
-      s+=rpT(x+9, y+34, it.v, 'kval');
-      if(it.u) s+=rpT(x+9+rpW(it.v,15)+3, y+34, it.u, 'kunit');
-      if(it.s) s+=rpT(x+9, y+46, it.s, 'ksub');
-      return s;
-    }
-    var i=0;
-    for(var c=0;c<3 && i<items.length;c++,i++){
-      g+=drawSmall(items[i], RP_M+mainW+gap+c*(sw+gap), y0, sw, mainH);
-    }
-    var y=y0+mainH+gap, per=5, sw2=(RP_IW-gap*(per-1))/per;
-    while(i<items.length){
-      for(var c2=0;c2<per && i<items.length;c2++,i++){
-        g+=drawSmall(items[i], RP_M+c2*(sw2+gap), y, sw2, smallH);
-      }
-      y+=smallH+gap;
-      if(i<items.length) continue;
-    }
-    var h2=(items.length<=3)? mainH : (y-y0-gap);
-    return {svg:g, h:h2};
+    g+=rpBox(RP_M, y0, RP_IW, H, RPC.ink);
+    var lw=302;
+    g+=rpT(RP_M+18, y0+26, '総合タイム', 'mlab');
+    g+=rpT(RP_M+18, y0+74, fmt(last.pass), 'mval');
+    g+=rpT(RP_M+18, y0+94, meta.event, 'msub');
+    var iw=(RP_IW-lw)/items.length;
+    items.forEach(function(it,i){
+      var x=RP_M+lw+iw*i;
+      if(i>0) g+=rpLine(x, y0+20, x, y0+H-20, '#2a4459', 1);
+      g+=rpT(x+16, y0+38, it.l, 'hlab');
+      g+=rpT(x+16, y0+68, it.v, 'hval');
+      if(it.u) g+=rpT(x+16+rpW(it.v,23,900)+5, y0+68, it.u, 'hunit');
+    });
+    return {svg:g, h:H};
   }
 
-  // 泳速の低下率のひとこと（帯）
-  function rpDrop(rows, chunk, y0){
+  // その下の、白い箱にならぶ数字。中身のあるものだけ出します。
+  function rpStats(rows, page, meta, y0, many){
+    if(page!==0) return {svg:'', h:0};
+    var items=[];
+    if(rtTime!=null) items.push({l:'合図からのはんのう', v:rtTime.toFixed(2), u:'秒'});
+    var fast=rows[0], slow=rows[0];
+    rows.forEach(function(r){ if(r.speed>fast.speed) fast=r; if(r.speed<slow.speed) slow=r; });
+    if(rows.length>1){
+      items.push({l:'いちばん速い区間', v:fast.from+'-'+fast.to+'m', u:'', s:fast.speed.toFixed(2)+' m/s'});
+      items.push({l:'いちばん遅い区間', v:slow.from+'-'+slow.to+'m', u:'', s:slow.speed.toFixed(2)+' m/s'});
+    }
+    var half=raceDist/2, hp=null, last=rows[rows.length-1];
+    rows.forEach(function(r){ if(r.to===half) hp=r.pass; });
+    if(hp!=null && last.to===raceDist){
+      var bk=last.pass-hp, df=bk-hp;
+      items.push({l:'前半 / 後半 '+half+'m', v:fmt(hp)+' / '+fmt(bk), u:'',
+                  s:'後半は '+(df>=0?'+':'−')+Math.abs(df).toFixed(2)+' 秒'});
+    }
+    var tps=rows.filter(function(r){ return r.tempo!=null; });
+    if(tps.length){
+      var av=tps.reduce(function(a,r){return a+r.tempo;},0)/tps.length;
+      items.push({l:'平均テンポ', v:av.toFixed(2), u:'秒', s:'1かきにかかる時間'});
+      items.push({l:'毎分のかき数', v:String(Math.round(60/av)), u:'回', s:'テンポから計算'});
+    }
+    var cs=rows.filter(function(r){ return r.count!=null; });
+    if(cs.length){
+      var tot=cs.reduce(function(a,r){return a+r.count;},0);
+      items.push({l:'かき数の合計', v:String(tot), u:'回',
+                  s:(tot>0? '1かきで '+(raceDist/tot).toFixed(2)+'m' : '')});
+    }
+    if(!items.length) return {svg:'', h:0};
+    items=items.slice(0, (many? 3 : 6));         // 区間が多い紙では 3つにおさえる
+    var per=3, gap=9, w=(RP_IW-gap*(per-1))/per, h=70, g='', y=y0;
+    items.forEach(function(it,i){
+      var c=i%per;
+      if(c===0 && i>0) y+=h+gap;
+      var x=RP_M+c*(w+gap);
+      g+=rpBox(x, y, w, h, RPC.pale);
+      g+=rpT(x+13, y+21, it.l, 'klab');
+      g+=rpT(x+13, y+47, it.v, 'kval');
+      if(it.u) g+=rpT(x+13+rpW(it.v,23,900)+5, y+47, it.u, 'kunit');
+      if(it.s) g+=rpT(x+13, y+62, it.s, 'ksub');
+    });
+    return {svg:g, h:(y+h)-y0};
+  }
+
+  // ことばでのまとめ。数字を読むのが苦手でも、ここだけで様子がわかるように。
+  function rpSay(rows, page, y0, many){
+    if(page!==0) return {svg:'', h:0};
+    var lines=[];
+    var last=rows[rows.length-1];
+    var half=raceDist/2, hp=null;
+    rows.forEach(function(r){ if(r.to===half) hp=r.pass; });
+    if(hp!=null && last.to===raceDist){
+      var bk=last.pass-hp, df=bk-hp;
+      lines.push('前半 '+half+'m は '+fmt(hp)+' 秒、後半は '+fmt(bk)+' 秒。'+
+        (Math.abs(df)<0.005 ? '前半と後半は ほぼ同じペースでした。'
+          : (df>0 ? '後半のほうが '+df.toFixed(2)+' 秒 おそくなりました。'
+                  : '後半のほうが '+Math.abs(df).toFixed(2)+' 秒 速く泳げています。')));
+    }else if(last.pass>0){
+      lines.push('全体を通した平均の速さは 毎秒 '+(last.to/last.pass).toFixed(2)+'m でした。');
+    }
     var swim=rptSwim(rows);
-    if(!swim.length || !swim[0].speed) return {svg:'', h:0};
-    var base=swim[0], last=chunk[chunk.length-1];
-    var d=(last.speed/base.speed-1)*100;
-    var inSwim=chunk.filter(function(r){ return r!==rows[0]; });
-    var avg=inSwim.length? inSwim.reduce(function(a,r){return a+r.speed;},0)/inSwim.length : base.speed;
-    var da=(avg/base.speed-1)*100, H=34;
-    var g=rpBox(RP_M, y0, RP_IW, H, '#eef4fa', 6);
-    g+='<rect x="'+RP_M+'" y="'+y0+'" width="3" height="'+H+'" fill="#1558a8"/>';
-    var x=RP_M+14;
-    g+=rpT(x, y0+22, '泳速の低下率', 'dl'); x+=rpW('泳速の低下率',11)+10;
-    g+=rpT(x, y0+23, rptPct(d), 'dv');      x+=rpW(rptPct(d),16)+12;
-    var t1='基準 '+base.from+'-'+base.to+'m（'+base.speed.toFixed(2)+' m/s）';
-    g+=rpT(x, y0+22, t1, 'dd'); x+=rpW(t1,9.5)+12;
-    var t2='最終区間 '+last.speed.toFixed(2)+' m/s '+rptPct(d);
-    g+=rpT(x, y0+22, t2, 'dd'); x+=rpW(t2,9.5)+12;
-    g+=rpT(x, y0+22, '泳区間の平均 '+avg.toFixed(2)+' m/s '+rptPct(da), 'dd');
+    if(swim.length>1){
+      var f=swim[0], s=swim[0];
+      swim.forEach(function(r){ if(r.speed>f.speed) f=r; if(r.speed<s.speed) s=r; });
+      if(f!==s){
+        lines.push('飛び込みのあとで見ると、いちばん速いのは '+f.from+'-'+f.to+'m、'+
+          'いちばん遅いのは '+s.from+'-'+s.to+'m。その差は '+
+          (f.speed-s.speed).toFixed(2)+' m/s です。');
+      }
+    }
+    var tps=rows.filter(function(r){ return r.tempo!=null; });
+    if(tps.length>=2){
+      var h2=Math.floor(tps.length/2);
+      var a=tps.slice(0,h2).reduce(function(x,r){return x+r.tempo;},0)/h2;
+      var b=tps.slice(h2).reduce(function(x,r){return x+r.tempo;},0)/(tps.length-h2);
+      var d2=b-a;
+      lines.push('テンポは 前半 '+a.toFixed(2)+' 秒、後半 '+b.toFixed(2)+' 秒。'+
+        (Math.abs(d2)<0.005 ? 'さいごまで 同じリズムで泳げました。'
+          : (d2>0 ? '後半は 1かきに '+d2.toFixed(2)+' 秒 よけいにかかっています。'
+                  : '後半のほうが '+Math.abs(d2).toFixed(2)+' 秒 速いリズムでした。')));
+    }
+    if(!lines.length) return {svg:'', h:0};
+    lines=lines.slice(0, many? 2 : 3);
+    var H=18+lines.length*19, g='';
+    g+=rpBox(RP_M, y0, RP_IW, H, RPC.sky, 7);
+    g+='<rect x="'+RP_M+'" y="'+y0+'" width="4" height="'+H+'" rx="2" fill="'+RPC.blue+'"/>';
+    lines.forEach(function(t,i){
+      g+=rpT(RP_M+18, y0+26+i*19, t, i===0? 'say':'say2');
+    });
     return {svg:g, h:H};
   }
 
@@ -7445,105 +7535,116 @@
   function rpChart(x0, y0, w, h, opt){
     var items=opt.items;
     if(!items.length) return '';
-    var g=rpBox(x0, y0, w, h, '#ffffff', 6);
-    g+='<rect x="'+x0+'" y="'+y0+'" width="'+w+'" height="'+h+'" rx="6" fill="none" stroke="#e2e8ee"/>';
-    g+=rpT(x0+9, y0+17, opt.title, 'ct');
-    g+=rpT(x0+9+rpW(opt.title,9.5)+6, y0+17, opt.unit||'', 'cu');
-    var padL=x0+32, padR=x0+w-8, padT=y0+26, padB=y0+h-16;
+    var g=rpBox(x0, y0, w, h, '#ffffff', 7);
+    g+='<rect x="'+x0+'" y="'+y0+'" width="'+w+'" height="'+h+'" rx="7" fill="none" stroke="'+RPC.line+'"/>';
+    g+='<rect x="'+(x0+12)+'" y="'+(y0+12)+'" width="9" height="9" rx="2" fill="'+opt.color+'"/>';
+    g+=rpT(x0+27, y0+21, opt.title, 'ct');
+    g+=rpT(x0+27+rpW(opt.title,12.5,900)+8, y0+21, opt.unit||'', 'cu');
+    var padL=x0+42, padR=x0+w-12, padT=y0+38, padB=y0+h-22;
     var iw=padR-padL, ih=padB-padT;
     var vs=items.map(function(i){ return i.value; });
     var mx=Math.max.apply(null,vs), mn=Math.min.apply(null,vs), lo, hi;
-    if(opt.zero){ lo=0; hi=(mx>0? mx*1.2 : 1); }
-    else { var sp=(mx-mn)||(mx*0.2)||1; lo=Math.max(0, mn-sp*0.35); hi=mx+sp*0.35; }
+    if(opt.zero){ lo=0; hi=(mx>0? mx*1.25 : 1); }
+    else { var sp=(mx-mn)||(mx*0.2)||1; lo=Math.max(0, mn-sp*0.45); hi=mx+sp*0.45; }
     if(hi<=lo) hi=lo+1;
     function y(v){ var f=(v-lo)/(hi-lo); return opt.invert? (padT+f*ih) : (padB-f*ih); }
     var dec=(opt.dec==null)?2:opt.dec;
     for(var t=0;t<=3;t++){
       var gv=lo+(hi-lo)*t/3, gy=y(gv);
-      g+='<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+padR+'" y2="'+gy.toFixed(1)+
-         '" stroke="#e8eef3" stroke-width="0.8"/>';
-      g+=rpT(padL-4, gy+2.4, gv.toFixed(dec), 'ax', 'end');
+      g+=rpLine(padL, gy, padR, gy, '#e8eef3', 0.8);
+      g+=rpT(padL-6, gy+3, gv.toFixed(dec), 'ax', 'end');
     }
-    var n=items.length, step=iw/n, skip=(n>9)?2:1;
+    var n=items.length, step=iw/n;
+    // ひとつぶんの はばに 入らない目盛りは とばす（重なりを防ぐ）
+    var need=0;
+    items.forEach(function(it){ need=Math.max(need, rpW(it.label, 8.5, 700)); });
+    var skip=Math.max(1, Math.ceil((need+4)/step));
     var pts=[];
     items.forEach(function(it,i){
       var cx=padL+step*(i+0.5), cy=y(it.value);
       pts.push([cx,cy]);
       if(opt.type!=='line'){
-        var bw=Math.min(step*0.62, 26);
+        var bw=Math.min(step*0.6, 30);
         g+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+cy.toFixed(1)+'" width="'+bw.toFixed(1)+
-           '" height="'+Math.max(0.8,padB-cy).toFixed(1)+'" rx="1.5" fill="'+opt.color+'"/>';
+           '" height="'+Math.max(0.8,padB-cy).toFixed(1)+'" rx="2" fill="'+opt.color+'"/>';
       }
-      if(i%skip===0) g+=rpT(cx, padB+12, it.label, 'ax', 'middle');
+      if(i%skip===0) g+=rpT(cx, padB+15, it.label, 'ax', 'middle');
     });
     if(opt.type==='line'){
       var d='';
       pts.forEach(function(p,i){ d+=(i?' L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); });
-      g+='<path d="'+d+'" fill="none" stroke="'+opt.color+'" stroke-width="1.8" stroke-linejoin="round"/>';
+      g+='<path d="'+d+'" fill="none" stroke="'+opt.color+'" stroke-width="2.2" stroke-linejoin="round"/>';
       pts.forEach(function(p){ g+='<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+
-        '" r="2.3" fill="'+opt.color+'"/>'; });
+        '" r="3" fill="'+opt.color+'"/>'; });
     }
+    // 棒や点の上の数字も、はばが足りなければ とばす
+    var vneed=0;
+    items.forEach(function(it){ vneed=Math.max(vneed, rpW(it.value.toFixed(dec), 9.5, 900)); });
+    var vskip=Math.max(1, Math.ceil((vneed+5)/step));
     items.forEach(function(it,i){
-      g+=rpT(pts[i][0], pts[i][1]-4.5, it.value.toFixed(dec), 'cv', 'middle');
+      if(i%vskip!==0 && i!==items.length-1) return;
+      g+=rpT(pts[i][0], pts[i][1]-6, it.value.toFixed(dec), 'cv', 'middle');
     });
     return g;
   }
 
-  // グラフ4つを2つずつ2段に置く
-  function rpCharts(chunk, longLabel, y0){
+  // グラフを2つずつならべる。中身のあるものだけ。
+  function rpCharts(chunk, longLabel, y0, chartH){
     function lab(r){ return longLabel? String(r.to) : (r.from+'-'+r.to); }
     var list=[];
-    list.push({ title:'区間タイム', unit:'秒', type:'bar', color:'#1558a8', dec:2, zero:true,
+    list.push({ title:'区間タイム', unit:'秒（短いほど速い）', type:'bar', color:RPC.blue, dec:2, zero:true,
       items:chunk.map(function(r){ return {label:lab(r), value:r.lap}; }) });
-    list.push({ title:'スピード', unit:'m/s', type:'line', color:'#0d9488', dec:2, zero:false,
+    list.push({ title:'泳ぐ速さ', unit:'m/s（高いほど速い）', type:'line', color:RPC.teal, dec:2, zero:false,
       items:chunk.map(function(r){ return {label:lab(r), value:r.speed}; }) });
     var tp=chunk.filter(function(r){ return r.tempo!=null; });
-    if(tp.length) list.push({ title:'テンポ', unit:'秒/かき（上ほど速い）', type:'line',
-      color:'#c2410c', dec:2, zero:false, invert:true,
+    if(tp.length) list.push({ title:'テンポ', unit:'秒／かき（上ほど速い）', type:'line',
+      color:RPC.orange, dec:2, zero:false, invert:true,
       items:tp.map(function(r){ return {label:lab(r), value:r.tempo}; }) });
     var st=chunk.filter(function(r){ return r.count!=null; });
-    if(st.length) list.push({ title:'かき数', unit:'回', type:'bar', color:'#7c3aed', dec:0, zero:true,
+    if(st.length) list.push({ title:'かき数', unit:'回', type:'bar', color:RPC.purple, dec:0, zero:true,
       items:st.map(function(r){ return {label:(r.to-50)+'-'+r.to, value:r.count}; }) });
-    var gap=8, cw=(RP_IW-gap)/2, ch=150, g='', y=y0;
+    var gap=10, cw=(RP_IW-gap)/2, g='', y=y0;
+    var ch=chartH || 172;                        // 高さは 紙の残りに合わせて外から決める
     list.forEach(function(o,i){
       var x=RP_M+(i%2)*(cw+gap);
       if(i%2===0 && i>0) y+=ch+gap;
       g+=rpChart(x, y, cw, ch, o);
     });
-    return {svg:g, h:(y+ch)-y0};
+    return {svg:g, h:(y+ch)-y0, n:list.length};
   }
 
-  // 区間ごとの表
+  // 区間ごとの表。むずかしい言葉はつかいません。
   function rpTable(rows, chunk, y0){
-    var swim=rptSwim(rows), base=swim.length? swim[0] : rows[0];
     var hasTempo=rows.some(function(r){ return r.tempo!=null; });
     var hasCount=rows.some(function(r){ return r.count!=null; });
-    var cols=['区間','通過タイム','区間タイム','基準差','泳速 m/s','低下率'];
-    if(hasTempo) cols=cols.concat(['テンポ','毎分かき']);
+    var cols=['区間','通過タイム','区間タイム','ひとつ前との差','泳ぐ速さ m/s'];
+    if(hasTempo) cols=cols.concat(['テンポ 秒','毎分かき']);
     if(hasCount) cols=cols.concat(['かき数']);
-    var firstW=Math.min(150, RP_IW*0.22), rest=(RP_IW-firstW)/(cols.length-1);
-    function colRight(i){ return RP_M+firstW+rest*i; }   // i は2列目を0とした番号
-    var hh=23, rh=21, g='';
-    g+=rpBox(RP_M, y0, RP_IW, hh, '#0f2233', 4);
-    g+=rpT(RP_M+9, y0+15.5, cols[0], 'th');
-    for(var c=1;c<cols.length;c++) g+=rpT(colRight(c-1)-8, y0+15.5, cols[c], 'th', 'end');
+    var firstW=Math.min(150, RP_IW*0.2), rest=(RP_IW-firstW)/(cols.length-1);
+    function colRight(i){ return RP_M+firstW+rest*(i+1); }
+    var hh=27, rh=(chunk.length<=4? 30 : 24), g='';
+    g+=rpBox(RP_M, y0, RP_IW, hh, RPC.ink, 5);
+    g+=rpT(RP_M+11, y0+18, cols[0], 'th');
+    for(var c=1;c<cols.length;c++) g+=rpT(colRight(c-1)-10, y0+18, cols[c], 'th', 'end');
     var y=y0+hh;
+    var idxOf={};
+    rows.forEach(function(r,i){ idxOf[r.from+'-'+r.to]=i; });
     chunk.forEach(function(r, idx){
       if(idx%2===1) g+='<rect x="'+RP_M+'" y="'+y+'" width="'+RP_IW+'" height="'+rh+'" fill="#f6f9fb"/>';
-      g+='<line x1="'+RP_M+'" y1="'+(y+rh)+'" x2="'+(RP_M+RP_IW)+'" y2="'+(y+rh)+
-         '" stroke="#e2e8ee" stroke-width="0.8"/>';
-      var isDive=(r===rows[0] && rows.length>1);
-      var diff='—', drop='—';
-      if(isDive){ diff='基準外'; drop='基準外'; }
-      else {
-        if(base.speed>0){ diff=rptSec(r.lap-r.dist/base.speed); drop=rptPct((r.speed/base.speed-1)*100); }
+      g+=rpLine(RP_M, y+rh, RP_M+RP_IW, y+rh, RPC.line, 0.8);
+      var i0=idxOf[r.from+'-'+r.to], prev=(i0>0)? rows[i0-1] : null;
+      var diff='—';
+      if(prev){
+        var d=r.lap-prev.lap;
+        diff=(Math.abs(d)<0.005? '±0.00' : (d>0? '+':'−')+Math.abs(d).toFixed(2));
       }
-      var vals=[fmt(r.pass), fmt(r.lap), diff, r.speed.toFixed(2), drop];
+      var vals=[fmt(r.pass), fmt(r.lap), diff, r.speed.toFixed(2)];
       if(hasTempo) vals=vals.concat([ (r.tempo!=null? r.tempo.toFixed(2):'—'),
                                       (r.spm!=null? String(Math.round(r.spm)):'—') ]);
       if(hasCount) vals=vals.concat([ (r.count!=null? String(r.count):'—') ]);
-      g+=rpT(RP_M+9, y+14.5, r.from+'-'+r.to+'m', 'td1');
-      vals.forEach(function(v,i){ g+=rpT(colRight(i)-8, y+14.5, v, 'td', 'end'); });
+      var ty2=y+rh/2+4.5;
+      g+=rpT(RP_M+11, ty2, r.from+'-'+r.to+'m', 'td1');
+      vals.forEach(function(v,i){ g+=rpT(colRight(i)-10, ty2, v, 'td', 'end'); });
       y+=rh;
     });
     return {svg:g, h:y-y0};
@@ -7551,47 +7652,55 @@
 
   // 紙1枚ぶんを、1枚の絵として組み立てる
   function rptPage(rows, chunk, page, total, meta){
-    var longLabel=(chunk.length>10);
+    var longLabel=(chunk.length>5);
     var range=(total>1)? '　'+chunk[0].from+'〜'+chunk[chunk.length-1].to+'m' : '';
     var g='';
     // 見出し
-    g+=rpT(RP_M, RP_M+14, 'swimIQ', 'logo');
-    g+=rpT(RP_M+rpW('swimIQ',17)+8, RP_M+14, 'レース分析レポート', 'sub');
+    g+=rpT(RP_M, RP_M+17, 'swimIQ', 'logo');
+    g+=rpT(RP_M+rpW('swimIQ',21,900)+12, RP_M+17, 'レース分析', 'sub');
     var rx=RP_M+RP_IW;
-    g+=rpT(rx, RP_M+8, meta.meet||'（大会名）', 'meet', 'end');
-    g+=rpT(rx, RP_M+23, meta.date, 'date', 'end');
-    g+=rpT(rx, RP_M+35, (page+1)+' / '+total, 'pg', 'end');
+    g+=rpT(rx, RP_M+9, meta.meet||'（大会名）', 'meet', 'end');
+    g+=rpT(rx, RP_M+28, meta.date, 'date', 'end');
+    if(total>1) g+=rpT(rx, RP_M+42, (page+1)+' / '+total, 'pg', 'end');
     // 選手名と種目
-    var ty=RP_M+52;
+    var ty=RP_M+62;
     g+=rpT(RP_M, ty, meta.name, 'nm');
-    g+=rpT(RP_M+rpW(meta.name,22)+12, ty, meta.event, 'ev');
+    g+=rpT(RP_M+rpW(meta.name,27,900)+16, ty, meta.event, 'ev');
     // 太い線
-    var y=ty+10;
-    g+='<rect x="'+RP_M+'" y="'+y+'" width="'+RP_IW+'" height="2.4" fill="#123a56"/>';
-    y+=12;
-    var k=rpKeys(rows, page, chunk, meta, y); g+=k.svg; y+=k.h+11;
-    var d=rpDrop(rows, chunk, y);            g+=d.svg; y+=d.h+(d.h?14:0);
-    g+=rpT(RP_M, y+10, 'グラフ', 'sec');
-    g+=rpT(RP_M+rpW('グラフ',13)+9, y+10, '区間タイム／スピード／テンポ／かき数', 'leg');
-    y+=18;
-    var c=rpCharts(chunk, longLabel, y); g+=c.svg; y+=c.h;
+    var y=ty+13;
+    g+='<rect x="'+RP_M+'" y="'+y+'" width="'+RP_IW+'" height="2.6" fill="#123a56"/>';
+    y+=16;
+    var many=(chunk.length>8);                    // 区間が多い紙は、上を軽くして表を入れる
+    var hero=rpHero(rows, page, chunk, meta, y);  g+=hero.svg; y+=hero.h+10;
+    var st=rpStats(rows, page, meta, y, many);    g+=st.svg;   y+=st.h+(st.h?12:0);
+    var say=rpSay(rows, page, y, many);           g+=say.svg;  y+=say.h+(say.h?16:0);
+    g+=rpT(RP_M, y+11, 'グラフ', 'sec');
+    g+=rpT(RP_M+rpW('グラフ',15,900)+11, y+11, '区間ごとの ようす', 'leg');
+    y+=20;
+    // 表と注意書きに いる高さを先に見つもって、のこりをグラフに配る
+    var nCharts=2 + (rows.some(function(r){return r.tempo!=null;})?1:0)
+                  + (rows.some(function(r){return r.count!=null;})?1:0);
+    var chartRows=Math.ceil(nCharts/2);
+    var rowH=(chunk.length<=4? 30 : 24);
+    var need=(page===0 && rows.length>1 ? 15 : 0) + 26 + 12 + 27 + chunk.length*rowH + 34;
+    var room=(RP_H-RP_M-24) - y - need;
+    var ch=Math.max(126, Math.min(250, Math.floor((room-10*(chartRows-1))/chartRows)));
+    var c=rpCharts(chunk, longLabel, y, ch); g+=c.svg; y+=c.h;
     if(page===0 && rows.length>1){
-      y+=13;
-      g+=rpT(RP_M, y, rows[0].from+'-'+rows[0].to+'mは飛び込みを含むため、泳速がほかの区間より高く出ます。', 'note');
+      y+=15;
+      g+=rpT(RP_M, y, rows[0].from+'-'+rows[0].to+'m は 飛び込みがあるぶん、ほかの区間より速く出ます。', 'note');
     }
-    y+=22;
+    y+=26;
     g+=rpT(RP_M, y, '区間ごとの記録'+range, 'sec');
-    y+=10;
+    y+=12;
     var t=rpTable(rows, chunk, y); g+=t.svg; y+=t.h;
     // 下のメモ
-    var fy=Math.max(y+26, RP_H-RP_M-6);
-    g+='<line x1="'+RP_M+'" y1="'+(fy-11)+'" x2="'+(RP_M+RP_IW)+'" y2="'+(fy-11)+
-       '" stroke="#dbe3ea" stroke-width="0.8"/>';
+    var fy=Math.max(y+30, RP_H-RP_M-6);
+    g+=rpLine(RP_M, fy-13, RP_M+RP_IW, fy-13, RPC.line, 0.9);
     g+=rpT(RP_M, fy, 'メモ', 'fl');
-    var memo='基準差は、基準の区間と同じペースで泳いだ場合との差です。低下率は、'+
-      (rows.length>1? rows[1].from+'-'+rows[1].to : rows[0].from+'-'+rows[0].to)+
-      'mの泳速を基準にした割合です。';
-    g+=rpT(RP_M+30, fy, memo, 'ft');
+    var memo='区間タイムは その区間にかかった時間、ひとつ前との差は 直前の区間とくらべた秒数です。'+
+             'テンポは 1かきにかかる時間で、小さいほど速いリズムです。';
+    g+=rpT(RP_M+34, fy, memo, 'ft');
     g+=rpT(RP_M+RP_IW, fy, 'swimIQ', 'fr', 'end');
     return '<svg class="rpsvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+RP_W+' '+RP_H+'" '+
       'width="'+RP_W+'" height="'+RP_H+'" preserveAspectRatio="xMidYMin meet">'+
@@ -7599,6 +7708,7 @@
       '<rect x="0" y="0" width="'+RP_W+'" height="'+RP_H+'" fill="#ffffff"/>'+
       g+'</svg>';
   }
+
   // レポートをひらく
   function openReport(){
     var rows=rptRows();
@@ -7692,7 +7802,7 @@
   };
 
   // ========== 初期化 ==========
-  var SWIMIQ_BUILD='2026.08.30.b';
+  var SWIMIQ_BUILD='2026.08.31.b';
   if($('cfgVer')) $('cfgVer').textContent=SWIMIQ_BUILD;
   if($('anaVer')) $('anaVer').textContent='分析画面 '+SWIMIQ_BUILD;
   buildScale(); setMode('time'); renderRecords(); homeNyujo();

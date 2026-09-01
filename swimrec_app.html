@@ -457,6 +457,68 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 .hintFold[open] > summary{ margin-bottom:8px; }
 .hintFold .hint{ margin-bottom:8px; }
 .hintFold .hint:last-child{ margin-bottom:0; }
+
+/* ============================================================
+   黄色ばん (2026.09.01)
+   地は落ちついた黄色、文字は黒、読むものは白い箱にのせます。
+   下の帯は黒にして、画面の底を締めます。
+============================================================ */
+:root{
+  --yellow:      #F5CE1E;   /* 地の色 */
+  --yellow-deep: #E4BB10;   /* 境目や押したとき */
+  --sub-ink:     #6B5300;   /* 黄色の上にのせる小さな字 */
+  --black:       #12120E;
+}
+body{ background:var(--yellow); }
+
+header{ background:var(--yellow); padding:14px 24px 6px; }
+.brand{ align-items:center; }
+.wordmark{ color:var(--black); font-weight:900; letter-spacing:-.01em; }
+.wordmark span{ -webkit-text-stroke:1.8px var(--black); color:transparent; }
+.brand .sub{ color:var(--sub-ink); font-weight:700; }
+#menuBtn{
+  flex:0 0 auto; margin-left:auto; cursor:pointer;
+  font-family:inherit; font-size:.9rem; font-weight:800; color:var(--black);
+  background:transparent; border:2px solid var(--black); border-radius:11px;
+  min-height:44px; padding:6px 16px;
+}
+#menuBtn:active{ background:var(--yellow-deep); }
+#menuBtn:focus-visible{ outline:4px solid var(--black); outline-offset:2px; }
+.rope{ display:none; }
+
+#toolMenu{ background:var(--yellow); }
+#toolMenu .tmIn{
+  max-width:1180px; margin:0 auto; padding:6px 24px 14px;
+  display:flex; flex-direction:column; gap:10px;
+}
+#toolMenu .toolrow{ margin:0; }
+#toolMenu .hint{ color:var(--sub-ink); font-weight:700; }
+
+/* 白い箱を 黄色の上に浮かせる */
+.card{ box-shadow:0 1px 0 rgba(110,86,0,.16), 0 6px 16px -6px rgba(110,86,0,.34); }
+
+/* 下の帯 */
+#navbar{
+  background:var(--black); border-top:none;
+  box-shadow:0 -4px 16px rgba(0,0,0,.28);
+}
+#navbar button{ color:#8A8A80; font-weight:700; }
+#navbar button .nvi{ width:23px; height:23px; display:block; }
+#navbar button .nvi svg{ width:23px; height:23px; display:block; }
+#navbar button[aria-selected="true"]{ color:var(--yellow); background:transparent; font-weight:900; }
+#navbar button:focus-visible{ outline:3px solid var(--yellow); outline-offset:-3px; }
+
+/* 説明のたたみボタンも 黄色の上にのるので、色を合わせます */
+.hintFold > summary{
+  color:var(--black); background:#FFF6D2; border-color:#E3CE7C;
+}
+.hintFold > summary:hover{ background:#FBEDBE; }
+
+@media (max-width:640px){
+  header{ padding:12px 18px 4px; }
+  #toolMenu .tmIn{ padding:6px 18px 12px; }
+  #menuBtn{ font-size:.84rem; padding:6px 13px; min-height:42px; }
+}
 </style>
 </head>
 <body class="hasnav">
@@ -464,49 +526,23 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
   <div class="brand">
     <h1 class="wordmark">Swim<span>IQ</span></h1>
     <span class="sub">中京大学水泳部</span>
+    <button type="button" id="menuBtn" onclick="toggleToolMenu()" aria-expanded="false"
+            aria-controls="toolMenu">メニュー</button>
   </div>
 </header>
-<div class="rope" aria-hidden="true"></div>
 
-<div class="tabs" role="tablist" aria-label="スタッフ用の画面" style="justify-content:flex-end; gap:8px; padding:10px 24px 0">
-  <button class="staffbtn" id="staffOpen" type="button" onclick="toggleStaff()" aria-expanded="false">スタッフ</button>
-  <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" hidden onclick="showTab('input')">記録を入力する</button>
-  <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" hidden onclick="showTab('admin')">設定</button>
-  <button class="staffbtn" id="tabView" role="tab" aria-selected="true" hidden onclick="showTab('view')">記録を見る</button>
-</div>
-
-<main>
-  <div id="globalMsg"></div>
-
-  <!-- ================= 入力画面 ================= -->
-  <section id="paneInput" role="tabpanel" aria-label="記録を入力する">
-    <div class="backrow">
-      <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
+<!-- 毎日は使わない道具は、この中にしまっています -->
+<div id="toolMenu" hidden>
+  <div class="tmIn">
+    <div class="tabs" role="tablist" aria-label="スタッフ用の画面" style="gap:8px; padding:0">
+      <button class="staffbtn" id="staffOpen" type="button" onclick="toggleStaff()" aria-expanded="false">スタッフ</button>
+      <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" hidden onclick="showTab('input')">記録を入力する</button>
+      <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" hidden onclick="showTab('admin')">設定</button>
+      <button class="staffbtn" id="tabView" role="tab" aria-selected="true" hidden onclick="showTab('view')">記録を見る</button>
     </div>
-    <div class="steps" id="inSteps"></div>
-    <div id="inBody"></div>
-  </section>
-
-  <!-- ================= 設定画面 (パスワード必要) ================= -->
-  <section id="paneAdmin" role="tabpanel" aria-label="設定" hidden>
-    <div class="backrow">
-      <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
-      <button type="button" class="btn ghost backbtn" style="margin-left:8px"
-        onclick="document.getElementById('roleAsk').classList.remove('hide')">立場を えらび直す</button>
-    </div>
-    <div id="adminBody"></div>
-  </section>
-
-  <!-- ================= 閲覧画面 ================= -->
-  <section id="paneView" role="tabpanel" aria-label="記録を見る" hidden>
-    <div class="stack" style="justify-content:flex-end; align-items:center; margin-bottom:6px; gap:8px">
-      <span class="hint" style="margin:0; font-size:0.8rem" id="verLabel"></span>
-      <button class="btn ghost" style="min-height:40px; padding:6px 14px; font-size:0.95rem"
-        onclick="reloadAll()" title="最新の記録を取り直して、アプリも新しくします">最新の状態にする</button>
-    </div>
-    <div id="reloadMsg" aria-live="polite"></div>
-    <div class="subs" id="subBar" role="tablist" aria-label="この画面の中の切りかえ"></div>
     <div class="toolrow">
+      <button type="button" class="btn ghost" onclick="reloadAll()"
+        title="最新の記録を取り直して、アプリも新しくします">最新の状態にする</button>
       <button type="button" class="btn ghost" onclick="forceReloadData()">最新のデータに読み直す</button>
       <button type="button" class="btn ghost" id="officialToggle" aria-expanded="false" aria-controls="officialLinks"
         onclick="toggleOfficial()">正式記録検索</button>
@@ -553,6 +589,36 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
       </div>
       <div id="fxMsg" style="margin-top:10px" aria-live="polite"></div>
     </div>
+    <span class="hint" style="margin:0; font-size:0.8rem" id="verLabel"></span>
+  </div>
+</div>
+
+<main>
+  <div id="globalMsg"></div>
+
+  <!-- ================= 入力画面 ================= -->
+  <section id="paneInput" role="tabpanel" aria-label="記録を入力する">
+    <div class="backrow">
+      <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
+    </div>
+    <div class="steps" id="inSteps"></div>
+    <div id="inBody"></div>
+  </section>
+
+  <!-- ================= 設定画面 (パスワード必要) ================= -->
+  <section id="paneAdmin" role="tabpanel" aria-label="設定" hidden>
+    <div class="backrow">
+      <button type="button" class="btn ghost backbtn" onclick="showTab('view')">← 記録を見る画面にもどる</button>
+      <button type="button" class="btn ghost backbtn" style="margin-left:8px"
+        onclick="document.getElementById('roleAsk').classList.remove('hide')">立場を えらび直す</button>
+    </div>
+    <div id="adminBody"></div>
+  </section>
+
+  <!-- ================= 閲覧画面 ================= -->
+  <section id="paneView" role="tabpanel" aria-label="記録を見る" hidden>
+    <div id="reloadMsg" aria-live="polite"></div>
+    <div class="subs" id="subBar" role="tablist" aria-label="この画面の中の切りかえ"></div>
     <div id="viewBody"><div class="loading">読み込みの準備をしています…</div></div>
   </section>
 </main>
@@ -583,17 +649,21 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 </div>
 
 <nav id="navbar" role="tablist" aria-label="おもな画面">
-  <button role="tab" data-n="meet" aria-selected="true" onclick="showNav('meet')"><span class="nvi" aria-hidden="true">🏊</span>試合</button>
-  <button role="tab" data-n="best" aria-selected="false" onclick="showNav('best')"><span class="nvi" aria-hidden="true">⏱</span>ベストタイム</button>
-  <button role="tab" data-n="cmp" aria-selected="false" onclick="showNav('cmp')"><span class="nvi" aria-hidden="true">🏅</span>くらべる</button>
-  <button role="tab" data-n="me" aria-selected="false" onclick="showNav('me')"><span class="nvi" aria-hidden="true">🙋</span>自分</button>
+  <button role="tab" data-n="meet" aria-selected="true" onclick="showNav('meet')"><span class="nvi" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2-2 3-2 5 0s3 2 5 0 3-2 5 0"/><path d="M3 19c2-2 3-2 5 0s3 2 5 0 3-2 5 0"/><circle cx="17" cy="6" r="2"/><path d="M5 11l5-3 4 2"/></svg></span>試合</button>
+  <button role="tab" data-n="best" aria-selected="false" onclick="showNav('best')"><span class="nvi" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg></span>ベストタイム</button>
+  <button role="tab" data-n="cmp" aria-selected="false" onclick="showNav('cmp')"><span class="nvi" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V9M12 20V4M19 20v-7"/></svg></span>くらべる</button>
+  <button role="tab" data-n="me" aria-selected="false" onclick="showNav('me')"><span class="nvi" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></svg></span>自分</button>
 </nav>
 
 <script>
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.01.1';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.01.2';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -2671,6 +2741,18 @@ function raceLapBars(r){
     }).observe(document.body || document.documentElement, {childList:true, subtree:true});
   }catch(e){}
 })();
+
+
+/* メニューの開け閉め（毎日は使わない道具をしまってあります） */
+function toggleToolMenu(){
+  var m = document.getElementById('toolMenu');
+  var b = document.getElementById('menuBtn');
+  if(!m || !b) return;
+  var open = m.hasAttribute('hidden');
+  if(open){ m.removeAttribute('hidden'); } else { m.setAttribute('hidden',''); }
+  b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  b.textContent = open ? 'とじる' : 'メニュー';
+}
 
 function openRace(id){
   const r = RACE_STORE[id];

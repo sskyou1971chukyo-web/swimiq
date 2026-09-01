@@ -472,10 +472,16 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 body{ background:var(--yellow); }
 
 header{ background:var(--yellow); padding:14px 24px 6px; }
-.brand{ align-items:center; }
-.wordmark{ color:var(--black); font-weight:900; letter-spacing:-.01em; }
-.wordmark span{ -webkit-text-stroke:1.8px var(--black); color:transparent; }
-.brand .sub{ color:var(--sub-ink); font-weight:700; }
+.brand{ align-items:center; flex-wrap:nowrap; gap:12px; }
+.brand .bmark{ flex:1 1 auto; min-width:0; }
+.wordmark{ color:var(--black); font-weight:900; letter-spacing:-.01em; line-height:1.05; }
+.wordmark span{ -webkit-text-stroke:1.6px var(--black); color:transparent; }
+/* チーム名。切りかえの丸ボタン(.sub)と 名前がぶつからないよう別名にしています */
+.brand .teamname{
+  display:block; margin-top:2px;
+  font-size:.8rem; font-weight:700; color:var(--sub-ink); letter-spacing:.01em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
 #menuBtn{
   flex:0 0 auto; margin-left:auto; cursor:pointer;
   font-family:inherit; font-size:.9rem; font-weight:800; color:var(--black);
@@ -524,8 +530,10 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
 <body class="hasnav">
 <header>
   <div class="brand">
-    <h1 class="wordmark">Swim<span>IQ</span></h1>
-    <span class="sub">中京大学水泳部</span>
+    <div class="bmark">
+      <h1 class="wordmark">Swim<span>IQ</span></h1>
+      <span class="teamname">中京大学水泳部データベース</span>
+    </div>
     <button type="button" id="menuBtn" onclick="toggleToolMenu()" aria-expanded="false"
             aria-controls="toolMenu">メニュー</button>
   </div>
@@ -663,7 +671,7 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.01.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.01.3';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';

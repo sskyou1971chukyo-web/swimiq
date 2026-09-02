@@ -773,6 +773,8 @@
     color:#08243d; min-width:52px; }
   .ph-bar.a{ background:#38bdf8; }
   .ph-bar.b{ background:#fbbf24; }
+  #cmp2SumText .vs-a{ color:#7dd3fc; }
+  #cmp2SumText .vs-b{ color:#fcd34d; }
   .ph-none{ font-size:12px; opacity:.7; margin:4px 0; }
   /* 比較画面: スピードやテンポを見る/隠すボタン */
   .cmp-toggle{ display:block; width:100%; padding:13px; margin:12px 0 6px; border-radius:12px;
@@ -1228,6 +1230,29 @@
 .modal-card button.atab.active, .modal-card .atab.active{
   background:var(--k) !important; color:var(--y) !important;
 }
+
+/* ============================================================
+   くらべる画面の色 2026.09.02
+   窓の地色が黄色なので、水色やうすい黄色の文字・棒は消えてしまいます。
+   黄色の上でもはっきり見える こい青と こいオレンジ にそろえます。
+   棒の中の数字は、こい色の上なので白にします。
+============================================================ */
+#cmp2SumText .vs-a{ color:#0B4F9E !important; }
+#cmp2SumText .vs-b{ color:#9A3412 !important; }
+.modal-card .ph-note{ color:var(--k-sub) !important; opacity:1 !important; }
+.modal-card .ph-name{ color:var(--k) !important; }
+.modal-card .ph-none{ color:var(--k-sub) !important; opacity:1 !important; }
+.modal-card .ph-bar{ color:#fff !important; }
+.modal-card .ph-bar.a{ background:#1668B5 !important; }
+.modal-card .ph-bar.b{ background:#C2410C !important; }
+.modal-card .ph-diff.awin{ background:#1668B5 !important; color:#fff !important; }
+.modal-card .ph-diff.bwin{ background:#C2410C !important; color:#fff !important; }
+.modal-card .ph-diff.same{ background:var(--k) !important; color:var(--y) !important; }
+/* もうひとつの くらべ画面（左右にのびる棒）も同じ色にします */
+.modal-card .vs-head .vs-mid{ color:var(--k) !important; }
+.modal-card .vs-bars .half.l .bar{ background:#C2410C !important; }
+.modal-card .vs-bars .half.r .bar{ background:#1668B5 !important; }
+.modal-card .seg-row .sa.win{ color:#0B4F9E !important; }
 
 /* ============================================================
    トップ画面（案3 まとまり） 2026.09.01
@@ -4509,17 +4534,31 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     if(sKeep) sSel.value=sKeep;
     if(!sSel.value && sSel.options.length) sSel.selectedIndex=0;
     var dSel=$('cmp2Dist'); var dKeep=dSel.value; dSel.innerHTML='';
-    var dists={};
+    var dists={}, ppl={};
     pool.forEach(function(r){
       if(String(r.stroke||'')!==sSel.value) return;
-      dists[String(r.raceDist)]=1;
+      var k=String(r.raceDist);
+      dists[k]=1;
+      if(!ppl[k]) ppl[k]={};
+      if(r.athleteId) ppl[k][String(r.athleteId)]=1;
     });
-    Object.keys(dists).sort(function(a,b){ return Number(a)-Number(b); }).forEach(function(k){
+    var dKeys=Object.keys(dists).sort(function(a,b){ return Number(a)-Number(b); });
+    dKeys.forEach(function(k){
       var o=document.createElement('option'); o.value=k; o.textContent=k+'m';
       dSel.appendChild(o);
     });
     if(dKeep) dSel.value=dKeep;
-    if(!dSel.value && dSel.options.length) dSel.selectedIndex=0;
+    // はじめて開いたときは、人数がいちばん多い距離をえらぶ。
+    // 距離の小さい順だと、15mの練習記録のように一人しかいない距離が出てしまうため。
+    // 人数が同じなら 長いほうの距離をとる。
+    if(!dSel.value && dKeys.length){
+      var bestK=dKeys[0], bestN=-1;
+      dKeys.forEach(function(k){
+        var n=Object.keys(ppl[k]||{}).length;
+        if(n>bestN || (n===bestN && Number(k)>Number(bestK))){ bestN=n; bestK=k; }
+      });
+      dSel.value=bestK;
+    }
   }
   // ふたりのレースのえらび：はやい順にならべ、ベストが最初にえらばれる
   function cmp2FillRaces(){
@@ -4664,7 +4703,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     naA=naA||'A'; naB=naB||'B';
     var wrap=document.createElement('div');
     var note=document.createElement('div'); note.className='ph-note';
-    note.textContent='青が'+naA+'、黄が'+naB+'。局面ごとの区間タイム。棒が短いほど速い。';
+    note.textContent='青が'+naA+'、オレンジが'+naB+'。局面ごとの区間タイム。棒が短いほど速い。';
     wrap.appendChild(note);
     var bmap={}; (lapsB||[]).forEach(function(p){ bmap[p.x]=p.y; });
     var maxT=0;
@@ -4799,8 +4838,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       var naB=String(bName).trim().split(/\s+/)[0];
       $('cmp2SumText').innerHTML=
         '<div>'+dist+'m'+$('cmp2Stroke').value+'</div>'+
-        '<div><span style="color:#7dd3fc">'+naA+' '+tA+'</span> vs '+
-        '<span style="color:#fcd34d">'+naB+' '+tB+'</span></div>';
+        '<div><span class="vs-a">'+naA+' '+tA+'</span> vs '+
+        '<span class="vs-b">'+naB+' '+tB+'</span></div>';
       $('cmp2Cond').classList.add('hide');
       $('cmp2Sum').classList.remove('hide');
       // 主役: 局面ごとの棒グラフ
@@ -5477,26 +5516,43 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // ===== 記録をさがす（条件で絞り込み） =====
   var dfRaces=[];   // チーム：えらんだ選手の全レース
   var dfWhRows=[];  // 大会データ：いまえらんでいる種目シートの全行
+  // 記録シートに名前がある人 ぜんぶから 選手の一覧を作る。
+  // 端末の登録には たよらないので、どの入口から開いても同じ顔ぶれが出る。
+  // 返す数字は 見つかった人数。ゼロなら 記録そのものが無いということ。
+  function fillAthleteSelectFromTeam(sel){
+    var box={};
+    (cmpAll||[]).forEach(function(r){
+      var id=String(r.athleteId||''); if(!id) return;
+      if(!box[id]) box[id]=String(r.name||id);
+    });
+    var ids=Object.keys(box).sort(function(a,b){
+      return String(box[a]).localeCompare(String(box[b]), 'ja');
+    });
+    var keep=sel.value;
+    sel.innerHTML='';
+    ids.forEach(function(id){
+      var o=document.createElement('option'); o.value=id; o.textContent=box[id]; sel.appendChild(o);
+    });
+    if(keep && box[keep]) sel.value=keep;
+    if(!sel.value && ids.length){
+      var me=myId();
+      sel.value=(me && box[me])? me : ids[0];   // 自分がいれば自分から
+    }
+    return ids.length;
+  }
   function openFindModal(){
     $('findModal').classList.remove('hide');
     if($('dfSrc').value==='wh'){ dfFetchWh(); return; }
-    if(!getAthletes().length){
-      $('dfList').innerHTML='<div class="df-empty">確認中…</div>';
-      api({action:'hello', deviceId:deviceId()}).then(function(res){
-        if(res.ok && res.athletes && res.athletes.length){
-          setAthletes(res.athletes);
-          fillAthleteSelect($('dfAthlete'), false);
-          dfFetch();
-        } else {
-          $('dfList').innerHTML='<div class="df-empty">まだ選手登録がありません。「ほぞん」から登録するか、上の「どこから」を「大会データ」にしてください。</div>';
-        }
-      }).catch(function(){
-        $('dfList').innerHTML='<div class="df-empty">通信できませんでした。電波を確認してください。</div>';
-      });
-      return;
-    }
-    fillAthleteSelect($('dfAthlete'), false);
-    dfFetch();
+    $('dfList').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
+    loadAllRaces().then(function(){
+      if(!fillAthleteSelectFromTeam($('dfAthlete'))){
+        $('dfList').innerHTML='<div class="df-empty">チームの記録が まだありません。上の「どこから」を「大会データ」にしてください。</div>';
+        return;
+      }
+      dfFetch();
+    }).catch(function(){
+      $('dfList').innerHTML='<div class="df-empty">通信できませんでした。電波を確認してください。</div>';
+    });
   }
   function dfFetch(){
     $('dfList').innerHTML='<div class="df-empty">読み込み中…</div>';

@@ -5890,6 +5890,14 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     });
     return rows;
   }
+  // スタートの15mと、タッチまえの5mを ふくむ区間をのぞいて、
+  // 「泳いでいるだけ」のきれいな区間だけを取り出す。
+  // 区間が大きすぎて のこりが無いときは null を返し、呼ぶ側で全区間に切りかえる。
+  function cleanRows(rows){
+    var fin=raceDist;
+    var c=rows.filter(function(r){ return r.from>=15 && r.to<=fin-5; });
+    return c.length? c : null;
+  }
   function openAnaModal(){
     $('anaTitle').textContent='データ分析'+(anaLabel? '　'+anaLabel : '');
     $('anaModal').classList.remove('hide');
@@ -5923,13 +5931,16 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     if(rtTime!=null) card('R.T（反応時間）', rtTime.toFixed(2)+'秒','');
     if(rows.length){
       card('ゴールタイム', fmt(rows[rows.length-1].pass), rows[rows.length-1].to+'m');
-      var fastest=rows[0], slowest=rows[0];
-      rows.forEach(function(r){ if(r.speed>fastest.speed) fastest=r; if(r.speed<slowest.speed) slowest=r; });
-      card('最速区間', fastest.from+'→'+fastest.to+'m', fastest.speed.toFixed(2)+' m/秒');
-      card('最遅区間', slowest.from+'→'+slowest.to+'m', slowest.speed.toFixed(2)+' m/秒');
-      if(rows.length>=2){
-        var drop=(1 - rows[rows.length-1].speed/fastest.speed)*100;
-        card('スピード低下率', drop.toFixed(1)+'%', '最速区間 → 最終区間');
+      var clean=cleanRows(rows), base=clean||rows;
+      var note=clean? '15m〜タッチ5m手前' : '全区間で比べています';
+      var fastest=base[0], slowest=base[0];
+      base.forEach(function(r){ if(r.speed>fastest.speed) fastest=r; if(r.speed<slowest.speed) slowest=r; });
+      card('最速区間', fastest.from+'→'+fastest.to+'m', fastest.speed.toFixed(2)+' m/秒　'+note);
+      card('最遅区間', slowest.from+'→'+slowest.to+'m', slowest.speed.toFixed(2)+' m/秒　'+note);
+      if(base.length>=2){
+        var lastR=base[base.length-1];
+        var drop=(1 - lastR.speed/fastest.speed)*100;
+        card('スピード低下率', drop.toFixed(1)+'%', '最速区間 → '+lastR.from+'→'+lastR.to+'m');
       }
       // 前半と後半（ちょうど半分の地点が記録されているときだけ）
       var half=raceDist/2, hp=null;
@@ -5948,9 +5959,13 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var h=document.createElement('div'); h.className='ar h';
     h.innerHTML='<span>区間</span><span>通過</span><span>区間タイム</span><span>速さ</span>';
     box.appendChild(h);
+    var fin=raceDist;
     rows.forEach(function(r){
+      var mark='';
+      if(r.from<15) mark='（スタート区間）';
+      else if(r.to>fin-5) mark='（タッチ区間）';
       var d=document.createElement('div'); d.className='ar';
-      d.innerHTML='<span>'+r.from+'→'+r.to+'m</span><span>'+fmt(r.pass)+'</span>'+
+      d.innerHTML='<span>'+r.from+'→'+r.to+'m'+mark+'</span><span>'+fmt(r.pass)+'</span>'+
                   '<span>'+fmt(r.lap)+'</span><span>'+r.speed.toFixed(2)+' m/秒</span>';
       box.appendChild(d);
     });

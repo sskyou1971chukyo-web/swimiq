@@ -1394,7 +1394,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   <!-- 記録／テンポ の切り替え -->
   <div id="modeToggle">
     <button class="mt time active" id="mtTime">🔢 記録<span class="ms">地点タイム</span></button>
-    <button class="mt tempo" id="mtTempo">📊 テンポ<span class="ms">区間テンポ</span></button>
+    <button class="mt tempo" id="mtTempo">📊 ST<span class="ms">区間のST</span></button>
   </div>
 
   <!-- テンポの測り方（テンポモードのときだけ表示） -->
@@ -1419,7 +1419,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       <button class="fb adj" id="bAdjFwd" aria-label="1秒すすむ">1.0秒▶</button>
     </div>
     <div class="fgroup rec">
-      <button id="tempoFinish">✔ このテンポで 確定</button>
+      <button id="tempoFinish">✔ このSTで 確定</button>
       <button id="lineChip">線<span class="rs">通過ライン</span></button>
       <button id="strokeChip">かき数<span class="rs">とうろく</span></button>
       <button id="rtChip">R.T<span class="rs">スタート反応</span></button>
@@ -1525,7 +1525,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 <!-- 数字キーパッドのモーダル（正式タイム・R.Tの打ち込みに使う） -->
 <div id="segPickModal" class="hide">
   <div class="modal-card segpick-card">
-    <h2>どの区間の テンポですか</h2>
+    <h2>どの区間の ST ですか</h2>
     <div id="anaSegPick"></div>
     <div class="stroke-btns"><button id="segPickClose">とじる</button></div>
   </div>
@@ -1629,14 +1629,14 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="ana-tabs">
       <button class="atab active" data-c="lap">区間タイム</button>
       <button class="atab" data-c="speed">スピード</button>
-      <button class="atab" data-c="tempo">テンポ</button>
+      <button class="atab" data-c="tempo">ST</button>
       <button class="atab" data-c="stroke">かき数</button>
     </div>
     <canvas id="anaCanvas" aria-hidden="true"></canvas>
     <div id="anaSummary"></div>
     <div id="anaTable"></div>
     <p class="note" id="anaVer" style="text-align:right; opacity:.6"></p>
-    <div class="stroke-btns"><button id="anaTempoIn">✏️ テンポを入れる</button><button id="anaCountIn">✏️ かき数を入れる</button></div>
+    <div class="stroke-btns"><button id="anaTempoIn">✏️ STを入れる</button><button id="anaCountIn">✏️ かき数を入れる</button></div>
     <div class="stroke-btns"><button id="anaReport">🖨 PDF表示（印刷）</button><button id="anaPush">✅ 決定</button><button id="anaClose">とじる</button></div>
   </div>
 </div>
@@ -2176,7 +2176,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     updateAim(); updateRtChip();
   }
   $('mtTime').onclick=function(){ setMode('time'); toast('記録モード（地点タイム）'); guideStep(); };
-  $('mtTempo').onclick=function(){ setMode('tempo'); toast('テンポモード（区間）'); guideStep(); };
+  $('mtTempo').onclick=function(){ setMode('tempo'); toast('STモード（区間）'); guideStep(); };
   // R.Tボタン：やり方の選択画面をひらく
   function openRtModal(){
     $('rtModal').classList.remove('hide');
@@ -2210,7 +2210,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     } else {
       toast('R.T '+fin.toFixed(2)+'秒 を きろく・0mも自動で記録');
     }
-    showTut('R.Tは '+fin.toFixed(2)+'秒！\n\nつぎは タイムとテンポを 測定しよう。\n光っている地点を コースロープでえらんで、\n頭が通る瞬間に「ここを きろく」だよ');
+    showTut('R.Tは '+fin.toFixed(2)+'秒！\n\nつぎは タイムとSTを 測定しよう。\n光っている地点を コースロープでえらんで、\n頭が通る瞬間に「ここを きろく」だよ');
     guideStep();
   }
   $('rtSrcLight').onclick=function(){
@@ -4718,7 +4718,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     if(!honsuu || !aru) return;
     var wrap=document.createElement('div');
     var note=document.createElement('div'); note.className='ph-note';
-    note.textContent='ストローク数(50mごと)。少ないほど一かきが大きい泳ぎ。テンポと合わせて見ます。';
+    note.textContent='ストローク数(50mごと)。少ないほど一かきが大きい泳ぎ。STと合わせて見ます。';
     wrap.appendChild(note);
     var maxN=0;
     for(var k=0;k<honsuu;k++){
@@ -4810,8 +4810,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       cmp2Toggle(box, 'スピードのグラフ', function(naka){
         cmp2Section(naka, 'スピード（メートル毎秒。上ほど速い）', sA.speed, sB.speed, dist, { invert:false, decimals:2, pad:0.2 });
       });
-      cmp2Toggle(box, 'テンポのグラフ', function(naka){
-        cmp2Section(naka, 'テンポ（1かきの秒数。小さいほど回転が速い）', sA.tempo, sB.tempo, dist, { invert:false, decimals:2, pad:0.2 });
+      cmp2Toggle(box, 'STのグラフ', function(naka){
+        cmp2Section(naka, 'ST（1かきの秒数。小さいほど回転が速い）', sA.tempo, sB.tempo, dist, { invert:false, decimals:2, pad:0.2 });
       });
     });
   }
@@ -5284,7 +5284,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       { t:'記録（通過タイム）', h:pageKiroku() },
       { t:'ラップ（区間タイム）', h:pageLap() },
       { t:'かき数（50mごと）', h:pageMap(a.strokesMap, b.strokesMap, 'かき', 0, 'かき数の記録が ありません') },
-      { t:'テンポ（1かきの秒）', h:pageMap(a.tempoMap, b.tempoMap, '秒', 2, 'テンポの記録が ありません') },
+      { t:'ST（1かきの秒）', h:pageMap(a.tempoMap, b.tempoMap, '秒', 2, 'STの記録が ありません') },
       { t:'からだ', h:pageBody() }
     ];
     var html='';
@@ -5304,7 +5304,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
           '<div class="vsc-track" id="vscTrack">'+
           pages.map(function(p){ return '<div class="vsc-page"><div class="vsc-inner">'+p.h+'</div></div>'; }).join('')+
           '</div><div class="vsc-dots" id="vscDots"></div>'+
-          '<div class="vs-hint">横にスワイプするか ◀▶で、記録・ラップ・かき数・テンポ・からだ を 一周して見られます</div>';
+          '<div class="vs-hint">横にスワイプするか ◀▶で、記録・ラップ・かき数・ST・からだ を 一周して見られます</div>';
     boxD.innerHTML=html;
     vsAnimateBars(boxD);
     // ---- めくりの仕組み（さいごの次は さいしょに もどって一周） ----
@@ -6205,7 +6205,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     tempoMarks=[];   // 別の区間に移ったら、途中の測定はリセット
     if(mode!=='tempo') setMode('tempo'); else { updateAim(); updateTempoUI(); }
     buildScale();
-    if(!quiet) toast(from+'〜'+to+'m の テンポ');
+    if(!quiet) toast(from+'〜'+to+'m の ST');
   }
   // 目盛りに出る細かい区間を、はじめから順にならべる（0〜15、15〜25、…）
   function tempoSegList(){
@@ -6241,7 +6241,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       }
       else { a.innerHTML='<span class="big">'+selDist+'m</span> を きろく'; }
     }
-    else if(selFrom!=null){ a.innerHTML='<span class="big">'+selFrom+'〜'+selTo+'m</span> の テンポ'; }
+    else if(selFrom!=null){ a.innerHTML='<span class="big">'+selFrom+'〜'+selTo+'m</span> の ST'; }
     else { a.innerHTML='区間を えらんでください'; }
   }
 
@@ -6318,7 +6318,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       var now=getStampTime();
       // すでに結果があり、まだ測り直しを始めていないなら、上書き確認
       if(tempoValues[selFrom+'-'+selTo]!=null && tempoMarks.length===0){
-        if(!confirm(selFrom+'〜'+selTo+'m は すでにテンポの記録があります。測り直しますか？')) return;
+        if(!confirm(selFrom+'〜'+selTo+'m は すでに STの記録があります。測り直しますか？')) return;
         delete tempoValues[selFrom+'-'+selTo];
       }
       // 入水の瞬間を1つ記録する
@@ -6361,11 +6361,11 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     if(nx){
       openNodeFor(nx);
       selectTempoSeg(nx.from, nx.to, true);
-      toast(doneFrom+'〜'+doneTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき　→ つぎは '+nx.from+'〜'+nx.to+'m');
+      toast(doneFrom+'〜'+doneTo+'m ST '+perStroke.toFixed(2)+'秒／かき　→ つぎは '+nx.from+'〜'+nx.to+'m');
       shacchiSay(doneFrom+'〜'+doneTo+'mは '+perStroke.toFixed(2)+'秒／かきだッチ。そのまま '+nx.from+'〜'+nx.to+'m にうつったから、つづけて はかれるッチ。', 7000);
     } else {
-      toast(doneFrom+'〜'+doneTo+'m テンポ '+perStroke.toFixed(2)+'秒／かき　これで最後の区間です');
-      shacchiSay('さいごの区間まで はかりおわったッチ！左の表で、区間タイムとテンポを見くらべてみるッチ。', 8000);
+      toast(doneFrom+'〜'+doneTo+'m ST '+perStroke.toFixed(2)+'秒／かき　これで最後の区間です');
+      shacchiSay('さいごの区間まで はかりおわったッチ！左の表で、区間タイムとSTを見くらべてみるッチ。', 8000);
     }
   }
 
@@ -6396,7 +6396,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
         var marks=tempoMarks.slice().sort(function(a,b){return a-b;});
         if(n>=2){
           var strokes=n-1, total=marks[n-1]-marks[0], per=total/strokes, spm=60/per;
-          st.textContent='1つずつ ： '+n+'回記録　'+per.toFixed(2)+'秒／かき　毎分'+Math.round(spm)+'かき';
+          st.textContent='1つずつ ： '+n+'回記録　'+per.toFixed(2)+'秒／かき　SR '+Math.round(spm)+'回/分';
         } else {
           st.textContent='1つずつ ： 入水①を記録ずみ。次を記録';
         }
@@ -6603,7 +6603,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   function openTempoModal(key){
     var cur=tempoValues[key];
     openPad(
-      key.replace('-','〜')+'m の テンポ(1かきの秒数)',
+      key.replace('-','〜')+'m の ST(1かきの秒数)',
       '例 0,1,2,3 で 1.23秒／かき',
       'time',
       cur? cur.perStroke : null,
@@ -6619,13 +6619,13 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
         saveDraft();      // この端末に ひかえを取る
         renderRecords();
         backToAna();
-        toast(key+'m のテンポを '+v.toFixed(2)+'秒／かきに なおしました');
+        toast(key+'m のSTを '+v.toFixed(2)+'秒／かきに なおしました');
       },
       function(){
         delete tempoValues[key];
         saveDraft();
         renderRecords();
-        toast(key+'m のテンポを けしました');
+        toast(key+'m のSTを けしました');
       }
     );
   }
@@ -6678,7 +6678,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     if(dists.length){
       var tab=document.createElement('div');
       tab.className='rtab';
-      tab.innerHTML='<div class="h">地点／通過</div><div class="h r">区間／テンポ</div>';
+      tab.innerHTML='<div class="h">地点／通過</div><div class="h r">区間／ST</div>';
       // 地点の行（線の上にのる値）
       var addPoint=function(label, timeText, isOff, onTap, fin){
         var L=document.createElement('div');
@@ -6701,9 +6701,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
           usedTempo[key]=true;
           var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
           var spm=(v.spm!=null)?Math.round(v.spm):'-';
-          tp='<div class="tp">'+per+'秒 毎分'+spm+'</div>';
+          tp='<div class="tp">ST '+per+'秒　SR '+spm+'</div>';
         }else{
-          tp='<div class="tp none">テンポ未測定</div>';
+          tp='<div class="tp none">ST未測定</div>';
         }
         R.innerHTML='<div><span class="sg">'+pd+'→'+d+'</span>'+
                     '<span class="lap">'+fmt(lap)+'</span></div>'+tp;
@@ -6735,7 +6735,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
         var per=(v.perStroke!=null)?v.perStroke.toFixed(2):'-';
         var spm=(v.spm!=null)?Math.round(v.spm):'-';
         row.innerHTML='<div class="top"><span class="d">'+k.replace('-','〜')+'m</span><span class="t">'+per+'</span></div>'+
-                      '<div class="lap">テンポ '+per+'秒／かき　毎分'+spm+'かき</div>';
+                      '<div class="lap">ST '+per+'秒／かき　SR '+spm+'回/分</div>';
         row.querySelector('.t').onclick=function(){ openTempoModal(k); };
         box.appendChild(row);
       });
@@ -6982,26 +6982,26 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
-    ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・テンポ・かき数が 見られるッチ。'],
+    ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・ST・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],
-    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・テンポをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
+    ['#smCompare','選手ふたりをえらんで、ラップ・スピード・STをグラフで見くらべる機能だッチ。長いレースは 横にめくって見られるッチ。'],
     ['#newsBar','きょうの水泳ニュースだッチ。押すと元の記事がひらくッチ。つぎに開くと 新しい見出しに かわるッチ。'],
     ['#smSettings','データ保存・大会データ・動画フォルダの 3つのURLを ここにまとめて 覚えさせられるッチ。'],
     ['#officialBtn','正式レース結果の入り口だッチ。日本水泳連盟の分析・セイコーリザルト・TDシステムが どこからでも ひらけるッチ。'],
     ['#toolsBtn','ここは道具箱だッチ。動画や距離の変更、ほぞんとよびだしが入っているッチ。'],
     ['#changeBtn','べつの動画にとりかえるッチ。いまの記録はのこったままだッチ。'],
     ['#distBtn','レースの距離をえらびなおすッチ。記録はリセットされるから気をつけるッチ。'],
-    ['#saveBtn','タイムやテンポをスプレッドシートにほぞんするッチ。はじめてのときだけ選手登録があるッチ。'],
+    ['#saveBtn','タイムやSTをスプレッドシートにほぞんするッチ。はじめてのときだけ選手登録があるッチ。'],
     ['#loadBtn','ほぞんした記録をよびもどすッチ。過去のレースが一覧で出てくるッチ。'],
     ['#mtTime','地点の通過タイムをはかるモードだッチ。まず目盛りで地点をえらぶッチ。'],
-    ['#mtTempo','区間のテンポをはかるモードにかわるッチ。目盛りで区間をえらぶッチ。'],
-    ['#tm3','入水①と3かき目の入水の2回だけ押すと、その差の時間からテンポを出すはかり方だッチ。'],
+    ['#mtTempo','区間のSTをはかるモードにかわるッチ。目盛りで区間をえらぶッチ。'],
+    ['#tm3','入水①と3かき目の入水の2回だけ押すと、その差の時間からSTを出すはかり方だッチ。'],
     ['#tmEach','入水のたびにおして、さいごに確定ボタンでしめくくるはかり方だッチ。かき数もかぞえられるッチ。'],
     ['#lapBtn','いちばん大事なボタンだッチ。いまの動画の瞬間を、えらんだ地点のタイムとしてきろくするッチ。'],
     ['#rtChip','スタートの反応時間をあつかうッチ。せいかくに はかるコツは二つあるッチ。一つは、ピストルの光が光ったら、①をおすッチ。もう一つは、ピストルの音が鳴ったら、①をおすッチ。だけど、会場が広いと、音はおそく届くッチ。だから光で合わせるのが おすすめだッチ。'],
     ['#strokeChip','50mごとのかき数をとうろくするッチ。あとから直せるッチ。'],
     ['#lineChip','黄色い通過ラインを引くボタンだッチ。おしてから、手前の赤い目印、おくの赤い目印のじゅんにタップすると線が出るッチ。ななめから撮った動画でも、頭が線を通った瞬間で正しく判定できるッチ。もう一度おすと引き直せるッチ。'],
-    ['#tempoFinish','1つずつはかったテンポをここでしめくくるッチ。'],
+    ['#tempoFinish','1つずつはかったSTをここでしめくくるッチ。'],
     ['#bAdjBack','調整ボタンだッチ。1回おすと 1秒、長押しすると 10秒ずつ もどるッチ。'],
     ['#bBack','もどるボタンだッチ。押すたびに1コマ、長押しすると 10コマずつ もどりつづけるッチ。'],
     ['#bPlay','再生と一時停止だッチ。'],
@@ -7013,9 +7013,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     ['#homeBtn','ホームを上にかさねて出すボタンだッチ。動画と記録は消えずに そのまま残るッチ。「分析に もどる」で つづきができるッチ。'],
     ['#recPanel','記録がここにたまるッチ。きろくの見出しをつかむとパネルごとうごかせるッチ。タイムの数字をおすと正式タイムが入れられるッチ。'],
     ['.pt','はかりたい地点をえらぶッチ。100m以上のレースは節目をおすとその区間がひらいて、もう一回おすと一覧にもどるッチ。'],
-    ['.segzone','ここをおすと区間がえらべるッチ。テンポをはかるときにつかうッチ。'],
+    ['.segzone','ここをおすと区間がえらべるッチ。STをはかるときにつかうッチ。'],
     ['#aim','いまねらっている地点や区間がここに出るッチ。'],
-    ['#tempoStatus','テンポ測定のすすみ具合がここに出るッチ。'],
+    ['#tempoStatus','ST測定のすすみ具合がここに出るッチ。'],
     ['#scale','きょり目盛りだッチ。地点や区間をここでえらぶッチ。'],
     ['#videoWrap','動画の画面だッチ。ピンチでズーム、ドラッグでうごかせるッチ。']
   ];
@@ -7488,8 +7488,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var warn=[];
     String(tempo||'').split('/').forEach(function(x){
       var v=Number(String(x).trim()); if(isNaN(v)||!String(x).trim()) return;
-      if(v<0.5) warn.push('テンポ '+v+' 秒／かき は 速すぎます');
-      if(v>4)   warn.push('テンポ '+v+' 秒／かき は 遅すぎます');
+      if(v<0.5) warn.push('ST '+v+' 秒／かき は 速すぎます');
+      if(v>4)   warn.push('ST '+v+' 秒／かき は 遅すぎます');
     });
     String(count||'').split('/').forEach(function(x){
       var v=Number(String(x).trim()); if(isNaN(v)||!String(x).trim()) return;
@@ -7508,7 +7508,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
     var tempo=custTempoText(), count=custCountText();
     if(!tempo && !count){
-      toast('まだ テンポも かき数も はかっていません');
+      toast('まだ STも かき数も はかっていません');
       return;
     }
     var writer=writerName();
@@ -7524,7 +7524,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
     var mesg='この内容で 決定します。\n\n'
       + meta.name + '　' + ev + '\n' + meta.meet + '　' + meta.date + '\n\n'
-      + 'テンポ ' + (tempo||'なし') + '\n'
+      + 'ST ' + (tempo||'なし') + '\n'
       + 'かき数 ' + (count||'なし') + '\n\n'
       + 'はかった人　' + writer + '\n\nよろしいですか。';
     if(!confirm(mesg)) return;
@@ -7768,8 +7768,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var tps=rows.filter(function(r){ return r.tempo!=null; });
     if(tps.length){
       var av=tps.reduce(function(a,r){return a+r.tempo;},0)/tps.length;
-      items.push({l:'平均テンポ', v:av.toFixed(2), u:'秒', s:'1かきにかかる時間'});
-      items.push({l:'毎分のかき数', v:String(Math.round(60/av)), u:'回', s:'テンポから計算'});
+      items.push({l:'平均ST', v:av.toFixed(2), u:'秒', s:'1かきにかかる時間'});
+      items.push({l:'平均SR', v:String(Math.round(60/av)), u:'回/分', s:'STから計算'});
     }
     var cs=rows.filter(function(r){ return r.count!=null; });
     if(cs.length){
@@ -7825,7 +7825,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       var a=tps.slice(0,h2).reduce(function(x,r){return x+r.tempo;},0)/h2;
       var b=tps.slice(h2).reduce(function(x,r){return x+r.tempo;},0)/(tps.length-h2);
       var d2=b-a;
-      lines.push('テンポは 前半 '+a.toFixed(2)+' 秒、後半 '+b.toFixed(2)+' 秒。'+
+      lines.push('STは 前半 '+a.toFixed(2)+' 秒、後半 '+b.toFixed(2)+' 秒。'+
         (Math.abs(d2)<0.005 ? 'さいごまで 同じリズムで泳げました。'
           : (d2>0 ? '後半は 1かきに '+d2.toFixed(2)+' 秒 よけいにかかっています。'
                   : '後半のほうが '+Math.abs(d2).toFixed(2)+' 秒 速いリズムでした。')));
@@ -7907,7 +7907,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     list.push({ title:'泳ぐ速さ', unit:'m/s（高いほど速い）', type:'line', color:RPC.teal, dec:2, zero:false,
       items:chunk.map(function(r){ return {label:lab(r), value:r.speed}; }) });
     var tp=chunk.filter(function(r){ return r.tempo!=null; });
-    if(tp.length) list.push({ title:'テンポ', unit:'秒／かき（上ほど速い）', type:'line',
+    if(tp.length) list.push({ title:'ST', unit:'秒／かき（上ほど速い）', type:'line',
       color:RPC.orange, dec:2, zero:false, invert:true,
       items:tp.map(function(r){ return {label:lab(r), value:r.tempo}; }) });
     var st=chunk.filter(function(r){ return r.count!=null; });
@@ -7928,7 +7928,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var hasTempo=rows.some(function(r){ return r.tempo!=null; });
     var hasCount=rows.some(function(r){ return r.count!=null; });
     var cols=['区間','通過タイム','区間タイム','ひとつ前との差','泳ぐ速さ m/s'];
-    if(hasTempo) cols=cols.concat(['テンポ 秒','毎分かき']);
+    if(hasTempo) cols=cols.concat(['ST 秒','SR 回/分']);
     if(hasCount) cols=cols.concat(['かき数']);
     var firstW=Math.min(150, RP_IW*0.2), rest=(RP_IW-firstW)/(cols.length-1);
     function colRight(i){ return RP_M+firstW+rest*(i+1); }
@@ -8009,7 +8009,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     g+=rpLine(RP_M, fy-13, RP_M+RP_IW, fy-13, RPC.line, 0.9);
     g+=rpT(RP_M, fy, 'メモ', 'fl');
     var memo='区間タイムは その区間にかかった時間、ひとつ前との差は 直前の区間とくらべた秒数です。'+
-             'テンポは 1かきにかかる時間で、小さいほど速いリズムです。';
+             'STは 1かきにかかる時間（ストロークタイム）、SRは 1分あたりのかき数（ストロークレート）です。';
     g+=rpT(RP_M+34, fy, memo, 'ft');
     g+=rpT(RP_M+RP_IW, fy, 'swimIQ', 'fr', 'end');
     return '<svg class="rpsvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+RP_W+' '+RP_H+'" '+

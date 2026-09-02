@@ -437,7 +437,7 @@
   #dvLoadBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
   .dv-body{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
     display:flex; flex-direction:column; gap:6px; }
-  .dv-row{ display:grid; grid-template-columns:62px 1fr 1fr 1.4fr; align-items:center; gap:6px;
+  .dv-row{ display:grid; grid-template-columns:62px 1fr .9fr .8fr .8fr; align-items:center; gap:6px;
     background:rgba(255,255,255,.08); border-radius:12px; padding:9px 10px;
     font-variant-numeric:tabular-nums; }
   .dv-row.dv-h{ background:transparent; padding:2px 10px; font-size:11px; font-weight:800; color:#bfe3ff; }
@@ -446,11 +446,14 @@
   .dv-row .dv-l{ font-size:13px; font-weight:700; color:#bfe3ff; }
   .dv-row .dv-p{ font-size:13px; font-weight:800; color:#7dd3fc; display:flex; flex-direction:column; line-height:1.25; }
   .dv-row .dv-p small{ font-size:10px; font-weight:700; opacity:.85; }
+  /* SR（ストロークレート）のます。STのすぐ右にならべます */
+  .dv-row .dv-s{ font-size:13px; font-weight:800; color:#7dd3fc; display:flex; flex-direction:column; line-height:1.25; }
+  .dv-row .dv-s small{ font-size:10px; font-weight:700; opacity:.85; }
   /* テンポの行：区間の値として、行と行のあいだに細く挟まる */
   .dv-row.tempo{ background:rgba(34,211,238,.12); border-left:3px solid #22d3ee;
     padding:5px 10px; margin:0 8px; }
   .dv-row.tempo .dv-d{ font-size:11px; font-weight:800; color:#7dd3fc; }
-  .dv-row.tempo .dv-p{ font-size:12px; }
+  .dv-row.tempo .dv-p, .dv-row.tempo .dv-s{ font-size:12px; }
   .dv-foot{ margin-top:10px; background:rgba(167,139,250,.14); border:1.5px solid rgba(167,139,250,.5);
     border-radius:12px; padding:10px 12px; font-size:14px; font-weight:800; text-align:center; }
   .dv-foot .dv-shead{ font-size:12px; font-weight:800; color:#d6c8ff; text-align:left; margin-bottom:5px; }
@@ -6429,7 +6432,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
     var head=document.createElement('div');
     head.className='dv-row dv-h';
-    head.innerHTML='<span>きょり</span><span>タイム</span><span>区間</span><span>テンポ</span>';
+    head.innerHTML='<span>きょり</span><span>タイム</span><span>区間</span><span>ST</span><span>SR</span>';
     body.appendChild(head);
     var origin=originTime();
     // 先頭：リアクションタイム（合図→足ばなれの秒数）
@@ -6437,7 +6440,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     rtRow.className='dv-row';
     var rtText=(rtTime!=null)?rtTime.toFixed(2):'-';
     rtRow.innerHTML='<span class="dv-d">R.T</span><span class="dv-t dv-tap">'+rtText+'</span>'+
-                    '<span class="dv-l">-</span><span class="dv-p"></span>';
+                    '<span class="dv-l">-</span><span class="dv-p"></span><span class="dv-s"></span>';
     // R.Tの数字をタップするとリアクションタイムの入力画面をひらく
     rtRow.querySelector('.dv-t').onclick=function(){ openRtModal(); };
     body.appendChild(rtRow);
@@ -6452,8 +6455,13 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
           var row=document.createElement('div');
           row.className='dv-row tempo';
           row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
-          (function(kk){ row.querySelector('.dv-p').onclick=function(){ openTempoModal(kk); }; })(k);
+                        '<span class="dv-p dv-tap">'+v.perStroke.toFixed(2)+'<small>秒</small></span>'+
+                        '<span class="dv-s dv-tap">'+Math.round(v.spm)+'<small>回/分</small></span>';
+          (function(kk){
+            var open=function(){ openTempoModal(kk); };
+            row.querySelector('.dv-p').onclick=open;
+            row.querySelector('.dv-s').onclick=open;
+          })(k);
           body.appendChild(row);
         }
       });
@@ -6467,7 +6475,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       var row=document.createElement('div');
       row.className='dv-row';
       row.innerHTML='<span class="dv-d">'+d+'m</span><span class="dv-t dv-tap'+(isOff?' toff':'')+'">'+fmt(split)+'</span>'+
-                    '<span class="dv-l dv-tap">'+fmt(lap)+'</span><span class="dv-p"></span>';
+                    '<span class="dv-l dv-tap">'+fmt(lap)+'</span><span class="dv-p"></span><span class="dv-s"></span>';
       // タイムを押すと 正式タイムの入力画面、区間を押すと 区間だけ直せる画面
       (function(dd, pd, ps, lp){
         row.querySelector('.dv-t').onclick=function(){ openOfficialModal(dd); };
@@ -6484,7 +6492,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
         var row=document.createElement('div');
         row.className='dv-row tempo';
         row.innerHTML='<span class="dv-d">'+k.replace('-','〜')+'m</span><span></span><span></span>'+
-                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'秒/かき<small>毎分'+Math.round(v.spm)+'かき</small></span>';
+                      '<span class="dv-p">'+v.perStroke.toFixed(2)+'<small>秒</small></span>'+
+                      '<span class="dv-s">'+Math.round(v.spm)+'<small>回/分</small></span>';
         body.appendChild(row);
       });
     // かき数：登録画面で入れた50mごとの値と合計を出す

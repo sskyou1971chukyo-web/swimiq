@@ -39,7 +39,9 @@
   --green:     #17934A;
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
-html{ font-size:18px; }
+/* 文字の大きさのもと。16px は iPhone のふつうの大きさです。
+   --fs を 1 / 1.125 / 1.25 と変えると、画面全体の字がそろって大きくなります */
+html{ font-size:calc(16px * var(--fs, 1)); }
 body{
   font-family:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
   background:var(--bg); color:var(--ink); line-height:1.7;
@@ -350,7 +352,7 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
 /* ボタンを押したときの灰色のちらつきを消し、押しやすくする */
 button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 @media (max-width:640px){
-  html{ font-size:16px; }
+  html{ font-size:calc(16px * var(--fs, 1)); }
   header{ padding:12px 14px 10px; }
   .brand img.logo{ height:46px; }
   main{ padding:14px 12px 60px; }
@@ -545,10 +547,55 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
   .brand h1.wordmark{ font-size:1.68rem; }
   .brand .teamname{ font-size:.57rem; }
 }
+
+/* ============================================================
+   文字の大きさをえらぶ (2026.09.02)
+   メニューの中に、ふつう・大きく・より大きく の3つを置きます。
+   えらんだ大きさは、この端末におぼえておきます。
+============================================================ */
+#fsRow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+#fsRow .fsLb{ flex:1 1 100%; font-size:.9rem; font-weight:800; color:var(--sub-ink); }
+#fsRow .fsBtn{
+  flex:1 1 0; min-width:70px; min-height:46px; padding:6px 6px; cursor:pointer;
+  font-family:inherit; font-weight:800; color:var(--black);
+  background:var(--white); border:2px solid var(--black); border-radius:11px;
+}
+#fsRow .fsBtn:nth-child(2){ font-size:.84rem; }
+#fsRow .fsBtn:nth-child(3){ font-size:.94rem; }
+#fsRow .fsBtn:nth-child(4){ font-size:1.06rem; }
+#fsRow .fsBtn:nth-child(5){ font-size:1.18rem; }
+#fsRow .fsBtn[aria-pressed="true"]{ background:var(--black); color:var(--yellow); }
+#fsRow .fsBtn:focus-visible{ outline:4px solid var(--black); outline-offset:2px; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<script>
+/* ============================================================
+   文字の大きさ (2026.09.02)
+   0.9375 = 小さめ(15px) / 1 = ふつう(iPhoneと同じ16px) / 1.125 = 大きく(18px) / 1.25 = より大きく(20px)
+   15pxより下げると、選ぶ欄を触ったときにiPhoneが画面を勝手に拡大するので、下限は15pxです。
+   画面が出るまえに読みこむので、字がちらつきません。
+============================================================ */
+function markFontScale(v){
+  var list = document.querySelectorAll('#fsRow .fsBtn');
+  for(var i=0;i<list.length;i++){
+    list[i].setAttribute('aria-pressed', Number(list[i].dataset.fs) === Number(v) ? 'true' : 'false');
+  }
+}
+function setFontScale(v){
+  v = Number(v) || 1;
+  document.documentElement.style.setProperty('--fs', v);
+  try{ localStorage.setItem('cust_font_scale', String(v)); }catch(e){}
+  markFontScale(v);
+}
+(function(){
+  var v = 1;
+  try{ v = Number(localStorage.getItem('cust_font_scale')) || 1; }catch(e){}
+  if(v !== 1) document.documentElement.style.setProperty('--fs', v);
+  document.addEventListener('DOMContentLoaded', function(){ markFontScale(v); });
+})();
+</script>
 </head>
 <body class="hasnav">
 <header>
@@ -578,6 +625,13 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
         onclick="toggleOfficial()">正式記録検索</button>
       <button type="button" class="btn ghost" id="fixToggle" aria-expanded="false" aria-controls="fixPanel"
         onclick="toggleFix()">記録の訂正を連絡する</button>
+    </div>
+    <div id="fsRow">
+      <span class="fsLb">文字の大きさ</span>
+      <button type="button" class="fsBtn" data-fs="0.9375" aria-pressed="false" onclick="setFontScale(0.9375)">小さめ</button>
+      <button type="button" class="fsBtn" data-fs="1" aria-pressed="true" onclick="setFontScale(1)">ふつう</button>
+      <button type="button" class="fsBtn" data-fs="1.125" aria-pressed="false" onclick="setFontScale(1.125)">大きく</button>
+      <button type="button" class="fsBtn" data-fs="1.25" aria-pressed="false" onclick="setFontScale(1.25)">より大きく</button>
     </div>
     <div id="officialLinks" hidden>
       <a class="offbtn" href="https://swim.seiko.co.jp/index.html" target="_blank" rel="noopener" onclick="return openOfficial(this)" aria-label="セイコーリザルト速報">
@@ -693,9 +747,9 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.01.5';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.02.2';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'スクショや写真から大会結果を取り込めるようになりました。AIが混んでいるときは別のAIに自動で乗り換えます。';
+const APP_NEWS = '文字の大きさを、メニューの中で 小さめ・ふつう・大きく・より大きく の4つからえらべるようになりました。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';

@@ -747,9 +747,9 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.03.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.03.3';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '大会名の前に付いていた 時計や チェックの印を なくしました。ラップの入りぐあいは 行のうしろの数字で分かります。メニューを開くと 記録を入力すると設定のボタンも すぐ出ます。';
+const APP_NEWS = '設定の 全国大会の登録 に 種別の欄ができ、国スポの予選会と本大会を見分けられるようになりました。予選が混ざっていないか調べる ボタンで まとめて点検できます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
@@ -2239,6 +2239,21 @@ async function loadWorlds(){
   try{ WORLDS = JSON.parse(localStorage.getItem('cust_worlds')||'[]'); }
   catch(e){ WORLDS = []; }
   return WORLDS;
+}
+
+/* ============================================================
+   国スポ・国体の 予選会 と 本大会 を見分ける
+     予選会 … 大会名に「予選」または「選考」が入っているもの。
+              県予選会、地区予選、代表選手選考会 など。
+     本大会 … 国民スポーツ大会・国民体育大会・国体・国スポ が入っていて、
+              予選や選考が入っていないもの。
+     それ以外は 空文字を返します(ふつうの大会)。
+============================================================ */
+function meetKind(name){
+  const s = String(name||'');
+  if(/予選|選考/.test(s)) return '予選';
+  if(/国民スポーツ大会|国民体育大会|国体|国スポ/.test(s)) return '本大会';
+  return '';
 }
 
 let NATIONALS = null;   // 全国大会にした大会名の一覧
@@ -4463,11 +4478,13 @@ function renderAdmin(){
     </div>
 
     <div class="card"><h2>全国大会の登録</h2>
-      <p class="hint">全レースに入っている大会の一覧です。全国大会にチェックを付けて保存すると、閲覧画面の「全国大会」のタブで、その大会だけをまとめて見られます。チェックはいつでも付け外しできます。</p>
+      <p class="hint">全レースに入っている大会の一覧です。全国大会にチェックを付けて保存すると、閲覧画面の「全国大会」のタブで、その大会だけをまとめて見られます。チェックはいつでも付け外しできます。種別の欄には、大会名から見た国スポの予選会か本大会かが出ます。予選会に全国大会の印が付いていると、赤い色で知らせます。</p>
       <div id="natList" style="margin-top:10px"><p class="hint">大会一覧を読み込んでいます…</p></div>
       <div class="stack" style="margin-top:10px">
+        <button class="btn" onclick="adminCheckNationals()">予選が混ざっていないか調べる</button>
         <button class="btn solid" onclick="adminSaveNationals()">全国大会の印を保存する</button>
       </div>
+      <div id="natCheck" style="margin-top:10px" aria-live="polite"></div>
       <div id="natMsg" aria-live="polite"></div>
     </div>
 
@@ -7325,14 +7342,55 @@ async function adminDrawNationals(){
     box.innerHTML = '<p class="hint">まだ大会がありません。記録を取り込むとここに並びます。</p>';
     return;
   }
-  let h = '<div class="tablewrap" style="max-height:340px"><table><tr><th>全国大会</th><th>大会名</th><th>年月</th></tr>';
+  let h = '<div class="tablewrap" style="max-height:340px"><table><tr><th>全国大会</th><th>大会名</th><th>種別</th><th>年月</th></tr>';
   list.forEach((m,i)=>{
-    h += `<tr><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${marked.has(m.name)?'checked':''} style="width:26px;height:26px"></td>
-      <td>${esc(m.name)}</td>
+    const kind = meetKind(m.name);
+    const ng = (kind === '予選' && marked.has(m.name));   // 予選会に全国大会の印がついている
+    h += `<tr${ng?' style="background:#FFF1F1"':''}><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${marked.has(m.name)?'checked':''} style="width:26px;height:26px"></td>
+      <td>${esc(m.name)}${ng?'<br><b style="color:#B3261E">予選会に全国大会の印がついています</b>':''}</td>
+      <td class="nw">${kind || '—'}</td>
       <td class="nw">${m.year||'?'}年${m.month||'?'}月</td></tr>`;
   });
   box.innerHTML = h + '</table></div>';
 }
+/* 全国大会の印に 予選会が混ざっていないかを調べる。
+   あわせて、同じ大会名がちがう年で登録されていないかも見ます。 */
+window.adminCheckNationals = function(){
+  const out = document.getElementById('natCheck');
+  if(!out) return;
+  const chks = [...document.querySelectorAll('.natchk')];
+  const yosen = chks.filter(c=>c.checked && meetKind(c.dataset.name)==='予選');
+  // 同じ大会名が ちがう年で登録されていないか
+  const toshi = {};
+  ((DATA&&DATA.meets)?DATA.meets:[]).forEach(m=>{
+    const n = String(m.meet||'').trim(); if(!n) return;
+    if(!toshi[n]) toshi[n] = {};
+    toshi[n][String(m.year||'?')] = 1;
+  });
+  const dup = Object.keys(toshi).filter(n=>Object.keys(toshi[n]).length > 1);
+  let h = '';
+  if(yosen.length){
+    h += '<div class="errmsg"><b>予選会に全国大会の印がついています（' + yosen.length + '件）</b><ul>' +
+      yosen.map(c=>'<li>' + esc(c.dataset.name) + '</li>').join('') + '</ul>' +
+      '<button class="btn" onclick="adminDropYosen()">この' + yosen.length + '件の印をまとめて外す</button>' +
+      '<p class="hint">外したあと、全国大会の印を保存する を押してください。</p></div>';
+  } else {
+    h += '<div class="okmsg">全国大会の印に、予選会は混ざっていません。</div>';
+  }
+  if(dup.length){
+    h += '<div class="errmsg" style="margin-top:10px"><b>同じ大会名が ちがう年で登録されています（' + dup.length + '件）</b><ul>' +
+      dup.map(n=>'<li>' + esc(n) + '（' + Object.keys(toshi[n]).sort().join('年 と ') + '年）</li>').join('') +
+      '</ul><p class="hint">どちらかの年がまちがっている可能性があります。上の 試合名の登録 にある 大会の情報を直す で、年を書きかえてください。</p></div>';
+  }
+  out.innerHTML = h;
+};
+/* 予選会についた全国大会の印を、まとめて外す（保存はまだしない） */
+window.adminDropYosen = function(){
+  document.querySelectorAll('.natchk').forEach(c=>{
+    if(c.checked && meetKind(c.dataset.name)==='予選') c.checked = false;
+  });
+  adminCheckNationals();
+};
 async function adminDrawWorlds(){
   const box = document.getElementById('wldList');
   if(!box) return;

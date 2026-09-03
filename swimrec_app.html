@@ -747,9 +747,9 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.03.1';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.03.2';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'メニューを開くと、記録を入力すると設定のボタンが すぐ出るようになりました。今までは スタッフ のボタンを押さないと現れませんでした。';
+const APP_NEWS = '大会名の前に付いていた 時計や チェックの印を なくしました。ラップの入りぐあいは 行のうしろの数字で分かります。メニューを開くと 記録を入力すると設定のボタンも すぐ出ます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
@@ -4422,7 +4422,7 @@ function renderAdmin(){
     </div>
 <div class="card redline"><h2>大会の情報を直す</h2>
       <p class="hint">大会を選ぶと、いまの内容が下の欄に入ります。直したいところだけ書きかえて「この大会を直す」を押してください。<b>大会名・実施日・会場・水路</b>をまとめて直せます。その大会の記録・リレー・登録簿が、いっしょに書きかわります。日付や会場を入れておくと、同じ名前の試合でも見わけがつくようになります。</p>
-      <p class="hint">一覧のあたまの目印: <b>⏱</b>=ラップがぜんぶ入っている / <b>✔</b>=ラップなしで確定にした / <b>△</b>=一部の種目だけ入っている / 目印なし=ラップが入っていない。△と目印なしの大会は、その大会のPDFを取り込み直すとラップが入ります。<br>件数は「ラップが入るはずの記録」だけで数えています（50m種目には通過タイムがなく、棄権にはタイムそのものが無いため、分母には入れていません）。</p>
+      <p class="hint">一覧の行のうしろに、ラップの入りぐあいが出ます。ラップ85/85のように分母と同じ数なら、その大会はぜんぶ入っています。数が足りない大会や、ラップが入っていない大会は、その大会のPDFを取り込み直すとラップが入ります。<br>件数は「ラップが入るはずの記録」だけで数えています（50m種目には通過タイムがなく、棄権にはタイムそのものが無いため、分母には入れていません）。</p>
       <div class="stack" style="align-items:end">
         <label class="fld" style="flex:1; min-width:260px">直したい大会（県大会・全国大会などのまとまりに分かれます。新しい大会が上）
           <select id="meName" onchange="adminPickMeetEdit()" onfocus="if(this.options.length<=1)adminDrawMeetEditSelect()"></select></label>
@@ -7719,13 +7719,9 @@ function lapNeedOf(m){
   return Number(m.count) || 0;   // 古いGASのときは今までどおり
 }
 function meetLapMark(m){
-  if(!m || m.lap === undefined) return '';   // 古いGASのときは目印なし
-  if(m.lapDone) return '✔ ';                 // ラップなしで確定にした大会
-  const need = lapNeedOf(m);
-  if(need === 0) return '\u3000';            // ラップ対象がない大会(50m種目のみ)
-  if(m.lap >= need) return '⏱ ';
-  if(m.lap > 0) return '△ ';
-  return '\u3000';   // 全角スペース(頭をそろえるため)
+  // 大会名の前に付けていた ⏱ ✔ △ の印は、読みにくいので出さないことにしました。
+  // ラップの入りぐあいは、行のうしろの「ラップ85/85」などの数字で分かります。
+  return '';
 }
 // プルダウンに出す1行分の文字を作る
 function meetLabel(m){
@@ -7852,7 +7848,7 @@ async function adminSetLapDone(){
     if(sel2) sel2.value = (idx>=0) ? String(idx) : '';
     adminPickMeetEdit();
     document.getElementById('meMsg').innerHTML = on
-      ? '<div class="okmsg">「ラップなしで確定」にしました。一覧では ✔ と表示されます。</div>'
+      ? '<div class="okmsg">「ラップなしで確定」にしました。一覧では ラップなしで確定 と表示されます。</div>'
       : '<div class="okmsg">確定の印をはずしました。</div>';
   }catch(err){
     msg.innerHTML = '<div class="errmsg">保存できませんでした: ' + esc(err.message) +

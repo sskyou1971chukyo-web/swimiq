@@ -899,7 +899,32 @@
   #riModal{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #riModal.hide{ display:none; }
-  .ri-card{ width:min(480px, 94vw); max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .ri-card{ width:min(480px, 94vw); max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain; }
+  /* 押すと開く見出し（自分自身・泳ぐ人） */
+  .ri-acc{ display:flex; align-items:center; gap:8px; width:100%; margin:10px 0 0; padding:13px 14px;
+    cursor:pointer; border:1.5px solid rgba(255,255,255,.35); border-radius:14px;
+    background:rgba(255,255,255,.10); color:inherit; text-align:left; }
+  .ri-acc-t{ flex:0 0 auto; font-size:13px; font-weight:900; }
+  .ri-acc-v{ flex:1 1 auto; text-align:right; font-size:13px; font-weight:800; opacity:.85;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ri-acc-i{ flex:0 0 auto; width:22px; text-align:center; font-size:18px; font-weight:900; }
+  .ri-acc[aria-expanded="true"] .ri-acc-i{ transform:rotate(45deg); }
+  .ri-acc:active{ transform:translateY(1px); }
+  .ri-body{ padding:2px 2px 6px; }
+  .ri-body.hide{ display:none; }
+  /* はじめるボタン：いちばん押してほしいので大きく色をつける */
+  .ri-go{ margin-top:16px; }
+  #riStart{ display:block; width:100%; min-height:64px; padding:16px; cursor:pointer;
+    border:none; border-radius:16px;
+    background:linear-gradient(135deg,#f97316,#fbbf24); color:#fff;
+    font-size:22px; font-weight:900; letter-spacing:.06em; text-shadow:var(--shadow);
+    box-shadow:0 4px 0 rgba(0,0,0,.28); }
+  #riStart:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.28); }
+  #riSkip{ display:block; width:100%; margin-top:10px; min-height:44px; padding:10px; cursor:pointer;
+    border:1.5px solid rgba(255,255,255,.35); border-radius:12px;
+    background:transparent; color:inherit; font-size:13px; font-weight:800; }
+  #riSkip:active{ transform:translateY(1px); }
   .ri-sec{ margin:14px 2px 6px; padding-top:10px; border-top:1px solid rgba(255,255,255,.28);
     font-size:13px; font-weight:900; letter-spacing:.04em; color:#7dd3fc; }
   .ri-sec.ri-first{ margin-top:4px; padding-top:0; border-top:none; }
@@ -1294,6 +1319,18 @@
 .modal-card .vs-bars .half.l .bar{ background:#C2410C !important; }
 .modal-card .vs-bars .half.r .bar{ background:#1668B5 !important; }
 .modal-card .seg-row .sa.win{ color:#0B4F9E !important; }
+
+/* ============================================================
+   レースの じょうほう（黄色の窓の中）2026.09.04
+============================================================ */
+.modal-card .ri-acc{ background:#fff !important; border:1.5px solid var(--k-line) !important;
+  color:var(--k) !important; box-shadow:0 1px 0 rgba(110,86,0,.14) !important; }
+.modal-card .ri-acc-v{ color:var(--k-sub) !important; opacity:1 !important; }
+.modal-card #riStart{ background:var(--k) !important; color:var(--y) !important;
+  text-shadow:none !important; box-shadow:0 4px 0 rgba(0,0,0,.25) !important; }
+.modal-card #riSkip{ background:#fff !important; border:1.5px solid var(--k-line) !important;
+  color:var(--k-sub) !important; }
+.modal-card .ri-sec{ color:var(--k) !important; border-top-color:var(--k-line) !important; }
 
 /* ============================================================
    トップ画面（案3 まとまり） 2026.09.01
@@ -1894,22 +1931,34 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 <div id="riModal" class="hide">
   <div class="modal-card ri-card">
     <h2>レースの じょうほう</h2>
-    <div class="ri-sec ri-first">自分自身（この携帯の持ち主）</div>
-    <p class="note ri-note">一度入れれば この携帯が覚えて、次からは 最初から入っています。</p>
-    <div class="sv-row"><span>自分の名前</span><input id="riMyName" type="text" placeholder="例 谷口卓"></div>
-    <div class="sv-row"><span>生年月日</span><input id="riBirth" type="date"></div>
-    <div class="sv-row"><span>身長cm</span><input id="riHeight" type="number" inputmode="decimal" placeholder="例 170">
-      <span>体重kg</span><input id="riWeight" type="number" inputmode="decimal" placeholder="例 62"></div>
-    <div class="sv-row"><span>BMI</span><span id="riBmi" class="ri-val">—</span></div>
-    <div class="ri-sec">泳ぐ人（記録をつける相手）</div>
-    <p class="note ri-note">自分がおよぐなら そのままでOK。生年月日・身長・体重は 空欄でもかまいません。</p>
-    <div class="sv-row"><span>泳ぐ人の名前</span><select id="riSwimmerSel" aria-label="泳ぐ人をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
-    <div class="sv-row" id="riSwimmerFreeRow"><span></span><input id="riSwimmer" type="text" list="swimmerList" placeholder="はじめての人は ここに名前"></div>
-    <datalist id="swimmerList"></datalist>
-    <div class="sv-row"><span>生年月日</span><input id="riSwBirth" type="date"></div>
-    <div class="sv-row"><span>身長cm</span><input id="riSwHeight" type="number" inputmode="decimal" placeholder="任意">
-      <span>体重kg</span><input id="riSwWeight" type="number" inputmode="decimal" placeholder="任意"></div>
-    <div class="sv-row"><span>BMI</span><span id="riSwBmi" class="ri-val">—</span></div>
+    <button type="button" class="ri-acc" id="riAccMe" aria-expanded="false" aria-controls="riBodyMe">
+      <span class="ri-acc-t">自分自身（この携帯の持ち主）</span>
+      <span class="ri-acc-v" id="riAccMeV">まだです</span>
+      <span class="ri-acc-i" aria-hidden="true">＋</span>
+    </button>
+    <div class="ri-body hide" id="riBodyMe">
+      <p class="note ri-note">一度入れれば この携帯が覚えて、次からは 最初から入っています。</p>
+      <div class="sv-row"><span>自分の名前</span><input id="riMyName" type="text" placeholder="例 谷口卓"></div>
+      <div class="sv-row"><span>生年月日</span><input id="riBirth" type="date"></div>
+      <div class="sv-row"><span>身長cm</span><input id="riHeight" type="number" inputmode="decimal" placeholder="例 170">
+        <span>体重kg</span><input id="riWeight" type="number" inputmode="decimal" placeholder="例 62"></div>
+      <div class="sv-row"><span>BMI</span><span id="riBmi" class="ri-val">—</span></div>
+    </div>
+    <button type="button" class="ri-acc" id="riAccSw" aria-expanded="false" aria-controls="riBodySw">
+      <span class="ri-acc-t">泳ぐ人（記録をつける相手）</span>
+      <span class="ri-acc-v" id="riAccSwV">まだです</span>
+      <span class="ri-acc-i" aria-hidden="true">＋</span>
+    </button>
+    <div class="ri-body hide" id="riBodySw">
+      <p class="note ri-note">自分がおよぐなら そのままでOK。生年月日・身長・体重は 空欄でもかまいません。</p>
+      <div class="sv-row"><span>泳ぐ人の名前</span><select id="riSwimmerSel" aria-label="泳ぐ人をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
+      <div class="sv-row" id="riSwimmerFreeRow"><span></span><input id="riSwimmer" type="text" list="swimmerList" placeholder="はじめての人は ここに名前"></div>
+      <datalist id="swimmerList"></datalist>
+      <div class="sv-row"><span>生年月日</span><input id="riSwBirth" type="date"></div>
+      <div class="sv-row"><span>身長cm</span><input id="riSwHeight" type="number" inputmode="decimal" placeholder="任意">
+        <span>体重kg</span><input id="riSwWeight" type="number" inputmode="decimal" placeholder="任意"></div>
+      <div class="sv-row"><span>BMI</span><span id="riSwBmi" class="ri-val">—</span></div>
+    </div>
     <div class="ri-sec">このレース</div>
     <div class="sv-row"><span>距離</span><span id="riDist" class="ri-val">50m</span></div>
     <div class="sv-row"><span>種目</span><select id="riStroke">
@@ -1919,9 +1968,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="sv-row" id="riMeetFreeRow"><span></span><input id="riMeet" type="text" placeholder="例 学生選手権（練習なら空欄でOK）"></div>
     <p class="note hide" id="riMeetDateNote"></p>
     <button id="riJasf" type="button">🏁 正式レース結果を ひらく</button>
-    <div class="stroke-btns">
+    <div class="ri-go">
       <button id="riStart">はじめる</button>
-      <button id="riSkip">スキップ</button>
+      <button id="riSkip">あとで入れる（スキップ）</button>
     </div>
   </div>
 </div>
@@ -3501,8 +3550,41 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('riMeetSel').value='__free__';   // 前回のえらびは一度まっさらにする（入力欄の名前から復元される）
     refreshMeets();      // 試合名の一覧も、えらぶ式メニューに用意する
     riCalcBmi();
+    // 名前がまだ入っていない欄だけ ひらいておく。入っていれば たたんだまま。
+    riAccLabels();
+    riAccSet('riAccMe','riBodyMe', !($('riMyName').value||'').trim());
+    riAccSet('riAccSw','riBodySw', !($('riSwimmer').value||'').trim());
     $('riModal').classList.remove('hide');
+    $('riModal').scrollTop=0;
+    var rc=document.querySelector('.ri-card'); if(rc) rc.scrollTop=0;
   }
+  // ---- レースのじょうほう：押すと開く二つの欄 ----
+  // ふだんは たたんでおいて、「このレース」と「はじめる」だけが見えるようにする。
+  // たたんだ見出しには、いま入っている名前を出しておく。
+  function riAccSet(btnId, bodyId, open){
+    var b=$(btnId), body=$(bodyId);
+    if(!b||!body) return;
+    b.setAttribute('aria-expanded', open?'true':'false');
+    body.classList.toggle('hide', !open);
+  }
+  function riAccToggle(btnId, bodyId){
+    var open = $(btnId).getAttribute('aria-expanded')!=='true';
+    riAccSet(btnId, bodyId, open);
+  }
+  function riAccLabels(){
+    var me=($('riMyName').value||'').trim();
+    $('riAccMeV').textContent = me || 'まだ入っていません';
+    var swSel=$('riSwimmerSel');
+    var sw = (swSel && swSel.value!=='__free__') ? swSel.value : ($('riSwimmer').value||'').trim();
+    $('riAccSwV').textContent = sw || 'まだ入っていません';
+  }
+  $('riAccMe').onclick=function(){ riAccToggle('riAccMe','riBodyMe'); };
+  $('riAccSw').onclick=function(){ riAccToggle('riAccSw','riBodySw'); };
+  ['riMyName','riSwimmer'].forEach(function(id){
+    $(id).addEventListener('input', riAccLabels);
+  });
+  $('riSwimmerSel').addEventListener('change', riAccLabels);
+
   // 「正式レース結果」の入り口をひらく（3つの公式サイトがえらべる）
   $('riJasf').onclick=function(){
     $('officialModal').classList.remove('hide');

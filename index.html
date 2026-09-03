@@ -402,6 +402,40 @@
   #app.guidemode #shacchi{ filter:drop-shadow(0 0 12px #fbbf24) drop-shadow(0 3px 5px rgba(0,0,0,.4)); }
 
   /* ===== 距離選択モーダル ===== */
+  /* ===== カメラでとる画面 ===== */
+  #camModal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+    padding:14px; background:rgba(4,14,24,.94); }
+  #camModal.hide{ display:none; }
+  .cam-wrap{ width:100%; max-width:820px; display:flex; flex-direction:column; gap:10px; }
+  .cam-head{ display:flex; align-items:center; justify-content:space-between;
+    color:#fff; font-weight:900; font-size:16px; }
+  #camTime{ font-variant-numeric:tabular-nums; font-size:20px; }
+  .cam-stage{ position:relative; background:#000; border-radius:16px; overflow:hidden;
+    border:1.5px solid rgba(255,255,255,.25); }
+  #camView{ display:block; width:100%; max-height:56vh; object-fit:contain; background:#000; }
+  #camDot{ position:absolute; left:12px; top:12px; width:14px; height:14px; border-radius:50%;
+    background:#E23B3B; box-shadow:0 0 0 4px rgba(226,59,59,.3); animation:camblink 1s steps(2,end) infinite; }
+  #camDot.hide{ display:none; }
+  @keyframes camblink{ 50%{ opacity:.25; } }
+  .cam-msg{ margin:0; color:#dfe9f4; font-size:13px; font-weight:700; text-align:center; line-height:1.6; }
+  .cam-bar{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .cam-bar.hide{ display:none; }
+  .cam-bar button, .cam-bar .btnlike{ min-height:52px; padding:12px 18px; border-radius:14px; cursor:pointer;
+    background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.4); color:#fff;
+    font-size:15px; font-weight:800; text-decoration:none; display:flex; align-items:center; }
+  .cam-bar button.rec{ background:#E23B3B; border-color:#E23B3B; min-width:150px; justify-content:center; }
+  .cam-bar button.rec.on{ background:#111; border-color:#fff; }
+  .cam-bar button.go{ background:#1668B5; border-color:#1668B5; }
+  .cam-bar.sub button, .cam-bar.sub .btnlike{ min-height:42px; font-size:13px; background:transparent; }
+  #videoCam{ display:none; }
+  /* 分析画面の カメラボタン（歯車を押すと出る道具のひとつ） */
+  #camBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 142px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #app.hasvideo.showtools #camBtn{ display:flex; }
+  #camBtn:active{ transform:translateY(1px); }
+
   #distModal{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
   #distModal.hide{ display:none; }
@@ -1397,6 +1431,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="smGrp" data-g="take">
       <div class="smGl">とる</div>
       <div class="smList one"><label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label></div>
+      <div class="smList"><button id="smRecord" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="12.5" height="11" rx="2"/><path d="M15.5 11l5-2.6v7.2l-5-2.6z"/></svg><span>カメラでとる</span></button></div>
     </div>
 
     <div class="smGrp" data-g="see">
@@ -1413,6 +1448,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   </div>
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
   <label id="changeBtn" for="videoFile">🎬 動画をかえる</label>
+  <button id="camBtn">📹 カメラでとる</button>
   <button id="distBtn">📏 距離をかえる</button>
   <button id="saveBtn">💾 ほぞん</button>
   <button id="loadBtn">📂 よびだし</button>
@@ -1489,6 +1525,35 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   </div>
 
 </div>
+
+<!-- カメラでとる画面 -->
+<div id="camModal" class="hide" role="dialog" aria-modal="true" aria-label="カメラでとる">
+  <div class="cam-wrap">
+    <div class="cam-head">
+      <span id="camTitle">カメラでとる</span>
+      <span id="camTime" aria-live="off">0:00</span>
+    </div>
+    <div class="cam-stage">
+      <video id="camView" playsinline autoplay muted></video>
+      <div id="camDot" class="hide" aria-hidden="true"></div>
+    </div>
+    <p id="camMsg" class="cam-msg">よこ向きにして、スタート台からゴールまでが入るように かまえてください。</p>
+    <div class="cam-bar" id="camBarTake">
+      <button id="camFlip" type="button">前後を かえる</button>
+      <button id="camRecBtn" type="button" class="rec">とる</button>
+      <button id="camClose" type="button">とじる</button>
+    </div>
+    <div class="cam-bar hide" id="camBarDone">
+      <button id="camRetry" type="button">とりなおす</button>
+      <button id="camUse" type="button" class="go">この動画を 分析する</button>
+      <a id="camSave" class="btnlike" download="swimiq.mp4">動画を 保存</a>
+    </div>
+    <div class="cam-bar sub">
+      <label id="camNative" for="videoCam">スマホのカメラアプリでとる</label>
+    </div>
+  </div>
+</div>
+<input type="file" id="videoCam" accept="video/*" capture="environment">
 
 <!-- 距離選択モーダル -->
 <div id="distModal" class="hide">
@@ -7013,8 +7078,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   };
 
   // ========== 動画の読み込み ==========
-  $('videoFile').addEventListener('change', function(e){
-    var f=e.target.files && e.target.files[0];
+  // 動画を分析に取りこむ入口。ファイルからでも カメラでとった動画でも ここを通る。
+  function useVideoFile(f){
     if(!f) return;
     loadedVideoFile=f;   // 音の分析（スタート音さがし）に使う
     ready=false; lastFrameTime=0; startTime=null; FPS=60; fpsDetected=false;
@@ -7024,7 +7089,146 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     vScale=1; vTx=0; vTy=0; applyT();
     // 距離をきく
     setTimeout(openDistModal, 200);
+  }
+  $('videoFile').addEventListener('change', function(e){
+    useVideoFile(e.target.files && e.target.files[0]);
   });
+
+  // ========== カメラでとる ==========
+  // 分析画面やホームから カメラをひらいて、その場でレースをとって、
+  // そのまま分析にわたす。とった動画は 端末にも保存できる。
+  var camStream=null, camRec=null, camChunks=[], camTimer=null, camT0=0;
+  var camFacing='environment';   // うしろのカメラから始める
+  var camBlob=null, camPlayURL=null;
+
+  function camCanUse(){
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  }
+  // その端末で作れる動画の形をえらぶ。iPhoneはmp4、AndroidはwebMになることが多い。
+  function camPickMime(){
+    var list=['video/mp4;codecs=h264,aac','video/mp4',
+              'video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+    for(var i=0;i<list.length;i++){
+      try{ if(MediaRecorder.isTypeSupported(list[i])) return list[i]; }catch(e){}
+    }
+    return '';
+  }
+  function camSay(msg){ $('camMsg').textContent=msg; }
+  function camFmt(ms){
+    var s=Math.floor(ms/1000), m=Math.floor(s/60);
+    return m+':'+String(s%60).padStart(2,'0');
+  }
+  function camTick(){
+    $('camTime').textContent=camFmt(Date.now()-camT0);
+  }
+  function camStopStream(){
+    if(camStream){ camStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }
+    camStream=null;
+  }
+  function camStart(){
+    if(!camCanUse()){
+      camSay('この開き方ではアプリの中のカメラが使えません。下の「スマホのカメラアプリでとる」を使ってください。');
+      return;
+    }
+    camSay('カメラを ひらいています…');
+    navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:camFacing, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
+      audio:true
+    }).then(function(st){
+      camStream=st;
+      var v=$('camView'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
+      camSay('よこ向きにして、スタート台からゴールまでが入るように かまえてください。');
+    }).catch(function(err){
+      camSay('カメラをひらけませんでした（'+(err && err.name ? err.name : 'エラー')+'）。カメラの使用を許可するか、下の「スマホのカメラアプリでとる」を使ってください。');
+    });
+  }
+  function camOpen(){
+    camBlob=null;
+    $('camBarTake').classList.remove('hide');
+    $('camBarDone').classList.add('hide');
+    $('camDot').classList.add('hide');
+    $('camTime').textContent='0:00';
+    $('camRecBtn').textContent='とる'; $('camRecBtn').classList.remove('on');
+    var v=$('camView'); v.controls=false; v.removeAttribute('src'); v.srcObject=null;
+    $('camModal').classList.remove('hide');
+    camStart();
+  }
+  function camCloseAll(){
+    if(camRec && camRec.state==='recording'){ try{ camRec.stop(); }catch(e){} }
+    camRec=null; clearInterval(camTimer); camTimer=null;
+    camStopStream();
+    var v=$('camView'); v.srcObject=null; v.removeAttribute('src'); v.load();
+    if(camPlayURL){ URL.revokeObjectURL(camPlayURL); camPlayURL=null; }
+    $('camModal').classList.add('hide');
+  }
+  function camRecStart(){
+    if(!camStream){ camStart(); return; }
+    camChunks=[];
+    var mime=camPickMime();
+    try{
+      camRec = mime ? new MediaRecorder(camStream,{mimeType:mime}) : new MediaRecorder(camStream);
+    }catch(e){
+      camSay('この端末では アプリの中で録画できません。下の「スマホのカメラアプリでとる」を使ってください。');
+      return;
+    }
+    camRec.ondataavailable=function(e){ if(e.data && e.data.size) camChunks.push(e.data); };
+    camRec.onstop=function(){
+      var type=(camRec && camRec.mimeType) ? camRec.mimeType : 'video/mp4';
+      camBlob=new Blob(camChunks,{type:type});
+      camChunks=[];
+      camStopStream();
+      var mp4=(type.indexOf('mp4')>=0);
+      var name='swimiq_'+Date.now()+(mp4?'.mp4':'.webm');
+      if(camPlayURL) URL.revokeObjectURL(camPlayURL);
+      camPlayURL=URL.createObjectURL(camBlob);
+      var v=$('camView'); v.srcObject=null; v.src=camPlayURL; v.controls=true; v.muted=false; v.load();
+      var a=$('camSave'); a.href=camPlayURL; a.download=name;
+      $('camBarTake').classList.add('hide');
+      $('camBarDone').classList.remove('hide');
+      $('camDot').classList.add('hide');
+      camSay('とれました。見なおして、よければ この動画を 分析する を押してください。');
+    };
+    camRec.start();
+    camT0=Date.now(); camTick();
+    clearInterval(camTimer); camTimer=setInterval(camTick,250);
+    $('camDot').classList.remove('hide');
+    $('camRecBtn').textContent='とめる'; $('camRecBtn').classList.add('on');
+    camSay('とっています。レースが終わったら とめる を押してください。');
+  }
+  function camRecStop(){
+    clearInterval(camTimer); camTimer=null;
+    if(camRec && camRec.state==='recording'){ try{ camRec.stop(); }catch(e){} }
+    $('camRecBtn').textContent='とる'; $('camRecBtn').classList.remove('on');
+  }
+  $('camRecBtn').onclick=function(){
+    if(camRec && camRec.state==='recording') camRecStop(); else camRecStart();
+  };
+  $('camFlip').onclick=function(){
+    if(camRec && camRec.state==='recording'){ toast('とめてから かえてね'); return; }
+    camFacing=(camFacing==='environment')?'user':'environment';
+    camStopStream(); camStart();
+  };
+  $('camClose').onclick=camCloseAll;
+  $('camRetry').onclick=function(){ camOpen(); };
+  $('camUse').onclick=function(){
+    if(!camBlob){ toast('まだ動画がありません'); return; }
+    var name=$('camSave').getAttribute('download')||'swimiq.mp4';
+    var f;
+    try{ f=new File([camBlob], name, {type:camBlob.type}); }
+    catch(e){ f=camBlob; f.name=name; }   // 古い端末では Blob のまま使う
+    camCloseAll();
+    useVideoFile(f);
+    toast('とった動画で 分析します');
+  };
+  // スマホのカメラアプリでとる（アプリの中で録画できない端末むけ）
+  $('videoCam').addEventListener('change', function(e){
+    var f=e.target.files && e.target.files[0];
+    if(!f) return;
+    camCloseAll();
+    useVideoFile(f);
+  });
+  $('camBtn').onclick=camOpen;
+  $('smRecord').onclick=function(){ camOpen(); };
 
   // ========== 距離選択モーダル ==========
   var DISTS=[25,50,100,200,400,800,1500];
@@ -7072,6 +7276,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   var guideMode=false;
   var GUIDE=[
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
+    ['#smRecord','その場でレースをとって、そのまま分析にすすめるボタンだッチ。とめたあとに 見なおして、よければ分析にわたすッチ。動画を保存もできるッチ。'],
+    ['#camBtn','分析の画面から そのままカメラをひらいて、次のレースをとれるボタンだッチ。とった動画に そのまま切りかわるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・ST・かき数が 見られるッチ。'],

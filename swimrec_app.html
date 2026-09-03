@@ -747,9 +747,9 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.03.5';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.03.6';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '設定の 全国大会の登録 と 国際大会の登録 で、大会名の一部を入れて しぼりこめるようになりました。大会えらびの一覧には ［予選］［本大会］ が出ます。';
+const APP_NEWS = '国スポ・国体の予選会は 全国大会にならないようにしました。全国大会のタブからも外れます。設定の一覧は 大会名の一部で しぼりこめます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
@@ -2282,8 +2282,10 @@ async function viewNationalTab(){
   const body = document.getElementById('viewBody');
   await loadNationals();
   const marked = new Set((NATIONALS||[]).map(s=>String(s).trim()));
+  // 印がついていても、予選会は全国大会あつかいにしません。
+  // 国スポ・国体の本大会だけが全国で、県予選や代表選手選考会は県の大会です。
   const list = DATA.meets.map((m,i)=>({m,i}))
-    .filter(x=>marked.has(String(x.m.meet).trim()))
+    .filter(x=>marked.has(String(x.m.meet).trim()) && meetKind(x.m.meet) !== '予選')
     .sort((a,b)=>(b.m.year*100+b.m.month)-(a.m.year*100+a.m.month));
   body.innerHTML = `
     <div class="card">
@@ -4484,7 +4486,7 @@ function renderAdmin(){
     </div>
 
     <div class="card"><h2>全国大会の登録</h2>
-      <p class="hint">全レースに入っている大会の一覧です。全国大会にチェックを付けて保存すると、閲覧画面の「全国大会」のタブで、その大会だけをまとめて見られます。チェックはいつでも付け外しできます。種別の欄には、大会名から見た国スポの予選会か本大会かが出ます。予選会に全国大会の印が付いていると、赤い色で知らせます。</p>
+      <p class="hint">全レースに入っている大会の一覧です。全国大会にチェックを付けて保存すると、閲覧画面の「全国大会」のタブで、その大会だけをまとめて見られます。チェックはいつでも付け外しできます。種別の欄には、大会名から見た国スポの予選会か本大会かが出ます。国民スポーツ大会と国民体育大会の本大会は全国大会ですが、県予選会や代表選手選考会は県の大会なので、予選会にはチェックを付けられないようにしてあります。</p>
       <div class="stack" style="align-items:end; margin-top:10px">
         <label class="fld" style="flex:1; min-width:240px">大会名でしぼる（一部だけでも当たれば出ます。音声入力もつかえます）
           <input type="search" id="natFind" placeholder="例: 国スポ / 日本選手権 / 学生" oninput="listFilter('natList','natFind','natFound')"></label>
@@ -7361,9 +7363,10 @@ async function adminDrawNationals(){
   let h = '<div class="tablewrap" style="max-height:340px"><table><tr><th>全国大会</th><th>大会名</th><th>種別</th><th>年月</th></tr>';
   list.forEach((m,i)=>{
     const kind = meetKind(m.name);
-    const ng = (kind === '予選' && marked.has(m.name));   // 予選会に全国大会の印がついている
-    h += `<tr data-name="${esc(m.name)}"${ng?' style="background:#FFF1F1"':''}><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${marked.has(m.name)?'checked':''} style="width:26px;height:26px"></td>
-      <td>${esc(m.name)}${ng?'<br><b style="color:#B3261E">予選会に全国大会の印がついています</b>':''}</td>
+    const yosen = (kind === '予選');                  // 予選会は全国大会にできません
+    const nokori = (yosen && marked.has(m.name));     // 古い印がまだシートに残っている
+    h += `<tr data-name="${esc(m.name)}"${nokori?' style="background:#FFF1F1"':''}><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${(!yosen && marked.has(m.name))?'checked':''} ${yosen?'disabled':''} style="width:26px;height:26px"></td>
+      <td>${esc(m.name)}${yosen?'<br><span class="hint">予選会なので 全国大会にはできません</span>':''}${nokori?'<br><b style="color:#B3261E">古い印が残っています。保存すると消えます</b>':''}</td>
       <td class="nw">${kind || '—'}</td>
       <td class="nw">${m.year||'?'}年${m.month||'?'}月</td></tr>`;
   });
@@ -7399,8 +7402,9 @@ window.listFilter = function(listId, inputId, countId){
 window.adminCheckNationals = function(){
   const out = document.getElementById('natCheck');
   if(!out) return;
-  const chks = [...document.querySelectorAll('.natchk')];
-  const yosen = chks.filter(c=>c.checked && meetKind(c.dataset.name)==='予選');
+  // 保存されている印の中に、予選会が残っていないか
+  const nats = new Set((NATIONALS||[]).map(s=>String(s).trim()));
+  const yosen = [...nats].filter(n=>meetKind(n)==='予選');
   // 同じ大会名が ちがう年で登録されていないか
   const toshi = {};
   ((DATA&&DATA.meets)?DATA.meets:[]).forEach(m=>{
@@ -7411,10 +7415,10 @@ window.adminCheckNationals = function(){
   const dup = Object.keys(toshi).filter(n=>Object.keys(toshi[n]).length > 1);
   let h = '';
   if(yosen.length){
-    h += '<div class="errmsg"><b>予選会に全国大会の印がついています（' + yosen.length + '件）</b><ul>' +
-      yosen.map(c=>'<li>' + esc(c.dataset.name) + '</li>').join('') + '</ul>' +
-      '<button class="btn" onclick="adminDropYosen()">この' + yosen.length + '件の印をまとめて外す</button>' +
-      '<p class="hint">外したあと、全国大会の印を保存する を押してください。</p></div>';
+    h += '<div class="errmsg"><b>保存されている印の中に、予選会が' + yosen.length + '件のこっています</b><ul>' +
+      yosen.map(n=>'<li>' + esc(n) + '</li>').join('') + '</ul>' +
+      '<p class="hint">一覧のチェックはすでに外してあります。全国大会の印を保存する を一度押すと、この' +
+      yosen.length + '件がシートからも消えます。全国大会のタブには、いまの時点ですでに出ていません。</p></div>';
   } else {
     h += '<div class="okmsg">全国大会の印に、予選会は混ざっていません。</div>';
   }
@@ -7424,13 +7428,6 @@ window.adminCheckNationals = function(){
       '</ul><p class="hint">同じ大会が二つの年にあることはないので、どちらかの登録がまちがっています。多いのは、前の年の大会に新しい年の大会名を付けてしまった場合です。上の 大会の情報を直す で、まちがっているほうの大会名を正しい名前に書きかえてください。</p></div>';
   }
   out.innerHTML = h;
-};
-/* 予選会についた全国大会の印を、まとめて外す（保存はまだしない） */
-window.adminDropYosen = function(){
-  document.querySelectorAll('.natchk').forEach(c=>{
-    if(c.checked && meetKind(c.dataset.name)==='予選') c.checked = false;
-  });
-  adminCheckNationals();
 };
 async function adminDrawWorlds(){
   const box = document.getElementById('wldList');
@@ -7486,9 +7483,12 @@ window.adminSaveWorlds = async function(){
 window.adminSaveNationals = async function(){
   const msg = document.getElementById('natMsg');
   const names = [...document.querySelectorAll('.natchk')]
-    .filter(c=>c.checked).map(c=>c.dataset.name);
+    .filter(c=>c.checked).map(c=>c.dataset.name)
+    .filter(n=>meetKind(n) !== '予選');   // 予選会は 何があっても全国大会にしません
   NATIONALS = names;
   localStorage.setItem('cust_nationals', JSON.stringify(names));
+  const chk = document.getElementById('natCheck');
+  if(chk && chk.innerHTML) { try{ adminCheckNationals(); }catch(e){} }
   msg.innerHTML = '<div class="loading">保存しています…</div>';
   try{
     await apiSave({ action:'setNationals', password:ADMIN_PW, meets:names });

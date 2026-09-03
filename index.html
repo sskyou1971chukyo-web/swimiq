@@ -383,8 +383,11 @@
     bottom:calc(env(safe-area-inset-bottom) + 84px); z-index:26;
     display:flex; gap:12px; align-items:center; width:min(72vw,560px);
     background:rgba(16,44,74,.97); border:2px solid var(--accent2); border-radius:18px; padding:12px 14px;
+    touch-action:none; cursor:move; user-select:none; -webkit-user-select:none;
     box-shadow:0 14px 40px rgba(0,20,40,.55); }
   #guide.hide{ display:none; }
+  /* 吹き出しを押したときに移る、画面の上のほうの置き場所 */
+  #guide.ue{ top:calc(env(safe-area-inset-top) + 78px); bottom:auto; }
   /* 低い画面(横向きの小さいスマホ)では、吹き出しを上に小さく出して操作の邪魔をしない */
   @media (max-height: 460px){
     #guide{ bottom:auto; top:8px; width:min(58vw,430px); padding:8px 10px;
@@ -7184,7 +7187,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // ========== ドラッグで動かせる部品（記録一覧・シャッチーくん） ==========
   // handle（つかむ場所）を押して動かすと、el（動かす部品）が指についてくる。
   // 少しでも動かしたらドラッグ扱いにして、あとのクリックを1回だけ無効にする。
-  function makeDraggable(el, handle){
+  function makeDraggable(el, handle, fukidashi){
     var startX=0, startY=0, baseL=0, baseT=0, dragging=false, moved=false;
     function freeze(){
       // right/bottomで置かれている部品を、いまの位置のままleft/topの指定に変える。
@@ -7193,9 +7196,15 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       // ふちや余白の数えちがいで育たないよう、数え方（box-sizing）も固定しておく。
       var r=el.getBoundingClientRect();
       el.style.boxSizing='border-box';
-      el.style.height=r.height+'px';
+      // 吹き出しは中の文が長くなったり短くなったりするので、背丈は釘打ちしない。
+      // 代わりに横はばだけ今の大きさで止めて、文が変わっても形がくずれないようにする。
+      if(fukidashi){ el.style.width=r.width+'px'; }
+      else { el.style.height=r.height+'px'; }
       el.style.left=r.left+'px'; el.style.top=r.top+'px';
       el.style.right='auto'; el.style.bottom='auto';
+      // 中央よせ（transformで左に半分ずらす指定）が残っていると、
+      // つかんだ瞬間に横へ飛ぶので、位置を測ったあとで外す。
+      if(fukidashi){ el.style.transform='none'; }
     }
     handle.addEventListener('pointerdown', function(e){
       dragging=true; moved=false;
@@ -7225,6 +7234,16 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   makeDraggable($('recPanel'), $('recPanel').querySelector('.rec-head'));
   // シャッチーくん：本体をつかんで動かす。タップならチュートリアル。
   makeDraggable($('shacchi'), $('shacchi'));
+  // 解説の吹き出し：本体をつかんで、じゃまにならない場所へ動かせる
+  makeDraggable($('guide'), $('guide'), true);
+  // 指でつかむのがむずかしいときのために、吹き出しを押すだけでも
+  // 画面の下と上を行き来できるようにする。ドラッグしたときは何も起きない。
+  $('guide').addEventListener('click', function(){
+    var g=$('guide');
+    g.style.left=''; g.style.top=''; g.style.right=''; g.style.bottom='';
+    g.style.width=''; g.style.transform='';
+    g.classList.toggle('ue');
+  });
 
   // ========== 次に押すボタンを光らせる道しるべ ==========
   var glowEls=[];

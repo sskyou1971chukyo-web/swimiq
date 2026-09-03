@@ -613,9 +613,8 @@ function setFontScale(v){
 <div id="toolMenu" hidden>
   <div class="tmIn">
     <div class="tabs" role="tablist" aria-label="スタッフ用の画面" style="gap:8px; padding:0">
-      <button class="staffbtn" id="staffOpen" type="button" onclick="toggleStaff()" aria-expanded="false">スタッフ</button>
-      <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" hidden onclick="showTab('input')">記録を入力する</button>
-      <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" hidden onclick="showTab('admin')">設定</button>
+      <button class="staffbtn" id="tabInput" role="tab" aria-selected="false" onclick="showTab('input')">記録を入力する</button>
+      <button class="staffbtn" id="tabAdmin" role="tab" aria-selected="false" onclick="showTab('admin')">設定</button>
       <button class="staffbtn" id="tabView" role="tab" aria-selected="true" hidden onclick="showTab('view')">記録を見る</button>
     </div>
     <div class="toolrow">
@@ -748,9 +747,9 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.02.3';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.03.1';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '文字の大きさを、メニューの中で 小さめ・ふつう・大きく・より大きく の4つからえらべるようになりました。指でつまんで画面が縮んでしまうこともなくなりました。';
+const APP_NEWS = 'メニューを開くと、記録を入力すると設定のボタンが すぐ出るようになりました。今までは スタッフ のボタンを押さないと現れませんでした。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
@@ -1397,12 +1396,9 @@ function askRoleIfNeeded(){
 
 // スタッフ用のボタンは、ふだんは隠しておく
 function toggleStaff(){
-  const btn = document.getElementById('staffOpen');
-  const open = btn.getAttribute('aria-expanded') !== 'true';
-  btn.setAttribute('aria-expanded', open);
-  document.getElementById('tabInput').hidden = !open;
-  document.getElementById('tabAdmin').hidden = !open;
-  btn.textContent = open ? '✕ とじる' : 'スタッフ';
+  // スタッフのたたみボタンは やめました。
+  // 記録を入力すると設定は、メニューを開いた時点で いつも出ています。
+  // 古い呼び出しが残っていても止まらないよう、この関数は残してあります。
 }
 // そのモードが、どの入口のものかを調べる
 function navOfMode(m){

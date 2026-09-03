@@ -404,9 +404,19 @@
   /* ===== 距離選択モーダル ===== */
   /* ===== カメラでとる画面 ===== */
   #camModal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
-    padding:14px; background:rgba(4,14,24,.94); }
+    padding:14px calc(env(safe-area-inset-right) + 14px)
+            calc(env(safe-area-inset-bottom) + 18px) calc(env(safe-area-inset-left) + 14px);
+    background:rgba(4,14,24,.94); }
   #camModal.hide{ display:none; }
-  .cam-wrap{ width:100%; max-width:820px; display:flex; flex-direction:column; gap:10px; }
+  .cam-wrap{ width:100%; max-width:820px; max-height:100%; overflow-y:auto;
+    display:flex; flex-direction:column; gap:10px; }
+  /* よこ向きで画面が低いときは、映像を小さくしてボタンを画面内に収める */
+  @media (orientation:landscape) and (max-height:560px){
+    #camView{ max-height:38vh; }
+    .cam-msg{ font-size:12px; }
+    .cam-bar button, .cam-bar .btnlike{ min-height:46px; padding:10px 16px; font-size:14px; }
+    .cam-bar.sub button, .cam-bar.sub .btnlike{ min-height:50px; font-size:15px; }
+  }
   .cam-head{ display:flex; align-items:center; justify-content:space-between;
     color:#fff; font-weight:900; font-size:16px; }
   #camTime{ font-variant-numeric:tabular-nums; font-size:20px; }
@@ -426,7 +436,12 @@
   .cam-bar button.rec{ background:#E23B3B; border-color:#E23B3B; min-width:150px; justify-content:center; }
   .cam-bar button.rec.on{ background:#111; border-color:#fff; }
   .cam-bar button.go{ background:#1668B5; border-color:#1668B5; }
-  .cam-bar.sub button, .cam-bar.sub .btnlike{ min-height:42px; font-size:13px; background:transparent; }
+  .cam-bar.sub{ margin-top:2px; }
+  .cam-bar.sub button, .cam-bar.sub .btnlike{
+    min-height:56px; min-width:min(420px, 88vw); padding:14px 20px; justify-content:center;
+    background:rgba(255,255,255,.16); border:2px solid rgba(255,255,255,.65);
+    border-radius:14px; font-size:16px; font-weight:900; gap:8px; }
+  .cam-bar.sub .btnlike:active{ transform:translateY(2px); background:rgba(255,255,255,.28); }
   #videoCam{ display:none; }
   /* 分析画面の カメラボタン（歯車を押すと出る道具のひとつ） */
   #camBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 142px); z-index:7;
@@ -1586,7 +1601,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       <a id="camSave" class="btnlike" download="swimiq.mp4">動画を 保存</a>
     </div>
     <div class="cam-bar sub">
-      <label id="camNative" for="videoCam">スマホのカメラアプリでとる</label>
+      <label id="camNative" for="videoCam"><span aria-hidden="true">📷</span><span>スマホのカメラでとる</span></label>
     </div>
   </div>
 </div>

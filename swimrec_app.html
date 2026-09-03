@@ -747,7 +747,7 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.03.3';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.03.4';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = '設定の 全国大会の登録 に 種別の欄ができ、国スポの予選会と本大会を見分けられるようになりました。予選が混ざっていないか調べる ボタンで まとめて点検できます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
@@ -2255,6 +2255,12 @@ function meetKind(name){
   if(/国民スポーツ大会|国民体育大会|国体|国スポ/.test(s)) return '本大会';
   return '';
 }
+/* 一覧やプルダウンで、大会名の前に出す文字。
+   国スポ系だけ ［予選］［本大会］ を付けます。ふつうの大会には何も付きません。 */
+function meetKindTag(name){
+  const k = meetKind(name);
+  return k ? '［' + k + '］' : '';
+}
 
 let NATIONALS = null;   // 全国大会にした大会名の一覧
 async function loadNationals(){
@@ -2487,7 +2493,7 @@ function viewMeet(){
     (g ? g.list : []).forEach(x=>{
       const o = document.createElement('option');
       o.value = x.i;
-      o.textContent = `${x.m.year}年${x.m.month}月 ${meetLapMark(x.m)}${x.m.meet} ${x.m.course||''}${x.m.ref?'(参考)':''}`;
+      o.textContent = `${x.m.year}年${x.m.month}月 ${meetKindTag(x.m.meet)}${x.m.meet} ${x.m.course||''}${x.m.ref?'(参考)':''}`;
       nSel.appendChild(o);
     });
     if(nSel.options.length===0){
@@ -4458,7 +4464,7 @@ function renderAdmin(){
         </label>
         <button class="btn" onclick="adminSetLapDone()">この印を保存する</button>
       </div>
-      <p class="hint">通過タイムが公表されない大会や、結果が表・紙しか残っていない大会は、ここにチェックを入れると一覧で <b>✔</b> と表示され、△や目印なしになりません。やり残しの一覧から外れます。</p>
+      <p class="hint">通過タイムが公表されない大会や、結果が表・紙しか残っていない大会は、ここにチェックを入れると一覧で <b>ラップなしで確定</b> と表示され、やり残しの一覧から外れます。</p>
       <div id="meNow" class="hint" style="margin-top:10px"></div>
       <div id="meMsg" aria-live="polite"></div>
     </div>
@@ -7380,7 +7386,7 @@ window.adminCheckNationals = function(){
   if(dup.length){
     h += '<div class="errmsg" style="margin-top:10px"><b>同じ大会名が ちがう年で登録されています（' + dup.length + '件）</b><ul>' +
       dup.map(n=>'<li>' + esc(n) + '（' + Object.keys(toshi[n]).sort().join('年 と ') + '年）</li>').join('') +
-      '</ul><p class="hint">どちらかの年がまちがっている可能性があります。上の 試合名の登録 にある 大会の情報を直す で、年を書きかえてください。</p></div>';
+      '</ul><p class="hint">同じ大会が二つの年にあることはないので、どちらかの登録がまちがっています。多いのは、前の年の大会に新しい年の大会名を付けてしまった場合です。上の 大会の情報を直す で、まちがっているほうの大会名を正しい名前に書きかえてください。</p></div>';
   }
   out.innerHTML = h;
 };
@@ -7783,7 +7789,7 @@ function meetLapMark(m){
 }
 // プルダウンに出す1行分の文字を作る
 function meetLabel(m){
-  let s = meetLapMark(m) + `${m.meet} ${m.year||'?'}年${m.month||'?'}月 ${m.course||''}`;
+  let s = meetKindTag(m.meet) + `${m.meet} ${m.year||'?'}年${m.month||'?'}月 ${m.course||''}`;
   if(m.date) s += ` / ${m.date}`;
   if(m.place) s += ` / ${m.place}`;
   if(m.lapDone) s += ' / ラップなしで確定';

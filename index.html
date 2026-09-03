@@ -401,47 +401,50 @@
   /* 解説モード中はシャッチーくんが黄色くひかる */
   #app.guidemode #shacchi{ filter:drop-shadow(0 0 12px #fbbf24) drop-shadow(0 3px 5px rgba(0,0,0,.4)); }
 
-  /* ===== 距離選択モーダル ===== */
-  /* ===== カメラでとる画面 ===== */
-  #camModal{ position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
-    padding:14px calc(env(safe-area-inset-right) + 14px)
-            calc(env(safe-area-inset-bottom) + 18px) calc(env(safe-area-inset-left) + 14px);
-    background:rgba(4,14,24,.94); }
+  /* ===== カメラでとる画面（スマホのカメラと同じく 画面いっぱい） ===== */
+  #camModal{ position:fixed; inset:0; z-index:40; background:#000; overflow:hidden; }
   #camModal.hide{ display:none; }
-  .cam-wrap{ width:100%; max-width:820px; max-height:100%; overflow-y:auto;
-    display:flex; flex-direction:column; gap:10px; }
-  /* よこ向きで画面が低いときは、映像を小さくしてボタンを画面内に収める */
-  @media (orientation:landscape) and (max-height:560px){
-    #camView{ max-height:38vh; }
-    .cam-msg{ font-size:12px; }
-    .cam-bar button, .cam-bar .btnlike{ min-height:46px; padding:10px 16px; font-size:14px; }
-    .cam-bar.sub button, .cam-bar.sub .btnlike{ min-height:50px; font-size:15px; }
-  }
-  .cam-head{ display:flex; align-items:center; justify-content:space-between;
-    color:#fff; font-weight:900; font-size:16px; }
-  #camTime{ font-variant-numeric:tabular-nums; font-size:20px; }
-  .cam-stage{ position:relative; background:#000; border-radius:16px; overflow:hidden;
-    border:1.5px solid rgba(255,255,255,.25); }
-  #camView{ display:block; width:100%; max-height:56vh; object-fit:contain; background:#000; }
-  #camDot{ position:absolute; left:12px; top:12px; width:14px; height:14px; border-radius:50%;
-    background:#E23B3B; box-shadow:0 0 0 4px rgba(226,59,59,.3); animation:camblink 1s steps(2,end) infinite; }
+  /* 映像は画面いっぱいに広げる */
+  #camView{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000; }
+  /* 上の帯：赤い丸・経過時間・スマホのカメラ */
+  .cam-top{ position:absolute; left:0; right:0; top:0; z-index:2;
+    display:flex; align-items:center; gap:10px;
+    padding:calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 14px)
+            12px calc(env(safe-area-inset-left) + 14px);
+    background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0)); color:#fff; }
+  #camDot{ width:14px; height:14px; border-radius:50%; background:#E23B3B;
+    box-shadow:0 0 0 4px rgba(226,59,59,.3); animation:camblink 1s steps(2,end) infinite; }
   #camDot.hide{ display:none; }
   @keyframes camblink{ 50%{ opacity:.25; } }
-  .cam-msg{ margin:0; color:#dfe9f4; font-size:13px; font-weight:700; text-align:center; line-height:1.6; }
-  .cam-bar{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
-  .cam-bar.hide{ display:none; }
-  .cam-bar button, .cam-bar .btnlike{ min-height:52px; padding:12px 18px; border-radius:14px; cursor:pointer;
-    background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.4); color:#fff;
-    font-size:15px; font-weight:800; text-decoration:none; display:flex; align-items:center; }
-  .cam-bar button.rec{ background:#E23B3B; border-color:#E23B3B; min-width:150px; justify-content:center; }
-  .cam-bar button.rec.on{ background:#111; border-color:#fff; }
-  .cam-bar button.go{ background:#1668B5; border-color:#1668B5; }
-  .cam-bar.sub{ margin-top:2px; }
-  .cam-bar.sub button, .cam-bar.sub .btnlike{
-    min-height:56px; min-width:min(420px, 88vw); padding:14px 20px; justify-content:center;
-    background:rgba(255,255,255,.16); border:2px solid rgba(255,255,255,.65);
-    border-radius:14px; font-size:16px; font-weight:900; gap:8px; }
-  .cam-bar.sub .btnlike:active{ transform:translateY(2px); background:rgba(255,255,255,.28); }
+  #camTime{ font-size:22px; font-weight:900; font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 6px rgba(0,0,0,.7); }
+  #camNative{ margin-left:auto; display:flex; align-items:center; gap:6px; cursor:pointer;
+    min-height:48px; padding:11px 16px; border-radius:14px;
+    background:rgba(255,255,255,.20); border:2px solid rgba(255,255,255,.7);
+    color:#fff; font-size:15px; font-weight:900; }
+  #camNative:active{ transform:translateY(2px); background:rgba(255,255,255,.34); }
+  /* 案内の文 */
+  .cam-msg{ position:absolute; left:0; right:0; z-index:2; margin:0;
+    top:calc(env(safe-area-inset-top) + 74px);
+    padding:0 18px; color:#fff; font-size:14px; font-weight:800; text-align:center;
+    text-shadow:0 2px 8px rgba(0,0,0,.85); line-height:1.6; }
+  .cam-msg.hide{ display:none; }
+  /* 下の操作：まん中に大きな録画ボタン */
+  .cam-ctrl{ position:absolute; left:0; right:0; bottom:0; z-index:2;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:16px calc(env(safe-area-inset-right) + 18px)
+            calc(env(safe-area-inset-bottom) + 18px) calc(env(safe-area-inset-left) + 18px);
+    background:linear-gradient(0deg,rgba(0,0,0,.6),rgba(0,0,0,0)); }
+  .cam-mini{ flex:0 0 auto; min-width:104px; min-height:56px; padding:12px 16px; cursor:pointer;
+    border-radius:16px; background:rgba(255,255,255,.18); border:2px solid rgba(255,255,255,.6);
+    color:#fff; font-size:15px; font-weight:900; }
+  .cam-mini:active{ transform:translateY(2px); background:rgba(255,255,255,.3); }
+  .cam-shutter{ flex:0 0 auto; width:86px; height:86px; border-radius:50%; cursor:pointer;
+    background:#E23B3B; border:5px solid #fff; box-shadow:0 6px 20px rgba(0,0,0,.55); }
+  .cam-shutter:active{ transform:scale(.94); }
+  .cam-shutter.on{ background:#fff; }
+  .cam-shutter.on::after{ content:''; display:block; width:34px; height:34px; margin:0 auto;
+    border-radius:8px; background:#E23B3B; }
   #videoCam{ display:none; }
   /* 分析画面の カメラボタン（歯車を押すと出る道具のひとつ） */
   #camBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 142px); z-index:7;
@@ -450,6 +453,8 @@
     color:#fff; font-size:12px; font-weight:700; }
   #app.hasvideo.showtools #camBtn{ display:flex; }
   #camBtn:active{ transform:translateY(1px); }
+
+  /* ===== 距離選択モーダル ===== */
 
   #distModal{ position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center;
     padding:20px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
@@ -1580,29 +1585,17 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 
 <!-- カメラでとる画面 -->
 <div id="camModal" class="hide" role="dialog" aria-modal="true" aria-label="カメラでとる">
-  <div class="cam-wrap">
-    <div class="cam-head">
-      <span id="camTitle">カメラでとる</span>
-      <span id="camTime" aria-live="off">0:00</span>
-    </div>
-    <div class="cam-stage">
-      <video id="camView" playsinline autoplay muted></video>
-      <div id="camDot" class="hide" aria-hidden="true"></div>
-    </div>
-    <p id="camMsg" class="cam-msg">よこ向きにして、スタート台からゴールまでが入るように かまえてください。</p>
-    <div class="cam-bar" id="camBarTake">
-      <button id="camFlip" type="button">前後を かえる</button>
-      <button id="camRecBtn" type="button" class="rec">とる</button>
-      <button id="camClose" type="button">とじる</button>
-    </div>
-    <div class="cam-bar hide" id="camBarDone">
-      <button id="camRetry" type="button">とりなおす</button>
-      <button id="camUse" type="button" class="go">この動画を 分析する</button>
-      <a id="camSave" class="btnlike" download="swimiq.mp4">動画を 保存</a>
-    </div>
-    <div class="cam-bar sub">
-      <label id="camNative" for="videoCam"><span aria-hidden="true">📷</span><span>スマホのカメラでとる</span></label>
-    </div>
+  <video id="camView" playsinline autoplay muted></video>
+  <div class="cam-top">
+    <span id="camDot" class="hide" aria-hidden="true"></span>
+    <span id="camTime">0:00</span>
+    <label id="camNative" for="videoCam"><span aria-hidden="true">📷</span><span>スマホのカメラ</span></label>
+  </div>
+  <p id="camMsg" class="cam-msg">よこ向きで、スタート台からゴールまでが 入るように かまえてください。まん中の赤いボタンで はじまります。</p>
+  <div class="cam-ctrl">
+    <button id="camFlip" type="button" class="cam-mini">前後を かえる</button>
+    <button id="camRecBtn" type="button" class="cam-shutter" aria-label="録画を はじめる"></button>
+    <button id="camClose" type="button" class="cam-mini">とじる</button>
   </div>
 </div>
 <input type="file" id="videoCam" accept="video/*" capture="environment">
@@ -7192,11 +7185,11 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   });
 
   // ========== カメラでとる ==========
-  // 分析画面やホームから カメラをひらいて、その場でレースをとって、
-  // そのまま分析にわたす。とった動画は 端末にも保存できる。
+  // スマホのカメラと同じく 画面いっぱいに映して とる。
+  // とめると、その場で保存して そのまま分析画面へすすむ。
+  //   カメラでとる → 撮影 → とめる → 自動で保存 → 距離 → レースのじょうほう
   var camStream=null, camRec=null, camChunks=[], camTimer=null, camT0=0;
   var camFacing='environment';   // うしろのカメラから始める
-  var camBlob=null, camPlayURL=null;
 
   function camCanUse(){
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
@@ -7210,21 +7203,23 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
     return '';
   }
-  function camSay(msg){ $('camMsg').textContent=msg; }
+  function camSay(msg){
+    var p=$('camMsg');
+    p.textContent=msg||'';
+    p.classList.toggle('hide', !msg);
+  }
   function camFmt(ms){
     var s=Math.floor(ms/1000), m=Math.floor(s/60);
     return m+':'+String(s%60).padStart(2,'0');
   }
-  function camTick(){
-    $('camTime').textContent=camFmt(Date.now()-camT0);
-  }
+  function camTick(){ $('camTime').textContent=camFmt(Date.now()-camT0); }
   function camStopStream(){
     if(camStream){ camStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }
     camStream=null;
   }
   function camStart(){
     if(!camCanUse()){
-      camSay('この開き方ではアプリの中のカメラが使えません。下の「スマホのカメラアプリでとる」を使ってください。');
+      camSay('この開き方では アプリの中のカメラが使えません。右上の「スマホのカメラ」を押してください。');
       return;
     }
     camSay('カメラを ひらいています…');
@@ -7234,18 +7229,17 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }).then(function(st){
       camStream=st;
       var v=$('camView'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
-      camSay('よこ向きにして、スタート台からゴールまでが入るように かまえてください。');
+      camSay('よこ向きで、スタート台からゴールまでが 入るように かまえてください。まん中の赤いボタンで はじまります。');
+      setTimeout(function(){ if(!(camRec&&camRec.state==='recording')) camSay(''); }, 5000);
     }).catch(function(err){
-      camSay('カメラをひらけませんでした（'+(err && err.name ? err.name : 'エラー')+'）。カメラの使用を許可するか、下の「スマホのカメラアプリでとる」を使ってください。');
+      camSay('カメラを ひらけませんでした（'+(err && err.name ? err.name : 'エラー')+'）。カメラの使用を許可するか、右上の「スマホのカメラ」を押してください。');
     });
   }
   function camOpen(){
-    camBlob=null;
-    $('camBarTake').classList.remove('hide');
-    $('camBarDone').classList.add('hide');
     $('camDot').classList.add('hide');
     $('camTime').textContent='0:00';
-    $('camRecBtn').textContent='とる'; $('camRecBtn').classList.remove('on');
+    $('camRecBtn').classList.remove('on');
+    $('camRecBtn').setAttribute('aria-label','録画を はじめる');
     var v=$('camView'); v.controls=false; v.removeAttribute('src'); v.srcObject=null;
     $('camModal').classList.remove('hide');
     camStart();
@@ -7254,9 +7248,18 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     if(camRec && camRec.state==='recording'){ try{ camRec.stop(); }catch(e){} }
     camRec=null; clearInterval(camTimer); camTimer=null;
     camStopStream();
-    var v=$('camView'); v.srcObject=null; v.removeAttribute('src'); v.load();
-    if(camPlayURL){ URL.revokeObjectURL(camPlayURL); camPlayURL=null; }
+    var v=$('camView'); v.srcObject=null; v.removeAttribute('src');
     $('camModal').classList.add('hide');
+  }
+  // とった動画を 端末に保存する（うまくいかない端末もあるので、失敗しても分析はつづける）
+  function camSaveFile(url, name){
+    try{
+      var a=document.createElement('a');
+      a.href=url; a.download=name; a.style.display='none';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ document.body.removeChild(a); }, 1000);
+      return true;
+    }catch(e){ return false; }
   }
   function camRecStart(){
     if(!camStream){ camStart(); return; }
@@ -7265,37 +7268,41 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     try{
       camRec = mime ? new MediaRecorder(camStream,{mimeType:mime}) : new MediaRecorder(camStream);
     }catch(e){
-      camSay('この端末では アプリの中で録画できません。下の「スマホのカメラアプリでとる」を使ってください。');
+      camSay('この端末では アプリの中で録画できません。右上の「スマホのカメラ」を押してください。');
       return;
     }
     camRec.ondataavailable=function(e){ if(e.data && e.data.size) camChunks.push(e.data); };
     camRec.onstop=function(){
       var type=(camRec && camRec.mimeType) ? camRec.mimeType : 'video/mp4';
-      camBlob=new Blob(camChunks,{type:type});
+      var blob=new Blob(camChunks,{type:type});
       camChunks=[];
       camStopStream();
       var mp4=(type.indexOf('mp4')>=0);
       var name='swimiq_'+Date.now()+(mp4?'.mp4':'.webm');
-      if(camPlayURL) URL.revokeObjectURL(camPlayURL);
-      camPlayURL=URL.createObjectURL(camBlob);
-      var v=$('camView'); v.srcObject=null; v.src=camPlayURL; v.controls=true; v.muted=false; v.load();
-      var a=$('camSave'); a.href=camPlayURL; a.download=name;
-      $('camBarTake').classList.add('hide');
-      $('camBarDone').classList.remove('hide');
-      $('camDot').classList.add('hide');
-      camSay('とれました。見なおして、よければ この動画を 分析する を押してください。');
+      var f;
+      try{ f=new File([blob], name, {type:type}); }
+      catch(e){ f=blob; f.name=name; }   // 古い端末では Blob のまま使う
+      // まず端末に保存してから、そのまま分析へすすむ
+      camSaveFile(URL.createObjectURL(blob), name);
+      $('camModal').classList.add('hide');
+      var v=$('camView'); v.srcObject=null; v.removeAttribute('src');
+      useVideoFile(f);
+      toast('とった動画を 保存して 分析にすすみます');
     };
     camRec.start();
     camT0=Date.now(); camTick();
     clearInterval(camTimer); camTimer=setInterval(camTick,250);
     $('camDot').classList.remove('hide');
-    $('camRecBtn').textContent='とめる'; $('camRecBtn').classList.add('on');
-    camSay('とっています。レースが終わったら とめる を押してください。');
+    $('camRecBtn').classList.add('on');
+    $('camRecBtn').setAttribute('aria-label','録画を とめる');
+    camSay('');
   }
   function camRecStop(){
     clearInterval(camTimer); camTimer=null;
+    $('camRecBtn').classList.remove('on');
+    $('camRecBtn').setAttribute('aria-label','録画を はじめる');
+    $('camDot').classList.add('hide');
     if(camRec && camRec.state==='recording'){ try{ camRec.stop(); }catch(e){} }
-    $('camRecBtn').textContent='とる'; $('camRecBtn').classList.remove('on');
   }
   $('camRecBtn').onclick=function(){
     if(camRec && camRec.state==='recording') camRecStop(); else camRecStart();
@@ -7306,17 +7313,6 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     camStopStream(); camStart();
   };
   $('camClose').onclick=camCloseAll;
-  $('camRetry').onclick=function(){ camOpen(); };
-  $('camUse').onclick=function(){
-    if(!camBlob){ toast('まだ動画がありません'); return; }
-    var name=$('camSave').getAttribute('download')||'swimiq.mp4';
-    var f;
-    try{ f=new File([camBlob], name, {type:camBlob.type}); }
-    catch(e){ f=camBlob; f.name=name; }   // 古い端末では Blob のまま使う
-    camCloseAll();
-    useVideoFile(f);
-    toast('とった動画で 分析します');
-  };
   // スマホのカメラアプリでとる（アプリの中で録画できない端末むけ）
   $('videoCam').addEventListener('change', function(e){
     var f=e.target.files && e.target.files[0];
@@ -7373,7 +7369,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   var guideMode=false;
   var GUIDE=[
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
-    ['#smRecord','その場でレースをとって、そのまま分析にすすめるボタンだッチ。とめたあとに 見なおして、よければ分析にわたすッチ。動画を保存もできるッチ。'],
+    ['#smRecord','その場でレースをとるボタンだッチ。画面いっぱいのカメラになって、赤いボタンでとりはじめるッチ。とめると 動画が保存されて そのまま分析にすすむッチ。'],
     ['#camBtn','分析の画面から そのままカメラをひらいて、次のレースをとれるボタンだッチ。とった動画に そのまま切りかわるッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],

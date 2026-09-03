@@ -747,9 +747,9 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.03.4';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.03.5';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '設定の 全国大会の登録 に 種別の欄ができ、国スポの予選会と本大会を見分けられるようになりました。予選が混ざっていないか調べる ボタンで まとめて点検できます。';
+const APP_NEWS = '設定の 全国大会の登録 と 国際大会の登録 で、大会名の一部を入れて しぼりこめるようになりました。大会えらびの一覧には ［予選］［本大会］ が出ます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
@@ -4485,6 +4485,11 @@ function renderAdmin(){
 
     <div class="card"><h2>全国大会の登録</h2>
       <p class="hint">全レースに入っている大会の一覧です。全国大会にチェックを付けて保存すると、閲覧画面の「全国大会」のタブで、その大会だけをまとめて見られます。チェックはいつでも付け外しできます。種別の欄には、大会名から見た国スポの予選会か本大会かが出ます。予選会に全国大会の印が付いていると、赤い色で知らせます。</p>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld" style="flex:1; min-width:240px">大会名でしぼる（一部だけでも当たれば出ます。音声入力もつかえます）
+          <input type="search" id="natFind" placeholder="例: 国スポ / 日本選手権 / 学生" oninput="listFilter('natList','natFind','natFound')"></label>
+      </div>
+      <div id="natFound" class="hint" style="margin-top:6px" aria-live="polite"></div>
       <div id="natList" style="margin-top:10px"><p class="hint">大会一覧を読み込んでいます…</p></div>
       <div class="stack" style="margin-top:10px">
         <button class="btn" onclick="adminCheckNationals()">予選が混ざっていないか調べる</button>
@@ -4501,6 +4506,11 @@ function renderAdmin(){
         まちがっているものは外して、正しいものを付け直してください。
         たとえば「◯◯県選手権兼 国民スポーツ大会代表選手選考会」のような県大会は、
         名前に選考会が入っているため自動では印がついてしまいます。ここで外せます。</p>
+      <div class="stack" style="align-items:end; margin-top:10px">
+        <label class="fld" style="flex:1; min-width:240px">大会名でしぼる（一部だけでも当たれば出ます）
+          <input type="search" id="wldFind" placeholder="例: 世界 / パンパシ / オリンピック" oninput="listFilter('wldList','wldFind','wldFound')"></label>
+      </div>
+      <div id="wldFound" class="hint" style="margin-top:6px" aria-live="polite"></div>
       <div id="wldList" style="margin-top:10px"><p class="hint">大会一覧を読み込んでいます…</p></div>
       <div class="stack" style="margin-top:10px">
         <button class="btn solid" onclick="adminSaveWorlds()">国際大会の印を保存する</button>
@@ -7352,13 +7362,38 @@ async function adminDrawNationals(){
   list.forEach((m,i)=>{
     const kind = meetKind(m.name);
     const ng = (kind === '予選' && marked.has(m.name));   // 予選会に全国大会の印がついている
-    h += `<tr${ng?' style="background:#FFF1F1"':''}><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${marked.has(m.name)?'checked':''} style="width:26px;height:26px"></td>
+    h += `<tr data-name="${esc(m.name)}"${ng?' style="background:#FFF1F1"':''}><td><input type="checkbox" class="natchk" data-name="${esc(m.name)}" ${marked.has(m.name)?'checked':''} style="width:26px;height:26px"></td>
       <td>${esc(m.name)}${ng?'<br><b style="color:#B3261E">予選会に全国大会の印がついています</b>':''}</td>
       <td class="nw">${kind || '—'}</td>
       <td class="nw">${m.year||'?'}年${m.month||'?'}月</td></tr>`;
   });
   box.innerHTML = h + '</table></div>';
+  listFilter('natList','natFind','natFound');   // しぼり込みの言葉が入っていれば、そのまま効かせる
 }
+/* 一覧を大会名でしぼりこむ。
+   行を消さずに 隠すだけなので、チェックの付け外しは そのまま残ります。
+   隠れている行のチェックも 保存のときには ちゃんと数えられます。 */
+window.listFilter = function(listId, inputId, countId){
+  const box = document.getElementById(listId);
+  const inp = document.getElementById(inputId);
+  if(!box || !inp) return;
+  const q = String(inp.value||'').trim().toLowerCase();
+  const rows = [...box.querySelectorAll('table tr')].filter(tr=>!tr.querySelector('th'));
+  let shown = 0;
+  rows.forEach(tr=>{
+    const name = String(tr.dataset.name || tr.textContent || '').toLowerCase();
+    const hit = !q || name.indexOf(q) >= 0;
+    tr.style.display = hit ? '' : 'none';
+    if(hit) shown++;
+  });
+  const c = document.getElementById(countId);
+  if(c){
+    if(!rows.length) c.textContent = '';
+    else if(!q) c.textContent = '全' + rows.length + '件を表示しています。';
+    else if(shown === 0) c.textContent = '「' + inp.value.trim() + '」に当てはまる大会はありません。全' + rows.length + '件。';
+    else c.textContent = '全' + rows.length + '件のうち ' + shown + '件を表示しています。';
+  }
+};
 /* 全国大会の印に 予選会が混ざっていないかを調べる。
    あわせて、同じ大会名がちがう年で登録されていないかも見ます。 */
 window.adminCheckNationals = function(){
@@ -7427,11 +7462,12 @@ async function adminDrawWorlds(){
   list.forEach(m=>{
     // はじめてのときだけ、大会名から見当をつけて印を入れておく
     const on = first ? isWorldMeet(m.name) : marked.has(m.name);
-    h += `<tr><td><input type="checkbox" class="wldchk" data-name="${esc(m.name)}" ${on?'checked':''} style="width:26px;height:26px"></td>
+    h += `<tr data-name="${esc(m.name)}"><td><input type="checkbox" class="wldchk" data-name="${esc(m.name)}" ${on?'checked':''} style="width:26px;height:26px"></td>
       <td>${esc(m.name)}</td>
       <td class="nw">${m.year||'?'}年${m.month||'?'}月</td></tr>`;
   });
   box.innerHTML = h + '</table></div>';
+  listFilter('wldList','wldFind','wldFound');
 }
 window.adminSaveWorlds = async function(){
   const msg = document.getElementById('wldMsg');

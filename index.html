@@ -784,6 +784,10 @@
   @keyframes prog-in{ from{ clip-path: inset(0 0 0 100%); }
     to{ clip-path: inset(0 0 0 0); } }
   .prog-anim{ animation:prog-in .3s ease-out both; }
+  /* 読み込み後の描き直しなど、動きを出さないとき */
+  #progList.no-ugoki .prog-anim,
+  #progList.no-ugoki .prog-row.pb,
+  #progList.no-ugoki .kj-meter{ animation:none !important; }
   /* 進捗画面: 自己ベスト更新のお祝い(金色に2回光る) */
   @keyframes pb-glow{ 0%,100%{ box-shadow:0 0 0 rgba(251,191,36,0); }
     50%{ box-shadow:0 0 18px rgba(251,191,36,.55); } }
@@ -4256,7 +4260,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
         }
       }).catch(function(){ $('stdSaveBtn').disabled=false; toast('通信できませんでした'); });
   };
-  function progRender(){
+  var progYomiChuu=false;   // 標準記録と全国基準を読みに行っている最中かどうか
+  function progRender(ugokasu){
     var box=$('progList'); box.innerHTML='';
     if(!$('progEvent').value){
       box.innerHTML='<div class="df-empty">この選手の保存された記録が まだありません。</div>';
@@ -4271,8 +4276,11 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var fin=races.filter(function(r){ return String(r.round||'')==='決勝'; });
     var n=Math.min(Number($('progRecentN').value)||5, races.length);
     var recent=races.slice(0, n);
-    // 動きが苦手な設定(視差効果を減らす)がオンかどうか
-    var ugokiOK = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    // 動きが苦手な設定(視差効果を減らす)がオンかどうか。
+    // ugokasu が false のときは、読み込み後の描き直しなので動きを出さない。
+    var ugokiOK = (ugokasu!==false) &&
+                  !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    box.classList.toggle('no-ugoki', !ugokiOK);
     var junban = 0;  // カードの入場順(順に少しずつ遅らせる)
     function row(label, val, note){
       var d=document.createElement('div'); d.className='prog-row prog-anim';
@@ -4315,11 +4323,20 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       bestRow.namae.appendChild(iwai);
     }
     // ===== 標準記録: ベストタイムのすぐ下に表示する =====
-    if(stdCache===null){
-      stdLoad(function(){ try{ progRender(); }catch(e){} });
-    }
-    if(kijunCache===null){
-      kijunLoad(function(){ try{ progRender(); }catch(e){} });
+    // 標準記録と全国基準は、はじめの一回だけ読みに行く。
+    // 以前は二つを別々に読んで、それぞれ読み終わるたびに描き直していたので、
+    // 開いたときに同じ動きが三回くりかえされていた。
+    // 二つとも読み終わってから、動きなしで一度だけ描き直す。
+    if(!progYomiChuu && (stdCache===null || kijunCache===null)){
+      progYomiChuu=true;
+      var machi=0;
+      if(stdCache===null) machi++;
+      if(kijunCache===null) machi++;
+      var owari=function(){
+        if(--machi<=0){ progYomiChuu=false; try{ progRender(false); }catch(e){} }
+      };
+      if(stdCache===null) stdLoad(owari);
+      if(kijunCache===null) kijunLoad(owari);
     }
     // レースの水路(短水路か長水路)に合わせた標準記録をさがす
     var stdRec=stdFind(races[0] && races[0].course);

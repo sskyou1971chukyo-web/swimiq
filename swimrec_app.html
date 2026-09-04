@@ -474,7 +474,11 @@ button{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 }
 body{ background:var(--yellow); }
 
-header{ background:var(--yellow); padding:14px 24px 6px; }
+header{ background:var(--yellow);
+  /* iPhoneの上のでっぱり（時計やダイナミックアイランド）に かぶらないように、
+     端末が教えてくれる安全な余白のぶんだけ 下げる */
+  padding:calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 24px)
+          6px calc(env(safe-area-inset-left) + 24px); }
 .brand{ align-items:baseline; flex-wrap:nowrap; gap:10px; }
 /* ロゴ。SWIM はふとい書体、IQ は中ぬき、右かたに ™。
    Impact は iPhone に入っていないので、よく似た Anton を control にしています */
@@ -498,8 +502,17 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
   font-size:.72rem; font-weight:700; color:var(--sub-ink); letter-spacing:.01em;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-#menuBtn{
+/* レース分析（SwimIQ）へ行くボタン。いつも見える場所に置いています */
+#iqOpenBtn{
   flex:0 0 auto; margin-left:auto; cursor:pointer;
+  font-family:inherit; font-size:.9rem; font-weight:800;
+  color:var(--yellow); background:var(--black);
+  border:2px solid var(--black); border-radius:11px;
+  min-height:44px; padding:6px 14px;
+}
+#iqOpenBtn:active{ transform:translateY(1px); }
+#menuBtn{
+  flex:0 0 auto; cursor:pointer;
   font-family:inherit; font-size:.9rem; font-weight:800; color:var(--black);
   background:transparent; border:2px solid var(--black); border-radius:11px;
   min-height:44px; padding:6px 16px;
@@ -537,9 +550,11 @@ header{ background:var(--yellow); padding:14px 24px 6px; }
 .hintFold > summary:hover{ background:#FBEDBE; }
 
 @media (max-width:640px){
-  header{ padding:12px 16px 4px; }
+  header{ padding:calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 16px)
+                  4px calc(env(safe-area-inset-left) + 16px); }
   #toolMenu .tmIn{ padding:6px 16px 12px; }
   #menuBtn{ font-size:.76rem; padding:6px 10px; min-height:42px; }
+  #iqOpenBtn{ font-size:.76rem; padding:6px 10px; min-height:42px; }
   .brand{ gap:7px; }
   .brand h1.wordmark{ font-size:1.92rem; }
   .brand .teamname{ font-size:.62rem; }
@@ -604,6 +619,8 @@ function setFontScale(v){
     <h1 class="wordmark" aria-label="SwimIQ"><span class="w1">SWIM</span><span
         class="w2">IQ<sup class="tm">&#8482;</sup></span></h1>
     <span class="teamname">中京大学水泳部データベース</span>
+    <button type="button" id="iqOpenBtn" onclick="openSwimIQ()"
+            aria-label="SwimIQ レース分析をひらく">レース分析</button>
     <button type="button" id="menuBtn" onclick="toggleToolMenu()" aria-expanded="false"
             aria-controls="toolMenu">メニュー</button>
   </div>
@@ -749,9 +766,9 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.04.1';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.04.2';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = 'メニューに SwimIQ（レース分析）をひらく ボタンが出ました。レースを選ばなくても 分析アプリをひらけます。';
+const APP_NEWS = '画面の上が 時計にかぶらないよう直しました。右上に レース分析 のボタンを置いたので、いつでも SwimIQ をひらけます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';

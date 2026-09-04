@@ -1523,7 +1523,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 
     <div class="smGrp" data-g="see">
       <div class="smGl">見る</div>
-      <div class="smList"><button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button><button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button><button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button></div>
+      <div class="smList"><button id="smMine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5 19c1.6-3.6 4.1-5.2 7-5.2s5.4 1.6 7 5.2"/></svg><span>じぶんの記録</span></button><button id="smFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.4h7a2 2 0 0 1 2 2v7.1a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg><span>記録を さがす</span></button><button id="officialBtn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 21V4"/><path d="M5.5 5c2-1.2 4.2-1.2 6.2 0s4.2 1.2 6.2 0v8.4c-2 1.2-4.2 1.2-6.2 0s-4.2-1.2-6.2 0z"/></svg><span>正式結果</span></button><button id="smDbApp" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6"/><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></svg><span>中京データベース</span></button></div>
     </div>
 
     <div class="smGrp" data-g="cmp">
@@ -1879,6 +1879,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <label class="cfg-l">大会データのURL（水泳レース記録用ツールのGAS）
       <input id="cfgWh" type="url" placeholder="https://script.google.com/macros/s/…/exec"></label>
     <p class="note cfg-note">日本選手権などのデータが入ったスプレッドシートのApps ScriptのURLです。「呼び出す」「比較」の大会データで使います。</p>
+    <label class="cfg-l">データベースのページURL（記録帳アプリ）
+      <input id="cfgDbPage" type="url" placeholder="https://…/records.html"></label>
+    <p class="note cfg-note">中京大学水泳部データベース（記録帳アプリ）のページのURLです。ホームの「中京データベース」ボタンで ひらく先になります。空のままなら、同じ場所にある records.html をひらきます。</p>
     <label class="cfg-l">動画保存のフォルダURL（Googleドライブ）
       <input id="cfgVideo" type="url" placeholder="https://drive.google.com/drive/folders/…"></label>
     <p class="note cfg-note">レース動画専用のフォルダを作り、共有を「リンクを知っている全員：閲覧者」にしてください。見えるのはこのフォルダの中だけで、ドライブのほかの場所は見えません。閲覧者は消したり変えたりもできません。</p>
@@ -3814,6 +3817,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
     $('cfgGas').value = localStorage.getItem('swimiq_gas_url')||'';
     $('cfgWh').value = localStorage.getItem('swimiq_wh_url')||'';
+    $('cfgDbPage').value = localStorage.getItem('swimiq_db_page')||'';
     $('cfgVideo').value = localStorage.getItem('swimiq_video_folder')||'';
     $('cfgGhToken').value = localStorage.getItem('swimiq_gh_token')||'';
     $('cfgGhRepo').value = localStorage.getItem('swimiq_gh_repo')||'';
@@ -3860,6 +3864,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }catch(e){}
     if(!put('swimiq_gas_url', $('cfgGas').value, 'データ保存')) return;
     if(!put('swimiq_wh_url', $('cfgWh').value, '大会データ')) return;
+    if(!put('swimiq_db_page', $('cfgDbPage').value, 'データベースのページ')) return;
     if(!put('swimiq_video_folder', $('cfgVideo').value, '動画保存')) return;
     // GitHubのトークンとリポジトリはURLではないので、そのまま覚える
     function putRaw(key, val){
@@ -7235,6 +7240,25 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   };
 
   // ========== 動画の読み込み ==========
+  // ========== 中京データベース（記録帳アプリ）へ飛ぶ ==========
+  // 記録帳の中からSwimIQをひらいている場合は、上の画面に「とじて」と伝えるだけでよい。
+  // SwimIQを単体でひらいている場合は、記録帳のページへ移る。
+  function dbPageUrl(){
+    try{ return (localStorage.getItem('swimiq_db_page')||'').trim() || './records.html'; }
+    catch(e){ return './records.html'; }
+  }
+  $('smDbApp').onclick=function(){
+    var umekomi=false;
+    try{ umekomi = (window.self !== window.top); }catch(e){ umekomi = true; }
+    if(umekomi){
+      // 記録帳の中にいるとき：分析の画面をとじてもらう
+      try{ window.parent.postMessage({ swimiq:'close' }, '*'); }catch(e){}
+      toast('中京データベースに もどります');
+      return;
+    }
+    location.href = dbPageUrl();
+  };
+
   // ========== 名簿から泳ぐ人をえらぶ ==========
   // 中京のデータベースにある選手名簿を読んで、名前の一部や学年でしぼって さがす。
   // 一度読んだ名簿は携帯に覚えさせるので、次からはすぐ出るし 電波が無くても使える。
@@ -7570,6 +7594,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     ['#camBtn','分析の画面から そのままカメラをひらいて、次のレースをとれるボタンだッチ。とった動画に そのまま切りかわるッチ。'],
     ['#riRosBtn','中京のデータベースの名簿から 泳ぐ人をさがすボタンだッチ。名前の一部を打つか、学年のボタンでしぼれるッチ。一度読めば 電波がなくても出るッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
+    ['#smDbApp','中京大学水泳部データベース（記録帳アプリ）にもどるボタンだッチ。大会の公式結果や 名簿は あちらで見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・ST・かき数が 見られるッチ。'],
     ['#smProgress','選手ひとりの成績表だッチ。ベスト・予選と決勝のちがい・直近の調子が ひと目でわかるッチ。直近のレース数は 2〜10本で えらべるッチ。'],

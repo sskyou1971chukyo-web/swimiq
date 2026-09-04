@@ -1881,7 +1881,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <p class="note cfg-note">日本選手権などのデータが入ったスプレッドシートのApps ScriptのURLです。「呼び出す」「比較」の大会データで使います。</p>
     <label class="cfg-l">データベースのページURL（記録帳アプリ）
       <input id="cfgDbPage" type="url" placeholder="https://…/records.html"></label>
-    <p class="note cfg-note">中京大学水泳部データベース（記録帳アプリ）のページのURLです。ホームの「中京データベース」ボタンで ひらく先になります。空のままなら、同じ場所にある records.html をひらきます。</p>
+    <p class="note cfg-note">中京大学水泳部データベース（記録帳アプリ）のページのURLです。ホームの「中京データベース」ボタンで ひらく先になります。空のままだと、はじめてボタンを押したときに一度だけ たずねます。記録帳をひらいたときの住所の欄に出ているURLを入れてください。</p>
     <label class="cfg-l">動画保存のフォルダURL（Googleドライブ）
       <input id="cfgVideo" type="url" placeholder="https://drive.google.com/drive/folders/…"></label>
     <p class="note cfg-note">レース動画専用のフォルダを作り、共有を「リンクを知っている全員：閲覧者」にしてください。見えるのはこのフォルダの中だけで、ドライブのほかの場所は見えません。閲覧者は消したり変えたりもできません。</p>
@@ -7244,14 +7244,18 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // 記録帳の中からSwimIQをひらいている場合は、上の画面に「とじて」と伝えるだけでよい。
   // SwimIQを単体でひらいている場合は、記録帳のページへ移る。
   // 記録帳アプリ（中京大学水泳部データベース）のページ。
-  // ふだんはSwimIQと同じフォルダに records.html として並んでいる。
-  // ファイルを直接ひらいたときは、その並びが使えないのでウェブの住所へ行く。
-  var DB_WEB='https://sskyou1971chukyo-web.github.io/swimiq/records.html';
+  // 置き場所は決め打ちにせず、はじめの一回だけ聞いて この端末に覚えさせる。
   function dbPageUrl(){
-    var saved='';
-    try{ saved=(localStorage.getItem('swimiq_db_page')||'').trim(); }catch(e){}
-    if(saved) return saved;
-    return (location.protocol==='file:') ? DB_WEB : './records.html';
+    try{ return (localStorage.getItem('swimiq_db_page')||'').trim(); }catch(e){ return ''; }
+  }
+  function askDbPageUrl(){
+    var u=prompt('中京大学水泳部データベース（記録帳アプリ）のページのURLを貼ってください。\n記録帳をひらいたときの、上の住所の欄に出ているURLです。\n一度入れれば この端末が覚えます。', dbPageUrl());
+    u=String(u||'').trim();
+    if(u.indexOf('http')===0){
+      try{ localStorage.setItem('swimiq_db_page', u); }catch(e){}
+      return u;
+    }
+    return '';
   }
   $('smDbApp').onclick=function(){
     var umekomi=false;
@@ -7262,7 +7266,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       toast('中京データベースに もどります');
       return;
     }
-    location.href = dbPageUrl();
+    var u=dbPageUrl();
+    if(!u){ u=askDbPageUrl(); }
+    if(!u){ toast('データベースのURLが 必要です'); return; }
+    location.href = u;
   };
 
   // ========== 名簿から泳ぐ人をえらぶ ==========

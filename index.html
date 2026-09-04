@@ -404,6 +404,29 @@
   /* 解説モード中はシャッチーくんが黄色くひかる */
   #app.guidemode #shacchi{ filter:drop-shadow(0 0 12px #fbbf24) drop-shadow(0 3px 5px rgba(0,0,0,.4)); }
 
+  /* ===== 名簿からえらぶ画面 ===== */
+  #rosModal{ position:fixed; inset:0; z-index:36; display:flex; align-items:center; justify-content:center;
+    padding:16px; background:rgba(4,20,35,.8); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+  #rosModal.hide{ display:none; }
+  .ros-card{ width:min(480px, 94vw); max-height:88vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain; }
+  .ros-tabs{ display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 6px; }
+  .ros-tab{ min-height:44px; padding:9px 16px; border-radius:999px; cursor:pointer;
+    background:rgba(255,255,255,.10); border:1.5px solid rgba(255,255,255,.35);
+    color:inherit; font-size:14px; font-weight:800; }
+  .ros-tab.on{ background:#1668B5; border-color:#1668B5; color:#fff; }
+  .ros-count{ margin:2px 0 8px; }
+  .ros-list{ max-height:44vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    display:flex; flex-direction:column; gap:8px; }
+  .ros-name{ min-height:52px; padding:12px 14px; border-radius:14px; cursor:pointer; text-align:left;
+    background:rgba(255,255,255,.10); border:1.5px solid rgba(255,255,255,.35);
+    color:inherit; font-size:16px; font-weight:800; }
+  .ros-name:active{ transform:translateY(2px); }
+  .ri-ros{ width:100%; min-height:48px; padding:11px 14px; border-radius:12px; cursor:pointer;
+    background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.4);
+    color:inherit; font-size:14px; font-weight:800; }
+  .ri-ros:active{ transform:translateY(1px); }
+
   /* ===== カメラでとる画面（スマホのカメラと同じく 画面いっぱい） ===== */
   #camModal{ position:fixed; inset:0; z-index:40; background:#000; overflow:hidden; }
   #camModal.hide{ display:none; }
@@ -1397,6 +1420,10 @@
 .modal-card #riSkip{ background:#fff !important; border:1.5px solid var(--k-line) !important;
   color:var(--k-sub) !important; }
 .modal-card .ri-sec{ color:var(--k) !important; border-top-color:var(--k-line) !important; }
+/* 名簿からえらぶ画面 */
+.modal-card .ros-tab, .modal-card .ros-name, .modal-card .ri-ros{
+  background:#fff !important; border:1.5px solid var(--k-line) !important; color:var(--k) !important; }
+.modal-card .ros-tab.on{ background:var(--k) !important; border-color:var(--k) !important; color:var(--y) !important; }
 
 /* ============================================================
    トップ画面（案3 まとまり） 2026.09.01
@@ -1630,6 +1657,18 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     </div>
   </div>
 
+</div>
+
+<div id="rosModal" class="hide" role="dialog" aria-modal="true" aria-label="名簿からえらぶ">
+  <div class="modal-card ros-card">
+    <h2>名簿から えらぶ</h2>
+    <p class="note">名前の一部を入れるか、学年のボタンで しぼれます。両方いっしょでも つかえます。</p>
+    <div class="sv-row"><span>名前でさがす</span><input id="rosFind" type="search" placeholder="例 やまもと・山本" autocomplete="off"></div>
+    <div id="rosTabs" class="ros-tabs"></div>
+    <div id="rosCount" class="note ros-count" aria-live="polite"></div>
+    <div id="rosList" class="ros-list"></div>
+    <div class="stroke-btns"><button id="rosClose">とじる</button></div>
+  </div>
 </div>
 
 <!-- カメラでとる画面 -->
@@ -2009,6 +2048,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="ri-body hide" id="riBodySw">
       <p class="note ri-note">自分がおよぐなら そのままでOK。生年月日・身長・体重は 空欄でもかまいません。</p>
       <div class="sv-row"><span>泳ぐ人の名前</span><select id="riSwimmerSel" aria-label="泳ぐ人をえらぶ"><option value="__free__">じぶんで 入力する</option></select></div>
+      <div class="sv-row"><span></span><button id="riRosBtn" type="button" class="ri-ros">👥 名簿から さがす</button></div>
       <div class="sv-row" id="riSwimmerFreeRow"><span></span><input id="riSwimmer" type="text" list="swimmerList" placeholder="はじめての人は ここに名前"></div>
       <datalist id="swimmerList"></datalist>
       <div class="sv-row"><span>生年月日</span><input id="riSwBirth" type="date"></div>
@@ -7238,6 +7278,85 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   };
 
   // ========== 動画の読み込み ==========
+  // ========== 名簿から泳ぐ人をえらぶ ==========
+  // 中京のデータベースにある選手名簿を読んで、名前の一部や学年でしぼって さがす。
+  // 一度読んだ名簿は携帯に覚えさせるので、次からはすぐ出るし 電波が無くても使える。
+  var ROS_CACHE='swimiq_roster';
+  var rosAll=[], rosGroup='';
+  function rosCacheGet(){ try{ return JSON.parse(localStorage.getItem(ROS_CACHE)||'[]'); }catch(e){ return []; } }
+  function rosRender(){
+    var q=String($('rosFind').value||'').trim().toLowerCase();
+    // 学年のボタンを作る（名簿に出てくる学年だけ、1年→OGの順に）
+    var gs=[], seen={};
+    rosAll.forEach(function(a){ var g=a.group||'その他'; if(!seen[g]){ seen[g]=1; gs.push(g); } });
+    var order=['1年','2年','3年','4年','OB','OG'];
+    gs.sort(function(a,b){
+      var ia=order.indexOf(a), ib=order.indexOf(b);
+      if(ia<0) ia=99; if(ib<0) ib=99;
+      return (ia-ib) || String(a).localeCompare(String(b),'ja');
+    });
+    var tabs=$('rosTabs'); tabs.innerHTML='';
+    [''].concat(gs).forEach(function(g){
+      var b=document.createElement('button'); b.type='button';
+      b.className='ros-tab'+(rosGroup===g?' on':'');
+      b.textContent=(g===''?'すべて':g);
+      b.onclick=function(){ rosGroup=g; rosRender(); };
+      tabs.appendChild(b);
+    });
+    var list=rosAll.filter(function(a){
+      if(rosGroup && (a.group||'その他')!==rosGroup) return false;
+      if(q && String(a.name).toLowerCase().indexOf(q)<0) return false;
+      return true;
+    });
+    $('rosCount').textContent = rosAll.length
+      ? ('全'+rosAll.length+'人のうち '+list.length+'人を出しています')
+      : '';
+    var box=$('rosList'); box.innerHTML='';
+    if(!rosAll.length){ box.innerHTML='<div class="df-empty">名簿を 読み込んでいます…</div>'; return; }
+    if(!list.length){ box.innerHTML='<div class="df-empty">見つかりませんでした。ちがう字で ためしてください。</div>'; return; }
+    list.forEach(function(a){
+      var b=document.createElement('button'); b.type='button'; b.className='ros-name';
+      b.textContent=a.name+(a.group? '　'+a.group : '');
+      b.onclick=function(){ rosPick(a.name); };
+      box.appendChild(b);
+    });
+  }
+  function rosPick(name){
+    var sel=$('riSwimmerSel');
+    sel.value='__free__';
+    $('riSwimmerFreeRow').style.display='';
+    $('riSwimmer').value=name;
+    riFillSwimmerData(name);
+    riAccLabels();
+    $('rosModal').classList.add('hide');
+    toast(name+' を えらびました');
+  }
+  function openRosModal(){
+    $('rosModal').classList.remove('hide');
+    $('rosFind').value=''; rosGroup='';
+    rosAll=rosCacheGet();
+    rosRender();
+    api({action:'roster'}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'名簿を取得できませんでした');
+      var arr=(res.athletes||[]).map(function(a){
+        return { name:String(a.name||'').trim(), group:String(a.group||'').trim() };
+      }).filter(function(a){ return a.name; });
+      if(arr.length){
+        rosAll=arr;
+        try{ localStorage.setItem(ROS_CACHE, JSON.stringify(arr)); }catch(e){}
+        rosRender();
+      }
+    }).catch(function(err){
+      if(!rosAll.length){
+        $('rosList').innerHTML='<div class="df-empty">名簿を読み込めませんでした： '+err.message+'<br>電波を確かめるか、下の「じぶんで 入力する」で 名前を打ってください。</div>';
+      }
+    });
+  }
+  $('riRosBtn').onclick=openRosModal;
+  $('rosFind').addEventListener('input', rosRender);
+  $('rosClose').onclick=function(){ $('rosModal').classList.add('hide'); };
+  $('rosModal').addEventListener('click', function(e){ if(e.target===$('rosModal')) $('rosModal').classList.add('hide'); });
+
   // たてのまま分析する／きろくデータにもどる
   // スマホをたてに構えたときは ふだん きろくデータの画面になるが、
   // たてで撮った動画は たてのまま大きく見たいので、切りかえられるようにする。
@@ -7461,6 +7580,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     ['#smRecord','その場でレースをとるボタンだッチ。画面いっぱいのカメラになって、赤いボタンでとりはじめるッチ。とめると 動画が保存されて そのまま分析にすすむッチ。'],
     ['#camBtn','分析の画面から そのままカメラをひらいて、次のレースをとれるボタンだッチ。とった動画に そのまま切りかわるッチ。'],
     ['#rotBtn','動画のむきを 90度ずつ回すボタンだッチ。たて長にとれてしまった動画を、よこ向きにして画面いっぱいで見られるッチ。'],
+    ['#riRosBtn','中京のデータベースの名簿から 泳ぐ人をさがすボタンだッチ。名前の一部を打つか、学年のボタンでしぼれるッチ。一度読めば 電波がなくても出るッチ。'],
     ['#dvTateBtn','スマホをたてに構えたまま 分析するボタンだッチ。たてで撮った動画を たてのまま大きく見られるッチ。'],
     ['#tateOffBtn','たての分析をやめて、きろくデータの画面にもどるボタンだッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],

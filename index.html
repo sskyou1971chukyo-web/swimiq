@@ -7269,7 +7269,12 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var u=dbPageUrl();
     if(!u){ u=askDbPageUrl(); }
     if(!u){ toast('データベースのURLが 必要です'); return; }
-    location.href = u;
+    // 別のタブでひらく。こうすると SwimIQ の画面はそのまま残るので、
+    // データベースを見たあと タブを切りかえるだけで もどってこられる。
+    var w=null;
+    try{ w=window.open(u, '_blank'); }catch(e){}
+    if(w){ toast('別のタブで データベースをひらきました'); }
+    else { location.href=u; }   // ひらけなかったときだけ この画面で移る
   };
 
   // ========== 名簿から泳ぐ人をえらぶ ==========

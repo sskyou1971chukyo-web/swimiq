@@ -5734,22 +5734,34 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // ===== 記録をさがす（条件で絞り込み） =====
   var dfRaces=[];   // チーム：えらんだ選手の全レース
   var dfWhRows=[];  // 大会データ：いまえらんでいる種目シートの全行
-  // 記録シートに名前がある人 ぜんぶから 選手の一覧を作る。
-  // 端末の登録には たよらないので、どの入口から開いても同じ顔ぶれが出る。
-  // 返す数字は 見つかった人数。ゼロなら 記録そのものが無いということ。
+  // 記録をさがすの「選手」の欄を作る。
+  // もとになるのは SwimIQデータベースの名簿。学年ごとに、名前の五十音順で並べる。
+  // 名簿にいないが記録だけある人も、もれないように足す。
+  // 記録が一本もない人には（記録なし）と付けて、押す前に分かるようにする。
+  // 返す数字は 並んだ人数。
   function fillAthleteSelectFromTeam(sel){
     var box={};
+    rosCacheGet().forEach(function(a){
+      var id=String(a.id||''); if(!id || !a.name) return;
+      box[id]={ name:String(a.name), group:String(a.group||''), rec:false };
+    });
     (cmpAll||[]).forEach(function(r){
       var id=String(r.athleteId||''); if(!id) return;
-      if(!box[id]) box[id]=String(r.name||id);
+      if(box[id]) box[id].rec=true;
+      else box[id]={ name:String(r.name||id), group:String(r.group||''), rec:true };
     });
     var ids=Object.keys(box).sort(function(a,b){
-      return String(box[a]).localeCompare(String(box[b]), 'ja');
+      var ra=rosGroupRank(box[a].group), rb=rosGroupRank(box[b].group);
+      if(ra!==rb) return ra-rb;
+      return String(box[a].name).localeCompare(String(box[b].name), 'ja');
     });
     var keep=sel.value;
     sel.innerHTML='';
     ids.forEach(function(id){
-      var o=document.createElement('option'); o.value=id; o.textContent=box[id]; sel.appendChild(o);
+      var p=box[id];
+      var o=document.createElement('option'); o.value=id;
+      o.textContent=p.name+(p.group? '　'+p.group : '')+(p.rec? '' : '　（記録なし）');
+      sel.appendChild(o);
     });
     if(keep && box[keep]) sel.value=keep;
     if(!sel.value && ids.length){
@@ -5761,10 +5773,14 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   function openFindModal(){
     $('findModal').classList.remove('hide');
     if($('dfSrc').value==='wh'){ dfFetchWh(); return; }
-    $('dfList').innerHTML='<div class="df-empty">チームのデータを 読み込み中…</div>';
-    loadAllRaces().then(function(){
+    $('dfList').innerHTML='<div class="df-empty">選手の名前を 読み込み中…</div>';
+    // 名簿と、チームの記録を いっしょに読む。どちらか片方でも読めれば一覧を作る。
+    Promise.all([
+      loadAllRaces().catch(function(){ return null; }),
+      rosLoad()
+    ]).then(function(){
       if(!fillAthleteSelectFromTeam($('dfAthlete'))){
-        $('dfList').innerHTML='<div class="df-empty">チームの記録が まだありません。上の「どこから」を「大会データ」にしてください。</div>';
+        $('dfList').innerHTML='<div class="df-empty">選手の名前を 読み込めませんでした。電波を確かめるか、上の「どこから」を「大会データ」にしてください。</div>';
         return;
       }
       dfFetch();
@@ -7217,6 +7233,27 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   var ROS_CACHE='swimiq_roster';
   var rosAll=[], rosGroup='';
   function rosCacheGet(){ try{ return JSON.parse(localStorage.getItem(ROS_CACHE)||'[]'); }catch(e){ return []; } }
+  // 名簿（SwimIQデータベース）を読む。読めたら携帯に覚えさせる。
+  // 読めなかったときは、前に覚えた名簿を返すので 電波が無くても使える。
+  function rosLoad(){
+    return api({action:'roster'}).then(function(res){
+      if(!res.ok) throw new Error(res.error||'名簿を取得できませんでした');
+      var arr=(res.athletes||[]).map(function(a){
+        return { id:String(a.id||''), name:String(a.name||'').trim(), group:String(a.group||'').trim() };
+      }).filter(function(a){ return a.name; });
+      if(arr.length){
+        try{ localStorage.setItem(ROS_CACHE, JSON.stringify(arr)); }catch(e){}
+        return arr;
+      }
+      return rosCacheGet();
+    }).catch(function(){ return rosCacheGet(); });
+  }
+  // 学年の並び順（名簿にある学年だけ この順で使う）
+  var ROS_ORDER=['1年','2年','3年','4年','OB','OG'];
+  function rosGroupRank(g){
+    var i=ROS_ORDER.indexOf(String(g||''));
+    return i<0 ? 99 : i;
+  }
   function rosRender(){
     var q=String($('rosFind').value||'').trim().toLowerCase();
     // 学年のボタンを作る（名簿に出てくる学年だけ、1年→OGの順に）
@@ -7269,19 +7306,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('rosFind').value=''; rosGroup='';
     rosAll=rosCacheGet();
     rosRender();
-    api({action:'roster'}).then(function(res){
-      if(!res.ok) throw new Error(res.error||'名簿を取得できませんでした');
-      var arr=(res.athletes||[]).map(function(a){
-        return { name:String(a.name||'').trim(), group:String(a.group||'').trim() };
-      }).filter(function(a){ return a.name; });
-      if(arr.length){
-        rosAll=arr;
-        try{ localStorage.setItem(ROS_CACHE, JSON.stringify(arr)); }catch(e){}
-        rosRender();
-      }
-    }).catch(function(err){
-      if(!rosAll.length){
-        $('rosList').innerHTML='<div class="df-empty">名簿を読み込めませんでした： '+err.message+'<br>電波を確かめるか、下の「じぶんで 入力する」で 名前を打ってください。</div>';
+    rosLoad().then(function(arr){
+      if(arr && arr.length){ rosAll=arr; rosRender(); }
+      else if(!rosAll.length){
+        $('rosList').innerHTML='<div class="df-empty">名簿を読み込めませんでした。電波を確かめるか、下の「じぶんで 入力する」で 名前を打ってください。</div>';
       }
     });
   }

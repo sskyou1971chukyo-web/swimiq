@@ -5742,8 +5742,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   function fillAthleteSelectFromTeam(sel){
     var box={};
     rosCacheGet().forEach(function(a){
-      var id=String(a.id||''); if(!id || !a.name) return;
-      box[id]={ name:String(a.name), group:String(a.group||''), rec:false };
+      if(!a.name) return;
+      var key=String(a.id||'')||('name:'+a.name);   // 選手番号がない人も並べる
+      box[key]={ name:String(a.name), group:String(a.group||''), rec:false };
     });
     (cmpAll||[]).forEach(function(r){
       var id=String(r.athleteId||''); if(!id) return;
@@ -5789,8 +5790,15 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     });
   }
   function dfFetch(){
+    var id=$('dfAthlete').value;
+    // 名簿にはいるが SwimIQでの記録が一本もない人。通信せずに その場で知らせる。
+    if(!id || id.indexOf('name:')===0){
+      dfRaces=[]; dfBuildFilters();
+      $('dfList').innerHTML='<div class="df-empty">この選手の記録は まだありません。動画をひらいて 測ってから「ほぞん」すると、ここに出るようになります。</div>';
+      return;
+    }
     $('dfList').innerHTML='<div class="df-empty">読み込み中…</div>';
-    api({action:'list', athleteId:$('dfAthlete').value}).then(function(res){
+    api({action:'list', athleteId:id}).then(function(res){
       if(!res.ok) throw new Error(res.error||'取得できませんでした');
       dfRaces=res.races||[];
       dfBuildFilters();
@@ -7231,19 +7239,59 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // 中京のデータベースにある選手名簿を読んで、名前の一部や学年でしぼって さがす。
   // 一度読んだ名簿は携帯に覚えさせるので、次からはすぐ出るし 電波が無くても使える。
   var ROS_CACHE='swimiq_roster';
+  // 中京大学水泳部データベース（記録帳アプリ）の名簿を読む先。
+  // SwimIQの選手シートには SwimIQで登録した人しか入っていないので、
+  // 部の名簿ぜんぶ（学年つき）は こちらから読む。
+  var DB_URL='https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
+  function dbRosterUrl(){
+    try{ return localStorage.getItem('swimiq_db_url') || DB_URL; }catch(e){ return DB_URL; }
+  }
+  // 中京データベースの名簿を読む（読めなければ空を返す）
+  function dbRosterLoad(){
+    var u=dbRosterUrl();
+    if(!u) return Promise.resolve([]);
+    return fetch(u+'?action=init&_='+Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        return ((j && j.roster) || []).map(function(p){
+          return { id:'', name:String(p.name||'').trim(),
+                   group:String(p.grade||p.group||'').trim(),
+                   kana:String(p.kana||'').trim() };
+        }).filter(function(p){ return p.name; });
+      }).catch(function(){ return []; });
+  }
   var rosAll=[], rosGroup='';
   function rosCacheGet(){ try{ return JSON.parse(localStorage.getItem(ROS_CACHE)||'[]'); }catch(e){ return []; } }
   // 名簿（SwimIQデータベース）を読む。読めたら携帯に覚えさせる。
   // 読めなかったときは、前に覚えた名簿を返すので 電波が無くても使える。
   function rosLoad(){
-    return api({action:'roster'}).then(function(res){
-      if(!res.ok) throw new Error(res.error||'名簿を取得できませんでした');
-      var arr=(res.athletes||[]).map(function(a){
-        return { id:String(a.id||''), name:String(a.name||'').trim(), group:String(a.group||'').trim() };
-      }).filter(function(a){ return a.name; });
-      if(arr.length){
-        try{ localStorage.setItem(ROS_CACHE, JSON.stringify(arr)); }catch(e){}
-        return arr;
+    return Promise.all([
+      // SwimIQ側の選手（記録とむすびつく選手番号を持っている）
+      api({action:'roster'}).then(function(res){
+        if(!res || !res.ok) return [];
+        return (res.athletes||[]).map(function(a){
+          return { id:String(a.id||''), name:String(a.name||'').trim(),
+                   group:String(a.group||'').trim(), kana:'' };
+        }).filter(function(a){ return a.name; });
+      }).catch(function(){ return []; }),
+      // 中京データベース側の名簿（部員ぜんぶ。学年とふりがなつき）
+      dbRosterLoad()
+    ]).then(function(both){
+      var iq=both[0]||[], db=both[1]||[];
+      // 名前を手がかりに つき合わせる。SwimIQ側の選手番号があれば それを引きつぐ。
+      var byName={};
+      iq.forEach(function(a){ byName[a.name]=a; });
+      var out=[], seen={};
+      db.forEach(function(p){
+        var hit=byName[p.name];
+        out.push({ id: hit? hit.id : '', name:p.name,
+                   group: p.group || (hit? hit.group : ''), kana:p.kana });
+        seen[p.name]=1;
+      });
+      iq.forEach(function(a){ if(!seen[a.name]) out.push(a); });   // 名簿にいない人ももらさない
+      if(out.length){
+        try{ localStorage.setItem(ROS_CACHE, JSON.stringify(out)); }catch(e){}
+        return out;
       }
       return rosCacheGet();
     }).catch(function(){ return rosCacheGet(); });
@@ -7275,7 +7323,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     });
     var list=rosAll.filter(function(a){
       if(rosGroup && (a.group||'その他')!==rosGroup) return false;
-      if(q && String(a.name).toLowerCase().indexOf(q)<0) return false;
+      if(q){
+        var t=(String(a.name)+' '+String(a.kana||'')).toLowerCase();
+        if(t.indexOf(q)<0) return false;
+      }
       return true;
     });
     $('rosCount').textContent = rosAll.length

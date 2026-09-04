@@ -48,6 +48,16 @@ body{
   background:var(--bg); color:var(--ink); line-height:1.7;
   -webkit-font-smoothing:antialiased;
 }
+/* 画面ぜんたいが 左右に ゆれるのを止める (2026.09.05)
+   たて（上下）のスクロールだけを ゆるし、よこ（左右）の動きは しません。
+   よこに動かしたいところ（大会の切りかえの列や 表）には、
+   下の .subs / .tablewrap で よこの動きだけを ゆるし直しています */
+html, body{
+  max-width:100%;
+  overflow-x:hidden;
+  overscroll-behavior-x:none;
+  touch-action:pan-y;
+}
 .num{ font-family:"M PLUS 1","BIZ UDPGothic",sans-serif; font-variant-numeric:tabular-nums; text-align:right; }
 
 /* ---------- ヘッダーとコースロープ ---------- */
@@ -103,7 +113,8 @@ body.hasnav main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
 #navbar button:focus-visible{ outline:4px solid var(--gold); outline-offset:-4px; }
 /* 画面の中の切りかえ（横に並べて、はみ出たら指でずらす） */
 .subs{ display:flex; gap:10px; overflow-x:auto; padding:2px 2px 12px;
-  -webkit-overflow-scrolling:touch; }
+  -webkit-overflow-scrolling:touch;
+  max-width:100%; touch-action:pan-x pan-y; overscroll-behavior-x:contain; }
 .sub{ flex:0 0 auto; min-height:52px; padding:6px 18px; white-space:nowrap;
   border:2px solid var(--line); border-radius:26px; background:var(--white);
   color:var(--navy); font-family:inherit; font-size:1.02rem; font-weight:700; cursor:pointer; }
@@ -336,7 +347,8 @@ tr.rank3 td{ background:#F9EDE2; font-weight:700; }
   font:inherit; font-weight:700; padding:8px 2px; min-height:44px; cursor:pointer; white-space:nowrap; }
 .ktcell:focus-visible{ outline:4px solid var(--gold); outline-offset:2px; }
 .ktdetail td{ background:#EEF4FF; font-size:.98rem; }
-.tablewrap{ max-height:560px; overflow:auto; border:1.5px solid var(--line); border-radius:12px; }
+.tablewrap{ max-height:560px; overflow:auto; border:1.5px solid var(--line); border-radius:12px;
+  max-width:100%; touch-action:pan-x pan-y; overscroll-behavior-x:contain; }
 
 /* ---------- グラフ ---------- */
 #fsOverlay{ position:fixed; inset:0; background:#F4F8FF; z-index:9999; display:flex; flex-direction:column; }
@@ -775,7 +787,7 @@ function setFontScale(v){
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.04.3';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.05.1';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
 const APP_NEWS = '下の帯の両はしに もどる・すすむ を置きました。見ていた画面を いつでも行き来できます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';

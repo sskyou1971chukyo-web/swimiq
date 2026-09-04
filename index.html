@@ -1488,6 +1488,124 @@
 
 /* 記録アプリの中に窓として出したときは「見る」のまとまりごと隠す */
 body.embed .smGrp[data-g="see"]{ display:none !important; }
+
+/* ============================================================
+   練習用カメラ (2026.09.05)
+   カメラで うつしながら、画面の上に ストップウォッチを出します。
+   ・「よーい どん」の 声やふえの 音が 大きくなった ところで じどうスタート
+   ・スタート / ラップ / ストップ / リセット の 4つのボタン
+   ・とめたあとは、その場で ゆっくり見る（スロー）と、
+     かきの リズム（ST・SR）を はかることが できます。
+   名前は すべて pt ではじめて、ほかの画面と ぶつからないようにしています。
+============================================================ */
+#ptModal{ position:fixed; inset:0; z-index:120; background:#04121f; display:block; }
+#ptModal.hide{ display:none; }
+#ptView, #ptPlayer{ position:absolute; inset:0; width:100%; height:100%;
+  object-fit:contain; background:#04121f; }
+#ptPlayer{ display:none; }
+#ptModal.playing #ptView{ display:none; }
+#ptModal.playing #ptPlayer{ display:block; }
+
+/* 上の帯：録画の赤ぽち・録画時間・とじる */
+#ptTop{ position:absolute; left:0; right:0; top:0; z-index:6;
+  display:flex; align-items:center; gap:8px;
+  padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;
+  background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0)); }
+#ptDot{ width:11px; height:11px; border-radius:50%; background:#ef4444;
+  box-shadow:0 0 0 3px rgba(239,68,68,.28); animation:ptBlink 1s infinite; }
+#ptDot.hide{ display:none; }
+@keyframes ptBlink{ 50%{ opacity:.25; } }
+#ptRecT{ font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; text-shadow:var(--shadow); }
+#ptTop .ptSp{ flex:1; }
+#ptTop button{ min-height:34px; padding:5px 12px; border-radius:11px; cursor:pointer;
+  border:1.5px solid var(--line); background:rgba(6,24,42,.72); color:#fff;
+  font-family:inherit; font-size:12px; font-weight:800; }
+
+/* まん中の 大きな時計 */
+#ptBig{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 46px);
+  z-index:6; text-align:center; pointer-events:none; }
+#ptTime{ display:inline-block; padding:4px 16px; border-radius:16px;
+  background:rgba(6,24,42,.62); border:1.5px solid var(--line);
+  font-size:clamp(38px,11vw,72px); font-weight:900; line-height:1.1;
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em; text-shadow:var(--shadow); }
+#ptModal.armed #ptTime{ color:var(--yellow); border-color:var(--yellow); }
+#ptModal.running #ptTime{ color:var(--accent); border-color:var(--accent); }
+
+/* 音の大きさメーター（音まちのときだけ出す） */
+#ptLevel{ display:none; position:absolute; left:50%; transform:translateX(-50%);
+  top:calc(env(safe-area-inset-top) + 130px); z-index:6;
+  width:min(62vw,300px); height:9px; border-radius:6px;
+  background:rgba(6,24,42,.7); border:1.5px solid var(--line); overflow:hidden; }
+#ptModal.armed #ptLevel{ display:block; }
+#ptLevelBar{ display:block; width:0%; height:100%; background:var(--yellow); transition:width .06s linear; }
+#ptLevelLine{ position:absolute; top:0; bottom:0; width:2px; background:#ef4444; left:0; }
+
+/* ラップの一覧（左） */
+#ptLaps{ position:absolute; left:10px; top:calc(env(safe-area-inset-top) + 150px);
+  bottom:calc(env(safe-area-inset-bottom) + 150px); width:150px; z-index:6;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  display:flex; flex-direction:column; gap:4px; }
+#ptLaps .ptLap{ background:rgba(6,24,42,.78); border:1.5px solid var(--line);
+  border-left:3px solid var(--accent2); border-radius:9px; padding:4px 8px;
+  display:flex; align-items:baseline; gap:6px; }
+#ptLaps .ptLap .n{ font-size:10px; font-weight:800; color:#bfe3ff; }
+#ptLaps .ptLap .t{ font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; }
+#ptLaps .ptLap .d{ font-size:10px; font-weight:700; color:#9fd8ff; margin-left:auto; }
+
+/* 下のボタン */
+#ptCtrl{ position:absolute; left:0; right:0; z-index:7;
+  bottom:calc(env(safe-area-inset-bottom) + 56px);
+  display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:0 12px; }
+#ptCtrl button{ min-height:52px; border-radius:14px; cursor:pointer;
+  border:2px solid var(--line); background:rgba(6,24,42,.82); color:#fff;
+  font-family:inherit; font-size:14px; font-weight:900; line-height:1.2; }
+#ptCtrl button:disabled{ opacity:.32; }
+#ptCtrl button small{ display:block; font-size:9px; font-weight:700; opacity:.75; margin-top:1px; }
+#ptStart{ border-color:var(--accent) !important; background:rgba(34,197,94,.24) !important; }
+#ptLap{ border-color:var(--accent2) !important; background:rgba(14,165,233,.24) !important; }
+#ptStop{ border-color:#ef4444 !important; background:rgba(239,68,68,.24) !important; }
+
+/* 下の小さな切りかえ */
+#ptOpt{ position:absolute; left:0; right:0; z-index:7;
+  bottom:calc(env(safe-area-inset-bottom) + 10px);
+  display:flex; gap:7px; padding:0 12px; }
+#ptOpt button{ flex:1; min-height:38px; border-radius:11px; cursor:pointer;
+  border:1.5px solid var(--line); background:rgba(6,24,42,.72); color:#fff;
+  font-family:inherit; font-size:11px; font-weight:800; }
+#ptOpt button[aria-pressed="true"]{ background:var(--yellow); color:#0a2a48; border-color:var(--yellow); }
+
+#ptMsg{ position:absolute; left:12px; right:12px; z-index:7;
+  bottom:calc(env(safe-area-inset-bottom) + 116px); margin:0; text-align:center;
+  font-size:12px; font-weight:700; line-height:1.5;
+  background:rgba(6,24,42,.78); border:1.5px solid var(--line);
+  border-radius:11px; padding:6px 10px; }
+#ptMsg.hide{ display:none; }
+
+/* とめたあとの 見かえし（スロー再生・リズム計測） */
+#ptBack{ position:absolute; left:0; right:0; z-index:8;
+  bottom:calc(env(safe-area-inset-bottom) + 10px);
+  display:none; flex-direction:column; gap:8px; padding:0 12px; }
+#ptModal.playing #ptBack{ display:flex; }
+#ptModal.playing #ptCtrl, #ptModal.playing #ptOpt, #ptModal.playing #ptLevel{ display:none; }
+.ptRow{ display:flex; gap:6px; align-items:center; }
+.ptRow .ptLb{ font-size:10px; font-weight:800; color:#bfe3ff; flex:0 0 auto; }
+.ptRow button{ flex:1; min-height:38px; border-radius:11px; cursor:pointer;
+  border:1.5px solid var(--line); background:rgba(6,24,42,.82); color:#fff;
+  font-family:inherit; font-size:12px; font-weight:800; }
+.ptRow button[aria-pressed="true"]{ background:var(--accent2); border-color:var(--accent2); }
+#ptTap{ min-height:56px !important; font-size:15px !important; font-weight:900 !important;
+  border-color:var(--yellow) !important; background:rgba(251,191,36,.26) !important; }
+#ptTapOut{ text-align:center; font-size:13px; font-weight:800;
+  background:rgba(6,24,42,.82); border:1.5px solid var(--line);
+  border-radius:11px; padding:6px 8px; font-variant-numeric:tabular-nums; }
+#ptUse{ border-color:var(--accent) !important; background:rgba(34,197,94,.3) !important; }
+
+/* 画面が よこ向きのときは 時計を すこし小さく */
+@media (orientation:landscape) and (max-height:520px){
+  #ptTime{ font-size:clamp(28px,7vh,44px); }
+  #ptLaps{ width:128px; bottom:calc(env(safe-area-inset-bottom) + 108px); }
+  #ptCtrl button{ min-height:44px; font-size:13px; }
+}
 </style>
 </head>
 <body>
@@ -1526,7 +1644,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="smGrp" data-g="take">
       <div class="smGl">とる</div>
       <div class="smList one"><label id="smOpen" for="videoFile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M10.2 8.8 15.6 12l-5.4 3.2z" fill="currentColor" stroke="none"/></svg><span>動画をひらく</span></label></div>
-      <div class="smList"><button id="smRecord" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="12.5" height="11" rx="2"/><path d="M15.5 11l5-2.6v7.2l-5-2.6z"/></svg><span>カメラでとる</span></button></div>
+      <div class="smList"><button id="smRecord" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="12.5" height="11" rx="2"/><path d="M15.5 11l5-2.6v7.2l-5-2.6z"/></svg><span>カメラでとる</span></button><button id="smPractice" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.2V13l2.6 1.6"/><path d="M9.4 3.5h5.2"/></svg><span>練習用カメラ</span></button></div>
     </div>
 
     <div class="smGrp" data-g="see">
@@ -1649,6 +1767,58 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   </div>
 </div>
 <input type="file" id="videoCam" accept="video/*" capture="environment">
+
+<!-- ===== 練習用カメラ ===== -->
+<div id="ptModal" class="hide" role="dialog" aria-modal="true" aria-label="練習用カメラ">
+  <video id="ptView" playsinline autoplay muted></video>
+  <video id="ptPlayer" playsinline></video>
+
+  <div id="ptTop">
+    <span id="ptDot" class="hide" aria-hidden="true"></span>
+    <span id="ptRecT">0:00</span>
+    <span class="ptSp"></span>
+    <button id="ptFlip" type="button">前後を かえる</button>
+    <button id="ptClose" type="button">とじる</button>
+  </div>
+
+  <div id="ptBig"><span id="ptTime">0.00</span></div>
+  <div id="ptLevel"><i id="ptLevelBar"></i><span id="ptLevelLine"></span></div>
+  <div id="ptLaps" role="list" aria-label="ラップの一覧"></div>
+
+  <p id="ptMsg" class="hide"></p>
+
+  <div id="ptCtrl">
+    <button id="ptStart" type="button">スタート<small>音でも はじまる</small></button>
+    <button id="ptLap" type="button" disabled>ラップ<small>今の時間を のこす</small></button>
+    <button id="ptStop" type="button" disabled>ストップ<small>とめる</small></button>
+    <button id="ptReset" type="button">リセット<small>ぜんぶ 消す</small></button>
+  </div>
+
+  <div id="ptOpt">
+    <button id="ptSoundBtn" type="button" aria-pressed="true">音でスタート オン</button>
+    <button id="ptRecBtn" type="button" aria-pressed="true">動画もとる オン</button>
+    <button id="ptSensBtn" type="button">かんど ふつう</button>
+  </div>
+
+  <!-- とめたあとの 見かえし -->
+  <div id="ptBack">
+    <div id="ptTapOut">かきの ボタンを おすと ST と SR が出ます</div>
+    <button id="ptTap" type="button">かき（1かきごとに おす）</button>
+    <div class="ptRow">
+      <span class="ptLb">はやさ</span>
+      <button class="ptSpd" data-r="0.25" type="button">0.25倍</button>
+      <button class="ptSpd" data-r="0.5" type="button">0.5倍</button>
+      <button class="ptSpd" data-r="0.75" type="button">0.75倍</button>
+      <button class="ptSpd" data-r="1" type="button" aria-pressed="true">ふつう</button>
+    </div>
+    <div class="ptRow">
+      <button id="ptPlayBtn" type="button">▶ 再生</button>
+      <button id="ptTapReset" type="button">リズムを 消す</button>
+      <button id="ptAgain" type="button">とりなおす</button>
+      <button id="ptUse" type="button">この動画で 分析</button>
+    </div>
+  </div>
+</div>
 
 <!-- 距離選択モーダル -->
 <div id="distModal" class="hide">
@@ -8809,6 +8979,347 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       });
     }
   })();
+  /* ==========================================================
+     練習用カメラ (2026.09.05)
+     ----------------------------------------------------------
+     やること
+       1) カメラを ひらいて、うつしながら 画面に 時計を出す
+       2)「テイクユアマーク」のあとの 声やふえの 音が
+          きゅうに 大きくなったら、そこで 時計が うごきだす
+       3) スタート / ラップ / ストップ / リセット の ボタンでも うごく
+       4) とめたら その場で スローで見かえし、かきの リズム(ST・SR)を はかる
+     音の見つけかた
+       マイクの 音の大きさを ずっと はかっておき、
+       しずかなときの 大きさ(ふだんの音)を おぼえておきます。
+       それより ぐっと 大きい音が きたら「これだ」と します。
+     ========================================================== */
+  var ptStream=null, ptRec=null, ptChunks=[], ptBlob=null, ptFile=null;
+  var ptFacing='environment';
+  var ptWantRec=true, ptWantSound=true;
+  var ptSens=1;                       // 0=にぶい 1=ふつう 2=するどい
+  var PT_SENS=[[4.5,0.085],[3.0,0.050],[2.2,0.030]];  // [ふだんの音の何倍, 最低の大きさ]
+  var PT_SENS_NAME=['にぶい','ふつう','するどい'];
+  var ptRunning=false, ptArmed=false;
+  var ptT0=0, ptElapsed=0, ptLaps=[], ptRaf=null;
+  var ptRecT0=0, ptRecTimer=null;
+  var ptAC=null, ptAnalyser=null, ptBuf=null, ptSrcNode=null;
+  var ptBase=0.01, ptArmAt=0, ptLevelRaf=null;
+  var ptTaps=[];
+
+  function ptSay(msg){
+    var p=$('ptMsg');
+    p.textContent=msg||'';
+    p.classList.toggle('hide', !msg);
+  }
+  function ptFmt(ms){                 // 0.00 / 1:23.45 のかたち
+    var s=ms/1000;
+    if(s<60) return s.toFixed(2);
+    var m=Math.floor(s/60);
+    return m+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.floor((s*100)%100)).padStart(2,'0');
+  }
+  function ptFmtRec(ms){
+    var s=Math.floor(ms/1000);
+    return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  }
+  function ptPaintTime(){
+    $('ptTime').textContent = ptFmt(ptRunning ? (performance.now()-ptT0) : ptElapsed);
+  }
+  function ptLoop(){
+    if(!ptRunning) return;
+    ptPaintTime();
+    ptRaf=requestAnimationFrame(ptLoop);
+  }
+  function ptPaintLaps(){
+    var box=$('ptLaps'); box.innerHTML='';
+    for(var i=ptLaps.length-1;i>=0;i--){
+      var prev = i>0 ? ptLaps[i-1] : 0;
+      var d=document.createElement('div');
+      d.className='ptLap'; d.setAttribute('role','listitem');
+      d.innerHTML='<span class="n">'+(i+1)+'</span>'+
+                  '<span class="t">'+ptFmt(ptLaps[i])+'</span>'+
+                  '<span class="d">+'+ptFmt(ptLaps[i]-prev)+'</span>';
+      box.appendChild(d);
+    }
+  }
+  function ptBtns(){
+    $('ptLap').disabled = !ptRunning;
+    $('ptStop').disabled = !(ptRunning || ptArmed);
+    $('ptStart').textContent = ptArmed ? '音まち…' : 'スタート';
+    var sm=document.createElement('small');
+    sm.textContent = ptArmed ? 'おすと すぐ はじまる' : (ptWantSound?'音でも はじまる':'おすと はじまる');
+    $('ptStart').appendChild(sm);
+    $('ptModal').classList.toggle('armed', ptArmed);
+    $('ptModal').classList.toggle('running', ptRunning);
+  }
+
+  // ---------- マイクの音を ずっと見る ----------
+  function ptAudioSetup(){
+    if(ptAC || !ptStream) return;
+    try{
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      ptAC = new AC();
+      ptSrcNode = ptAC.createMediaStreamSource(ptStream);
+      ptAnalyser = ptAC.createAnalyser();
+      ptAnalyser.fftSize = 1024;
+      ptBuf = new Float32Array(ptAnalyser.fftSize);
+      ptSrcNode.connect(ptAnalyser);   // スピーカーには つながない（ハウリング防止）
+      ptLevelWatch();
+    }catch(e){ ptAC=null; }
+  }
+  function ptRms(){
+    if(!ptAnalyser) return 0;
+    try{ ptAnalyser.getFloatTimeDomainData(ptBuf); }catch(e){ return 0; }
+    var sum=0;
+    for(var i=0;i<ptBuf.length;i++) sum += ptBuf[i]*ptBuf[i];
+    return Math.sqrt(sum/ptBuf.length);
+  }
+  function ptLevelWatch(){
+    cancelAnimationFrame(ptLevelRaf);
+    (function step(){
+      ptLevelRaf = requestAnimationFrame(step);
+      if(!ptAnalyser) return;
+      var v = ptRms();
+      // しずかなときの 大きさを ゆっくり おぼえる（音が来たときは 上げない）
+      if(!ptRunning && v < ptBase*2.2) ptBase = ptBase*0.94 + v*0.06;
+      if(ptBase < 0.002) ptBase = 0.002;
+      if(ptArmed){
+        var lim = Math.max(ptBase*PT_SENS[ptSens][0], PT_SENS[ptSens][1]);
+        var w = Math.min(100, (v/(lim*1.6))*100);
+        $('ptLevelBar').style.width = w.toFixed(0)+'%';
+        $('ptLevelLine').style.left = (100/1.6).toFixed(0)+'%';
+        // 音まちに 入って 0.4秒は 反応しない（ボタンの音で ならないように）
+        if(performance.now()-ptArmAt > 400 && v > lim){
+          ptArmed=false;
+          ptGo(performance.now());
+          try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
+          ptSay('音で スタートしました');
+          setTimeout(function(){ if(ptRunning) ptSay(''); }, 1600);
+        }
+      }
+    })();
+  }
+
+  // ---------- カメラ ----------
+  function ptOpenCam(){
+    if(!camCanUse()){
+      ptSay('この開き方では カメラが つかえません。ホーム画面に入れた アプリから ひらいてください。');
+      return;
+    }
+    ptSay('カメラを ひらいています…');
+    navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:ptFacing, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    }).then(function(st){
+      ptStream=st;
+      var v=$('ptView'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
+      ptAudioSetup();
+      ptSay('「スタート」を おすと 音まちに なります。ふえや 声で 時計が うごきます。');
+      setTimeout(function(){ if(!ptRunning && !ptArmed) ptSay(''); }, 4500);
+    }).catch(function(err){
+      ptSay('カメラを ひらけませんでした（'+(err&&err.name?err.name:'エラー')+'）。カメラとマイクの 使用を ゆるしてください。');
+    });
+  }
+  function ptStopCam(){
+    if(ptStream){ ptStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }
+    ptStream=null;
+    cancelAnimationFrame(ptLevelRaf);
+    if(ptSrcNode){ try{ ptSrcNode.disconnect(); }catch(e){} ptSrcNode=null; }
+    if(ptAC){ try{ ptAC.close(); }catch(e){} ptAC=null; }
+    ptAnalyser=null;
+  }
+
+  // ---------- 録画 ----------
+  function ptRecStart(){
+    if(!ptWantRec || !ptStream) return;
+    if(ptRec && ptRec.state==='recording') return;
+    ptChunks=[];
+    var mime=camPickMime();
+    try{ ptRec = mime ? new MediaRecorder(ptStream,{mimeType:mime}) : new MediaRecorder(ptStream); }
+    catch(e){ ptRec=null; ptSay('この端末では 動画をとれません。時計だけ つかえます。'); return; }
+    ptRec.ondataavailable=function(e){ if(e.data && e.data.size) ptChunks.push(e.data); };
+    ptRec.onstop=function(){
+      var type=(ptRec && ptRec.mimeType) ? ptRec.mimeType : 'video/mp4';
+      ptBlob=new Blob(ptChunks,{type:type}); ptChunks=[];
+      var name='swimiq_practice_'+Date.now()+((type.indexOf('mp4')>=0)?'.mp4':'.webm');
+      try{ ptFile=new File([ptBlob], name, {type:type}); }
+      catch(e){ ptFile=ptBlob; ptFile.name=name; }
+      ptShowBack();
+    };
+    ptRec.start();
+    ptRecT0=Date.now(); $('ptRecT').textContent='0:00';
+    $('ptDot').classList.remove('hide');
+    clearInterval(ptRecTimer);
+    ptRecTimer=setInterval(function(){ $('ptRecT').textContent=ptFmtRec(Date.now()-ptRecT0); }, 250);
+  }
+  function ptRecStop(){
+    clearInterval(ptRecTimer); ptRecTimer=null;
+    $('ptDot').classList.add('hide');
+    if(ptRec && ptRec.state==='recording'){ try{ ptRec.stop(); }catch(e){} }
+    else ptShowBack();
+  }
+
+  // ---------- 時計 ----------
+  function ptGo(t0){
+    ptRunning=true; ptT0=t0||performance.now();
+    cancelAnimationFrame(ptRaf); ptLoop(); ptBtns();
+  }
+  function ptPressStart(){
+    if(ptRunning) return;
+    if(ptAC && ptAC.state==='suspended'){ try{ ptAC.resume(); }catch(e){} }
+    ptLaps=[]; ptPaintLaps(); ptElapsed=0;
+    ptRecStart();
+    if(ptArmed){                 // 音まちの あいだに もう一度 おしたら すぐ はじめる
+      ptArmed=false; ptGo(); ptSay(''); return;
+    }
+    if(ptWantSound && ptAnalyser){
+      ptArmed=true; ptArmAt=performance.now(); ptBtns();
+      ptSay('音まちです。ふえ や 「どん」の 声で はじまります。もう一度 おすと すぐ はじまります。');
+    }else{
+      ptGo(); ptSay('');
+    }
+  }
+  function ptPressLap(){
+    if(!ptRunning) return;
+    ptLaps.push(performance.now()-ptT0);
+    ptPaintLaps();
+    try{ if(navigator.vibrate) navigator.vibrate(18); }catch(e){}
+  }
+  function ptPressStop(){
+    if(!ptRunning && !ptArmed) return;
+    if(ptRunning) ptElapsed = performance.now()-ptT0;
+    ptRunning=false; ptArmed=false;
+    cancelAnimationFrame(ptRaf); ptPaintTime(); ptBtns();
+    if(ptRec && ptRec.state==='recording'){ ptRecStop(); }
+    else ptSay('とまりました。「リセット」で もう一度 はじめられます。');
+  }
+  function ptPressReset(){
+    ptRunning=false; ptArmed=false; ptElapsed=0; ptLaps=[];
+    cancelAnimationFrame(ptRaf); ptPaintTime(); ptPaintLaps(); ptBtns(); ptSay('');
+    ptBackHide();
+  }
+
+  // ---------- とめたあとの 見かえし ----------
+  function ptShowBack(){
+    if(!ptBlob){ ptSay('とまりました。「リセット」で もう一度 はじめられます。'); return; }
+    var p=$('ptPlayer');
+    p.src=URL.createObjectURL(ptBlob);
+    p.playbackRate=1; p.currentTime=0;
+    ptTaps=[]; $('ptTapOut').textContent='かきの ボタンを おすと ST と SR が出ます';
+    ptSpdMark(1);
+    $('ptModal').classList.add('playing');
+    ptSay('スローで 見かえせます。かきに あわせて 黄色いボタンを おすと リズムが出ます。');
+  }
+  function ptBackHide(){
+    var p=$('ptPlayer');
+    try{ p.pause(); }catch(e){}
+    if(p.src){ try{ URL.revokeObjectURL(p.src); }catch(e){} p.removeAttribute('src'); }
+    $('ptModal').classList.remove('playing');
+  }
+  function ptSpdMark(r){
+    var b=document.querySelectorAll('.ptSpd');
+    for(var i=0;i<b.length;i++){
+      b[i].setAttribute('aria-pressed', (Number(b[i].dataset.r)===Number(r))?'true':'false');
+    }
+  }
+  // かきの リズム。ST は 1かきに かかる秒、SR は 1分あたりの かき数。
+  // スローで見ているときは、その ぶんだけ もとの はやさに 直します。
+  function ptTapCalc(){
+    var out=$('ptTapOut');
+    if(ptTaps.length<2){ out.textContent='あと '+(2-ptTaps.length)+'回 おすと 出ます'; return; }
+    var use=ptTaps.slice(-6);                 // 直近6回で ならす
+    var span=(use[use.length-1]-use[0])/1000;
+    var st=span/(use.length-1);
+    var rate=$('ptPlayer').playbackRate || 1;
+    st = st*rate;                              // 0.5倍で見ていたら 時間は 半分に
+    if(st<=0){ out.textContent='もう一度 おしてください'; return; }
+    var sr=60/st;
+    out.textContent='ST '+st.toFixed(2)+'秒 ／ SR '+sr.toFixed(1)+'（'+(use.length-1)+'かき分）';
+  }
+
+  // ---------- ボタンをつなぐ ----------
+  function ptOpen(){
+    $('ptModal').classList.remove('hide','playing');
+    ptPressReset();
+    $('ptRecT').textContent='0:00';
+    ptBlob=null; ptFile=null;
+    ptOpenCam();
+  }
+  function ptClose(){
+    if(ptRec && ptRec.state==='recording'){ try{ ptRec.ondataavailable=null; ptRec.onstop=null; ptRec.stop(); }catch(e){} }
+    ptRec=null; clearInterval(ptRecTimer); ptRecTimer=null;
+    ptRunning=false; ptArmed=false; cancelAnimationFrame(ptRaf);
+    ptBackHide();
+    ptStopCam();
+    var v=$('ptView'); v.srcObject=null;
+    $('ptModal').classList.add('hide');
+  }
+  $('smPractice').onclick=ptOpen;
+  $('ptClose').onclick=ptClose;
+  $('ptStart').onclick=ptPressStart;
+  $('ptLap').onclick=ptPressLap;
+  $('ptStop').onclick=ptPressStop;
+  $('ptReset').onclick=ptPressReset;
+  $('ptFlip').onclick=function(){
+    if(ptRunning||ptArmed){ ptSay('とめてから かえてください'); return; }
+    ptFacing=(ptFacing==='environment')?'user':'environment';
+    ptStopCam(); ptOpenCam();
+  };
+  $('ptSoundBtn').onclick=function(){
+    ptWantSound=!ptWantSound;
+    this.setAttribute('aria-pressed', ptWantSound?'true':'false');
+    this.textContent='音でスタート '+(ptWantSound?'オン':'オフ');
+    ptBtns();
+  };
+  $('ptRecBtn').onclick=function(){
+    if(ptRunning||ptArmed){ ptSay('とめてから かえてください'); return; }
+    ptWantRec=!ptWantRec;
+    this.setAttribute('aria-pressed', ptWantRec?'true':'false');
+    this.textContent='動画もとる '+(ptWantRec?'オン':'オフ');
+  };
+  $('ptSensBtn').onclick=function(){
+    ptSens=(ptSens+1)%3;
+    this.textContent='かんど '+PT_SENS_NAME[ptSens];
+    ptSay(ptSens===0?'まわりが うるさいとき むきです':(ptSens===2?'小さな音でも ひろいます':'ふだんは これで だいじょうぶです'));
+    setTimeout(function(){ if(!ptArmed && !ptRunning) ptSay(''); }, 2200);
+  };
+  $('ptPlayBtn').onclick=function(){
+    var p=$('ptPlayer');
+    if(p.paused){ p.play().catch(function(){}); this.textContent='⏸ とめる'; }
+    else{ p.pause(); this.textContent='▶ 再生'; }
+  };
+  $('ptPlayer').addEventListener('ended', function(){ $('ptPlayBtn').textContent='▶ 再生'; });
+  (function(){
+    var b=document.querySelectorAll('.ptSpd');
+    for(var i=0;i<b.length;i++){
+      b[i].onclick=function(){
+        var r=Number(this.dataset.r);
+        $('ptPlayer').playbackRate=r; ptSpdMark(r);
+      };
+    }
+  })();
+  $('ptTap').onclick=function(){
+    ptTaps.push(performance.now()); ptTapCalc();
+    try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+  };
+  $('ptTapReset').onclick=function(){
+    ptTaps=[]; $('ptTapOut').textContent='かきの ボタンを おすと ST と SR が出ます';
+  };
+  $('ptAgain').onclick=function(){
+    ptBackHide(); ptBlob=null; ptFile=null;
+    $('ptRecT').textContent='0:00';
+    ptPressReset();
+    if(!ptStream) ptOpenCam();
+  };
+  $('ptUse').onclick=function(){
+    if(!ptFile){ ptSay('動画が ありません'); return; }
+    var f=ptFile;
+    ptClose();
+    useVideoFile(f);
+    toast('練習用カメラの 動画で 分析します');
+  };
+  ptBtns();
+
   // 記録アプリから呼ばれていたら、その1本を自動でよびだす
   URLQ=readUrlQuery();
   if(URLQ) setTimeout(openFromUrl, 300);

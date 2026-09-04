@@ -456,6 +456,19 @@
     color:#fff; font-size:12px; font-weight:700; }
   #app.hasvideo.showtools #camBtn{ display:flex; }
   #camBtn:active{ transform:translateY(1px); }
+  /* 動画のむきをかえるボタン（歯車を押すと出る道具のひとつ） */
+  #rotBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 222px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #app.hasvideo.showtools #rotBtn{ display:flex; }
+  #rotBtn:active{ transform:translateY(1px); }
+  /* きろくデータにもどるボタン。たてのまま分析しているときだけ出る。 */
+  #tateOffBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 262px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:12px; font-weight:700; }
+  #tateOffBtn:active{ transform:translateY(1px); }
 
   /* ===== 距離選択モーダル ===== */
 
@@ -489,6 +502,12 @@
   .dv-head{ font-size:22px; font-weight:900; text-align:center; }
   .dv-note{ font-size:12px; font-weight:600; opacity:.75; text-align:center; margin:4px 0 12px; }
   /* 縦画面のよびだしボタン */
+  #dvTateBtn{ display:block; width:100%; margin:0 0 10px; padding:12px;
+    border:none; border-radius:14px; cursor:pointer;
+    background:linear-gradient(135deg,#0ea5e9,#0284c7); color:#fff;
+    font-size:15px; font-weight:900; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  #dvTateBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.2); }
   #dvLoadBtn{ display:block; width:100%; margin:0 0 12px; padding:12px;
     border:none; border-radius:14px; cursor:pointer;
     background:linear-gradient(135deg,#818cf8,#6366f1); color:#fff;
@@ -527,6 +546,30 @@
     #app.hasvideo #modeToggle, #app.hasvideo #tempoMethod, #app.hasvideo #dock,
     #app.hasvideo #frame, #app.hasvideo #menuBtn, #app.hasvideo #shacchi, #app.hasvideo #guide{ display:none !important; }
     #app.hasvideo #dataView{ display:flex; }
+
+    /* たてのまま分析するとき（app に tate が付いているとき）は、
+       きろくデータをしまって、分析の道具をぜんぶ出しなおす。
+       たてで撮った動画を たてのまま大きく見るための仕組み。 */
+    #app.hasvideo.tate #dataView{ display:none !important; }
+    #app.hasvideo.tate #timeHud, #app.hasvideo.tate #recPanel,
+    #app.hasvideo.tate #modeToggle, #app.hasvideo.tate #dock,
+    #app.hasvideo.tate #frame, #app.hasvideo.tate #menuBtn,
+    #app.hasvideo.tate #scale, #app.hasvideo.tate #shacchi{ display:flex !important; }
+    #app.hasvideo.tate #toolsBtn{ display:flex !important; }
+    #app.hasvideo.tate.tempomode #tempoMethod{ display:flex !important; }
+    #app.hasvideo.tate #guide:not(.hide){ display:block !important; }
+    /* 道具のボタンは 歯車を押したときだけ出す（たてでも同じ約束） */
+    #app.hasvideo.tate #changeBtn, #app.hasvideo.tate #distBtn,
+    #app.hasvideo.tate #camBtn, #app.hasvideo.tate #rotBtn, #app.hasvideo.tate #loadBtn{ display:none !important; }
+    #app.hasvideo.tate.showtools #changeBtn, #app.hasvideo.tate.showtools #distBtn,
+    #app.hasvideo.tate.showtools #camBtn, #app.hasvideo.tate.showtools #rotBtn,
+    #app.hasvideo.tate.showtools #loadBtn{ display:flex !important; }
+    #app.hasvideo.tate.showtools #tateOffBtn{ display:flex !important; }
+    /* たてでは よこ幅がせまいので、下の操作を小さめにして はみ出さないようにする */
+    #app.hasvideo.tate #frame{ left:calc(env(safe-area-inset-left) + 8px); right:calc(env(safe-area-inset-right) + 8px);
+      gap:4px; padding:6px; flex-wrap:wrap; justify-content:center; }
+    #app.hasvideo.tate #recPanel{ max-height:34vh; }
+    #app.hasvideo.tate #scale{ width:72px; }
   }
 
   /* ===== R.T・正式タイムのモーダル ===== */
@@ -1509,6 +1552,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   <button id="toolsBtn" aria-label="道具をひらく">⚙️</button>
   <label id="changeBtn" for="videoFile">🎬 動画をかえる</label>
   <button id="camBtn">📹 カメラでとる</button>
+  <button id="rotBtn">🔄 むきをかえる</button>
+  <button id="tateOffBtn">📊 きろくデータ</button>
   <button id="distBtn">📏 距離をかえる</button>
   <button id="saveBtn">💾 ほぞん</button>
   <button id="loadBtn">📂 よびだし</button>
@@ -1564,6 +1609,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   <div id="dataView">
     <div class="dv-head">きろく データ</div>
     <div class="dv-note">よこ向きにすると 測定にもどります</div>
+    <button id="dvTateBtn">📱 たてのまま 分析する</button>
     <button id="dvLoadBtn">📂 ほぞんした きろくを よびだす</button>
     <div id="dvBody" class="dv-body"></div>
   </div>
@@ -7045,7 +7091,19 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 
   // ========== ズーム・移動（ピンチとドラッグ） ==========
   var vScale=1, vTx=0, vTy=0, MINS=1, MAXS=6;
-  function applyT(){ videoEl.style.transform='translate(-50%,-50%) translate('+vTx+'px,'+vTy+'px) scale('+vScale+')'; renderLine(); }
+  var vRot=0;   // 動画のむき。0/90/180/270 度。たて長の動画をよこ向きにするために使う。
+  // むきが90度・270度のときは、動画の入れ物のたてとよこを入れかえてから回す。
+  // そうすると回したあとに画面をぴったり埋められる（細長いままにならない）。
+  function applyT(){
+    var wr=videoWrap.getBoundingClientRect();
+    if(vRot===90 || vRot===270){
+      videoEl.style.width=wr.height+'px'; videoEl.style.height=wr.width+'px';
+    } else {
+      videoEl.style.width='100%'; videoEl.style.height='100%';
+    }
+    videoEl.style.transform='translate(-50%,-50%) translate('+vTx+'px,'+vTy+'px) rotate('+vRot+'deg) scale('+vScale+')';
+    renderLine();
+  }
   function setScale(s){ vScale=Math.max(MINS,Math.min(MAXS,s)); if(vScale<=1.001){vTx=0;vTy=0;} applyT(); }
   videoWrap.addEventListener('wheel', function(e){ if(!app.classList.contains('hasvideo'))return; e.preventDefault(); setScale(vScale+(e.deltaY<0?0.2:-0.2)); }, {passive:false});
   var drag=false, lx=0, ly=0;
@@ -7073,17 +7131,26 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   var lineMode=0;                 // 0=ふつう 1=1点目を待つ 2=2点目を待つ
   var lineP1=null, lineP2=null;   // タップした2点（動画の元の大きさでの座標）
 
-  // 画面上のタップ位置を、動画の元の大きさでの座標に直す
+  // 画面上のタップ位置を、動画の元の大きさでの座標に直す（むきの回転もほどく）
   function lineLocalPoint(cx,cy){
-    var vr=videoEl.getBoundingClientRect();
-    return { x:(cx-vr.left)/vScale, y:(cy-vr.top)/vScale };
+    var wr=videoWrap.getBoundingClientRect();
+    var W=videoEl.offsetWidth, H=videoEl.offsetHeight;
+    var th=vRot*Math.PI/180, c=Math.cos(th), sn=Math.sin(th);
+    var dx=(cx-wr.left)-wr.width/2-vTx, dy=(cy-wr.top)-wr.height/2-vTy;
+    var ux=( c*dx + sn*dy)/vScale, uy=(-sn*dx + c*dy)/vScale;
+    return { x: W/2+ux, y: H/2+uy };
   }
 
-  // 記憶している2点から線を描き直す（ズームや移動のたびに呼ばれる）
+  // 記憶している2点から線を描き直す（ズームや移動やむきを変えるたびに呼ばれる）
   function renderLine(){
     if(!lineP1 && !lineP2){ lineLayer.innerHTML=''; return; }
-    var vr=videoEl.getBoundingClientRect(), wr=videoWrap.getBoundingClientRect();
-    function S(p){ return { x: vr.left + p.x*vScale - wr.left, y: vr.top + p.y*vScale - wr.top }; }
+    var wr=videoWrap.getBoundingClientRect();
+    var W=videoEl.offsetWidth, H=videoEl.offsetHeight;
+    var th=vRot*Math.PI/180, c=Math.cos(th), sn=Math.sin(th);
+    function S(p){
+      var ax=vScale*(p.x-W/2), ay=vScale*(p.y-H/2);
+      return { x: wr.width/2+vTx + (c*ax - sn*ay), y: wr.height/2+vTy + (sn*ax + c*ay) };
+    }
     var s='';
     if(lineP1 && lineP2){
       var a=S(lineP1), b=S(lineP2);
@@ -7171,6 +7238,29 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   };
 
   // ========== 動画の読み込み ==========
+  // たてのまま分析する／きろくデータにもどる
+  // スマホをたてに構えたときは ふだん きろくデータの画面になるが、
+  // たてで撮った動画は たてのまま大きく見たいので、切りかえられるようにする。
+  $('dvTateBtn').onclick=function(){
+    if(!app.classList.contains('hasvideo')){ toast('さきに 動画をひらいてね'); return; }
+    app.classList.add('tate');
+    applyT();          // たてになった分、動画の大きさを合わせ直す
+    toast('たてのまま 分析します。データにもどるときは 歯車の中の きろくデータ を押してね');
+  };
+  $('tateOffBtn').onclick=function(){
+    app.classList.remove('tate');
+    applyT();
+    toast('きろくデータに もどりました');
+  };
+  // 動画のむきをかえる（90度ずつ回す）。
+  // スマホをよこ向きに構えてとっても、たて長の動画として残ることがあるため。
+  $('rotBtn').onclick=function(){
+    if(!app.classList.contains('hasvideo')){ toast('さきに 動画をひらいてね'); return; }
+    vRot=(vRot+90)%360;
+    if(lineP1||lineP2){ lineP1=null; lineP2=null; updateLineChip(); toast('むきを かえました。線は 引き直してね'); }
+    else { toast('むきを かえました（'+vRot+'度）'); }
+    vTx=0; vTy=0; applyT();
+  };
   // 動画を分析に取りこむ入口。ファイルからでも カメラでとった動画でも ここを通る。
   function useVideoFile(f){
     if(!f) return;
@@ -7179,7 +7269,14 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     videoEl.src=URL.createObjectURL(f); videoEl.load();
     app.classList.add('hasvideo');
     app.classList.remove('homeover');   // ホームの重ね掛けが残っていたら片づける
-    vScale=1; vTx=0; vTy=0; applyT();
+    vScale=1; vTx=0; vTy=0; vRot=0; applyT();
+    // たて長の動画のときは、むきをかえられることを知らせる
+    videoEl.addEventListener('loadedmetadata', function once(){
+      videoEl.removeEventListener('loadedmetadata', once);
+      if(videoEl.videoHeight > videoEl.videoWidth){
+        setTimeout(function(){ toast('たて長の動画です。歯車の「むきをかえる」で よこ向きにできます'); }, 2600);
+      }
+    });
     // 距離をきく
     setTimeout(openDistModal, 200);
   }
@@ -7363,6 +7460,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     ['#smOpen','レース動画をえらんで 分析をはじめるボタンだッチ。カメラロールの動画がひらけるッチ。'],
     ['#smRecord','その場でレースをとるボタンだッチ。画面いっぱいのカメラになって、赤いボタンでとりはじめるッチ。とめると 動画が保存されて そのまま分析にすすむッチ。'],
     ['#camBtn','分析の画面から そのままカメラをひらいて、次のレースをとれるボタンだッチ。とった動画に そのまま切りかわるッチ。'],
+    ['#rotBtn','動画のむきを 90度ずつ回すボタンだッチ。たて長にとれてしまった動画を、よこ向きにして画面いっぱいで見られるッチ。'],
+    ['#dvTateBtn','スマホをたてに構えたまま 分析するボタンだッチ。たてで撮った動画を たてのまま大きく見られるッチ。'],
+    ['#tateOffBtn','たての分析をやめて、きろくデータの画面にもどるボタンだッチ。'],
     ['#smMine','じぶんの記録が 1タップで見られるボタンだッチ。はじめてのときだけ 名簿からじぶんの名前をえらぶッチ。一度読み込めば、電波が無くても前の一覧が見られるッチ。'],
     ['#smFind','ほぞんした記録を、選手・泳法・距離・試合・年度で しぼりこんで よびだせるッチ。'],
     ['#smAnalyze','よびだした記録を、グラフとまとめで 分析するッチ。区間タイム・スピード・ST・かき数が 見られるッチ。'],

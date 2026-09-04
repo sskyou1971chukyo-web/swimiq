@@ -7243,9 +7243,15 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // ========== 中京データベース（記録帳アプリ）へ飛ぶ ==========
   // 記録帳の中からSwimIQをひらいている場合は、上の画面に「とじて」と伝えるだけでよい。
   // SwimIQを単体でひらいている場合は、記録帳のページへ移る。
+  // 記録帳アプリ（中京大学水泳部データベース）のページ。
+  // ふだんはSwimIQと同じフォルダに records.html として並んでいる。
+  // ファイルを直接ひらいたときは、その並びが使えないのでウェブの住所へ行く。
+  var DB_WEB='https://sskyou1971chukyo-web.github.io/swimiq/records.html';
   function dbPageUrl(){
-    try{ return (localStorage.getItem('swimiq_db_page')||'').trim() || './records.html'; }
-    catch(e){ return './records.html'; }
+    var saved='';
+    try{ saved=(localStorage.getItem('swimiq_db_page')||'').trim(); }catch(e){}
+    if(saved) return saved;
+    return (location.protocol==='file:') ? DB_WEB : './records.html';
   }
   $('smDbApp').onclick=function(){
     var umekomi=false;

@@ -85,14 +85,19 @@ main{ max-width:1180px; margin:0 auto; padding:20px 24px 80px; }
 /* ---------- 下の帯（どの画面からでも移れる4つの入口） ---------- */
 body.hasnav main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
 #navbar{ position:fixed; left:0; right:0; bottom:0; z-index:60;
-  display:grid; grid-template-columns:repeat(4,1fr); gap:0;
+  display:grid; grid-template-columns:.55fr repeat(4,1fr) .55fr; gap:0;
   background:var(--white); border-top:3px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom);
   box-shadow:0 -3px 14px rgba(0,0,0,.10); }
 #navbar button{ min-height:72px; border:none; background:none; cursor:pointer;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  font-family:inherit; font-size:.84rem; font-weight:800; color:var(--gray); padding:6px 2px;
-  white-space:nowrap; letter-spacing:-.02em; }
+  font-family:inherit; font-weight:800; color:var(--gray); padding:6px 2px;
+  white-space:nowrap; letter-spacing:-.02em;
+  /* 帯の字だけは、文字の大きさの設定を上げても はみ出さないようにします */
+  font-size:clamp(9px, 3vw, 13px); }
+/* 両はしの もどる・すすむ */
+#navbar button.navarrow{ font-size:clamp(8px, 2.6vw, 11px); }
+#navbar button:disabled{ opacity:.3; cursor:default; }
 #navbar button .nvi{ font-size:1.4rem; line-height:1; }
 #navbar button[aria-selected="true"]{ color:var(--blue); background:#EAF2FB; }
 #navbar button:focus-visible{ outline:4px solid var(--gold); outline-offset:-4px; }
@@ -751,7 +756,9 @@ function setFontScale(v){
   <div id="raceCard"></div>
 </div>
 
-<nav id="navbar" role="tablist" aria-label="おもな画面">
+<nav id="navbar" aria-label="おもな画面">
+  <button id="navBack" type="button" class="navarrow" aria-label="前に見ていた画面にもどる" onclick="navBack()" disabled><span class="nvi" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span>もどる</button>
   <button role="tab" data-n="meet" aria-selected="true" onclick="showNav('meet')"><span class="nvi" aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15c2-2 3-2 5 0s3 2 5 0 3-2 5 0"/><path d="M3 19c2-2 3-2 5 0s3 2 5 0 3-2 5 0"/><circle cx="17" cy="6" r="2"/><path d="M5 11l5-3 4 2"/></svg></span>試合</button>
   <button role="tab" data-n="best" aria-selected="false" onclick="showNav('best')"><span class="nvi" aria-hidden="true">
@@ -760,15 +767,17 @@ function setFontScale(v){
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V9M12 20V4M19 20v-7"/></svg></span>くらべる</button>
   <button role="tab" data-n="me" aria-selected="false" onclick="showNav('me')"><span class="nvi" aria-hidden="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6"/></svg></span>自分</button>
+  <button id="navFwd" type="button" class="navarrow" aria-label="もどるまえの画面にすすむ" onclick="navFwd()" disabled><span class="nvi" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></span>すすむ</button>
 </nav>
 
 <script>
 /* ============================================================
    設定: GASをデプロイしたら、そのURLをここに貼ります
 ============================================================ */
-const APP_VERSION = '2026.09.04.2';  // アプリを更新するたびにこの番号を変えます
+const APP_VERSION = '2026.09.04.3';  // アプリを更新するたびにこの番号を変えます
 // 今回の更新内容。アプリを更新するたびに書きかえます
-const APP_NEWS = '画面の上が 時計にかぶらないよう直しました。右上に レース分析 のボタンを置いたので、いつでも SwimIQ をひらけます。';
+const APP_NEWS = '下の帯の両はしに もどる・すすむ を置きました。見ていた画面を いつでも行き来できます。';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycby9KoUHiueBjbyhhs6bBdS5U9eMJ--FqKKHqzGUqZuuNomdiVYaoOxLuh7dOdKy4Tav/exec';
 // 記録の保存先スプレッドシート(重複チェックシートのタブを直接開く)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TU5jrA6TRrrZYb9tx_-BLtMTDNxl4qzCP8BUXXwRkwo/edit?gid=1610799352#gid=1610799352';
@@ -1427,11 +1436,45 @@ function navOfMode(m){
 function showNav(n){
   currentNav = n;
   if(currentTab !== 'view') showTab('view');
-  document.querySelectorAll('#navbar button').forEach(b=>{
+  document.querySelectorAll('#navbar button[data-n]').forEach(b=>{
     b.setAttribute('aria-selected', b.dataset.n===n);
   });
   showMode(NAV_LAST[n] || NAV[n].subs[0][0]);
   window.scrollTo({top:0, behavior:'smooth'});
+}
+/* ============================================================
+   もどる・すすむ (2026.09.04)
+   見た画面を順にひかえておき、下の帯の両はしのボタンで行き来します。
+   ブラウザの戻るとは別に、このアプリの中だけで動きます。
+============================================================ */
+let navHist = [];        // 見てきた画面の並び
+let navPos  = -1;        // いま何番目にいるか
+let navMoving = false;   // もどる・すすむ で動かしている最中は、ひかえない
+function navRecord(m){
+  if(navMoving) return;
+  if(navPos >= 0 && navHist[navPos] === m) return;   // 同じ画面の描き直しは数えない
+  navHist = navHist.slice(0, navPos + 1);            // すすむ先があったら、そこから先は捨てる
+  navHist.push(m);
+  if(navHist.length > 50){ navHist.shift(); }        // ひかえは50個まで
+  navPos = navHist.length - 1;
+  navArrowUpdate();
+}
+function navGo(pos){
+  if(pos < 0 || pos >= navHist.length) return;
+  navMoving = true;
+  navPos = pos;
+  try{ showMode(navHist[navPos]); }
+  finally{ navMoving = false; }
+  navArrowUpdate();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function navBack(){ navGo(navPos - 1); }
+function navFwd(){  navGo(navPos + 1); }
+function navArrowUpdate(){
+  const b = document.getElementById('navBack');
+  const f = document.getElementById('navFwd');
+  if(b) b.disabled = (navPos <= 0);
+  if(f) f.disabled = (navPos >= navHist.length - 1);
 }
 function drawSubBar(m){
   const bar = document.getElementById('subBar');
@@ -1593,7 +1636,8 @@ function showMode(m){
   currentMode = m;
   currentNav = navOfMode(m);
   NAV_LAST[currentNav] = m;
-  document.querySelectorAll('#navbar button').forEach(b=>{
+  navRecord(m);                     // 通った画面をひかえておく（もどる・すすむ 用）
+  document.querySelectorAll('#navbar button[data-n]').forEach(b=>{
     b.setAttribute('aria-selected', b.dataset.n===currentNav);
   });
   drawSubBar(m);
@@ -8396,7 +8440,7 @@ async function openMyPage(name){
   showTabBare('view');
   currentMode = 'graph';
   currentNav = 'best'; NAV_LAST.best = 'graph';
-  document.querySelectorAll('#navbar button').forEach(b=>
+  document.querySelectorAll('#navbar button[data-n]').forEach(b=>
     b.setAttribute('aria-selected', b.dataset.n==='best'));
   drawSubBar('graph');
   const body = document.getElementById('viewBody');

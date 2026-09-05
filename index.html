@@ -1652,7 +1652,42 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   border:1.5px solid var(--line); background:rgba(255,255,255,.14); color:#fff;
   font-family:inherit; font-size:11px; font-weight:800; }
 
-/* 画面が よこ向きのときは 全体を すこし小さく */
+/* ===== よこ向きのときの 撮影ボタンの ならべ方 (2026.09.05) =====
+   右がわに たてに ならべます。上から スタート、ストップ。
+   ラップは まちがえて おさないように、すこし はなして 丸いボタンにします。 */
+@media (orientation:landscape){
+  #ptCtrl{
+    left:auto; bottom:auto; padding:0;
+    right:calc(env(safe-area-inset-right) + 12px);
+    top:calc(env(safe-area-inset-top) + 54px);
+    width:132px;
+    display:flex; flex-direction:column; align-items:stretch; gap:9px;
+  }
+  #ptStart{ order:1; }
+  #ptStop{ order:2; }
+  #ptLap{ order:3; }
+  #ptReset{ order:4; }
+  #ptCtrl button{ min-height:50px; font-size:14px; }
+  #ptCtrl button small{ display:block; font-size:9px; }
+  /* ラップだけ 丸くして、上に すきまを あける */
+  #ptLap{
+    align-self:center; margin-top:16px;
+    width:104px !important; height:104px; min-height:104px !important;
+    border-radius:50% !important; border-width:3px !important;
+    font-size:16px !important;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    box-shadow:0 3px 10px rgba(0,0,0,.4);
+  }
+  #ptLap small{ font-size:9px !important; margin-top:2px; }
+  #ptLap:active:not(:disabled){ transform:scale(.94); }
+  #ptReset{ min-height:38px !important; font-size:12px !important; opacity:.9; }
+  #ptReset small{ display:none !important; }
+  /* 下の小さな切りかえは 右の列に かぶらないように 左だけ つかう */
+  #ptOpt{ right:auto; width:calc(100% - 168px); left:calc(env(safe-area-inset-left) + 12px); padding:0; }
+  /* おしらせ・時計は 右の列を よけて 左よりに */
+  #ptBig{ right:168px; }
+  #ptMsg, #ptLevel{ left:calc(50% - 78px); }
+}
 @media (orientation:landscape) and (max-height:560px){
   #ptTime{ font-size:clamp(26px,8vh,40px); }
   #ptBig{ top:calc(env(safe-area-inset-top) + 40px); }
@@ -1660,9 +1695,12 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   #ptModal.armed #ptMsg{ top:calc(env(safe-area-inset-top) + 120px); }
   #ptLapBox{ width:136px; top:calc(env(safe-area-inset-top) + 96px);
              max-height:min(52vh,220px); }
-  #ptCtrl{ bottom:calc(env(safe-area-inset-bottom) + 50px); }
-  #ptCtrl button{ min-height:42px; font-size:12px; }
+  #ptCtrl{ top:calc(env(safe-area-inset-top) + 46px); width:118px; gap:7px; }
+  #ptCtrl button{ min-height:44px; font-size:13px; }
   #ptCtrl button small{ display:none; }
+  #ptLap{ width:86px !important; height:86px; min-height:86px !important; margin-top:12px; font-size:14px !important; }
+  #ptReset{ min-height:34px !important; }
+  #ptOpt{ width:calc(100% - 152px); }
   #ptOpt button{ min-height:32px; font-size:10px; }
   .ptRow button{ min-height:40px; font-size:12px; }
   .ptSeg button{ min-height:30px !important; }

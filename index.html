@@ -1617,7 +1617,6 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 #ptRhythm{ border-color:var(--yellow) !important; }
 #ptRhythm[aria-pressed="true"]{ background:var(--yellow); border-color:var(--yellow); color:#0a2a48; }
 #ptUse{ border-color:var(--accent) !important; background:rgba(34,197,94,.34) !important; }
-#ptSave{ border-color:var(--accent2) !important; background:rgba(14,165,233,.30) !important; }
 
 /* はやさは ひとつづきの帯（セグメント）にして 迷わないように */
 .ptSeg{ background:rgba(6,24,42,.86); border:1.5px solid var(--line);
@@ -1652,6 +1651,50 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 #ptTapReset{ min-height:32px; padding:3px 10px; border-radius:9px; cursor:pointer;
   border:1.5px solid var(--line); background:rgba(255,255,255,.14); color:#fff;
   font-family:inherit; font-size:11px; font-weight:800; }
+
+/* かきの 一覧（ラップと 同じ つくりの 箱。うごかせます） */
+#ptStrBox{ position:absolute; z-index:9;
+  right:calc(env(safe-area-inset-right) + 10px);
+  top:calc(env(safe-area-inset-top) + 110px);
+  width:172px; max-height:min(46vh,300px);
+  display:none; flex-direction:column;
+  background:rgba(6,24,42,.88); border:1.5px solid var(--yellow);
+  border-radius:12px; overflow:hidden; touch-action:none; }
+#ptModal.playing.rhythm #ptStrBox{ display:flex; }
+#ptStrGrip{ display:flex; align-items:center; gap:5px; cursor:grab;
+  padding:5px 8px; background:rgba(251,191,36,.22);
+  font-size:11px; font-weight:900; color:var(--yellow); }
+#ptStrGrip:active{ cursor:grabbing; background:rgba(251,191,36,.4); }
+#ptStrGrip .gh{ font-size:13px; opacity:.8; }
+#ptStrGrip small{ margin-left:auto; font-size:9px; font-weight:700; opacity:.75; }
+#ptStrList{ overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+  display:flex; flex-direction:column; gap:3px; padding:5px; }
+#ptStrList .psRow{ display:flex; align-items:baseline; gap:6px;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2);
+  border-left:3px solid var(--yellow); border-radius:8px; padding:3px 7px; }
+#ptStrList .psRow .n{ font-size:10px; font-weight:800; color:#fde68a; min-width:16px; }
+#ptStrList .psRow .st{ font-size:15px; font-weight:900; font-variant-numeric:tabular-nums; }
+#ptStrList .psRow .sr{ font-size:11px; font-weight:800; color:#fde68a; margin-left:auto;
+  font-variant-numeric:tabular-nums; }
+#ptStrList .ptEmpty{ font-size:10px; font-weight:700; opacity:.6; text-align:center; padding:6px 2px; }
+
+/* たて向きのときの おしらせ：よこにして ください */
+#ptRotate{ display:none; position:absolute; inset:0; z-index:20;
+  background:rgba(4,18,31,.95);
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; text-align:center; padding:28px; }
+@media (orientation:portrait){ #ptModal:not(.playing):not(.anyway) #ptRotate{ display:flex; } }
+#ptRotate .rIcon{ width:74px; height:44px; border:3.5px solid var(--yellow);
+  border-radius:8px; position:relative; animation:ptTurn 2.2s ease-in-out infinite; }
+#ptRotate .rIcon::after{ content:""; position:absolute; right:-3.5px; top:12px;
+  width:3.5px; height:20px; background:var(--yellow); border-radius:2px; }
+@keyframes ptTurn{ 0%,18%{ transform:rotate(90deg); } 55%,100%{ transform:rotate(0deg); } }
+#ptRotate b{ font-size:20px; font-weight:900; line-height:1.5; }
+#ptRotate p{ margin:0; font-size:13px; font-weight:700; line-height:1.7; opacity:.85;
+  max-width:300px; }
+#ptRotate button{ min-height:44px; padding:8px 20px; border-radius:12px; cursor:pointer;
+  border:1.5px solid var(--line); background:rgba(255,255,255,.12); color:#fff;
+  font-family:inherit; font-size:13px; font-weight:800; }
 
 /* ===== よこ向きのときの 撮影ボタンの ならべ方 (2026.09.05) =====
    右がわに たてに ならべます。上から スタート、ストップ。
@@ -1915,6 +1958,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="psCol"><b id="psN">0</b><span>かき数</span></div>
     <button id="ptTapReset" type="button">消す</button>
   </div>
+  <div id="ptStrBox">
+    <div id="ptStrGrip"><span class="gh">⠿</span>かき<small>おして うごかせます</small></div>
+    <div id="ptStrList"></div>
+  </div>
   <div id="ptBack">
     <div class="ptRow ptSeg">
       <button class="ptSpd" data-r="0.25" type="button">0.25倍</button>
@@ -1925,10 +1972,16 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="ptRow">
       <button id="ptPlayBtn" type="button">▶ 再生</button>
       <button id="ptAgain" type="button">とりなおす</button>
-      <button id="ptSave" type="button" aria-label="動画をカメラロールに保存">保存<small>カメラロール</small></button>
       <button id="ptRhythm" type="button" aria-pressed="false">簡易分析<small>SRを はかる</small></button>
       <button id="ptUse" type="button">SwimIQ分析<small>きょりと 通過タイム</small></button>
     </div>
+  </div>
+
+  <div id="ptRotate">
+    <div class="rIcon" aria-hidden="true"></div>
+    <b>スマホを よこにして<br>さつえい してください</b>
+    <p>よこ向きにすると、スタート台からゴールまでが 画面に入ります。ボタンも 右がわに たてに ならびます。</p>
+    <button id="ptAnyway" type="button">このまま つかう</button>
   </div>
 </div>
 
@@ -9158,9 +9211,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       box.appendChild(d);
     }
   }
-  // ラップの箱を ゆびで うごかす。持ち手（上の帯）を おしたまま すべらせます。
-  (function(){
-    var box=$('ptLapBox'), grip=$('ptLapGrip');
+  // 箱を ゆびで うごかす。持ち手（上の帯）を おしたまま すべらせます。
+  // ラップの箱と かきの箱、どちらも 同じ しくみです。
+  function ptMakeDrag(boxId, gripId){
+    var box=$(boxId), grip=$(gripId);
     var dx=0, dy=0, on=false;
     function put(x,y){
       var r=box.getBoundingClientRect();
@@ -9185,7 +9239,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
     grip.addEventListener('pointerup', end);
     grip.addEventListener('pointercancel', end);
-  })();
+  }
+  ptMakeDrag('ptLapBox','ptLapGrip');
+  ptMakeDrag('ptStrBox','ptStrGrip');
   function ptBtns(){
     $('ptLap').disabled = !ptRunning;
     $('ptStop').disabled = !(ptRunning || ptArmed);
@@ -9366,6 +9422,27 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   function ptTapClear(){
     ptTaps=[];
     $('psSR').textContent='--'; $('psST').textContent='--'; $('psN').textContent='0';
+    ptPaintStrokes();
+  }
+  // かきの 一覧。1かきごとに かかった秒(ST)と、その ときの SR を ならべます。
+  function ptPaintStrokes(){
+    var box=$('ptStrList'); box.innerHTML='';
+    if(ptTaps.length<2){
+      var e=document.createElement('div');
+      e.className='ptEmpty';
+      e.textContent = ptTaps.length? 'あと 1回 おすと 出ます' : 'まだ ありません';
+      box.appendChild(e); return;
+    }
+    for(var i=ptTaps.length-1;i>=1;i--){
+      var st=(ptTaps[i].t - ptTaps[i-1].t)/1000 * ptTaps[i].r;
+      if(st<=0) continue;
+      var d=document.createElement('div');
+      d.className='psRow';
+      d.innerHTML='<span class="n">'+i+'</span>'+
+                  '<span class="st">'+st.toFixed(2)+'</span>'+
+                  '<span class="sr">SR '+(60/st).toFixed(1)+'</span>';
+      box.appendChild(d);
+    }
   }
   function ptSpdMark(r){
     var b=document.querySelectorAll('.ptSpd');
@@ -9377,12 +9454,16 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // スローで見ているときは、その ぶんだけ もとの はやさに 直します。
   function ptTapCalc(){
     $('psN').textContent = ptTaps.length;
+    ptPaintStrokes();
     if(ptTaps.length<2){ $('psSR').textContent='--'; $('psST').textContent='--'; return; }
     var use=ptTaps.slice(-6);                 // 直近6回で ならす
-    var span=(use[use.length-1]-use[0])/1000;
-    var st=span/(use.length-1);
-    var rate=$('ptPlayer').playbackRate || 1;
-    st = st*rate;                              // 0.5倍で見ていたら 時間は 半分に
+    var sum=0, n=0;
+    for(var i=1;i<use.length;i++){
+      // 0.5倍で見ていたら 画面の時間は 本当の 半分。その ぶんを もどす。
+      sum += (use[i].t - use[i-1].t)/1000 * use[i].r;
+      n++;
+    }
+    var st = n ? sum/n : 0;
     if(st<=0) return;
     $('psST').textContent = st.toFixed(2);
     $('psSR').textContent = (60/st).toFixed(1);
@@ -9390,7 +9471,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 
   // ---------- ボタンをつなぐ ----------
   function ptOpen(){
-    $('ptModal').classList.remove('hide','playing');
+    $('ptModal').classList.remove('hide','playing','rhythm','anyway');
     ptPressReset();
     $('ptRecT').textContent='0:00';
     ptBlob=null; ptFile=null;
@@ -9405,6 +9486,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var v=$('ptView'); v.srcObject=null;
     $('ptModal').classList.add('hide');
   }
+  $('ptAnyway').onclick=function(){ $('ptModal').classList.add('anyway'); };
   $('smPractice').onclick=ptOpen;
   $('ptClose').onclick=ptClose;
   $('ptStart').onclick=ptPressStart;
@@ -9450,7 +9532,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     }
   })();
   $('ptTapZone').onclick=function(){
-    ptTaps.push(performance.now()); ptTapCalc();
+    ptTaps.push({ t:performance.now(), r:($('ptPlayer').playbackRate || 1) });
+    ptTapCalc();
     try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
   };
   $('ptRhythm').onclick=function(){
@@ -9469,39 +9552,6 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('ptRecT').textContent='0:00';
     ptPressReset();
     if(!ptStream) ptOpenCam();
-  };
-  // ---------- とった動画を カメラロールに 保存する ----------
-  // iPhoneは 共有シートの「ビデオを保存」で 写真アプリ(カメラロール)に入ります。
-  // 共有が つかえない端末では ふつうのダウンロードに 切りかえます。
-  function ptSaveFile(){
-    var name=(ptFile && ptFile.name) || ('swimiq_practice_'+Date.now()+'.mp4');
-    var type=(ptBlob && ptBlob.type) || 'video/mp4';
-    if(ptFile && typeof File!=='undefined' && (ptFile instanceof File)) return ptFile;
-    if(!ptBlob) return null;
-    try{ return new File([ptBlob], name, {type:type}); }catch(e){ return null; }
-  }
-  function ptSaveDownload(f){
-    if(!f && !ptBlob) return;
-    var blob=f||ptBlob;
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');
-    a.href=url; a.download=(blob.name||'swimiq_practice.mp4');
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ try{ document.body.removeChild(a); }catch(e){} URL.revokeObjectURL(url); }, 1500);
-    toast('動画を 保存しました');
-  }
-  $('ptSave').onclick=function(){
-    if(!ptBlob){ toast('保存できる 動画が ありません'); return; }
-    var f=ptSaveFile(), btn=this;
-    var dekiru=false;
-    try{ dekiru = !!(f && navigator.canShare && navigator.share && navigator.canShare({files:[f]})); }catch(e){ dekiru=false; }
-    if(!dekiru){ ptSaveDownload(f); return; }
-    btn.disabled=true;
-    navigator.share({files:[f], title:'SwimIQ 練習の動画'}).then(function(){
-      toast('「ビデオを保存」を えらぶと カメラロールに 入ります');
-    }).catch(function(err){
-      if(!(err && err.name==='AbortError')) ptSaveDownload(f);
-    }).then(function(){ btn.disabled=false; });
   };
   $('ptUse').onclick=function(){
     if(!ptFile){ ptSay('動画が ありません'); return; }

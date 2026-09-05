@@ -1652,6 +1652,44 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   border:1.5px solid var(--line); background:rgba(255,255,255,.14); color:#fff;
   font-family:inherit; font-size:11px; font-weight:800; }
 
+/* ===== たて向きに もどしたときの けっか一覧 (2026.09.05) =====
+   さつえいと 分析が おわったあと、スマホを たてに すると
+   ラップと かきの けっかが、上から下へ ならんだ 表になります。 */
+#ptSheet{ display:none; position:absolute; inset:0; z-index:15;
+  background:#062038; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  flex-direction:column; gap:12px;
+  padding:calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 14px); }
+@media (orientation:portrait){
+  #ptModal.playing #ptSheet{ display:flex; }
+  #ptModal.playing #ptBack, #ptModal.playing #ptSimple,
+  #ptModal.playing #ptStrBox, #ptModal.playing #ptLapBox,
+  #ptModal.playing #ptTapZone{ display:none !important; }
+}
+#ptSheet .phead b{ display:block; font-size:19px; font-weight:900; }
+#ptSheet .phead span{ display:block; font-size:11px; font-weight:700; color:#bfe3ff; margin-top:3px; }
+#ptStat{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+#ptStat .sCell{ background:rgba(255,255,255,.08); border:1.5px solid var(--line);
+  border-radius:12px; padding:7px 6px; text-align:center; }
+#ptStat .sCell b{ display:block; font-size:20px; font-weight:900; font-variant-numeric:tabular-nums; }
+#ptStat .sCell span{ display:block; font-size:9px; font-weight:800; color:#bfe3ff; margin-top:1px; }
+#ptSheet .psec h4{ margin:0 0 6px; font-size:12px; font-weight:900; color:#bfe3ff; }
+#ptSheet .pTbl{ background:rgba(255,255,255,.06); border:1.5px solid var(--line);
+  border-radius:12px; overflow:hidden; }
+#ptSheet .pTr{ display:flex; align-items:baseline; gap:8px; padding:7px 11px; }
+#ptSheet .pTr + .pTr{ border-top:1px solid rgba(255,255,255,.14); }
+#ptSheet .pTr.hd{ background:rgba(255,255,255,.1); }
+#ptSheet .pTr.hd span{ font-size:10px; font-weight:800; color:#bfe3ff; }
+#ptSheet .pTr .c1{ flex:0 0 30px; font-size:11px; font-weight:800; color:#bfe3ff; }
+#ptSheet .pTr .c2{ flex:1; font-size:17px; font-weight:900; font-variant-numeric:tabular-nums; }
+#ptSheet .pTr .c3{ flex:1; text-align:right; font-size:13px; font-weight:800;
+  color:#9fd8ff; font-variant-numeric:tabular-nums; }
+#ptSheet .pNone{ padding:12px; text-align:center; font-size:11px; font-weight:700; opacity:.6; }
+#ptSheet .pfoot{ display:flex; gap:8px; margin-top:2px; }
+#ptSheet .pfoot button{ flex:1; min-height:46px; border-radius:12px; cursor:pointer;
+  border:1.5px solid var(--line); background:rgba(255,255,255,.1); color:#fff;
+  font-family:inherit; font-size:13px; font-weight:800; }
+#ptSheetUse{ border-color:var(--accent) !important; background:rgba(34,197,94,.32) !important; }
+
 /* かきの 一覧（ラップと 同じ つくりの 箱。うごかせます） */
 #ptStrBox{ position:absolute; z-index:9;
   right:calc(env(safe-area-inset-right) + 10px);
@@ -1974,6 +2012,20 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       <button id="ptAgain" type="button">とりなおす</button>
       <button id="ptRhythm" type="button" aria-pressed="false">簡易分析<small>SRを はかる</small></button>
       <button id="ptUse" type="button">SwimIQ分析<small>きょりと 通過タイム</small></button>
+    </div>
+  </div>
+
+  <div id="ptSheet">
+    <div class="phead">
+      <b>けっかの 一覧</b>
+      <span>よこ向きに もどすと、動画を 見かえせます</span>
+    </div>
+    <div id="ptStat"></div>
+    <div class="psec"><h4>ラップ</h4><div class="pTbl" id="ptSheetLaps"></div></div>
+    <div class="psec"><h4>かき（ST と SR）</h4><div class="pTbl" id="ptSheetStr"></div></div>
+    <div class="pfoot">
+      <button id="ptCopy" type="button">文字で コピー</button>
+      <button id="ptSheetUse" type="button">SwimIQ分析へ</button>
     </div>
   </div>
 
@@ -9383,7 +9435,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   function ptPressLap(){
     if(!ptRunning) return;
     ptLaps.push(performance.now()-ptT0);
-    ptPaintLaps();
+    ptPaintLaps(); ptPaintSheet();
     try{ if(navigator.vibrate) navigator.vibrate(18); }catch(e){}
   }
   function ptPressStop(){
@@ -9422,7 +9474,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   function ptTapClear(){
     ptTaps=[];
     $('psSR').textContent='--'; $('psST').textContent='--'; $('psN').textContent='0';
-    ptPaintStrokes();
+    ptPaintStrokes(); ptPaintSheet();
   }
   // かきの 一覧。1かきごとに かかった秒(ST)と、その ときの SR を ならべます。
   function ptPaintStrokes(){
@@ -9454,7 +9506,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // スローで見ているときは、その ぶんだけ もとの はやさに 直します。
   function ptTapCalc(){
     $('psN').textContent = ptTaps.length;
-    ptPaintStrokes();
+    ptPaintStrokes(); ptPaintSheet();
     if(ptTaps.length<2){ $('psSR').textContent='--'; $('psST').textContent='--'; return; }
     var use=ptTaps.slice(-6);                 // 直近6回で ならす
     var sum=0, n=0;
@@ -9468,6 +9520,85 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('psST').textContent = st.toFixed(2);
     $('psSR').textContent = (60/st).toFixed(1);
   }
+
+  // ---------- たて向きの けっか一覧 ----------
+  // ラップと かきの けっかを、上から下へ ならべた 表にします。
+  function ptStrokeList(){
+    var out=[];
+    for(var i=1;i<ptTaps.length;i++){
+      var st=(ptTaps[i].t - ptTaps[i-1].t)/1000 * ptTaps[i].r;
+      if(st>0) out.push(st);
+    }
+    return out;
+  }
+  function ptPaintSheet(){
+    var sts=ptStrokeList();
+    var total = ptElapsed || (ptLaps.length? ptLaps[ptLaps.length-1] : 0);
+    var avg = sts.length ? sts.reduce(function(a,b){ return a+b; },0)/sts.length : 0;
+    // 上の3つの まとめ
+    var st=$('ptStat'); st.innerHTML='';
+    function cell(v,lb){
+      var d=document.createElement('div'); d.className='sCell';
+      d.innerHTML='<b>'+v+'</b><span>'+lb+'</span>'; st.appendChild(d);
+    }
+    cell(total? ptFmt(total) : '--', 'ぜんぶの時間');
+    cell(avg? avg.toFixed(2) : '--', '平均ST 秒');
+    cell(avg? (60/avg).toFixed(1) : '--', '平均SR');
+    // ラップの表
+    var lb=$('ptSheetLaps'); lb.innerHTML='';
+    if(!ptLaps.length){
+      lb.innerHTML='<div class="pNone">ラップは ありません</div>';
+    }else{
+      lb.innerHTML='<div class="pTr hd"><span class="c1">＃</span>'+
+                   '<span class="c2">とおった時間</span><span class="c3">まえから</span></div>';
+      for(var i=0;i<ptLaps.length;i++){
+        var prev = i>0 ? ptLaps[i-1] : 0;
+        var r=document.createElement('div'); r.className='pTr';
+        r.innerHTML='<span class="c1">'+(i+1)+'</span>'+
+                    '<span class="c2">'+ptFmt(ptLaps[i])+'</span>'+
+                    '<span class="c3">+'+ptFmt(ptLaps[i]-prev)+'</span>';
+        lb.appendChild(r);
+      }
+    }
+    // かきの表
+    var sb=$('ptSheetStr'); sb.innerHTML='';
+    if(!sts.length){
+      sb.innerHTML='<div class="pNone">「簡易分析」で かきを 数えると 出ます</div>';
+    }else{
+      sb.innerHTML='<div class="pTr hd"><span class="c1">＃</span>'+
+                   '<span class="c2">ST 秒</span><span class="c3">SR</span></div>';
+      for(var k=0;k<sts.length;k++){
+        var r2=document.createElement('div'); r2.className='pTr';
+        r2.innerHTML='<span class="c1">'+(k+1)+'</span>'+
+                     '<span class="c2">'+sts[k].toFixed(2)+'</span>'+
+                     '<span class="c3">'+(60/sts[k]).toFixed(1)+'</span>';
+        sb.appendChild(r2);
+      }
+    }
+  }
+  function ptSheetText(){
+    var sts=ptStrokeList();
+    var total = ptElapsed || (ptLaps.length? ptLaps[ptLaps.length-1] : 0);
+    var avg = sts.length ? sts.reduce(function(a,b){ return a+b; },0)/sts.length : 0;
+    var L=['SwimIQ 練習用カメラ'];
+    if(total) L.push('ぜんぶの時間 '+ptFmt(total));
+    if(avg) L.push('平均ST '+avg.toFixed(2)+'秒 / 平均SR '+(60/avg).toFixed(1));
+    if(ptLaps.length){
+      L.push('', '[ラップ]');
+      for(var i=0;i<ptLaps.length;i++){
+        var prev=i>0?ptLaps[i-1]:0;
+        L.push((i+1)+'  '+ptFmt(ptLaps[i])+'  (+'+ptFmt(ptLaps[i]-prev)+')');
+      }
+    }
+    if(sts.length){
+      L.push('', '[かき ST/SR]');
+      for(var k=0;k<sts.length;k++) L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  SR'+(60/sts[k]).toFixed(1));
+    }
+    return L.join('\n');
+  }
+  window.addEventListener('resize', function(){
+    if(!$('ptModal').classList.contains('hide')) ptPaintSheet();
+  });
 
   // ---------- ボタンをつなぐ ----------
   function ptOpen(){
@@ -9487,6 +9618,14 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('ptModal').classList.add('hide');
   }
   $('ptAnyway').onclick=function(){ $('ptModal').classList.add('anyway'); };
+  $('ptSheetUse').onclick=function(){ $('ptUse').click(); };
+  $('ptCopy').onclick=function(){
+    var tx=ptSheetText();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(tx).then(function(){ toast('コピーしました'); },
+        function(){ toast('コピーできませんでした'); });
+    }else{ toast('この端末では コピーできません'); }
+  };
   $('smPractice').onclick=ptOpen;
   $('ptClose').onclick=ptClose;
   $('ptStart').onclick=ptPressStart;

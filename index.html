@@ -1540,17 +1540,29 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 #ptLevelBar{ display:block; width:0%; height:100%; background:var(--yellow); transition:width .06s linear; }
 #ptLevelLine{ position:absolute; top:0; bottom:0; width:2px; background:#ef4444; left:0; }
 
-/* ラップの一覧（左） */
-#ptLaps{ position:absolute; left:10px; top:calc(env(safe-area-inset-top) + 150px);
-  bottom:calc(env(safe-area-inset-bottom) + 150px); width:150px; z-index:6;
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
-  display:flex; flex-direction:column; gap:4px; }
-#ptLaps .ptLap{ background:rgba(6,24,42,.78); border:1.5px solid var(--line);
+/* ラップの一覧（ゆびで うごかせる箱） */
+#ptLapBox{ position:absolute; z-index:9;
+  left:calc(env(safe-area-inset-left) + 10px);
+  top:calc(env(safe-area-inset-top) + 150px);
+  width:158px; max-height:min(46vh,300px);
+  display:flex; flex-direction:column;
+  background:rgba(6,24,42,.86); border:1.5px solid var(--line);
+  border-radius:12px; overflow:hidden; touch-action:none; }
+#ptLapGrip{ display:flex; align-items:center; gap:5px; cursor:grab;
+  padding:5px 8px; background:rgba(255,255,255,.1);
+  font-size:11px; font-weight:900; color:#bfe3ff; }
+#ptLapGrip:active{ cursor:grabbing; background:rgba(251,191,36,.3); }
+#ptLapGrip .gh{ font-size:13px; opacity:.8; }
+#ptLapGrip small{ margin-left:auto; font-size:9px; font-weight:700; opacity:.7; }
+#ptLaps{ overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+  display:flex; flex-direction:column; gap:4px; padding:5px; }
+#ptLaps .ptLap{ background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.22);
   border-left:3px solid var(--accent2); border-radius:9px; padding:4px 8px;
   display:flex; align-items:baseline; gap:6px; }
 #ptLaps .ptLap .n{ font-size:10px; font-weight:800; color:#bfe3ff; }
 #ptLaps .ptLap .t{ font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; }
 #ptLaps .ptLap .d{ font-size:10px; font-weight:700; color:#9fd8ff; margin-left:auto; }
+#ptLaps .ptEmpty{ font-size:10px; font-weight:700; opacity:.6; text-align:center; padding:6px 2px; }
 
 /* 下のボタン */
 #ptCtrl{ position:absolute; left:0; right:0; z-index:7;
@@ -1601,6 +1613,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   border:1.5px solid var(--line); background:rgba(6,24,42,.86); color:#fff;
   font-family:inherit; font-size:13px; font-weight:800; }
 .ptRow button[aria-pressed="true"]{ background:var(--accent2); border-color:var(--accent2); color:#04121f; }
+.ptRow button small{ display:block; font-size:9px; font-weight:700; opacity:.75; margin-top:1px; }
+#ptRhythm{ border-color:var(--yellow) !important; }
 #ptRhythm[aria-pressed="true"]{ background:var(--yellow); border-color:var(--yellow); color:#0a2a48; }
 #ptUse{ border-color:var(--accent) !important; background:rgba(34,197,94,.34) !important; }
 
@@ -1622,15 +1636,20 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 #ptTapZone:active span{ background:#fff; }
 
 /* ST・SR の こたえ（上のまん中） */
-#ptTapOut{ position:absolute; left:50%; transform:translateX(-50%); z-index:9;
+#ptSimple{ position:absolute; left:50%; transform:translateX(-50%); z-index:9;
   top:calc(env(safe-area-inset-top) + 46px);
-  display:none; align-items:center; gap:8px;
-  background:rgba(6,24,42,.86); border:1.5px solid var(--yellow);
-  border-radius:14px; padding:5px 6px 5px 14px; }
-#ptModal.playing.rhythm #ptTapOut{ display:flex; }
-#ptTapTx{ font-size:clamp(14px,3.4vw,19px); font-weight:900; font-variant-numeric:tabular-nums; }
-#ptTapReset{ min-height:30px; padding:3px 10px; border-radius:9px; cursor:pointer;
-  border:1.5px solid var(--line); background:rgba(255,255,255,.12); color:#fff;
+  display:none; align-items:center; gap:4px;
+  background:rgba(6,24,42,.9); border:2px solid var(--yellow);
+  border-radius:16px; padding:6px 6px 6px 4px; }
+#ptModal.playing.rhythm #ptSimple{ display:flex; }
+#ptSimple .psCol{ display:flex; flex-direction:column; align-items:center;
+  min-width:74px; padding:0 8px; }
+#ptSimple .psCol + .psCol{ border-left:1px solid rgba(255,255,255,.22); }
+#ptSimple .psCol b{ font-size:clamp(19px,4.4vw,26px); font-weight:900; line-height:1.1;
+  font-variant-numeric:tabular-nums; }
+#ptSimple .psCol span{ font-size:9px; font-weight:800; color:#bfe3ff; margin-top:1px; }
+#ptTapReset{ min-height:32px; padding:3px 10px; border-radius:9px; cursor:pointer;
+  border:1.5px solid var(--line); background:rgba(255,255,255,.14); color:#fff;
   font-family:inherit; font-size:11px; font-weight:800; }
 
 /* 画面が よこ向きのときは 全体を すこし小さく */
@@ -1639,16 +1658,18 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   #ptBig{ top:calc(env(safe-area-inset-top) + 40px); }
   #ptMsg{ top:calc(env(safe-area-inset-top) + 96px); font-size:11px; }
   #ptModal.armed #ptMsg{ top:calc(env(safe-area-inset-top) + 120px); }
-  #ptLaps{ width:126px; top:calc(env(safe-area-inset-top) + 100px);
-           bottom:calc(env(safe-area-inset-bottom) + 104px); }
+  #ptLapBox{ width:136px; top:calc(env(safe-area-inset-top) + 96px);
+             max-height:min(52vh,220px); }
   #ptCtrl{ bottom:calc(env(safe-area-inset-bottom) + 50px); }
   #ptCtrl button{ min-height:42px; font-size:12px; }
   #ptCtrl button small{ display:none; }
   #ptOpt button{ min-height:32px; font-size:10px; }
-  .ptRow button{ min-height:38px; font-size:12px; }
+  .ptRow button{ min-height:40px; font-size:12px; }
   .ptSeg button{ min-height:30px !important; }
-  #ptTapOut{ top:calc(env(safe-area-inset-top) + 40px); }
-  #ptTapZone{ padding-bottom:88px; }
+  #ptSimple{ top:calc(env(safe-area-inset-top) + 8px); padding:4px 5px 4px 3px; }
+  #ptSimple .psCol b{ font-size:18px; }
+  #ptSimple .psCol{ min-width:62px; padding:0 6px; }
+  #ptTapZone{ padding-bottom:96px; }
 }
 </style>
 </head>
@@ -1827,7 +1848,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 
   <div id="ptBig"><span id="ptTime">0.00</span></div>
   <div id="ptLevel"><i id="ptLevelBar"></i><span id="ptLevelLine"></span></div>
-  <div id="ptLaps" role="list" aria-label="ラップの一覧"></div>
+  <div id="ptLapBox">
+    <div id="ptLapGrip"><span class="gh">⠿</span>ラップ<small>おして うごかせます</small></div>
+    <div id="ptLaps" role="list" aria-label="ラップの一覧"></div>
+  </div>
 
   <p id="ptMsg" class="hide"></p>
 
@@ -1846,7 +1870,12 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
 
   <!-- とめたあとの 見かえし -->
   <button id="ptTapZone" type="button" aria-label="画面をおして かきを数える"><span>画面を おして かきを 数える</span></button>
-  <div id="ptTapOut"><b id="ptTapTx">ST -- ／ SR --</b><button id="ptTapReset" type="button">消す</button></div>
+  <div id="ptSimple">
+    <div class="psCol"><b id="psSR">--</b><span>SR かき/分</span></div>
+    <div class="psCol"><b id="psST">--</b><span>ST 秒/かき</span></div>
+    <div class="psCol"><b id="psN">0</b><span>かき数</span></div>
+    <button id="ptTapReset" type="button">消す</button>
+  </div>
   <div id="ptBack">
     <div class="ptRow ptSeg">
       <button class="ptSpd" data-r="0.25" type="button">0.25倍</button>
@@ -1856,9 +1885,9 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     </div>
     <div class="ptRow">
       <button id="ptPlayBtn" type="button">▶ 再生</button>
-      <button id="ptRhythm" type="button" aria-pressed="false">リズム</button>
       <button id="ptAgain" type="button">とりなおす</button>
-      <button id="ptUse" type="button">分析へ</button>
+      <button id="ptRhythm" type="button" aria-pressed="false">簡易分析<small>SRを はかる</small></button>
+      <button id="ptUse" type="button">SwimIQ分析<small>きょりと 通過タイム</small></button>
     </div>
   </div>
 </div>
@@ -9074,6 +9103,11 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   }
   function ptPaintLaps(){
     var box=$('ptLaps'); box.innerHTML='';
+    if(!ptLaps.length){
+      var e=document.createElement('div');
+      e.className='ptEmpty'; e.textContent='まだ ありません';
+      box.appendChild(e); return;
+    }
     for(var i=ptLaps.length-1;i>=0;i--){
       var prev = i>0 ? ptLaps[i-1] : 0;
       var d=document.createElement('div');
@@ -9084,6 +9118,34 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
       box.appendChild(d);
     }
   }
+  // ラップの箱を ゆびで うごかす。持ち手（上の帯）を おしたまま すべらせます。
+  (function(){
+    var box=$('ptLapBox'), grip=$('ptLapGrip');
+    var dx=0, dy=0, on=false;
+    function put(x,y){
+      var r=box.getBoundingClientRect();
+      x=Math.max(4, Math.min(x, window.innerWidth - r.width - 4));
+      y=Math.max(4, Math.min(y, window.innerHeight - r.height - 4));
+      box.style.left=x+'px'; box.style.top=y+'px'; box.style.right='auto'; box.style.bottom='auto';
+    }
+    grip.addEventListener('pointerdown', function(e){
+      var r=box.getBoundingClientRect();
+      dx=e.clientX-r.left; dy=e.clientY-r.top; on=true;
+      try{ grip.setPointerCapture(e.pointerId); }catch(err){}
+      e.preventDefault();
+    });
+    grip.addEventListener('pointermove', function(e){
+      if(!on) return;
+      put(e.clientX-dx, e.clientY-dy);
+      e.preventDefault();
+    });
+    function end(e){
+      if(!on) return; on=false;
+      try{ grip.releasePointerCapture(e.pointerId); }catch(err){}
+    }
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
+  })();
   function ptBtns(){
     $('ptLap').disabled = !ptRunning;
     $('ptStop').disabled = !(ptRunning || ptArmed);
@@ -9262,7 +9324,8 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('ptModal').classList.remove('playing','rhythm');
   }
   function ptTapClear(){
-    ptTaps=[]; $('ptTapTx').textContent='ST -- ／ SR --';
+    ptTaps=[];
+    $('psSR').textContent='--'; $('psST').textContent='--'; $('psN').textContent='0';
   }
   function ptSpdMark(r){
     var b=document.querySelectorAll('.ptSpd');
@@ -9273,16 +9336,16 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   // かきの リズム。ST は 1かきに かかる秒、SR は 1分あたりの かき数。
   // スローで見ているときは、その ぶんだけ もとの はやさに 直します。
   function ptTapCalc(){
-    var out=$('ptTapTx');
-    if(ptTaps.length<2){ out.textContent='あと '+(2-ptTaps.length)+'回'; return; }
+    $('psN').textContent = ptTaps.length;
+    if(ptTaps.length<2){ $('psSR').textContent='--'; $('psST').textContent='--'; return; }
     var use=ptTaps.slice(-6);                 // 直近6回で ならす
     var span=(use[use.length-1]-use[0])/1000;
     var st=span/(use.length-1);
     var rate=$('ptPlayer').playbackRate || 1;
     st = st*rate;                              // 0.5倍で見ていたら 時間は 半分に
-    if(st<=0){ out.textContent='もう一度 おしてください'; return; }
-    var sr=60/st;
-    out.textContent='ST '+st.toFixed(2)+'秒 ／ SR '+sr.toFixed(1)+'（'+(use.length-1)+'かき分）';
+    if(st<=0) return;
+    $('psST').textContent = st.toFixed(2);
+    $('psSR').textContent = (60/st).toFixed(1);
   }
 
   // ---------- ボタンをつなぐ ----------
@@ -9354,7 +9417,11 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     var on = this.getAttribute('aria-pressed')!=='true';
     this.setAttribute('aria-pressed', on?'true':'false');
     $('ptModal').classList.toggle('rhythm', on);
-    if(on){ ptTapClear(); }
+    if(on){
+      ptTapClear();
+      var p=$('ptPlayer');
+      if(p.paused){ p.play().catch(function(){}); $('ptPlayBtn').textContent='⏸ とめる'; }
+    }
   };
   $('ptTapReset').onclick=function(e){ e.stopPropagation(); ptTapClear(); };
   $('ptAgain').onclick=function(){

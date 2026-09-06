@@ -169,6 +169,15 @@
     box-shadow:0 3px 0 rgba(0,0,0,.25); }
   #app.hasvideo #saveBtn{ display:flex; }
   #saveBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.25); }
+  /* 画面をほぞん：いまの画面を 写真にして カメラロールへ */
+  #shotBtn{ position:absolute; right:calc(env(safe-area-inset-right) + 170px); top:calc(env(safe-area-inset-top) + 58px); z-index:7;
+    display:none; align-items:center; gap:6px; padding:8px 14px; cursor:pointer;
+    background:rgba(16,44,74,.92); border:1.5px solid var(--line); border-radius:12px;
+    color:#fff; font-size:13px; font-weight:800; text-shadow:var(--shadow);
+    box-shadow:0 3px 0 rgba(0,0,0,.25); }
+  #app.hasvideo #shotBtn{ display:flex; }
+  #shotBtn:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.25); }
+  #shotBtn.busy{ opacity:.55; }
   #loadBtn{ position:absolute; right:108px; top:calc(env(safe-area-inset-top) + 182px); z-index:7;
     display:none; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
     background:rgba(16,44,74,.9); border:1.5px solid var(--line); border-radius:12px;
@@ -1849,6 +1858,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   <button id="camBtn">📹 カメラでとる</button>
   <button id="distBtn">📏 距離をかえる</button>
   <button id="saveBtn">💾 ほぞん</button>
+  <button id="shotBtn" type="button">📸 画面をほぞん</button>
   <button id="loadBtn">📂 よびだし</button>
   <input type="file" id="videoFile" accept="video/*">
 
@@ -1985,7 +1995,7 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   <div id="ptOpt">
     <button id="ptSoundBtn" type="button" aria-pressed="true">音でスタート オン</button>
     <button id="ptRecBtn" type="button" aria-pressed="true">動画もとる オン</button>
-    <button id="ptSensBtn" type="button">かんど ふつう</button>
+    <button id="ptSensBtn" type="button">音 ふつう</button>
   </div>
 
   <!-- とめたあとの 見かえし -->
@@ -3701,6 +3711,97 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     $('svConfirmModal').classList.remove('hide');
   }
   $('saveBtn').addEventListener('click', openSaveFlow);
+
+  /* ===== 画面をほぞん (2026.09.06) =====
+     いまの 動画の 1コマに、ひいた 線と けいか時間を かさねて 1枚の 写真にします。
+     iPhone では 写真を そのまま アルバムに 入れる しくみが ないので、
+     「共有」の まどを ひらいて、そこから「画像を保存」を えらんでもらいます。
+     パソコンなど 共有が つかえない ときは、そのまま ダウンロードします。 */
+  function shotDrawSvg(ctx, W, H){
+    return new Promise(function(res){
+      var svg=$('lineLayer');
+      if(!svg){ res(); return; }
+      try{
+        var c=svg.cloneNode(true);
+        var r=svg.getBoundingClientRect();
+        c.setAttribute('xmlns','http://www.w3.org/2000/svg');
+        c.setAttribute('width', r.width);
+        c.setAttribute('height', r.height);
+        if(!c.getAttribute('viewBox')) c.setAttribute('viewBox','0 0 '+r.width+' '+r.height);
+        var txt=new XMLSerializer().serializeToString(c);
+        var url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(txt);
+        var im=new Image();
+        im.onload=function(){ try{ ctx.drawImage(im,0,0,W,H); }catch(e){} res(); };
+        im.onerror=function(){ res(); };
+        im.src=url;
+      }catch(e){ res(); }
+    });
+  }
+  function shotCapture(){
+    var v=$('video');
+    if(!v || !v.videoWidth) return Promise.resolve(null);
+    var wrap=$('videoWrap').getBoundingClientRect();
+    var W=Math.round(wrap.width*2), H=Math.round(wrap.height*2);   // すこし きめ細かく
+    var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    var ctx=cv.getContext('2d');
+    ctx.fillStyle='#04263f'; ctx.fillRect(0,0,W,H);
+    // 動画は はみ出さないように 内側に そろえる（object-fit:contain と 同じ）
+    var vr=v.videoWidth/v.videoHeight, wr=W/H;
+    var dw,dh,dx,dy;
+    if(vr>wr){ dw=W; dh=W/vr; dx=0; dy=(H-dh)/2; }
+    else{ dh=H; dw=H*vr; dy=0; dx=(W-dw)/2; }
+    try{ ctx.drawImage(v,dx,dy,dw,dh); }catch(e){ return Promise.resolve(null); }
+    return shotDrawSvg(ctx,W,H).then(function(){
+      // けいか時間を 左上に 焼きこむ
+      try{
+        var t=$('bigTimeHud') ? $('bigTimeHud').textContent : '';
+        if(t){
+          ctx.font='900 '+Math.round(H*0.062)+'px sans-serif';
+          var pad=Math.round(H*0.022), tw=ctx.measureText(t).width;
+          ctx.fillStyle='rgba(6,24,42,.72)';
+          ctx.fillRect(pad,pad,tw+pad*2,Math.round(H*0.09));
+          ctx.fillStyle='#ffffff';
+          ctx.textBaseline='middle';
+          ctx.fillText(t, pad*2, pad+Math.round(H*0.045));
+        }
+        ctx.font='800 '+Math.round(H*0.028)+'px sans-serif';
+        ctx.fillStyle='rgba(255,255,255,.75)';
+        ctx.textBaseline='alphabetic';
+        ctx.fillText('SwimIQ', Math.round(W*0.022), H-Math.round(H*0.028));
+      }catch(e){}
+      return new Promise(function(res){
+        try{ cv.toBlob(function(b){ res(b); }, 'image/jpeg', 0.92); }
+        catch(e){ res(null); }
+      });
+    });
+  }
+  $('shotBtn').addEventListener('click', function(){
+    var btn=this;
+    if(btn.classList.contains('busy')) return;
+    btn.classList.add('busy');
+    shotCapture().then(function(blob){
+      btn.classList.remove('busy');
+      if(!blob){ toast('画面を うつせませんでした'); return; }
+      var name='swimiq_'+Date.now()+'.jpg';
+      var file;
+      try{ file=new File([blob], name, {type:'image/jpeg'}); }catch(e){ file=null; }
+      if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+        navigator.share({ files:[file] }).then(function(){},
+          function(err){ if(err && err.name!=='AbortError') shotDownload(blob,name); });
+        toast('「画像を保存」を えらぶと カメラロールに 入ります');
+      }else{
+        shotDownload(blob,name);
+      }
+    }, function(){ btn.classList.remove('busy'); toast('画面を うつせませんでした'); });
+  });
+  function shotDownload(blob,name){
+    var u=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=u; a.download=name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); }, 1500);
+    toast('写真を ほぞんしました');
+  }
   // ✅ この内容で ほぞんする：入力画面のほぞんボタンを、かわりに押してあげる
   $('svcOk').onclick=function(){
     if(!$('svCourse').value){
@@ -9214,8 +9315,13 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   var ptFacing='environment';
   var ptWantRec=true, ptWantSound=true;
   var ptSens=1;                       // 0=にぶい 1=ふつう 2=するどい
-  var PT_SENS=[[4.5,0.085],[3.0,0.050],[2.2,0.030]];  // [ふだんの音の何倍, 最低の大きさ]
-  var PT_SENS_NAME=['にぶい','ふつう','するどい'];
+  // [まわりの何倍, 最低の大きさ, 立ち上がりの倍率, 高い音のわりあい, つづく回数]
+  var PT_SENS=[
+    [5.0, 0.110, 3.2, 0.55, 3],   // ふえだけ ひろう（会話では まず 動かない）
+    [3.5, 0.070, 2.4, 0.38, 2],   // ふつう
+    [2.4, 0.040, 1.8, 0.20, 2]    // こえも ひろう（しずかな場所むけ）
+  ];
+  var PT_SENS_NAME=['ふえだけ','ふつう','こえも'];
   var ptRunning=false, ptArmed=false;
   var ptT0=0, ptElapsed=0, ptLaps=[], ptRaf=null;
   var ptRecT0=0, ptRecTimer=null;
@@ -9306,17 +9412,33 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   }
 
   // ---------- マイクの音を ずっと見る ----------
+  /* 会話で うごきださないための 考えかた
+     人の こえと ふえは、音の せいしつが ちがいます。
+       ・ふえ … 立ち上がりが するどい。高い音に かたよる。まわりより ずっと 大きい。
+       ・こえ … 立ち上がりが なだらか。低い音が おおい。
+     そこで つぎの 4つを ぜんぶ みたしたときだけ スタートします。
+       1) 大きさ   … まわりの音より じゅうぶん 大きい
+       2) 立ち上がり … 0.2秒前と くらべて きゅうに 大きくなった
+       3) 高い音の わりあい … 高い音が おおくを しめている
+       4) つづく   … その じょうたいが すこしのあいだ つづく（雑音よけ）
+     また、まわりの音の おおきさは 会話も ふくめて ずっと 覚えていくので、
+     しゃべっている 場所では しぜんに 反応しにくく なります。 */
+  var ptFbuf=null, ptHist=[], ptHold=0, ptSR=48000;
   function ptAudioSetup(){
     if(ptAC || !ptStream) return;
     try{
       var AC = window.AudioContext || window.webkitAudioContext;
       if(!AC) return;
       ptAC = new AC();
+      ptSR = ptAC.sampleRate || 48000;
       ptSrcNode = ptAC.createMediaStreamSource(ptStream);
       ptAnalyser = ptAC.createAnalyser();
-      ptAnalyser.fftSize = 1024;
+      ptAnalyser.fftSize = 2048;
+      ptAnalyser.smoothingTimeConstant = 0;
       ptBuf = new Float32Array(ptAnalyser.fftSize);
+      ptFbuf = new Uint8Array(ptAnalyser.frequencyBinCount);
       ptSrcNode.connect(ptAnalyser);   // スピーカーには つながない（ハウリング防止）
+      ptHist=[]; ptHold=0;
       ptLevelWatch();
     }catch(e){ ptAC=null; }
   }
@@ -9327,28 +9449,76 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     for(var i=0;i<ptBuf.length;i++) sum += ptBuf[i]*ptBuf[i];
     return Math.sqrt(sum/ptBuf.length);
   }
+  // 高い音（1.4kHz〜6kHz）が ぜんたいの どれくらいを しめているか
+  function ptHiRatio(){
+    if(!ptAnalyser || !ptFbuf) return 0;
+    try{ ptAnalyser.getByteFrequencyData(ptFbuf); }catch(e){ return 0; }
+    var hz = ptSR/2/ptFbuf.length;      // 1つぶんの しゅうはすう
+    var lo=0, hi=0;
+    for(var i=1;i<ptFbuf.length;i++){
+      var f=i*hz, e=ptFbuf[i]*ptFbuf[i];
+      if(f<1400) lo+=e;
+      else if(f<6000) hi+=e;
+    }
+    var all=lo+hi;
+    return all>0 ? hi/all : 0;
+  }
   function ptLevelWatch(){
     cancelAnimationFrame(ptLevelRaf);
     (function step(){
       ptLevelRaf = requestAnimationFrame(step);
       if(!ptAnalyser) return;
+      var now = performance.now();
       var v = ptRms();
-      // しずかなときの 大きさを ゆっくり おぼえる（音が来たときは 上げない）
-      if(!ptRunning && v < ptBase*2.2) ptBase = ptBase*0.94 + v*0.06;
+      var P = PT_SENS[ptSens];
+
+      // 直近 0.5秒の 音の大きさを のこしておく（立ち上がりを 見るため）
+      ptHist.push({ t:now, v:v });
+      while(ptHist.length && now-ptHist[0].t > 500) ptHist.shift();
+
+      // まわりの音（会話も ふくむ）を ゆっくり 覚える。
+      // 上がるときは ゆっくり、下がるときも ゆっくり。急な音だけ 目立たせる。
+      if(!ptRunning){
+        var a = (v > ptBase) ? 0.02 : 0.05;
+        ptBase = ptBase*(1-a) + v*a;
+      }
       if(ptBase < 0.002) ptBase = 0.002;
-      if(ptArmed){
-        var lim = Math.max(ptBase*PT_SENS[ptSens][0], PT_SENS[ptSens][1]);
-        var w = Math.min(100, (v/(lim*1.6))*100);
-        $('ptLevelBar').style.width = w.toFixed(0)+'%';
-        $('ptLevelLine').style.left = (100/1.6).toFixed(0)+'%';
-        // 音まちに 入って 0.4秒は 反応しない（ボタンの音で ならないように）
-        if(performance.now()-ptArmAt > 400 && v > lim){
-          ptArmed=false;
-          ptGo(performance.now());
-          try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
-          ptSay('音で スタートしました');
-          setTimeout(function(){ if(ptRunning) ptSay(''); }, 1600);
-        }
+
+      if(!ptArmed){ ptHold=0; return; }
+
+      // 0.15〜0.35秒前の 平均（この あいだと くらべて きゅうに 大きくなったか）
+      var s=0, n=0;
+      for(var i=0;i<ptHist.length;i++){
+        var d = now - ptHist[i].t;
+        if(d>=150 && d<=350){ s+=ptHist[i].v; n++; }
+      }
+      var before = n ? s/n : ptBase;
+      if(before < 0.002) before = 0.002;
+      var rise = v/before;
+      var hiR = ptHiRatio();
+
+      var lim = Math.max(ptBase*P[0], P[1]);
+      var okLoud = v > lim;
+      var okRise = rise > P[2];
+      var okHigh = hiR > P[3];
+
+      // メーター：大きさを 見せ、3つ そろったら 黄色から 白に かわる
+      var w = Math.min(100, (v/(lim*1.6))*100);
+      var bar=$('ptLevelBar');
+      bar.style.width = w.toFixed(0)+'%';
+      bar.style.background = (okLoud&&okRise&&okHigh) ? '#ffffff' : (okHigh ? '#fbbf24' : '#64748b');
+      $('ptLevelLine').style.left = (100/1.6).toFixed(0)+'%';
+
+      // 音まちに 入って 0.5秒は 反応しない（ボタンを おした音よけ）
+      if(now-ptArmAt < 500){ ptHold=0; return; }
+
+      if(okLoud && okRise && okHigh){ ptHold++; } else { ptHold=0; }
+      if(ptHold >= P[4]){
+        ptHold=0; ptArmed=false;
+        ptGo(now);
+        try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
+        ptSay('音で スタートしました');
+        setTimeout(function(){ if(ptRunning) ptSay(''); }, 1600);
       }
     })();
   }
@@ -9651,9 +9821,13 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   };
   $('ptSensBtn').onclick=function(){
     ptSens=(ptSens+1)%3;
-    this.textContent='かんど '+PT_SENS_NAME[ptSens];
-    ptSay(ptSens===0?'まわりが うるさいとき むきです':(ptSens===2?'小さな音でも ひろいます':'ふだんは これで だいじょうぶです'));
-    setTimeout(function(){ if(!ptArmed && !ptRunning) ptSay(''); }, 2200);
+    this.textContent='音 '+PT_SENS_NAME[ptSens];
+    ptSay(ptSens===0
+      ? 'ふえの音だけを ひろいます。まわりで 話していても 動きません。'
+      : (ptSens===2
+        ? 'こえでも うごきます。しずかな 場所むきです。話し声で 動くことが あります。'
+        : 'ふえや 大きな かけ声で うごきます。ふだんは これで だいじょうぶです。'));
+    setTimeout(function(){ if(!ptArmed && !ptRunning) ptSay(''); }, 3000);
   };
   $('ptPlayBtn').onclick=function(){
     var p=$('ptPlayer');

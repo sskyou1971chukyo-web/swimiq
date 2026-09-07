@@ -2034,6 +2034,10 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
     <div class="psec"><h4>ラップ</h4><div class="pTbl" id="ptSheetLaps"></div></div>
     <div class="psec"><h4>かき（ST と SR）</h4><div class="pTbl" id="ptSheetStr"></div></div>
     <div class="pfoot">
+      <button id="ptSaveVid" type="button">🎬 動画を ほぞん</button>
+      <button id="ptSaveImg" type="button">📸 画像で ほぞん</button>
+    </div>
+    <div class="pfoot">
       <button id="ptCopy" type="button">文字で コピー</button>
       <button id="ptSheetUse" type="button">SwimIQ分析へ</button>
     </div>
@@ -9789,6 +9793,103 @@ body.embed .smGrp[data-g="see"]{ display:none !important; }
   }
   $('ptAnyway').onclick=function(){ $('ptModal').classList.add('anyway'); };
   $('ptSheetUse').onclick=function(){ $('ptUse').click(); };
+  /* ===== けっかの ほぞん (2026.09.07) =====
+     動画そのものと、けっかの表を 1枚の 画像にしたもの、どちらも のこせます。
+     iPhone は ウェブから じかに アルバムへ 入れられないので、
+     「共有」の まどから「ビデオを保存」「画像を保存」を えらんでもらいます。 */
+  function ptShareFile(file, blob, name, hint){
+    if(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+      toast(hint);
+      navigator.share({ files:[file] }).then(function(){},
+        function(err){ if(err && err.name!=='AbortError') shotDownload(blob,name); });
+    }else{
+      shotDownload(blob,name);
+    }
+  }
+  $('ptSaveVid').onclick=function(){
+    if(!ptBlob){ toast('のこす動画が ありません'); return; }
+    var name = (ptFile && ptFile.name) ? ptFile.name : ('swimiq_practice_'+Date.now()+'.mp4');
+    var f = (ptFile && ptFile.size!==undefined) ? ptFile : null;
+    ptShareFile(f, ptBlob, name, '「ビデオを保存」を えらぶと カメラロールに 入ります');
+  };
+  // けっかの表を そのまま 1枚の 画像に かきうつします
+  function ptSheetImage(){
+    var sts=ptStrokeList();
+    var total = ptElapsed || (ptLaps.length? ptLaps[ptLaps.length-1] : 0);
+    var avg = sts.length ? sts.reduce(function(a,b){ return a+b; },0)/sts.length : 0;
+    var W=1080, pad=56, row=62;
+    var H = 300 + 70 + (ptLaps.length+1)*row + 70 + (sts.length+1)*row + 90;
+    var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+    var g=cv.getContext('2d');
+    g.fillStyle='#062038'; g.fillRect(0,0,W,H);
+    var y=90;
+    g.fillStyle='#ffffff'; g.font='900 46px sans-serif'; g.textBaseline='alphabetic';
+    g.fillText('SwimIQ 練習用カメラ', pad, y); y+=58;
+    g.fillStyle='#bfe3ff'; g.font='700 26px sans-serif';
+    g.fillText(new Date().toLocaleString('ja-JP'), pad, y); y+=54;
+    // まとめの3つ
+    var cw=(W-pad*2-24)/3;
+    var vals=[[total?ptFmt(total):'--','ぜんぶの時間'],
+              [avg?avg.toFixed(2):'--','平均ST 秒'],
+              [avg?(60/avg).toFixed(1):'--','平均SR']];
+    for(var i=0;i<3;i++){
+      var x=pad+i*(cw+12);
+      g.fillStyle='rgba(255,255,255,.08)';
+      g.fillRect(x,y,cw,116);
+      g.strokeStyle='rgba(255,255,255,.26)'; g.lineWidth=2; g.strokeRect(x,y,cw,116);
+      g.fillStyle='#ffffff'; g.font='900 46px sans-serif'; g.textAlign='center';
+      g.fillText(vals[i][0], x+cw/2, y+62);
+      g.fillStyle='#bfe3ff'; g.font='800 22px sans-serif';
+      g.fillText(vals[i][1], x+cw/2, y+96);
+      g.textAlign='left';
+    }
+    y+=170;
+    function table(title, head, rows){
+      g.fillStyle='#bfe3ff'; g.font='900 28px sans-serif';
+      g.fillText(title, pad, y); y+=40;
+      var all=[head].concat(rows);
+      for(var r=0;r<all.length;r++){
+        g.fillStyle = r===0 ? 'rgba(255,255,255,.13)' : 'rgba(255,255,255,.05)';
+        g.fillRect(pad,y,W-pad*2,row);
+        g.strokeStyle='rgba(255,255,255,.16)'; g.lineWidth=1.5;
+        g.strokeRect(pad,y,W-pad*2,row);
+        g.fillStyle = r===0 ? '#bfe3ff' : '#ffffff';
+        g.font = r===0 ? '800 24px sans-serif' : '900 34px sans-serif';
+        g.fillText(all[r][0], pad+22, y+row*0.66);
+        g.fillText(all[r][1], pad+130, y+row*0.66);
+        g.textAlign='right';
+        g.fillStyle = r===0 ? '#bfe3ff' : '#9fd8ff';
+        if(r!==0) g.font='800 28px sans-serif';
+        g.fillText(all[r][2], W-pad-22, y+row*0.66);
+        g.textAlign='left';
+        y+=row;
+      }
+      y+=44;
+    }
+    var lapRows=[];
+    for(var k=0;k<ptLaps.length;k++){
+      var pv=k>0?ptLaps[k-1]:0;
+      lapRows.push([String(k+1), ptFmt(ptLaps[k]), '+'+ptFmt(ptLaps[k]-pv)]);
+    }
+    if(!lapRows.length) lapRows=[['-','ラップは ありません','']];
+    table('ラップ', ['＃','とおった時間','まえから'], lapRows);
+    var stRows=[];
+    for(var m=0;m<sts.length;m++) stRows.push([String(m+1), sts[m].toFixed(2), 'SR '+(60/sts[m]).toFixed(1)]);
+    if(!stRows.length) stRows=[['-','かきは 数えていません','']];
+    table('かき（ST と SR）', ['＃','ST 秒','SR'], stRows);
+    return new Promise(function(res){
+      try{ cv.toBlob(function(b){ res(b); }, 'image/jpeg', 0.94); }catch(e){ res(null); }
+    });
+  }
+  $('ptSaveImg').onclick=function(){
+    ptSheetImage().then(function(blob){
+      if(!blob){ toast('画像に できませんでした'); return; }
+      var name='swimiq_result_'+Date.now()+'.jpg';
+      var f=null;
+      try{ f=new File([blob], name, {type:'image/jpeg'}); }catch(e){}
+      ptShareFile(f, blob, name, '「画像を保存」を えらぶと カメラロールに 入ります');
+    });
+  };
   $('ptCopy').onclick=function(){
     var tx=ptSheetText();
     if(navigator.clipboard && navigator.clipboard.writeText){

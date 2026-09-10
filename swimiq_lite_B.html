@@ -38,6 +38,7 @@ button, select, input{ font-family:inherit; }
 #home{ padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px); }
 .logo{ font-size:30px; font-weight:900; letter-spacing:.04em; }
 .logo span{ color:var(--yellow); }
+.logo .lite{ color:#0a2a48; }
 .lite{ display:inline-block; margin-left:8px; padding:2px 9px; border-radius:8px;
   background:var(--yellow); color:#0a2a48; font-size:12px; font-weight:900; letter-spacing:.06em;
   vertical-align:middle; }
@@ -59,13 +60,15 @@ button, select, input{ font-family:inherit; }
 .screen{ position:fixed; inset:0; z-index:40; background:var(--navy2);
   display:flex; flex-direction:column; }
 .sTop{ display:flex; align-items:center; gap:8px;
-  padding:calc(env(safe-area-inset-top) + 8px) 12px 8px; }
+  padding:calc(env(safe-area-inset-top) + 8px)
+          calc(env(safe-area-inset-right) + 12px) 8px
+          calc(env(safe-area-inset-left) + 12px); }
 .sTop .tt{ flex:1; min-width:0; font-size:14px; font-weight:900;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .sTop .btn{ min-height:36px; padding:5px 12px; font-size:12px; flex:0 0 auto; }
 #vwrap, #dvwrap{ position:relative; width:100%; background:#04121f; flex:0 0 auto; }
 #vwrap video, #dvwrap video{ display:block; width:100%; max-height:44vh; background:#04121f; }
-#hud{ position:absolute; left:8px; top:8px;
+#hud{ position:absolute; left:calc(env(safe-area-inset-left) + 8px); top:8px;
   background:rgba(6,24,42,.72); border:1.5px solid var(--line); border-radius:10px;
   padding:2px 11px; font-size:24px; font-weight:900; font-variant-numeric:tabular-nums;
   text-shadow:var(--shadow); }
@@ -76,7 +79,9 @@ button, select, input{ font-family:inherit; }
 #tapZone span{ background:rgba(251,191,36,.92); color:#0a2a48; border-radius:999px;
   padding:4px 13px; font-size:12px; font-weight:900; }
 .sBody{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  padding:10px 12px calc(env(safe-area-inset-bottom) + 16px);
+  padding:10px calc(env(safe-area-inset-right) + 12px)
+          calc(env(safe-area-inset-bottom) + 16px)
+          calc(env(safe-area-inset-left) + 12px);
   display:flex; flex-direction:column; gap:10px; }
 .sk{ width:100%; margin:0; accent-color:var(--yellow); }
 .seg{ display:flex; gap:3px; padding:3px; border-radius:12px;
@@ -106,6 +111,25 @@ button, select, input{ font-family:inherit; }
 .sr3 b{ display:block; font-size:21px; font-weight:900; font-variant-numeric:tabular-nums; }
 .sr3 span{ display:block; font-size:9px; font-weight:800; color:#bfe3ff; }
 .hint{ font-size:11px; font-weight:700; color:#bfe3ff; margin:0; line-height:1.6; }
+
+/* ===== たて向きの けっか一覧 =====
+   よこ向きの ときだけ 分析の ボタンを 出します。
+   たてに すると、いま とった 数字が 大きな 表になります。 */
+#anaSheet{ display:none; position:absolute; inset:0; z-index:12;
+  background:var(--navy2); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 20px); }
+@media (orientation:portrait){ #ana:not(.anyway) #anaSheet{ display:block; } }
+#anaSheet h2{ margin:0; font-size:21px; font-weight:900; }
+#anaSheet .lead{ margin:2px 0 16px; font-size:13px; font-weight:800; color:var(--yellow); }
+#anaSheet .gl{ margin:20px 0 7px; }
+#anaSheet .row{ margin-top:12px; }
+.turn{ display:flex; align-items:center; gap:10px; margin:0 0 16px;
+  background:rgba(251,191,36,.14); border:1.5px solid var(--yellow);
+  border-radius:13px; padding:9px 12px; }
+.turn .ic{ flex:0 0 auto; width:34px; height:21px; border:3px solid var(--yellow);
+  border-radius:5px; animation:turnA 2.2s ease-in-out infinite; }
+@keyframes turnA{ 0%,18%{ transform:rotate(90deg); } 55%,100%{ transform:rotate(0deg); } }
+.turn span{ font-size:12px; font-weight:800; line-height:1.5; }
 
 /* ===== おしらせ ===== */
 #toast{ position:fixed; left:50%; transform:translateX(-50%); z-index:90;
@@ -271,6 +295,29 @@ button, select, input{ font-family:inherit; }
 
     <div class="tbl" id="tbl"></div>
     <p class="hint">スタートの ところで「スタート」、かべに ついた ところで「つうか」を おします。おす前に 0.25倍に すると 合わせやすいです。</p>
+  </div>
+
+  <!-- たて向きに したときの けっか一覧（分析画面の うえに かぶさります） -->
+  <div id="anaSheet">
+    <h2>けっかの 一覧</h2>
+    <p class="lead">よこ向きに すると 分析の ボタンが 出ます</p>
+    <div class="turn">
+      <span class="ic"></span>
+      <span>スタートや つうかを おすときは、スマホを よこ向きに してください。ボタンが 大きくなって おしやすく なります。</span>
+    </div>
+    <div class="sr3" id="asStat"></div>
+    <div class="gl">通過タイム</div>
+    <div class="tbl" id="asTbl"></div>
+    <div class="gl">かき（ST と SR）</div>
+    <div class="tbl" id="asStr"></div>
+    <div class="row">
+      <button class="btn g" id="asSave" type="button">ほぞん</button>
+      <button class="btn" id="asCopy" type="button">文字で コピー</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="asBack" type="button">ホームに もどる</button>
+      <button class="btn" id="asAnyway" type="button">このまま たてで つづける</button>
+    </div>
   </div>
 </div>
 
@@ -462,7 +509,7 @@ function paintNext(){
 }
 function paintTbl(){
   var b=$('tbl'); b.innerHTML='';
-  if(!aSplits.length){ b.innerHTML='<div class="none">まだ ありません</div>'; paintNext(); return; }
+  if(!aSplits.length){ b.innerHTML='<div class="none">まだ ありません</div>'; paintNext(); paintSheet(); return; }
   b.innerHTML='<div class="tr hd"><span class="c1">きょり</span>'+
               '<span class="c2">とおった時間</span><span class="c3">その くぎり</span></div>';
   for(var i=0;i<aSplits.length;i++){
@@ -473,7 +520,7 @@ function paintTbl(){
                 '<span class="c3">+'+fmt(aSplits[i].t-prev)+'</span>';
     b.appendChild(r);
   }
-  paintNext();
+  paintNext(); paintSheet();
 }
 function strokeStats(){
   var out=[];
@@ -483,15 +530,71 @@ function strokeStats(){
   }
   return out;
 }
+/* たて向きの けっか一覧を かきなおす */
+function paintSheet(){
+  var sts=strokeStats(), i, sum=0;
+  for(i=0;i<sts.length;i++) sum+=sts[i];
+  var avg = sts.length? sum/sts.length : 0;
+  var last = aSplits.length ? aSplits[aSplits.length-1] : null;
+  $('asStat').innerHTML =
+    '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m タイム':'タイム')+'</span></div>'+
+    '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>平均ST 秒</span></div>'+
+    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>平均SR</span></div>';
+  var b=$('asTbl'); b.innerHTML='';
+  if(!aSplits.length){ b.innerHTML='<div class="none">よこ向きに して「スタート」「つうか」を おすと 出ます</div>'; }
+  else{
+    b.innerHTML='<div class="tr hd"><span class="c1">きょり</span>'+
+                '<span class="c2">とおった時間</span><span class="c3">その くぎり</span></div>';
+    for(i=0;i<aSplits.length;i++){
+      var pv=i>0?aSplits[i-1].t:0;
+      var r=document.createElement('div'); r.className='tr';
+      r.innerHTML='<span class="c1">'+aSplits[i].d+'m</span>'+
+                  '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
+                  '<span class="c3">+'+fmt(aSplits[i].t-pv)+'</span>';
+      b.appendChild(r);
+    }
+  }
+  var t=$('asStr'); t.innerHTML='';
+  if(!sts.length){ t.innerHTML='<div class="none">「かきを 数える」で 出ます</div>'; }
+  else{
+    t.innerHTML='<div class="tr hd"><span class="c1">＃</span>'+
+                '<span class="c2">ST 秒</span><span class="c3">SR</span></div>';
+    for(i=0;i<sts.length;i++){
+      var r2=document.createElement('div'); r2.className='tr';
+      r2.innerHTML='<span class="c1">'+(i+1)+'</span>'+
+                   '<span class="c2">'+sts[i].toFixed(2)+'</span>'+
+                   '<span class="c3">'+(60/sts[i]).toFixed(1)+'</span>';
+      t.appendChild(r2);
+    }
+  }
+}
+function anaText(){
+  var L=['SwimIQ LITE B', $('anaTitle').textContent,
+         $('pool').value+'mプール　'+$('dist').value+'m', ''];
+  if(aSplits.length){
+    L.push('[通過タイム]');
+    for(var i=0;i<aSplits.length;i++){
+      var pv=i>0?aSplits[i-1].t:0;
+      L.push(aSplits[i].d+'m  '+fmt(aSplits[i].t)+'  (+'+fmt(aSplits[i].t-pv)+')');
+    }
+  }
+  var sts=strokeStats();
+  if(sts.length){
+    L.push('', '[かき ST/SR]');
+    for(var k=0;k<sts.length;k++) L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  SR'+(60/sts[k]).toFixed(1));
+  }
+  return L.join('\n');
+}
 function paintSR(){
   var sts=strokeStats();
   $('oN').textContent = aStrokes.length;
-  if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; return; }
+  if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintSheet(); return; }
   var use=sts.slice(-6), sum=0;
   for(var i=0;i<use.length;i++) sum+=use[i];
   var st=sum/use.length;
   $('oST').textContent = st.toFixed(2);
   $('oSR').textContent = (60/st).toFixed(1);
+  paintSheet();
 }
 
 function openAna(blob, opt){
@@ -508,7 +611,7 @@ function openAna(blob, opt){
   $('anaTitle').textContent = opt.title || 'あたらしい 分析';
   if(opt.pool) $('pool').value=String(opt.pool);
   if(opt.dist) $('dist').value=String(opt.dist);
-  $('ana').classList.remove('stroke');
+  $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
   spdMark(1); $('bPlay').textContent='▶ 再生';
   paintTbl(); paintSR();
@@ -641,6 +744,24 @@ $('anaSave').onclick=function(){
     $('v').pause(); show('home'); paintList();
   }).catch(function(){ toast('ほぞんできませんでした'); });
 };
+
+/* --- たて向きの けっか一覧の ボタン --- */
+$('asSave').onclick=function(){ $('anaSave').click(); };
+$('asBack').onclick=function(){ $('anaBack').click(); };
+$('asAnyway').onclick=function(){
+  $('ana').classList.add('anyway');
+  toast('たてのままでも つかえます。よこにすると 大きく なります');
+};
+$('asCopy').onclick=function(){
+  var tx=anaText();
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(tx).then(function(){ toast('コピーしました'); },
+      function(){ toast('コピーできませんでした'); });
+  }else toast('この端末では コピーできません');
+};
+window.addEventListener('resize', function(){
+  if(!$('ana').classList.contains('hide')) paintSheet();
+});
 
 /* ================================================================
    ほぞんした きろくの 一覧と くわしく

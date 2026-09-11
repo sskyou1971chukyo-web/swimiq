@@ -54,46 +54,15 @@ button, select, input{ font-family:inherit; }
 .card .ci{ min-width:0; flex:1; }
 .card .ct{ font-size:15px; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .card .cd{ font-size:11px; font-weight:700; color:#bfe3ff; }
+.ver{ margin:26px 0 0; text-align:center; font-size:11px; font-weight:700; opacity:.5; }
 .empty{ text-align:center; font-size:12px; font-weight:700; opacity:.6; padding:22px 0; }
 
-/* ===== 分析・くわしく（動画つきの画面） ===== */
-.screen{ position:fixed; inset:0; z-index:40; background:var(--navy2);
-  display:flex; flex-direction:column; }
-.sTop{ display:flex; align-items:center; gap:8px;
-  padding:calc(env(safe-area-inset-top) + 8px)
-          calc(env(safe-area-inset-right) + 12px) 8px
-          calc(env(safe-area-inset-left) + 12px); }
-.sTop .tt{ flex:1; min-width:0; font-size:14px; font-weight:900;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.sTop .btn{ min-height:36px; padding:5px 12px; font-size:12px; flex:0 0 auto; }
-#vwrap, #dvwrap{ position:relative; width:100%; background:#04121f; flex:0 0 auto; }
-#vwrap video, #dvwrap video{ display:block; width:100%; max-height:44vh; background:#04121f; }
-#hud{ position:absolute; left:calc(env(safe-area-inset-left) + 8px); top:8px;
-  background:rgba(6,24,42,.72); border:1.5px solid var(--line); border-radius:10px;
-  padding:2px 11px; font-size:24px; font-weight:900; font-variant-numeric:tabular-nums;
-  text-shadow:var(--shadow); }
-#tapZone{ position:absolute; inset:0; border:0; background:transparent; cursor:pointer;
-  display:none; align-items:flex-end; justify-content:center; padding-bottom:10px; }
-#ana.stroke #tapZone{ display:flex; }
-#ana.stroke #vwrap{ box-shadow:inset 0 0 0 3px var(--yellow); }
-#tapZone span{ background:rgba(251,191,36,.92); color:#0a2a48; border-radius:999px;
-  padding:4px 13px; font-size:12px; font-weight:900; }
-.sBody{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
-  padding:10px calc(env(safe-area-inset-right) + 12px)
-          calc(env(safe-area-inset-bottom) + 16px)
-          calc(env(safe-area-inset-left) + 12px);
-  display:flex; flex-direction:column; gap:10px; }
-.sk{ width:100%; margin:0; accent-color:var(--yellow); }
+/* ===== 表・数字・切りかえ（ぜんぶの 画面で つかう） ===== */
 .seg{ display:flex; gap:3px; padding:3px; border-radius:12px;
   background:rgba(255,255,255,.08); border:1.5px solid var(--line); }
 .seg button{ flex:1; min-height:32px; border:0; border-radius:9px; cursor:pointer;
   background:transparent; color:#fff; font-size:12px; font-weight:800; }
 .seg button[aria-pressed="true"]{ background:var(--blue); color:#04121f; }
-.fld{ display:flex; gap:8px; align-items:center; }
-.fld label{ font-size:11px; font-weight:800; color:#bfe3ff; flex:0 0 auto; }
-.fld select{ flex:1; min-height:40px; padding:6px 10px; border-radius:11px;
-  border:1.5px solid var(--line); background:rgba(255,255,255,.1); color:#fff;
-  font-size:15px; font-weight:800; }
 .tbl{ background:rgba(255,255,255,.06); border:1.5px solid var(--line);
   border-radius:12px; overflow:hidden; }
 .tr{ display:flex; align-items:baseline; gap:8px; padding:6px 11px; }
@@ -111,6 +80,154 @@ button, select, input{ font-family:inherit; }
 .sr3 b{ display:block; font-size:21px; font-weight:900; font-variant-numeric:tabular-nums; }
 .sr3 span{ display:block; font-size:9px; font-weight:800; color:#bfe3ff; }
 .hint{ font-size:11px; font-weight:700; color:#bfe3ff; margin:0; line-height:1.6; }
+
+/* ===== 分析・くわしく（動画を 画面いっぱいに ひろげる） =====
+   動画は 画面ぜんたいに しきます。ボタンは 動画の 上に うかせて おきます。
+   よこ向きで 両手で もったとき、
+     左の おやゆび … 再生・コマおくり・はやさ（左下）
+     右の おやゆび … スタート・つうか などの きろくボタン（右下）
+     まんなか下   … 動画の いち（スライダー）
+     左上         … けっかの 表（たたむと 動画が 見える）
+     上のはし     … もどる・ほぞん・けす（あまり おさない ので 指から はなす）
+   という ならびです。 */
+.screen{ position:fixed; inset:0; z-index:40; background:#000; overflow:hidden; }
+.screen > video{ position:absolute; inset:0; width:100%; height:100%;
+  object-fit:contain; background:#000; }
+.tapL{ position:absolute; inset:0; z-index:1; margin:0; padding:0; border:0;
+  background:transparent; cursor:pointer; touch-action:manipulation; }
+#ana.stroke::after{ content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
+  box-shadow:inset 0 0 0 4px var(--yellow); }
+
+/* うかせる ボタンの おき場（グリッド） */
+.ov{ position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; gap:8px;
+  padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px)
+          calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
+  grid-template-columns:clamp(226px,28vw,268px) minmax(0,1fr) auto;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"top top top" "info mid act" "ply seek act"; }
+.ov > *{ pointer-events:auto; }
+.ov > .mid{ pointer-events:none; }
+
+/* うすい くもりガラス */
+.glass{ background:rgba(4,16,30,.74); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:1.5px solid rgba(255,255,255,.24); }
+.ob{ min-height:44px; padding:6px 12px; border-radius:12px; cursor:pointer; color:#fff;
+  background:rgba(4,16,30,.74); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border:1.5px solid rgba(255,255,255,.28); font-size:14px; font-weight:800; line-height:1.2;
+  touch-action:manipulation; }
+.ob small{ display:block; font-size:10px; font-weight:700; opacity:.8; margin-top:1px; }
+.ob:active:not(:disabled){ transform:scale(.96); }
+.ob:disabled{ opacity:.35; }
+.ob.g{ border-color:var(--green); background:rgba(22,101,52,.78); }
+.ob.y{ border-color:var(--yellow); background:rgba(120,85,10,.78); }
+.ob.b{ border-color:var(--blue); background:rgba(7,89,133,.8); }
+.ob.r{ border-color:var(--red); background:rgba(127,29,29,.78); }
+.ob.y[aria-pressed="true"]{ background:var(--yellow); color:#0a2a48; }
+
+/* 上のはし */
+.oTop{ grid-area:top; display:flex; align-items:center; gap:8px; min-width:0; }
+.oTop .ob{ min-height:40px; font-size:13px; flex:0 0 auto; }
+.oTop .tt{ flex:1 1 auto; min-width:0; font-size:15px; font-weight:900;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 1px 4px #000; }
+.osel{ flex:0 0 auto; min-height:40px; padding:4px 26px 4px 10px; border-radius:12px; cursor:pointer;
+  -webkit-appearance:none; appearance:none; color:#fff; font-size:14px; font-weight:800;
+  background:rgba(4,16,30,.74) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23bfe3ff'/%3E%3C/svg%3E") no-repeat right 9px center;
+  border:1.5px solid rgba(255,255,255,.28); }
+
+/* 左上：タイムと けっか */
+.oInfo{ grid-area:info; align-self:start; min-height:0; max-height:100%;
+  display:flex; flex-direction:column; gap:6px; }
+body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
+.hudT{ align-self:flex-start; padding:0 12px; border-radius:12px; font-size:28px; font-weight:900;
+  line-height:1.35; font-variant-numeric:tabular-nums; text-shadow:var(--shadow); }
+.box{ border-radius:14px; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.boxH{ display:flex; align-items:center; gap:6px; padding:3px 4px 3px 10px; flex:0 0 auto; }
+.boxH b{ font-size:12px; font-weight:900; color:#bfe3ff; }
+.boxH .sum{ flex:1; min-width:0; font-size:12px; font-weight:800; font-variant-numeric:tabular-nums;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.boxH button{ flex:0 0 auto; min-height:34px; padding:2px 10px; border-radius:9px; cursor:pointer;
+  border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.1); color:#fff;
+  font-size:11px; font-weight:800; }
+.boxB{ min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+  padding:2px 6px 6px; display:flex; flex-direction:column; gap:6px; }
+.boxB > *{ flex:0 0 auto; }
+.box.fold .boxB{ display:none; }
+.box .sr3{ gap:4px; }
+.box .sr3 div{ padding:3px 2px; border-radius:9px; }
+.box .sr3 b{ font-size:17px; }
+.box .tbl{ border-radius:9px; }
+.box .tr{ padding:4px 8px; gap:6px; }
+.box .tr .c1{ flex:0 0 42px; font-size:11px; }
+.box .tr .c2{ font-size:15px; }
+.box .tr .c3{ flex:0 0 64px; font-size:12px; }
+.box .tr.hd span{ font-size:10px; }
+.box .none{ padding:8px 6px; font-size:11px; opacity:.8; line-height:1.5; }
+.clr{ align-self:flex-end; min-height:32px; padding:2px 12px; border-radius:9px; cursor:pointer;
+  border:1px solid rgba(239,68,68,.6); background:transparent; color:#fca5a5;
+  font-size:11px; font-weight:800; }
+
+/* まんなか：かきを数える ときの おしらせ */
+.mid{ grid-area:mid; display:flex; justify-content:center; align-items:flex-start; min-width:0; }
+.strokeTag{ display:none; padding:5px 14px; border-radius:999px; background:rgba(251,191,36,.94);
+  color:#0a2a48; font-size:13px; font-weight:900; text-align:center; }
+#ana.stroke .strokeTag{ display:block; }
+
+/* 左下：再生の そうさ */
+.oPly{ grid-area:ply; align-self:end; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.oPly .seg{ padding:3px; border-radius:12px; background:rgba(4,16,30,.74);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,.24); }
+.oPly .seg button{ min-height:34px; font-size:12px; }
+.pr3{ display:grid; grid-template-columns:1fr 1.35fr 1fr; gap:6px; }
+.pr3 .ob{ min-height:52px; padding:4px 6px; font-size:13px; }
+.pr3 .pl{ font-size:15px; border-color:rgba(255,255,255,.55); }
+
+/* まんなか下：動画の いち */
+.oSeek{ grid-area:seek; align-self:end; display:flex; align-items:center; gap:10px; min-width:0;
+  padding:6px 14px; border-radius:14px; }
+.oSeek .pos{ flex:0 0 auto; font-size:12px; font-weight:800; color:#bfe3ff; font-variant-numeric:tabular-nums; }
+.sk{ -webkit-appearance:none; appearance:none; flex:1; min-width:0; width:100%; height:34px; margin:0;
+  background:transparent; cursor:pointer; --p:0%; touch-action:none; }
+.sk::-webkit-slider-runnable-track{ height:6px; border-radius:3px;
+  background:linear-gradient(90deg,var(--yellow) var(--p),rgba(255,255,255,.3) var(--p)); }
+.sk::-webkit-slider-thumb{ -webkit-appearance:none; width:26px; height:26px; margin-top:-10px;
+  border-radius:50%; background:var(--yellow); border:3px solid #04121f; box-shadow:0 1px 5px rgba(0,0,0,.6); }
+.sk::-moz-range-track{ height:6px; border-radius:3px; background:rgba(255,255,255,.3); }
+.sk::-moz-range-progress{ height:6px; border-radius:3px; background:var(--yellow); }
+.sk::-moz-range-thumb{ width:22px; height:22px; border-radius:50%; background:var(--yellow); border:3px solid #04121f; }
+
+/* 右：きろくの ボタン（右の おやゆびで おす） */
+.oAct{ grid-area:act; width:142px; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; }
+.oAct .ob{ min-height:46px; padding:6px 8px; font-size:13.5px; white-space:nowrap; }
+.circle{ align-self:center; flex:0 0 auto; width:104px; height:104px; min-height:0 !important;
+  margin-top:4px; padding:0; border-radius:50%; border-width:3px !important;
+  font-size:19px !important; box-shadow:0 3px 12px rgba(0,0,0,.55); }
+.circle small{ font-size:13px; font-weight:900; opacity:1; margin-top:2px; color:#bfe3ff; }
+.circle:active:not(:disabled){ transform:scale(.93); }
+
+@media (orientation:landscape) and (max-height:360px){
+  .circle{ width:88px; height:88px; font-size:17px !important; }
+  .oAct .ob{ min-height:42px; }
+  .pr3 .ob{ min-height:46px; }
+}
+
+/* たて向き（くわしく／たてで つづける ときだけ）
+   動画は まんなか。上の くろい ところに けっか、下の くろい ところに ボタン。 */
+@media (orientation:portrait){
+  .ov{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto auto;
+    grid-template-areas:"top" "info" "mid" "seek" "ply" "act"; }
+  .oInfo{ max-height:30vh; }
+  .ov.ana .oTop .tt{ visibility:hidden; }
+  .oAct{ width:auto; display:grid; gap:6px; }
+  .oAct .ob{ min-height:44px; font-size:13px; }
+  .oAct .ob small{ display:none; }
+  .ov.ana .oAct{ grid-template-columns:1fr 1fr auto; }
+  #bStart{ grid-column:1; grid-row:1; }
+  #bStroke{ grid-column:2; grid-row:1; }
+  #bUndo{ grid-column:1 / span 2; grid-row:2; }
+  .oAct .circle{ grid-column:3; grid-row:1 / span 2; width:94px; height:94px; margin:0; font-size:17px !important; }
+  .oAct .circle small{ display:block; }
+  .ov.det .oAct{ grid-template-columns:1fr 1fr; }
+}
 
 /* ===== たて向きの けっか一覧 =====
    よこ向きの ときだけ 分析の ボタンを 出します。
@@ -240,61 +357,67 @@ button, select, input{ font-family:inherit; }
 
   <div class="gl">ほぞんした きろく</div>
   <div id="list"></div>
+  <p class="ver">ver 2026.09.11.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
 <div id="ana" class="screen hide">
-  <div class="sTop">
-    <button class="btn" id="anaBack" type="button">もどる</button>
-    <span class="tt" id="anaTitle">分析</span>
-    <button class="btn g" id="anaSave" type="button">ほぞん</button>
-  </div>
-  <div id="vwrap">
-    <video id="v" playsinline preload="auto"></video>
-    <div id="hud">0.00</div>
-    <button id="tapZone" type="button"><span>画面を おして かきを 数える</span></button>
-  </div>
-  <div class="sBody">
-    <input class="sk" id="sk" type="range" min="0" max="1000" value="0">
-    <div class="seg" id="spd">
-      <button data-r="0.25" type="button">0.25倍</button>
-      <button data-r="0.5" type="button">0.5倍</button>
-      <button data-r="0.75" type="button">0.75倍</button>
-      <button data-r="1" type="button" aria-pressed="true">ふつう</button>
-    </div>
-    <div class="row">
-      <button class="btn" id="bPlay" type="button">▶ 再生</button>
-      <button class="btn" id="bBack1" type="button">◀ コマ</button>
-      <button class="btn" id="bFwd1" type="button">コマ ▶</button>
-    </div>
-
-    <div class="fld">
-      <label>プール</label>
-      <select id="pool"><option value="25">25m</option><option value="50" selected>50m</option></select>
-      <label>きょり</label>
-      <select id="dist">
-        <option>50</option><option selected>100</option><option>200</option><option>400</option>
+  <video id="v" playsinline preload="auto"></video>
+  <button id="tapZone" class="tapL" type="button" aria-label="動画。おすと 再生と ていし。かきを 数える ときは おすたびに 1かき"></button>
+  <div class="ov ana">
+    <div class="oTop">
+      <button class="ob" id="anaBack" type="button">もどる</button>
+      <span class="tt" id="anaTitle">分析</span>
+      <select class="osel" id="pool" aria-label="プール"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
+      <select class="osel" id="dist" aria-label="きょり">
+        <option value="50">50m</option><option value="100" selected>100m</option><option value="200">200m</option><option value="400">400m</option>
       </select>
+      <button class="ob g" id="anaSave" type="button">ほぞん</button>
     </div>
 
-    <div class="row">
-      <button class="btn g" id="bStart" type="button">スタート<small>とび込んだ ところ</small></button>
-      <button class="btn b" id="bPass" type="button" disabled>つうか<small><span id="nextD">-</span></small></button>
-    </div>
-    <div class="row">
-      <button class="btn" id="bUndo" type="button">1つ もどす</button>
-      <button class="btn y" id="bStroke" type="button" aria-pressed="false">かきを 数える</button>
-      <button class="btn r" id="bClear" type="button">ぜんぶ 消す</button>
+    <div class="oInfo">
+      <div class="hudT glass" id="hud">0.00</div>
+      <div class="box glass" id="anaBox">
+        <div class="boxH"><b>けっか</b><span class="sum" id="anaSum"></span><button type="button" data-fold="anaBox">たたむ</button></div>
+        <div class="boxB">
+          <div class="sr3">
+            <div><b id="oSR">--</b><span>SR かき/分</span></div>
+            <div><b id="oST">--</b><span>ST 秒/かき</span></div>
+            <div><b id="oN">0</b><span>かき数</span></div>
+          </div>
+          <div class="tbl" id="tbl"></div>
+          <button class="clr" id="bClear" type="button">ぜんぶ 消す</button>
+        </div>
+      </div>
     </div>
 
-    <div class="sr3">
-      <div><b id="oSR">--</b><span>SR かき/分</span></div>
-      <div><b id="oST">--</b><span>ST 秒/かき</span></div>
-      <div><b id="oN">0</b><span>かき数</span></div>
+    <div class="mid"><span class="strokeTag">画面の どこでも おすと 1かき</span></div>
+
+    <div class="oPly">
+      <div class="seg" id="spd">
+        <button data-r="0.25" type="button">0.25</button>
+        <button data-r="0.5" type="button">0.5</button>
+        <button data-r="0.75" type="button">0.75</button>
+        <button data-r="1" type="button" aria-pressed="true">ふつう</button>
+      </div>
+      <div class="pr3">
+        <button class="ob" id="bBack1" type="button" aria-label="1コマ もどる">◀ コマ</button>
+        <button class="ob pl" id="bPlay" type="button">▶ 再生</button>
+        <button class="ob" id="bFwd1" type="button" aria-label="1コマ すすむ">コマ ▶</button>
+      </div>
     </div>
 
-    <div class="tbl" id="tbl"></div>
-    <p class="hint">スタートの ところで「スタート」、かべに ついた ところで「つうか」を おします。おす前に 0.25倍に すると 合わせやすいです。</p>
+    <div class="oSeek glass">
+      <span class="pos" id="pos">0:00</span>
+      <input class="sk" id="sk" type="range" min="0" max="1000" value="0" aria-label="動画の いち">
+    </div>
+
+    <div class="oAct">
+      <button class="ob g" id="bStart" type="button">スタート<small>とび込んだ ところ</small></button>
+      <button class="ob y" id="bStroke" type="button" aria-pressed="false">かきを 数える</button>
+      <button class="ob" id="bUndo" type="button">1つ もどす</button>
+      <button class="ob b circle" id="bPass" type="button" disabled>つうか<small id="nextD">-</small></button>
+    </div>
   </div>
 
   <!-- たて向きに したときの けっか一覧（分析画面の うえに かぶさります） -->
@@ -323,22 +446,52 @@ button, select, input{ font-family:inherit; }
 
 <!-- ================= くわしく ================= -->
 <div id="detail" class="screen hide">
-  <div class="sTop">
-    <button class="btn" id="dBack" type="button">もどる</button>
-    <span class="tt" id="dTitle">きろく</span>
-    <button class="btn r" id="dDel" type="button">けす</button>
-  </div>
-  <div id="dvwrap"><video id="dv" playsinline controls></video></div>
-  <div class="sBody">
-    <div class="sr3" id="dStat"></div>
-    <div class="tbl" id="dTbl"></div>
-    <div class="row">
-      <button class="btn" id="dImg" type="button">📸 画像で ほぞん</button>
-      <button class="btn" id="dVid" type="button">🎬 動画を ほぞん</button>
+  <video id="dv" playsinline preload="auto"></video>
+  <button id="dTap" class="tapL" type="button" aria-label="動画。おすと 再生と ていし"></button>
+  <div class="ov det">
+    <div class="oTop">
+      <button class="ob" id="dBack" type="button">もどる</button>
+      <span class="tt" id="dTitle">きろく</span>
+      <button class="ob r" id="dDel" type="button">けす</button>
     </div>
-    <div class="row">
-      <button class="btn" id="dCopy" type="button">文字で コピー</button>
-      <button class="btn b" id="dAgain" type="button">分析を やりなおす</button>
+
+    <div class="oInfo">
+      <div class="hudT glass" id="dhud">0.00</div>
+      <div class="box glass" id="dBox">
+        <div class="boxH"><b>けっか</b><span class="sum" id="dSum"></span><button type="button" data-fold="dBox">たたむ</button></div>
+        <div class="boxB">
+          <div class="sr3" id="dStat"></div>
+          <div class="tbl" id="dTbl"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mid"></div>
+
+    <div class="oPly">
+      <div class="seg" id="dspd">
+        <button data-r="0.25" type="button">0.25</button>
+        <button data-r="0.5" type="button">0.5</button>
+        <button data-r="0.75" type="button">0.75</button>
+        <button data-r="1" type="button" aria-pressed="true">ふつう</button>
+      </div>
+      <div class="pr3">
+        <button class="ob" id="dBack1" type="button" aria-label="1コマ もどる">◀ コマ</button>
+        <button class="ob pl" id="dPlay" type="button">▶ 再生</button>
+        <button class="ob" id="dFwd1" type="button" aria-label="1コマ すすむ">コマ ▶</button>
+      </div>
+    </div>
+
+    <div class="oSeek glass">
+      <span class="pos" id="dpos">0:00</span>
+      <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" aria-label="動画の いち">
+    </div>
+
+    <div class="oAct">
+      <button class="ob b" id="dAgain" type="button">分析を やりなおす</button>
+      <button class="ob" id="dCopy" type="button">文字で コピー</button>
+      <button class="ob" id="dVid" type="button">動画を ほぞん</button>
+      <button class="ob g" id="dImg" type="button">画像で ほぞん</button>
     </div>
   </div>
 </div>
@@ -479,6 +632,7 @@ function shareFile(blob,name,type,hint){
 /* ===== 画面の きりかえ ===== */
 function show(id){
   ['home','ana','detail'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
+  document.body.classList.toggle('vs', id!=='home');
   window.scrollTo(0,0);
 }
 
@@ -505,11 +659,13 @@ function paintNext(){
   var n=nextD();
   $('nextD').textContent = n!==null ? (n+'m') : 'おわり';
   $('bPass').disabled = (aT0===null) || (n===null);
-  $('bStart').textContent = (aT0===null) ? 'スタート' : 'スタート やりなおし';
+  $('bStart').innerHTML = (aT0===null) ? 'スタート<small>とび込んだ ところ</small>' : 'スタート<small>やりなおす</small>';
 }
 function paintTbl(){
   var b=$('tbl'); b.innerHTML='';
-  if(!aSplits.length){ b.innerHTML='<div class="none">まだ ありません</div>'; paintNext(); paintSheet(); return; }
+  var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
+  $('anaSum').textContent = lastS ? (lastS.d+'m '+fmt(lastS.t)) : '';
+  if(!aSplits.length){ b.innerHTML='<div class="none">とび込んだ ところで「スタート」、かべに ついたら「つうか」を おします。0.25に すると 合わせやすいです。</div>'; paintNext(); paintSheet(); return; }
   b.innerHTML='<div class="tr hd"><span class="c1">きょり</span>'+
               '<span class="c2">とおった時間</span><span class="c3">その くぎり</span></div>';
   for(var i=0;i<aSplits.length;i++){
@@ -613,7 +769,8 @@ function openAna(blob, opt){
   if(opt.dist) $('dist').value=String(opt.dist);
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
-  spdMark(1); $('bPlay').textContent='▶ 再生';
+  spdMark($('spd'),1); $('bPlay').textContent='▶ 再生';
+  $('anaBox').classList.remove('fold'); foldLabel($('anaBox'));
   paintTbl(); paintSR();
   show('ana');
   if(aPreLaps && aPreLaps.length && !aSplits.length){
@@ -630,36 +787,71 @@ function openAna(blob, opt){
   }
 }
 
-/* --- 動画のそうさ --- */
-(function(){
-  var v=$('v'), sk=$('sk'), drag=false;
-  v.addEventListener('timeupdate', function(){
-    $('hud').textContent = (aT0===null) ? fmt(v.currentTime) : fmt(v.currentTime-aT0);
-    if(!drag && v.duration) sk.value = Math.round(v.currentTime/v.duration*1000);
-  });
-  v.addEventListener('ended', function(){ $('bPlay').textContent='▶ 再生'; });
+/* --- 動画のそうさ（分析と くわしくで おなじ しくみ） --- */
+function mmss(t){ if(!t||isNaN(t)) t=0; return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); }
+function spdMark(box,r){
+  var b=box.querySelectorAll('button');
+  for(var i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', Number(b[i].dataset.r)===Number(r)?'true':'false');
+}
+function bindPlayer(o){
+  var v=$(o.v), sk=$(o.sk), pl=$(o.play), drag=false;
+  function lab(){ pl.textContent = v.paused ? '▶ 再生' : '⏸ とめる'; }
+  function paint(){
+    var t0=o.t0();
+    $(o.hud).textContent = (t0===null || t0===undefined) ? fmt(v.currentTime) : fmt(v.currentTime-t0);
+    $(o.pos).textContent = mmss(v.currentTime)+' / '+mmss(v.duration);
+    if(!drag && v.duration){ sk.value=Math.round(v.currentTime/v.duration*1000); }
+    sk.style.setProperty('--p', (sk.value/10)+'%');
+  }
+  v.addEventListener('timeupdate', paint);
+  v.addEventListener('loadedmetadata', paint);
+  v.addEventListener('seeked', paint);
+  v.addEventListener('play', lab); v.addEventListener('pause', lab); v.addEventListener('ended', lab);
   sk.addEventListener('input', function(){
     drag=true;
     if(v.duration) v.currentTime = v.duration*(sk.value/1000);
+    sk.style.setProperty('--p', (sk.value/10)+'%');
   });
   sk.addEventListener('change', function(){ drag=false; });
-  $('bPlay').onclick=function(){
-    if(v.paused){ v.play().catch(function(){}); this.textContent='⏸ とめる'; }
-    else{ v.pause(); this.textContent='▶ 再生'; }
+  pl.onclick=function(){ if(v.paused) v.play().catch(function(){}); else v.pause(); };
+  $(o.back).onclick=function(){ v.pause(); v.currentTime=Math.max(0,v.currentTime-1/30); };
+  $(o.fwd).onclick=function(){ v.pause(); v.currentTime=Math.min(v.duration||0,v.currentTime+1/30); };
+  var b=$(o.spd).querySelectorAll('button');
+  for(var i=0;i<b.length;i++) b[i].onclick=function(){
+    var r=Number(this.dataset.r); v.playbackRate=r; spdMark($(o.spd),r);
   };
-  $('bBack1').onclick=function(){ v.pause(); $('bPlay').textContent='▶ 再生'; v.currentTime=Math.max(0,v.currentTime-1/30); };
-  $('bFwd1').onclick=function(){ v.pause(); $('bPlay').textContent='▶ 再生'; v.currentTime=Math.min(v.duration||0,v.currentTime+1/30); };
-})();
-function spdMark(r){
-  var b=$('spd').querySelectorAll('button');
-  for(var i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', Number(b[i].dataset.r)===Number(r)?'true':'false');
+  return { paint:paint, toggle:function(){ pl.onclick(); } };
+}
+var anaP = bindPlayer({ v:'v', sk:'sk', play:'bPlay', back:'bBack1', fwd:'bFwd1', spd:'spd',
+                        hud:'hud', pos:'pos', t0:function(){ return aT0; } });
+var detP = bindPlayer({ v:'dv', sk:'dsk', play:'dPlay', back:'dBack1', fwd:'dFwd1', spd:'dspd',
+                        hud:'dhud', pos:'dpos', t0:function(){ return dRec ? dRec.t0 : null; } });
+
+/* けっかの 表を たたむ／ひらく */
+function foldLabel(box){
+  var bt=box.querySelector('[data-fold]');
+  if(bt) bt.textContent = box.classList.contains('fold') ? 'ひらく' : 'たたむ';
 }
 (function(){
-  var b=$('spd').querySelectorAll('button');
-  for(var i=0;i<b.length;i++) b[i].onclick=function(){
-    var r=Number(this.dataset.r); $('v').playbackRate=r; spdMark(r);
+  var bs=document.querySelectorAll('[data-fold]');
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
+    var box=$(this.getAttribute('data-fold'));
+    box.classList.toggle('fold'); foldLabel(box);
   };
 })();
+
+/* パソコンで ためすとき：スペース＝再生、←→＝コマ */
+document.addEventListener('keydown', function(e){
+  var tg=e.target && e.target.tagName;
+  if(tg==='INPUT' || tg==='SELECT' || tg==='TEXTAREA') return;
+  if(e.key===' ' && tg==='BUTTON') return;   // ボタンの 上では スペースは ボタンが うけとる
+  var onA=!$('ana').classList.contains('hide'), onD=!$('detail').classList.contains('hide');
+  if(!onA && !onD) return;
+  var P = onA ? {pl:'bPlay',bk:'bBack1',fw:'bFwd1'} : {pl:'dPlay',bk:'dBack1',fw:'dFwd1'};
+  if(e.key===' '){ e.preventDefault(); $(P.pl).click(); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); $(P.bk).click(); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); $(P.fw).click(); }
+});
 
 /* --- きろくを とる --- */
 $('bStart').onclick=function(){
@@ -690,10 +882,26 @@ $('bStroke').onclick=function(){
     toast('かきに あわせて 画面を おしてください');
   }
 };
-$('tapZone').onclick=function(){
+/* 動画の 上を おしたとき
+   かきを 数える とき … おした しゅんかんに 1かき（指を はなすまで またない）
+   それいがい       … 再生と ていしの きりかえ */
+var pdCounted=false;
+function addStroke(){
   aStrokes.push($('v').currentTime); paintSR();
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+}
+$('tapZone').addEventListener('pointerdown', function(){
+  if(!$('ana').classList.contains('stroke')) return;
+  pdCounted=true; addStroke();
+});
+$('tapZone').onclick=function(){
+  if($('ana').classList.contains('stroke')){
+    if(pdCounted){ pdCounted=false; return; }
+    addStroke(); return;           // 読み上げソフトや キーボードで おしたとき
+  }
+  $('bPlay').click();
 };
+$('dTap').onclick=function(){ $('dPlay').click(); };
 $('pool').onchange=function(){ paintTbl(); };
 $('dist').onchange=function(){ paintTbl(); };
 $('anaBack').onclick=function(){
@@ -790,14 +998,16 @@ function openDetail(id){
     dRec=r;
     if(dURL){ try{ URL.revokeObjectURL(dURL); }catch(e){} }
     dURL=URL.createObjectURL(r.video);
-    $('dv').src=dURL;
+    $('dv').src=dURL; $('dv').playbackRate=1; spdMark($('dspd'),1);
     $('dTitle').textContent=r.title;
+    $('dBox').classList.remove('fold'); foldLabel($('dBox'));
     // まとめ
     var sts=[], i;
     for(i=1;i<(r.strokes||[]).length;i++){ var st=r.strokes[i]-r.strokes[i-1]; if(st>0.05) sts.push(st); }
     var sum=0; for(i=0;i<sts.length;i++) sum+=sts[i];
     var avg = sts.length? sum/sts.length : 0;
     var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
+    $('dSum').textContent = last ? (last.d+'m '+fmt(last.t)) : '';
     $('dStat').innerHTML =
       '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m タイム':'タイム')+'</span></div>'+
       '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>平均ST 秒</span></div>'+
@@ -817,7 +1027,7 @@ function openDetail(id){
         b.appendChild(tr);
       }
     }
-    show('detail');
+    show('detail'); detP.paint();
   });
 }
 $('dBack').onclick=function(){ $('dv').pause(); show('home'); paintList(); };

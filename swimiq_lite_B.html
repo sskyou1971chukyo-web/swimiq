@@ -248,6 +248,61 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 @keyframes turnA{ 0%,18%{ transform:rotate(90deg); } 55%,100%{ transform:rotate(0deg); } }
 .turn span{ font-size:12px; font-weight:800; line-height:1.5; }
 
+/* ===== さつえい中の ラップを えらぶ まど ===== */
+#lapPick{ position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+  background:rgba(2,10,20,.82); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px); }
+#lapPick.hide{ display:none; }
+.lpWrap{ width:100%; max-width:620px; max-height:100%; display:grid; gap:8px;
+  grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+  grid-template-areas:"h" "lead" "sel" "hd" "list" "ctl";
+  padding:12px; border-radius:18px; background:#0c2036; border:2px solid rgba(255,255,255,.25);
+  box-shadow:0 18px 50px rgba(0,0,0,.6); }
+.lpWrap h3{ grid-area:h; } .lpWrap .lead{ grid-area:lead; }
+.lpSel{ grid-area:sel; } .lpHd{ grid-area:hd; } #lpList{ grid-area:list; }
+.lpCtl{ grid-area:ctl; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; }
+@media (orientation:landscape) and (max-height:560px){
+  .lpWrap{ max-width:920px; grid-template-columns:minmax(0,1fr) 236px;
+    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"h lead" "hd sel" "list ctl"; }
+  .lpWrap h3{ font-size:17px; }
+  .lpBtns{ flex-direction:column-reverse; }
+  .lpBtns .btn{ min-height:46px; }
+}
+.lpWrap h3{ margin:0; font-size:19px; font-weight:900; }
+.lpWrap .lead{ margin:0; font-size:12px; font-weight:700; color:#bfe3ff; line-height:1.6; }
+.lpSel{ display:flex; gap:8px; flex:0 0 auto; }
+.lpSel select{ flex:1; min-height:44px; padding:6px 28px 6px 10px; border-radius:12px; cursor:pointer;
+  -webkit-appearance:none; appearance:none; color:#fff; font-size:15px; font-weight:800;
+  background:rgba(255,255,255,.1) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23bfe3ff'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border:1.5px solid var(--line); }
+#lpList{ min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+  border:1.5px solid var(--line); border-radius:12px; background:rgba(255,255,255,.05); }
+.lpRow{ display:flex; align-items:center; gap:8px; padding:6px 8px; }
+.lpRow + .lpRow{ border-top:1px solid rgba(255,255,255,.14); }
+.lpRow.off{ opacity:.45; }
+.lpRow input[type=checkbox]{ flex:0 0 auto; width:26px; height:26px; accent-color:#fbbf24; margin:0; }
+.lpRow .n{ flex:0 0 26px; font-size:12px; font-weight:800; color:#bfe3ff; }
+.lpRow .t{ flex:1; min-width:0; font-size:19px; font-weight:900; font-variant-numeric:tabular-nums; }
+.lpRow .g{ flex:0 0 60px; text-align:right; font-size:12px; font-weight:800; color:#9fd8ff;
+  font-variant-numeric:tabular-nums; }
+.lpRow select{ flex:0 0 104px; min-height:40px; padding:4px 24px 4px 8px; border-radius:10px; cursor:pointer;
+  -webkit-appearance:none; appearance:none; color:#fff; font-size:14px; font-weight:800;
+  background:rgba(255,255,255,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23bfe3ff'/%3E%3C/svg%3E") no-repeat right 8px center;
+  border:1.5px solid var(--line); }
+.lpHd{ display:flex; align-items:center; gap:8px; padding:5px 8px; background:rgba(255,255,255,.1);
+  font-size:10px; font-weight:800; color:#bfe3ff; }
+.lpHd .n{ flex:0 0 60px; } .lpHd .t{ flex:1; } .lpHd .d{ flex:0 0 104px; }
+.lpBtns{ display:flex; gap:8px; flex:0 0 auto; }
+.lpBtns .btn{ flex:1; min-height:50px; font-size:15px; }
+.lpSub{ display:flex; gap:8px; flex:0 0 auto; }
+.lpSub button{ flex:1; min-height:38px; border-radius:10px; cursor:pointer; color:#bfe3ff;
+  background:rgba(255,255,255,.08); border:1.5px solid var(--line); font-size:12px; font-weight:800; }
+#lapOpen{ align-self:flex-start; min-height:34px; padding:2px 12px; border-radius:9px; cursor:pointer;
+  border:1px solid rgba(56,189,248,.6); background:rgba(7,89,133,.4); color:#bfe3ff;
+  font-size:11px; font-weight:800; }
+#lapOpen.hide{ display:none; }
+
 /* ===== おしらせ ===== */
 #toast{ position:fixed; left:50%; transform:translateX(-50%); z-index:90;
   bottom:calc(env(safe-area-inset-bottom) + 22px);
@@ -366,7 +421,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.12.1</p>
+  <p class="ver">ver 2026.09.13.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -394,6 +449,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
             <div><b id="oST">--</b><span data-t="stU"></span></div>
             <div><b id="oN">0</b><span data-t="nStr"></span></div>
           </div>
+          <button id="lapOpen" class="hide" type="button" data-t="lpOpen"></button>
           <div class="tbl" id="tbl"></div>
           <button class="clr" id="bClear" type="button" data-t="clearAll"></button>
         </div>
@@ -541,6 +597,31 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
   </div>
 </div>
 
+<div id="lapPick" class="hide" role="dialog" aria-modal="true" aria-labelledby="lpH">
+  <div class="lpWrap">
+    <h3 id="lpH" data-t="lpH"></h3>
+    <p class="lead" id="lpLead"></p>
+    <div class="lpSel">
+      <select id="lpPool" aria-label="プール"><option value="25">25mプール</option><option value="50">50mプール</option></select>
+      <select id="lpDist" aria-label="きょり">
+        <option value="50">50m</option><option value="100">100m</option><option value="200">200m</option><option value="400">400m</option>
+      </select>
+    </div>
+    <div class="lpHd"><span class="n" data-t="lpNo"></span><span class="t" data-t="lpTime"></span><span class="d" data-t="lpDist"></span></div>
+    <div id="lpList"></div>
+    <div class="lpCtl">
+      <div class="lpSub">
+        <button type="button" id="lpAll" data-t="lpAll"></button>
+        <button type="button" id="lpClr" data-t="lpClr"></button>
+      </div>
+      <div class="lpBtns">
+        <button class="btn" type="button" id="lpCancel" data-t="lpSkip"></button>
+        <button class="btn g" type="button" id="lpOk" data-t="lpUse"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -674,7 +755,24 @@ var W={
  cS1:['ふえや 大きな かけ声で うごきます。','笛や大きな号令に反応します。'],
  cS2:['こえでも うごきます。しずかな 場所むきです。','声にも反応します。静かな場所向きです。'],
  lapNone:['まだ ありません','まだありません'],
- lapMove:['おして うごかせます','ドラッグで移動できます']
+ lapMove:['おして うごかせます','ドラッグで移動できます'],
+
+ lpH:['さつえい中の ラップ','撮影中のラップ'],
+ lpLead:['つかう ラップに チェックを 入れて、きょりを えらんでください。','使用するラップにチェックを入れ、距離を選んでください。'],
+ lpNo:['＃','＃'],
+ lpTime:['スタートからの タイム','スタートからのタイム'],
+ lpDist:['きょり','距離'],
+ lpUse:['この ないようで 入れる','この内容で取り込む'],
+ lpSkip:['入れない','取り込まない'],
+ lpAll:['ぜんぶ チェック','すべて選択'],
+ lpClr:['チェックを はずす','選択を解除'],
+ lpOpen:['さつえい中の ラップ','撮影中のラップ'],
+ lpUnused:['つかわない','使わない'],
+ lpNoCheck:['チェックが 1つも ありません','チェックがありません'],
+ lpDup:['おなじ きょりが 2つ あります','同じ距離が重複しています'],
+ lpOrder:['タイムの 順と きょりの 順が ちがいます','タイムの順と距離の順が一致しません'],
+ lpCount1:['ラップは ','ラップは '],
+ lpCount2:['こ あります','件あります']
 };
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
@@ -697,6 +795,7 @@ function applyWords(){
     $('bPlay').textContent=T($('v').paused?'play':'pause');
     $('dPlay').textContent=T($('dv').paused?'play':'pause');
     if($('anaTitle').dataset.neu==='1') $('anaTitle').textContent=T('anaNew');
+    if(!$('lapPick').classList.contains('hide')) lapPickOpen();
   }catch(e){}
 }
 
@@ -939,19 +1038,71 @@ function openAna(blob, opt){
   $('anaBox').classList.remove('fold'); foldLabel($('anaBox'));
   paintTbl(); paintSR();
   show('ana');
-  if(aPreLaps && aPreLaps.length && !aSplits.length){
-    setTimeout(function(){
-      if(confirm(T('askLap1')+aPreLaps.length+T('askLap2'))){
-        var p=pts();
-        aSplits=[];
-        for(var i=0;i<aPreLaps.length && i<p.length;i++) aSplits.push({ d:p[i], t:aPreLaps[i]/1000 });
-        aT0 = aPreT0;
-        paintTbl(); anaP.paint();
-        toast(T('msgLapIn'));
-      }
-    }, 400);
-  }
+  $('lapOpen').classList.toggle('hide', !(aPreLaps && aPreLaps.length));
+  if(aPreLaps && aPreLaps.length && !aSplits.length) setTimeout(lapPickOpen, 400);
 }
+
+/* ===== さつえい中の ラップを 一覧で 見て、きょりを チェックする ===== */
+function lapRows(){
+  var L=$('lpList'); L.innerHTML='';
+  var p=[], pool=Number($('lpPool').value), dist=Number($('lpDist').value), d;
+  for(d=pool; d<=dist; d+=pool) p.push(d);
+  if(!p.length) p.push(dist);
+  for(var i=0;i<aPreLaps.length;i++){
+    var pv = i>0 ? aPreLaps[i-1] : 0;
+    var row=document.createElement('div'); row.className='lpRow';
+    var id='lpc'+i;
+    var opt='<option value="">'+T('lpUnused')+'</option>';
+    for(var k=0;k<p.length;k++) opt+='<option value="'+p[k]+'"'+((k===i)?' selected':'')+'>'+p[k]+'m</option>';
+    row.innerHTML='<input type="checkbox" id="'+id+'" data-i="'+i+'"'+((i<p.length)?' checked':'')+'>'+
+      '<span class="n">'+(i+1)+'</span>'+
+      '<label class="t" for="'+id+'">'+cFmt(aPreLaps[i])+'</label>'+
+      '<span class="g">+'+cFmt(aPreLaps[i]-pv)+'</span>'+
+      '<select aria-label="'+(i+1)+' '+T('lpDist')+'">'+opt+'</select>';
+    if(i>=p.length) row.className='lpRow off';
+    L.appendChild(row);
+  }
+  var cbs=L.querySelectorAll('input[type=checkbox]');
+  for(var j=0;j<cbs.length;j++) cbs[j].onchange=function(){
+    this.parentNode.className = this.checked ? 'lpRow' : 'lpRow off';
+  };
+}
+function lapPickOpen(){
+  if(!aPreLaps || !aPreLaps.length) return;
+  $('lpPool').value=$('pool').value; $('lpDist').value=$('dist').value;
+  $('lpLead').textContent = T('lpCount1')+aPreLaps.length+T('lpCount2')+'。'+T('lpLead');
+  lapRows();
+  $('lapPick').classList.remove('hide');
+}
+function lapPickClose(){ $('lapPick').classList.add('hide'); }
+$('lpPool').onchange=lapRows; $('lpDist').onchange=lapRows;
+$('lpAll').onclick=function(){
+  var c=$('lpList').querySelectorAll('input[type=checkbox]');
+  for(var i=0;i<c.length;i++){ c[i].checked=true; c[i].parentNode.className='lpRow'; }
+};
+$('lpClr').onclick=function(){
+  var c=$('lpList').querySelectorAll('input[type=checkbox]');
+  for(var i=0;i<c.length;i++){ c[i].checked=false; c[i].parentNode.className='lpRow off'; }
+};
+$('lpCancel').onclick=lapPickClose;
+$('lpOk').onclick=function(){
+  var rows=$('lpList').querySelectorAll('.lpRow'), out=[], seen={}, i;
+  for(i=0;i<rows.length;i++){
+    var cb=rows[i].querySelector('input'), se=rows[i].querySelector('select');
+    if(!cb.checked || !se.value) continue;
+    if(seen[se.value]){ toast(T('lpDup')); return; }
+    seen[se.value]=1;
+    out.push({ d:Number(se.value), t:aPreLaps[Number(cb.dataset.i)]/1000 });
+  }
+  if(!out.length){ toast(T('lpNoCheck')); return; }
+  out.sort(function(a,b){ return a.t-b.t; });
+  for(i=1;i<out.length;i++) if(out[i].d<=out[i-1].d){ toast(T('lpOrder')); return; }
+  $('pool').value=$('lpPool').value; $('dist').value=$('lpDist').value;
+  aSplits=out; aT0=aPreT0;
+  paintTbl(); anaP.paint(); lapPickClose();
+  toast(T('msgLapIn'));
+};
+$('lapOpen').onclick=lapPickOpen;
 
 /* --- 動画のそうさ（分析と くわしくで おなじ しくみ） --- */
 function mmss(t){ if(!t||isNaN(t)) t=0; return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); }

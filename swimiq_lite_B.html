@@ -141,11 +141,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 .hudT{ align-self:flex-start; padding:0 12px; border-radius:12px; font-size:28px; font-weight:900;
   line-height:1.35; font-variant-numeric:tabular-nums; text-shadow:var(--shadow); }
 .box{ border-radius:14px; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
-.boxH{ display:flex; align-items:center; gap:6px; padding:3px 4px 3px 10px; flex:0 0 auto; }
+.boxH{ display:flex; align-items:center; gap:6px; padding:2px 4px 2px 10px; flex:0 0 auto; line-height:1.3; }
 .boxH b{ font-size:12px; font-weight:900; color:#bfe3ff; }
 .boxH .sum{ flex:1; min-width:0; font-size:12px; font-weight:800; font-variant-numeric:tabular-nums;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.boxH button{ flex:0 0 auto; min-height:34px; padding:2px 10px; border-radius:9px; cursor:pointer;
+.boxH button{ flex:0 0 auto; min-height:32px; padding:2px 10px; border-radius:9px; cursor:pointer;
   border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.1); color:#fff;
   font-size:11px; font-weight:800; }
 .boxB{ min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
@@ -153,10 +153,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 .boxB > *{ flex:0 0 auto; }
 .box.fold .boxB{ display:none; }
 .box .sr3{ gap:4px; }
-.box .sr3 div{ padding:3px 2px; border-radius:9px; }
+.box .sr3 div{ padding:3px 2px; border-radius:9px; line-height:1.25; }
 .box .sr3 b{ font-size:17px; }
 .box .tbl{ border-radius:9px; }
-.box .tr{ padding:4px 8px; gap:6px; }
+.box .tr{ padding:4px 8px; gap:6px; line-height:1.35; }
 .box .tr .c1{ flex:0 0 42px; font-size:11px; }
 .box .tr .c2{ font-size:15px; }
 .box .tr .c3{ flex:0 0 64px; font-size:12px; }
@@ -296,9 +296,12 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
   background:rgba(6,24,42,.86); border:1.5px solid var(--line); border-radius:12px;
   overflow:hidden; touch-action:none; }
 #camGrip{ display:flex; align-items:center; gap:5px; cursor:grab; padding:5px 8px;
-  background:rgba(255,255,255,.1); font-size:11px; font-weight:900; color:#bfe3ff; }
+  background:rgba(255,255,255,.1); font-size:11px; font-weight:900; color:#bfe3ff;
+  white-space:nowrap; }
+#camGrip b{ flex:0 0 auto; }
 #camGrip:active{ background:rgba(251,191,36,.3); }
-#camGrip small{ margin-left:auto; font-size:9px; font-weight:700; opacity:.7; }
+#camGrip small{ margin-left:auto; font-size:9px; font-weight:700; opacity:.7;
+  overflow:hidden; text-overflow:ellipsis; }
 #camLaps{ overflow-y:auto; touch-action:pan-y; display:flex; flex-direction:column; gap:4px; padding:5px; }
 #camLaps .lp{ display:flex; align-items:baseline; gap:6px; padding:3px 7px;
   background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2);
@@ -346,100 +349,106 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 <!-- ================= ホーム ================= -->
 <div id="home">
   <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span></div>
-  <p class="sub">練習用カメラで とる → そのまま 分析 → 携帯に ほぞん</p>
+  <p class="sub" data-t="sub"></p>
 
-  <div class="gl">とる</div>
+  <div class="gl" data-t="glTake"></div>
   <div class="take">
-    <button class="btn g big" id="openCam" type="button">練習用カメラで とる<small>とりおわると そのまま 分析に すすみます</small></button>
-    <label class="btn b" for="fPick">とってある 動画を ひらく<small>あとから 分析したいとき</small></label>
-    <p class="hint">画面の 上に ストップウォッチが 出ます。ふえの音でも スタートできます。ストップを おすと、その動画で そのまま 分析が はじまります。</p>
+    <button class="btn g big" id="openCam" type="button" data-t="openCam"></button>
+    <label class="btn b" for="fPick" data-t="pick"></label>
+    <p class="hint" data-t="homeHint"></p>
   </div>
 
-  <div class="gl">ほぞんした きろく</div>
+  <div class="gl" data-t="glWord"></div>
+  <div class="seg" id="wordSeg">
+    <button type="button" data-w="k" data-t="wKid"></button>
+    <button type="button" data-w="a" data-t="wAdult"></button>
+  </div>
+
+  <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.11.1</p>
+  <p class="ver">ver 2026.09.12.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
 <div id="ana" class="screen hide">
   <video id="v" playsinline preload="auto"></video>
-  <button id="tapZone" class="tapL" type="button" aria-label="動画。おすと 再生と ていし。かきを 数える ときは おすたびに 1かき"></button>
+  <button id="tapZone" class="tapL" type="button" data-ta="tapAna"></button>
   <div class="ov ana">
     <div class="oTop">
-      <button class="ob" id="anaBack" type="button">もどる</button>
+      <button class="ob" id="anaBack" type="button" data-t="back"></button>
       <span class="tt" id="anaTitle">分析</span>
-      <select class="osel" id="pool" aria-label="プール"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
-      <select class="osel" id="dist" aria-label="きょり">
+      <select class="osel" id="pool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
+      <select class="osel" id="dist" data-ta="distLbl">
         <option value="50">50m</option><option value="100" selected>100m</option><option value="200">200m</option><option value="400">400m</option>
       </select>
-      <button class="ob g" id="anaSave" type="button">ほぞん</button>
+      <button class="ob g" id="anaSave" type="button" data-t="save"></button>
     </div>
 
     <div class="oInfo">
       <div class="hudT glass" id="hud">0.00</div>
       <div class="box glass" id="anaBox">
-        <div class="boxH"><b>けっか</b><span class="sum" id="anaSum"></span><button type="button" data-fold="anaBox">たたむ</button></div>
+        <div class="boxH"><b data-t="result"></b><span class="sum" id="anaSum"></span><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3">
-            <div><b id="oSR">--</b><span>SR かき/分</span></div>
-            <div><b id="oST">--</b><span>ST 秒/かき</span></div>
-            <div><b id="oN">0</b><span>かき数</span></div>
+            <div><b id="oSR">--</b><span data-t="srU"></span></div>
+            <div><b id="oST">--</b><span data-t="stU"></span></div>
+            <div><b id="oN">0</b><span data-t="nStr"></span></div>
           </div>
           <div class="tbl" id="tbl"></div>
-          <button class="clr" id="bClear" type="button">ぜんぶ 消す</button>
+          <button class="clr" id="bClear" type="button" data-t="clearAll"></button>
         </div>
       </div>
     </div>
 
-    <div class="mid"><span class="strokeTag">画面の どこでも おすと 1かき</span></div>
+    <div class="mid"><span class="strokeTag" data-t="strokeTag"></span></div>
 
     <div class="oPly">
       <div class="seg" id="spd">
         <button data-r="0.25" type="button">0.25</button>
         <button data-r="0.5" type="button">0.5</button>
         <button data-r="0.75" type="button">0.75</button>
-        <button data-r="1" type="button" aria-pressed="true">ふつう</button>
+        <button data-r="1" type="button" aria-pressed="true" data-t="normal"></button>
       </div>
       <div class="pr3">
-        <button class="ob" id="bBack1" type="button" aria-label="1コマ もどる">◀ コマ</button>
-        <button class="ob pl" id="bPlay" type="button">▶ 再生</button>
-        <button class="ob" id="bFwd1" type="button" aria-label="1コマ すすむ">コマ ▶</button>
+        <button class="ob" id="bBack1" type="button" data-t="frBack"></button>
+        <button class="ob pl" id="bPlay" type="button" data-t="play"></button>
+        <button class="ob" id="bFwd1" type="button" data-t="frFwd"></button>
       </div>
     </div>
 
     <div class="oSeek glass">
       <span class="pos" id="pos">0:00</span>
-      <input class="sk" id="sk" type="range" min="0" max="1000" value="0" aria-label="動画の いち">
+      <input class="sk" id="sk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
     </div>
 
     <div class="oAct">
-      <button class="ob g" id="bStart" type="button">スタート<small>とび込んだ ところ</small></button>
-      <button class="ob y" id="bStroke" type="button" aria-pressed="false">かきを 数える</button>
-      <button class="ob" id="bUndo" type="button">1つ もどす</button>
-      <button class="ob b circle" id="bPass" type="button" disabled>つうか<small id="nextD">-</small></button>
+      <button class="ob g" id="bStart" type="button" data-t="bStart"></button>
+      <button class="ob y" id="bStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
+      <button class="ob" id="bUndo" type="button" data-t="bUndo"></button>
+      <button class="ob b circle" id="bPass" type="button" disabled><span data-t="pass"></span><small id="nextD">-</small></button>
     </div>
   </div>
 
   <!-- たて向きに したときの けっか一覧（分析画面の うえに かぶさります） -->
   <div id="anaSheet">
-    <h2>けっかの 一覧</h2>
-    <p class="lead">よこ向きに すると 分析の ボタンが 出ます</p>
+    <h2 data-t="sheetH"></h2>
+    <p class="lead" data-t="sheetLead"></p>
     <div class="turn">
       <span class="ic"></span>
-      <span>スタートや つうかを おすときは、スマホを よこ向きに してください。ボタンが 大きくなって おしやすく なります。</span>
+      <span data-t="sheetRot"></span>
     </div>
     <div class="sr3" id="asStat"></div>
-    <div class="gl">通過タイム</div>
+    <div class="gl" data-t="glSplit"></div>
     <div class="tbl" id="asTbl"></div>
-    <div class="gl">かき（ST と SR）</div>
+    <div class="gl" data-t="glStroke"></div>
     <div class="tbl" id="asStr"></div>
     <div class="row">
-      <button class="btn g" id="asSave" type="button">ほぞん</button>
-      <button class="btn" id="asCopy" type="button">文字で コピー</button>
+      <button class="btn g" id="asSave" type="button" data-t="save"></button>
+      <button class="btn" id="asCopy" type="button" data-t="copyTx"></button>
     </div>
     <div class="row">
-      <button class="btn" id="asBack" type="button">ホームに もどる</button>
-      <button class="btn" id="asAnyway" type="button">このまま たてで つづける</button>
+      <button class="btn" id="asBack" type="button" data-t="toHome"></button>
+      <button class="btn" id="asAnyway" type="button" data-t="keepPort"></button>
     </div>
   </div>
 </div>
@@ -447,18 +456,18 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 <!-- ================= くわしく ================= -->
 <div id="detail" class="screen hide">
   <video id="dv" playsinline preload="auto"></video>
-  <button id="dTap" class="tapL" type="button" aria-label="動画。おすと 再生と ていし"></button>
+  <button id="dTap" class="tapL" type="button" data-ta="tapDet"></button>
   <div class="ov det">
     <div class="oTop">
-      <button class="ob" id="dBack" type="button">もどる</button>
-      <span class="tt" id="dTitle">きろく</span>
-      <button class="ob r" id="dDel" type="button">けす</button>
+      <button class="ob" id="dBack" type="button" data-t="back"></button>
+      <span class="tt" id="dTitle"></span>
+      <button class="ob r" id="dDel" type="button" data-t="del"></button>
     </div>
 
     <div class="oInfo">
       <div class="hudT glass" id="dhud">0.00</div>
       <div class="box glass" id="dBox">
-        <div class="boxH"><b>けっか</b><span class="sum" id="dSum"></span><button type="button" data-fold="dBox">たたむ</button></div>
+        <div class="boxH"><b data-t="result"></b><span class="sum" id="dSum"></span><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
@@ -473,62 +482,62 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
         <button data-r="0.25" type="button">0.25</button>
         <button data-r="0.5" type="button">0.5</button>
         <button data-r="0.75" type="button">0.75</button>
-        <button data-r="1" type="button" aria-pressed="true">ふつう</button>
+        <button data-r="1" type="button" aria-pressed="true" data-t="normal"></button>
       </div>
       <div class="pr3">
-        <button class="ob" id="dBack1" type="button" aria-label="1コマ もどる">◀ コマ</button>
-        <button class="ob pl" id="dPlay" type="button">▶ 再生</button>
-        <button class="ob" id="dFwd1" type="button" aria-label="1コマ すすむ">コマ ▶</button>
+        <button class="ob" id="dBack1" type="button" data-t="frBack"></button>
+        <button class="ob pl" id="dPlay" type="button" data-t="play"></button>
+        <button class="ob" id="dFwd1" type="button" data-t="frFwd"></button>
       </div>
     </div>
 
     <div class="oSeek glass">
       <span class="pos" id="dpos">0:00</span>
-      <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" aria-label="動画の いち">
+      <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
     </div>
 
     <div class="oAct">
-      <button class="ob b" id="dAgain" type="button">分析を やりなおす</button>
-      <button class="ob" id="dCopy" type="button">文字で コピー</button>
-      <button class="ob" id="dVid" type="button">動画を ほぞん</button>
-      <button class="ob g" id="dImg" type="button">画像で ほぞん</button>
+      <button class="ob b" id="dAgain" type="button" data-t="again"></button>
+      <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
+      <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
+      <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
     </div>
   </div>
 </div>
 
 <input type="file" id="fPick" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 
-<div id="cam" class="hide" role="dialog" aria-modal="true" aria-label="練習用カメラ">
+<div id="cam" class="hide" role="dialog" aria-modal="true" data-ta="camLbl">
   <video id="cv" playsinline autoplay muted></video>
   <div id="camTop">
     <span id="camDot" class="hide"></span>
     <span id="camRecT">0:00</span>
     <span class="sp"></span>
-    <button id="cFlip" type="button">前後を かえる</button>
-    <button id="cClose" type="button">とじる</button>
+    <button id="cFlip" type="button" data-t="cFlip"></button>
+    <button id="cClose" type="button" data-t="cClose"></button>
   </div>
   <div id="camBig"><span id="camTime">0.00</span></div>
   <div id="camLv"><i id="camLvB"></i></div>
   <p id="camMsg" class="hide"></p>
   <div id="camLapBox">
-    <div id="camGrip"><span>⠿</span>ラップ<small>おして うごかせます</small></div>
+    <div id="camGrip"><span>⠿</span><b data-t="cLap"></b><small data-t="lapMove"></small></div>
     <div id="camLaps"></div>
   </div>
   <div id="camCtrl">
-    <button id="cStart" type="button">スタート</button>
-    <button id="cStop" type="button" disabled>ストップ</button>
-    <button id="cLap" type="button" disabled>ラップ</button>
-    <button id="cReset" type="button">リセット</button>
+    <button id="cStart" type="button" data-t="cStart"></button>
+    <button id="cStop" type="button" disabled data-t="cStop"></button>
+    <button id="cLap" type="button" disabled data-t="cLap"></button>
+    <button id="cReset" type="button" data-t="cReset"></button>
   </div>
   <div id="camOpt">
-    <button id="cSound" type="button" aria-pressed="true">音でスタート オン</button>
-    <button id="cSens" type="button">音 ふつう</button>
+    <button id="cSound" type="button" aria-pressed="true" data-t="sndOn"></button>
+    <button id="cSens" type="button" data-t="sens1"></button>
   </div>
   <div id="camRot">
     <div class="ic"></div>
-    <b>スマホを よこにして<br>さつえい してください</b>
-    <p>よこ向きにすると コースぜんたいが 入り、ボタンも 右がわに ならびます。</p>
-    <button id="cAnyway" type="button">このまま つかう</button>
+    <b data-t="rotB"></b>
+    <p data-t="rotP"></p>
+    <button id="cAnyway" type="button" data-t="rotOk"></button>
   </div>
 </div>
 
@@ -538,6 +547,159 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 (function(){
 'use strict';
 var $=function(id){ return document.getElementById(id); };
+
+/* ===== ことばづかい（2とおり） =====
+   k = 小学生用（ひらがな多め・教育漢字）
+   a = 中学生以上（常用漢字・ふつうの日本語）
+   ホームの「ことばづかい」で 切りかえます。 */
+var W={
+ sub:['練習用カメラで とる → そのまま 分析 → 携帯に ほぞん','練習用カメラで撮影 → そのまま分析 → 端末に保存'],
+ glTake:['とる','撮影'],
+ glRec:['ほぞんした きろく','保存した記録'],
+ openCam:['練習用カメラで とる<small>とりおわると そのまま 分析に すすみます</small>','練習用カメラで撮影<small>撮影を終えると そのまま分析に進みます</small>'],
+ pick:['とってある 動画を ひらく<small>あとから 分析したいとき</small>','保存済みの動画を開く<small>後から分析する場合</small>'],
+ homeHint:['画面の 上に ストップウォッチが 出ます。ふえの音でも スタートできます。ストップを おすと、その動画で そのまま 分析が はじまります。','画面上部にストップウォッチを表示します。笛の音でも自動で計測を開始できます。ストップを押すと、その動画でそのまま分析が始まります。'],
+ glWord:['ことばづかい','表示の言葉'],
+ wKid:['小学生用','小学生用'],
+ wAdult:['中学生以上','中学生以上'],
+ noRec:['まだ ありません','記録はありません'],
+
+ back:['もどる','戻る'],
+ save:['ほぞん','保存'],
+ del:['けす','削除'],
+ anaNew:['あたらしい 分析','新しい分析'],
+ result:['けっか','結果'],
+ fold:['たたむ','折りたたむ'],
+ open:['ひらく','開く'],
+ poolLbl:['プール','プール'],
+ distLbl:['きょり','距離'],
+ srU:['SR かき/分','SR 回/分'],
+ stU:['ST 秒/かき','ST 秒/回'],
+ nStr:['かき数','ストローク数'],
+ clearAll:['ぜんぶ 消す','すべて消去'],
+ strokeTag:['画面の どこでも おすと 1かき','画面のどこを押しても1ストローク'],
+ normal:['ふつう','等速'],
+ frBack:['◀ コマ','◀ コマ'],
+ frFwd:['コマ ▶','コマ ▶'],
+ play:['▶ 再生','▶ 再生'],
+ pause:['⏸ とめる','⏸ 停止'],
+ bStart:['スタート<small>とび込んだ ところ</small>','スタート<small>飛び込みの位置</small>'],
+ bStartRe:['スタート<small>やりなおす</small>','スタート<small>やり直す</small>'],
+ bStroke:['かきを 数える','ストロークを数える'],
+ bUndo:['1つ もどす','1つ戻す'],
+ pass:['つうか','通過'],
+ goal:['おわり','ゴール'],
+ seekLbl:['動画の いち','再生位置'],
+ tapAna:['動画。おすと 再生と ていし。かきを 数える ときは おすたびに 1かき','動画。押すと再生と停止。ストロークを数えるときは押すたびに1ストローク'],
+ tapDet:['動画。おすと 再生と ていし','動画。押すと再生と停止'],
+ hDist:['きょり','距離'],
+ hTime:['とおった時間','経過タイム'],
+ hSplit:['その くぎり','区間'],
+ anaNone:['とび込んだ ところで「スタート」、かべに ついたら「つうか」を おします。0.25に すると 合わせやすいです。','飛び込みの位置で「スタート」、壁に触れたら「通過」を押します。0.25倍にすると合わせやすくなります。'],
+
+ sheetH:['けっかの 一覧','結果の一覧'],
+ sheetLead:['よこ向きに すると 分析の ボタンが 出ます','横向きにすると分析のボタンが表示されます'],
+ sheetRot:['スタートや つうかを おすときは、スマホを よこ向きに してください。ボタンが 大きくなって おしやすく なります。','スタートや通過を押すときは端末を横向きにしてください。ボタンが大きくなり、操作しやすくなります。'],
+ glSplit:['通過タイム','通過タイム'],
+ glStroke:['かき（ST と SR）','ストローク（ST と SR）'],
+ copyTx:['文字で コピー','テキストでコピー'],
+ toHome:['ホームに もどる','ホームに戻る'],
+ keepPort:['このまま たてで つづける','縦向きのまま続ける'],
+ timeLbl:['タイム','タイム'],
+ avgST:['平均ST 秒','平均ST 秒'],
+ avgSR:['平均SR','平均SR'],
+ sheetNone:['よこ向きに して「スタート」「つうか」を おすと 出ます','横向きにして「スタート」「通過」を押すと表示されます'],
+ strNone:['「かきを 数える」で 出ます','「ストロークを数える」で表示されます'],
+ splitNone:['通過タイムは ありません','通過タイムがありません'],
+ notCount:['数えていません','未計測'],
+ nothing:['ありません','なし'],
+
+ dTitle:['きろく','記録'],
+ again:['分析を やりなおす','分析をやり直す'],
+ saveVid:['動画を ほぞん','動画を保存'],
+ saveImg:['画像で ほぞん','画像で保存'],
+
+ camLbl:['練習用カメラ','練習用カメラ'],
+ cFlip:['前後を かえる','カメラを切替'],
+ cClose:['とじる','閉じる'],
+ cGrip:['ラップ<small>おして うごかせます</small>','ラップ<small>ドラッグで移動できます</small>'],
+ cStart:['スタート','スタート'],
+ cWait:['音まち…','音声待機中…'],
+ cStop:['ストップ','ストップ'],
+ cLap:['ラップ','ラップ'],
+ cReset:['リセット','リセット'],
+ sndOn:['音でスタート オン','音声スタート オン'],
+ sndOff:['音でスタート オフ','音声スタート オフ'],
+ sens0:['音 ふえだけ','感度 笛のみ'],
+ sens1:['音 ふつう','感度 標準'],
+ sens2:['音 こえも','感度 声も'],
+ rotB:['スマホを よこにして<br>さつえい してください','端末を横向きにして<br>撮影してください'],
+ rotP:['よこ向きにすると コースぜんたいが 入り、ボタンも 右がわに ならびます。','横向きにするとコース全体が入り、ボタンも右側に並びます。'],
+ rotOk:['このまま つかう','このまま使う'],
+
+ msgSaved:['ほぞんしました','保存しました'],
+ msgStartSet:['ここを スタートに しました','ここをスタートに設定しました'],
+ msgTapStroke:['かきに あわせて 画面を おしてください','ストロークに合わせて画面を押してください'],
+ msgNoVid:['動画が ありません','動画がありません'],
+ msgSavedDev:['携帯の中に ほぞんしました','端末内に保存しました'],
+ msgSaveNG:['ほぞんできませんでした','保存できませんでした'],
+ msgPortOk:['たてのままでも つかえます。よこにすると 大きく なります','縦向きのままでも使えます。横向きにすると大きく表示されます'],
+ msgCopied:['コピーしました','コピーしました'],
+ msgCopyNG:['コピーできませんでした','コピーできませんでした'],
+ msgCopyNo:['この端末では コピーできません','この端末ではコピーできません'],
+ msgNotFound:['見つかりません','見つかりません'],
+ msgDeleted:['消しました','削除しました'],
+ msgImgNG:['画像に できませんでした','画像を作成できませんでした'],
+ msgToAna:['そのまま 分析に すすみます','そのまま分析に進みます'],
+ msgNoRecVid:['動画が とれませんでした','動画を取得できませんでした'],
+ msgLapIn:['ラップを 入れました。ずれていたら 直せます','ラップを取り込みました。ずれている場合は修正できます'],
+ shVid:['「ビデオを保存」を えらぶと カメラロールに 入ります','「ビデオを保存」を選ぶとカメラロールに保存されます'],
+ shImg:['「画像を保存」を えらぶと カメラロールに 入ります','「画像を保存」を選ぶとカメラロールに保存されます'],
+ askClear:['とった 数字を ぜんぶ 消しますか。','記録した数値をすべて消去しますか。'],
+ askLeave:['ほぞんしていない 数字が あります。もどりますか。','保存していない記録があります。戻りますか。'],
+ askName:['なまえを つけてください','名前を入力してください'],
+ askDel:['この きろくを 消しますか。もどせません。','この記録を削除しますか。元に戻せません。'],
+ askLap1:['さつえい中に とった ラップが ','撮影中に記録したラップが '],
+ askLap2:['こ あります。\nそのまま 通過タイムに つかいますか。','件あります。\nそのまま通過タイムとして使いますか。'],
+ cOpening:['カメラを ひらいています…','カメラを起動しています…'],
+ cReady:['「スタート」を おすと 音まちに なります。','「スタート」を押すと音声待機になります。'],
+ cNG:['カメラを ひらけませんでした','カメラを起動できませんでした'],
+ cNG2:['）。カメラと マイクを ゆるしてください。','）。カメラとマイクの使用を許可してください。'],
+ cNoRec:['この端末では 動画を とれません','この端末では録画できません'],
+ cArmed:['音まちです。ふえや「どん」の こえで はじまります。もう一度 おすと すぐ はじまります。','音声待機中です。笛や号砲で開始します。もう一度押すとすぐに開始します。'],
+ cWent:['音で スタートしました','音声でスタートしました'],
+ cStopped:['とまりました。','停止しました。'],
+ cFlipNG:['とめてから かえてください','停止してから切り替えてください'],
+ cS0:['ふえの音だけを ひろいます。まわりで 話していても 動きません。','笛の音のみに反応します。周囲の話し声では作動しません。'],
+ cS1:['ふえや 大きな かけ声で うごきます。','笛や大きな号令に反応します。'],
+ cS2:['こえでも うごきます。しずかな 場所むきです。','声にも反応します。静かな場所向きです。'],
+ lapNone:['まだ ありません','まだありません'],
+ lapMove:['おして うごかせます','ドラッグで移動できます']
+};
+var MODE = 'a';
+try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
+function T(k){ var v=W[k]; if(!v) return k; return MODE==='k' ? v[0] : v[1]; }
+function applyWords(){
+  var n=document.querySelectorAll('[data-t]'), i;
+  for(i=0;i<n.length;i++) n[i].innerHTML=T(n[i].getAttribute('data-t'));
+  n=document.querySelectorAll('[data-ta]');
+  for(i=0;i<n.length;i++) n[i].setAttribute('aria-label', T(n[i].getAttribute('data-ta')));
+  var w=document.getElementById('wordSeg');
+  if(w){ var b=w.querySelectorAll('button');
+    for(i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', b[i].dataset.w===MODE ? 'true':'false'); }
+  try{
+    paintList();
+    if(typeof aSplits!=='undefined'){ paintTbl(); paintSR(); paintNext(); foldLabel($('anaBox')); }
+    if(dRec && !$('detail').classList.contains('hide')) openDetail(dRec.id);
+    $('cSound').textContent=T(cWantSound?'sndOn':'sndOff');
+    $('cSens').textContent=T('sens'+cSens);
+    cBtns();
+    $('bPlay').textContent=T($('v').paused?'play':'pause');
+    $('dPlay').textContent=T($('dv').paused?'play':'pause');
+    if($('anaTitle').dataset.neu==='1') $('anaTitle').textContent=T('anaNew');
+  }catch(e){}
+}
+
 
 /* ===== おしらせ ===== */
 var tmo=null;
@@ -616,7 +778,7 @@ function download(blob,name){
   var u=URL.createObjectURL(blob), a=document.createElement('a');
   a.href=u; a.download=name; document.body.appendChild(a); a.click();
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); }, 1500);
-  toast('ほぞんしました');
+  toast(T('msgSaved'));
 }
 function shareFile(blob,name,type,hint){
   var f=null;
@@ -643,8 +805,12 @@ var aBlob=null, aURL=null, aId=null;      // いま分析している 動画
 var aT0=null;                              // スタートの ところ（動画の中の 秒）
 var aSplits=[];                            // [{d:きょり, t:スタートからの 秒}]
 var aStrokes=[];                           // かきを おした 動画の中の 秒
-var aPreLaps=null;                         // さつえい中に とった ラップ（B版だけ）
+var aPreLaps=null, aPreT0=0;                         // さつえい中に とった ラップ（B版だけ）
 
+function headRow(){
+  return '<div class="tr hd"><span class="c1">'+T('hDist')+'</span>'+
+         '<span class="c2">'+T('hTime')+'</span><span class="c3">'+T('hSplit')+'</span></div>';
+}
 function pts(){                            // 通過ポイントの きょり一覧
   var pool=Number($('pool').value), dist=Number($('dist').value), out=[];
   for(var d=pool; d<=dist; d+=pool) out.push(d);
@@ -657,17 +823,16 @@ function nextD(){
 }
 function paintNext(){
   var n=nextD();
-  $('nextD').textContent = n!==null ? (n+'m') : 'おわり';
+  $('nextD').textContent = n!==null ? (n+'m') : T('goal');
   $('bPass').disabled = (aT0===null) || (n===null);
-  $('bStart').innerHTML = (aT0===null) ? 'スタート<small>とび込んだ ところ</small>' : 'スタート<small>やりなおす</small>';
+  $('bStart').innerHTML = T(aT0===null ? 'bStart' : 'bStartRe');
 }
 function paintTbl(){
   var b=$('tbl'); b.innerHTML='';
   var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
   $('anaSum').textContent = lastS ? (lastS.d+'m '+fmt(lastS.t)) : '';
-  if(!aSplits.length){ b.innerHTML='<div class="none">とび込んだ ところで「スタート」、かべに ついたら「つうか」を おします。0.25に すると 合わせやすいです。</div>'; paintNext(); paintSheet(); return; }
-  b.innerHTML='<div class="tr hd"><span class="c1">きょり</span>'+
-              '<span class="c2">とおった時間</span><span class="c3">その くぎり</span></div>';
+  if(!aSplits.length){ b.innerHTML='<div class="none">'+T('anaNone')+'</div>'; paintNext(); paintSheet(); return; }
+  b.innerHTML=headRow();
   for(var i=0;i<aSplits.length;i++){
     var prev = i>0 ? aSplits[i-1].t : 0;
     var r=document.createElement('div'); r.className='tr';
@@ -693,14 +858,13 @@ function paintSheet(){
   var avg = sts.length? sum/sts.length : 0;
   var last = aSplits.length ? aSplits[aSplits.length-1] : null;
   $('asStat').innerHTML =
-    '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m タイム':'タイム')+'</span></div>'+
-    '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>平均ST 秒</span></div>'+
-    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>平均SR</span></div>';
+    '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
+    '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
+    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>';
   var b=$('asTbl'); b.innerHTML='';
-  if(!aSplits.length){ b.innerHTML='<div class="none">よこ向きに して「スタート」「つうか」を おすと 出ます</div>'; }
+  if(!aSplits.length){ b.innerHTML='<div class="none">'+T('sheetNone')+'</div>'; }
   else{
-    b.innerHTML='<div class="tr hd"><span class="c1">きょり</span>'+
-                '<span class="c2">とおった時間</span><span class="c3">その くぎり</span></div>';
+    b.innerHTML=headRow();
     for(i=0;i<aSplits.length;i++){
       var pv=i>0?aSplits[i-1].t:0;
       var r=document.createElement('div'); r.className='tr';
@@ -711,7 +875,7 @@ function paintSheet(){
     }
   }
   var t=$('asStr'); t.innerHTML='';
-  if(!sts.length){ t.innerHTML='<div class="none">「かきを 数える」で 出ます</div>'; }
+  if(!sts.length){ t.innerHTML='<div class="none">'+T('strNone')+'</div>'; }
   else{
     t.innerHTML='<div class="tr hd"><span class="c1">＃</span>'+
                 '<span class="c2">ST 秒</span><span class="c3">SR</span></div>';
@@ -728,7 +892,7 @@ function anaText(){
   var L=['SwimIQ LITE B', $('anaTitle').textContent,
          $('pool').value+'mプール　'+$('dist').value+'m', ''];
   if(aSplits.length){
-    L.push('[通過タイム]');
+    L.push('['+T('glSplit')+']');
     for(var i=0;i<aSplits.length;i++){
       var pv=i>0?aSplits[i-1].t:0;
       L.push(aSplits[i].d+'m  '+fmt(aSplits[i].t)+'  (+'+fmt(aSplits[i].t-pv)+')');
@@ -736,7 +900,7 @@ function anaText(){
   }
   var sts=strokeStats();
   if(sts.length){
-    L.push('', '[かき ST/SR]');
+    L.push('', '['+T('glStroke')+']');
     for(var k=0;k<sts.length;k++) L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  SR'+(60/sts[k]).toFixed(1));
   }
   return L.join('\n');
@@ -760,28 +924,30 @@ function openAna(blob, opt){
   aStrokes = opt.strokes ? opt.strokes.slice() : [];
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
   aPreLaps = opt.laps || null;
+  aPreT0 = opt.raceT0 || 0;          // 録画の はじめから レースの スタートまでの 秒
   if(aURL){ try{ URL.revokeObjectURL(aURL); }catch(e){} }
   aURL=URL.createObjectURL(blob);
   var v=$('v');
   v.src=aURL; v.currentTime=0; v.playbackRate=1;
-  $('anaTitle').textContent = opt.title || 'あたらしい 分析';
+  $('anaTitle').textContent = opt.title || T('anaNew');
+  $('anaTitle').dataset.neu = opt.title ? '0' : '1';
   if(opt.pool) $('pool').value=String(opt.pool);
   if(opt.dist) $('dist').value=String(opt.dist);
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
-  spdMark($('spd'),1); $('bPlay').textContent='▶ 再生';
+  spdMark($('spd'),1); $('bPlay').textContent=T('play');
   $('anaBox').classList.remove('fold'); foldLabel($('anaBox'));
   paintTbl(); paintSR();
   show('ana');
   if(aPreLaps && aPreLaps.length && !aSplits.length){
     setTimeout(function(){
-      if(confirm('さつえい中に とった ラップが '+aPreLaps.length+'こ あります。\nそのまま 通過タイムに つかいますか。')){
+      if(confirm(T('askLap1')+aPreLaps.length+T('askLap2'))){
         var p=pts();
         aSplits=[];
         for(var i=0;i<aPreLaps.length && i<p.length;i++) aSplits.push({ d:p[i], t:aPreLaps[i]/1000 });
-        aT0 = 0;
-        paintTbl();
-        toast('ラップを 入れました。ずれていたら 直せます');
+        aT0 = aPreT0;
+        paintTbl(); anaP.paint();
+        toast(T('msgLapIn'));
       }
     }, 400);
   }
@@ -795,7 +961,7 @@ function spdMark(box,r){
 }
 function bindPlayer(o){
   var v=$(o.v), sk=$(o.sk), pl=$(o.play), drag=false;
-  function lab(){ pl.textContent = v.paused ? '▶ 再生' : '⏸ とめる'; }
+  function lab(){ pl.textContent = T(v.paused ? 'play' : 'pause'); }
   function paint(){
     var t0=o.t0();
     $(o.hud).textContent = (t0===null || t0===undefined) ? fmt(v.currentTime) : fmt(v.currentTime-t0);
@@ -830,7 +996,7 @@ var detP = bindPlayer({ v:'dv', sk:'dsk', play:'dPlay', back:'dBack1', fwd:'dFwd
 /* けっかの 表を たたむ／ひらく */
 function foldLabel(box){
   var bt=box.querySelector('[data-fold]');
-  if(bt) bt.textContent = box.classList.contains('fold') ? 'ひらく' : 'たたむ';
+  if(bt) bt.textContent = T(box.classList.contains('fold') ? 'open' : 'fold');
 }
 (function(){
   var bs=document.querySelectorAll('[data-fold]');
@@ -855,8 +1021,8 @@ document.addEventListener('keydown', function(e){
 
 /* --- きろくを とる --- */
 $('bStart').onclick=function(){
-  aT0=$('v').currentTime; aSplits=[]; paintTbl();
-  toast('ここを スタートに しました');
+  aT0=$('v').currentTime; aSplits=[]; paintTbl(); anaP.paint();
+  toast(T('msgStartSet'));
 };
 $('bPass').onclick=function(){
   var n=nextD(); if(n===null || aT0===null) return;
@@ -869,8 +1035,8 @@ $('bUndo').onclick=function(){
   if(aSplits.length){ aSplits.pop(); paintTbl(); }
 };
 $('bClear').onclick=function(){
-  if(!confirm('とった 数字を ぜんぶ 消しますか。')) return;
-  aSplits=[]; aStrokes=[]; aT0=null; paintTbl(); paintSR();
+  if(!confirm(T('askClear'))) return;
+  aSplits=[]; aStrokes=[]; aT0=null; paintTbl(); paintSR(); anaP.paint();
 };
 $('bStroke').onclick=function(){
   var on=this.getAttribute('aria-pressed')!=='true';
@@ -878,8 +1044,8 @@ $('bStroke').onclick=function(){
   $('ana').classList.toggle('stroke', on);
   if(on){
     var v=$('v');
-    if(v.paused){ v.play().catch(function(){}); $('bPlay').textContent='⏸ とめる'; }
-    toast('かきに あわせて 画面を おしてください');
+    if(v.paused){ v.play().catch(function(){}); $('bPlay').textContent=T('pause'); }
+    toast(T('msgTapStroke'));
   }
 };
 /* 動画の 上を おしたとき
@@ -906,7 +1072,7 @@ $('pool').onchange=function(){ paintTbl(); };
 $('dist').onchange=function(){ paintTbl(); };
 $('anaBack').onclick=function(){
   if(aSplits.length || aStrokes.length){
-    if(!confirm('ほぞんしていない 数字が あります。もどりますか。')) return;
+    if(!confirm(T('askLeave'))) return;
   }
   $('v').pause(); show('home'); paintList();
 };
@@ -927,10 +1093,10 @@ function thumb(){
 
 /* --- ほぞん --- */
 $('anaSave').onclick=function(){
-  if(!aBlob){ toast('動画が ありません'); return; }
+  if(!aBlob){ toast(T('msgNoVid')); return; }
   var d=new Date();
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
-  var name=prompt('なまえを つけてください', $('anaTitle').textContent==='あたらしい 分析' ? def : $('anaTitle').textContent);
+  var name=prompt(T('askName'), $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent);
   if(name===null) return;
   thumb().then(function(th){
     var rec={
@@ -947,10 +1113,10 @@ $('anaSave').onclick=function(){
     };
     return dbPut(rec);
   }).then(function(){
-    toast('携帯の中に ほぞんしました');
+    toast(T('msgSavedDev'));
     aId=null;
     $('v').pause(); show('home'); paintList();
-  }).catch(function(){ toast('ほぞんできませんでした'); });
+  }).catch(function(){ toast(T('msgSaveNG')); });
 };
 
 /* --- たて向きの けっか一覧の ボタン --- */
@@ -958,14 +1124,14 @@ $('asSave').onclick=function(){ $('anaSave').click(); };
 $('asBack').onclick=function(){ $('anaBack').click(); };
 $('asAnyway').onclick=function(){
   $('ana').classList.add('anyway');
-  toast('たてのままでも つかえます。よこにすると 大きく なります');
+  toast(T('msgPortOk'));
 };
 $('asCopy').onclick=function(){
   var tx=anaText();
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(tx).then(function(){ toast('コピーしました'); },
-      function(){ toast('コピーできませんでした'); });
-  }else toast('この端末では コピーできません');
+    navigator.clipboard.writeText(tx).then(function(){ toast(T('msgCopied')); },
+      function(){ toast(T('msgCopyNG')); });
+  }else toast(T('msgCopyNo'));
 };
 window.addEventListener('resize', function(){
   if(!$('ana').classList.contains('hide')) paintSheet();
@@ -978,7 +1144,7 @@ function paintList(){
   var box=$('list');
   dbAll().then(function(all){
     box.innerHTML='';
-    if(!all.length){ box.innerHTML='<div class="empty">まだ ありません</div>'; return; }
+    if(!all.length){ box.innerHTML='<div class="empty">'+T('noRec')+'</div>'; return; }
     all.forEach(function(r){
       var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
       var c=document.createElement('div'); c.className='card';
@@ -994,12 +1160,12 @@ function paintList(){
 var dRec=null, dURL=null;
 function openDetail(id){
   dbGet(id).then(function(r){
-    if(!r){ toast('見つかりません'); return; }
+    if(!r){ toast(T('msgNotFound')); return; }
     dRec=r;
     if(dURL){ try{ URL.revokeObjectURL(dURL); }catch(e){} }
     dURL=URL.createObjectURL(r.video);
     $('dv').src=dURL; $('dv').playbackRate=1; spdMark($('dspd'),1);
-    $('dTitle').textContent=r.title;
+    $('dTitle').textContent=r.title||T('dTitle');
     $('dBox').classList.remove('fold'); foldLabel($('dBox'));
     // まとめ
     var sts=[], i;
@@ -1009,15 +1175,14 @@ function openDetail(id){
     var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
     $('dSum').textContent = last ? (last.d+'m '+fmt(last.t)) : '';
     $('dStat').innerHTML =
-      '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m タイム':'タイム')+'</span></div>'+
-      '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>平均ST 秒</span></div>'+
-      '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>平均SR</span></div>';
+      '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
+      '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
+      '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>';
     // 表
     var b=$('dTbl'); b.innerHTML='';
-    if(!r.splits || !r.splits.length){ b.innerHTML='<div class="none">通過タイムは ありません</div>'; }
+    if(!r.splits || !r.splits.length){ b.innerHTML='<div class="none">'+T('splitNone')+'</div>'; }
     else{
-      b.innerHTML='<div class="tr hd"><span class="c1">きょり</span>'+
-                  '<span class="c2">とおった時間</span><span class="c3">その くぎり</span></div>';
+      b.innerHTML=headRow();
       for(i=0;i<r.splits.length;i++){
         var pv=i>0?r.splits[i-1].t:0;
         var tr=document.createElement('div'); tr.className='tr';
@@ -1033,8 +1198,8 @@ function openDetail(id){
 $('dBack').onclick=function(){ $('dv').pause(); show('home'); paintList(); };
 $('dDel').onclick=function(){
   if(!dRec) return;
-  if(!confirm('この きろくを 消しますか。もどせません。')) return;
-  dbDel(dRec.id).then(function(){ toast('消しました'); $('dv').pause(); show('home'); paintList(); });
+  if(!confirm(T('askDel'))) return;
+  dbDel(dRec.id).then(function(){ toast(T('msgDeleted')); $('dv').pause(); show('home'); paintList(); });
 };
 $('dAgain').onclick=function(){
   if(!dRec) return;
@@ -1046,12 +1211,12 @@ $('dVid').onclick=function(){
   if(!dRec) return;
   var ty=(dRec.video.type||'video/mp4');
   var ext=(ty.indexOf('mp4')>=0)?'.mp4':'.webm';
-  shareFile(dRec.video, 'swimiq_'+dRec.id+ext, ty, '「ビデオを保存」を えらぶと カメラロールに 入ります');
+  shareFile(dRec.video, 'swimiq_'+dRec.id+ext, ty, T('shVid'));
 };
 function recText(r){
   var L=['SwimIQ LITE B', r.title, new Date(r.at).toLocaleString('ja-JP'), ''];
   if(r.splits && r.splits.length){
-    L.push('[通過タイム]');
+    L.push('['+T('glSplit')+']');
     for(var i=0;i<r.splits.length;i++){
       var pv=i>0?r.splits[i-1].t:0;
       L.push(r.splits[i].d+'m  '+fmt(r.splits[i].t)+'  (+'+fmt(r.splits[i].t-pv)+')');
@@ -1060,7 +1225,7 @@ function recText(r){
   var sts=[];
   for(var k=1;k<(r.strokes||[]).length;k++){ var st=r.strokes[k]-r.strokes[k-1]; if(st>0.05) sts.push(st); }
   if(sts.length){
-    L.push('', '[かき ST/SR]');
+    L.push('', '['+T('glStroke')+']');
     for(var m=0;m<sts.length;m++) L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  SR'+(60/sts[m]).toFixed(1));
   }
   return L.join('\n');
@@ -1069,15 +1234,15 @@ $('dCopy').onclick=function(){
   if(!dRec) return;
   var tx=recText(dRec);
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(tx).then(function(){ toast('コピーしました'); },
-      function(){ toast('コピーできませんでした'); });
-  }else toast('この端末では コピーできません');
+    navigator.clipboard.writeText(tx).then(function(){ toast(T('msgCopied')); },
+      function(){ toast(T('msgCopyNG')); });
+  }else toast(T('msgCopyNo'));
 };
 $('dImg').onclick=function(){
   if(!dRec) return;
   sheetImage(dRec).then(function(blob){
-    if(!blob){ toast('画像に できませんでした'); return; }
-    shareFile(blob,'swimiq_'+dRec.id+'.jpg','image/jpeg','「画像を保存」を えらぶと カメラロールに 入ります');
+    if(!blob){ toast(T('msgImgNG')); return; }
+    shareFile(blob,'swimiq_'+dRec.id+'.jpg','image/jpeg',T('shImg'));
   });
 };
 /* けっかを 1枚の 画像に かきうつす */
@@ -1098,9 +1263,9 @@ function sheetImage(r){
   g.fillStyle='#bfe3ff'; g.font='700 26px sans-serif';
   g.fillText(new Date(r.at).toLocaleString('ja-JP')+'　'+r.pool+'mプール　'+r.dist+'m', pad, y); y+=52;
   var cw=(W-pad*2-24)/3;
-  var vs=[[last?fmt(last.t):'--',(last?last.d+'m タイム':'タイム')],
-          [avg?avg.toFixed(2):'--','平均ST 秒'],
-          [avg?(60/avg).toFixed(1):'--','平均SR']];
+  var vs=[[last?fmt(last.t):'--',(last?last.d+'m '+T('timeLbl'):T('timeLbl'))],
+          [avg?avg.toFixed(2):'--',T('avgST')],
+          [avg?(60/avg).toFixed(1):'--',T('avgSR')]];
   for(i=0;i<3;i++){
     var x=pad+i*(cw+12);
     g.fillStyle='rgba(255,255,255,.08)'; g.fillRect(x,y,cw,116);
@@ -1135,12 +1300,12 @@ function sheetImage(r){
     var pv=i>0?r.splits[i-1].t:0;
     lr.push([r.splits[i].d+'m', fmt(r.splits[i].t), '+'+fmt(r.splits[i].t-pv)]);
   }
-  if(!lr.length) lr=[['-','ありません','']];
-  table('通過タイム',['きょり','とおった時間','その くぎり'],lr);
+  if(!lr.length) lr=[['-',T('nothing'),'']];
+  table(T('glSplit'),[T('hDist'),T('hTime'),T('hSplit')],lr);
   var sr=[];
   for(i=0;i<sts.length;i++) sr.push([String(i+1), sts[i].toFixed(2), 'SR '+(60/sts[i]).toFixed(1)]);
-  if(!sr.length) sr=[['-','数えていません','']];
-  table('かき（ST と SR）',['＃','ST 秒','SR'],sr);
+  if(!sr.length) sr=[['-',T('notCount'),'']];
+  table(T('glStroke'),['＃','ST 秒','SR'],sr);
   return new Promise(function(res){
     try{ cv.toBlob(function(b){ res(b); },'image/jpeg',0.94); }catch(e){ res(null); }
   });
@@ -1151,7 +1316,7 @@ function sheetImage(r){
    ================================================================ */
 var cStream=null, cRec=null, cChunks=[], cBlob=null, cFacing='environment';
 var cRun=false, cArm=false, cT0=0, cEl=0, cLaps=[], cRaf=null;
-var cRecT0=0, cRecTm=null, cWantSound=true, cSens=1;
+var cRecT0=0, cRecP0=0, cRecTm=null, cWantSound=true, cSens=1;
 var cAC=null, cAn=null, cTbuf=null, cFbuf=null, cSrc=null;
 var cBase=0.01, cArmAt=0, cLvRaf=null, cHist=[], cHold=0, cSR=48000;
 
@@ -1159,7 +1324,7 @@ var cBase=0.01, cArmAt=0, cLvRaf=null, cHist=[], cHold=0, cSR=48000;
    1)大きさ 2)立ち上がりの するどさ 3)高い音の わりあい 4)すこし つづくこと
    [まわりの何倍, 最低の大きさ, 立ち上がり, 高い音のわりあい, つづく回数] */
 var SENS=[[5.0,0.110,3.2,0.55,3],[3.5,0.070,2.4,0.38,2],[2.4,0.040,1.8,0.20,2]];
-var SENS_NM=['ふえだけ','ふつう','こえも'];
+
 
 function cSay(m){ var p=$('camMsg'); p.textContent=m||''; p.classList.toggle('hide',!m); }
 function cFmt(ms){
@@ -1171,7 +1336,7 @@ function cPaintT(){ $('camTime').textContent=cFmt(cRun?(performance.now()-cT0):c
 function cLoop(){ if(!cRun) return; cPaintT(); cRaf=requestAnimationFrame(cLoop); }
 function cPaintLaps(){
   var b=$('camLaps'); b.innerHTML='';
-  if(!cLaps.length){ b.innerHTML='<div class="none empty">まだ ありません</div>'; return; }
+  if(!cLaps.length){ b.innerHTML='<div class="none empty">'+T('lapNone')+'</div>'; return; }
   for(var i=cLaps.length-1;i>=0;i--){
     var pv=i>0?cLaps[i-1]:0, d=document.createElement('div'); d.className='lp';
     d.innerHTML='<span class="n">'+(i+1)+'</span><span class="t">'+cFmt(cLaps[i])+
@@ -1182,7 +1347,7 @@ function cPaintLaps(){
 function cBtns(){
   $('cLap').disabled=!cRun;
   $('cStop').disabled=!(cRun||cArm);
-  $('cStart').textContent=cArm?'音まち…':'スタート';
+  $('cStart').textContent=T(cArm?'cWait':'cStart');
   $('cam').classList.toggle('armed',cArm);
   $('cam').classList.toggle('run',cRun);
 }
@@ -1240,24 +1405,24 @@ function cWatch(){
     if(cHold>=P[4]){
       cHold=0; cArm=false; cGo(now);
       try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
-      cSay('音で スタートしました');
+      cSay(T('cWent'));
       setTimeout(function(){ if(cRun) cSay(''); },1600);
     }
   })();
 }
 /* --- カメラ --- */
 function cOpen(){
-  cSay('カメラを ひらいています…');
+  cSay(T('cOpening'));
   navigator.mediaDevices.getUserMedia({
     video:{ facingMode:cFacing, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
     audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
   }).then(function(st){
     cStream=st; var v=$('cv'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
     cAudio();
-    cSay('「スタート」を おすと 音まちに なります。');
+    cSay(T('cReady'));
     setTimeout(function(){ if(!cRun&&!cArm) cSay(''); },4000);
   }).catch(function(err){
-    cSay('カメラを ひらけませんでした（'+(err&&err.name?err.name:'エラー')+'）。カメラと マイクを ゆるしてください。');
+    cSay(T('cNG')+'（'+(err&&err.name?err.name:'error')+T('cNG2'));
   });
 }
 function cStopCam(){
@@ -1279,7 +1444,7 @@ function cRecStart(){
   cChunks=[];
   var m=pickMime();
   try{ cRec = m ? new MediaRecorder(cStream,{mimeType:m}) : new MediaRecorder(cStream); }
-  catch(e){ cRec=null; cSay('この端末では 動画を とれません'); return; }
+  catch(e){ cRec=null; cSay(T('cNoRec')); return; }
   cRec.ondataavailable=function(e){ if(e.data&&e.data.size) cChunks.push(e.data); };
   cRec.onstop=function(){
     var ty=(cRec&&cRec.mimeType)?cRec.mimeType:'video/mp4';
@@ -1287,7 +1452,7 @@ function cRecStart(){
     cToAna();
   };
   cRec.start();
-  cRecT0=Date.now(); $('camRecT').textContent='0:00';
+  cRecT0=Date.now(); cRecP0=performance.now(); $('camRecT').textContent='0:00';
   $('camDot').classList.remove('hide');
   clearInterval(cRecTm);
   cRecTm=setInterval(function(){
@@ -1304,7 +1469,7 @@ $('cStart').onclick=function(){
   if(cArm){ cArm=false; cGo(); cSay(''); return; }
   if(cWantSound && cAn){
     cArm=true; cArmAt=performance.now(); cBtns();
-    cSay('音まちです。ふえや「どん」の こえで はじまります。もう一度 おすと すぐ はじまります。');
+    cSay(T('cArmed'));
   }else{ cGo(); cSay(''); }
 };
 $('cLap').onclick=function(){
@@ -1318,28 +1483,26 @@ $('cStop').onclick=function(){
   cRun=false; cArm=false; cancelAnimationFrame(cRaf); cPaintT(); cBtns();
   clearInterval(cRecTm); cRecTm=null; $('camDot').classList.add('hide');
   if(cRec && cRec.state==='recording'){ try{ cRec.stop(); }catch(e){} }
-  else cSay('とまりました。');
+  else cSay(T('cStopped'));
 };
 $('cReset').onclick=function(){
   cRun=false; cArm=false; cEl=0; cLaps=[];
   cancelAnimationFrame(cRaf); cPaintT(); cPaintLaps(); cBtns(); cSay('');
 };
 $('cFlip').onclick=function(){
-  if(cRun||cArm){ cSay('とめてから かえてください'); return; }
+  if(cRun||cArm){ cSay(T('cFlipNG')); return; }
   cFacing=(cFacing==='environment')?'user':'environment';
   cStopCam(); cOpen();
 };
 $('cSound').onclick=function(){
   cWantSound=!cWantSound;
   this.setAttribute('aria-pressed',cWantSound?'true':'false');
-  this.textContent='音でスタート '+(cWantSound?'オン':'オフ');
+  this.textContent=T(cWantSound?'sndOn':'sndOff');
 };
 $('cSens').onclick=function(){
   cSens=(cSens+1)%3;
-  this.textContent='音 '+SENS_NM[cSens];
-  cSay(cSens===0?'ふえの音だけを ひろいます。まわりで 話していても 動きません。'
-     :(cSens===2?'こえでも うごきます。しずかな 場所むきです。'
-                :'ふえや 大きな かけ声で うごきます。'));
+  this.textContent=T('sens'+cSens);
+  cSay(T('cS'+cSens));
   setTimeout(function(){ if(!cArm&&!cRun) cSay(''); },3000);
 };
 $('cAnyway').onclick=function(){ $('cam').classList.add('anyway'); };
@@ -1356,9 +1519,11 @@ function cClose(){
 function cToAna(){
   var laps=cLaps.slice();
   cClose();
-  if(!cBlob || !cBlob.size){ toast('動画が とれませんでした'); return; }
-  openAna(cBlob, { laps:laps });
-  toast('そのまま 分析に すすみます');
+  if(!cBlob || !cBlob.size){ toast(T('msgNoRecVid')); return; }
+  /* 音まちの あいだも 録画は すすんでいるので、その 秒数を いっしょに わたす */
+  var raceT0 = (laps.length && cT0>cRecP0) ? (cT0-cRecP0)/1000 : 0;
+  openAna(cBlob, { laps:laps, raceT0:raceT0 });
+  toast(T('msgToAna'));
 }
 $('openCam').onclick=function(){
   $('cam').classList.remove('hide','armed','run','anyway');
@@ -1389,8 +1554,18 @@ $('fPick').addEventListener('change', function(){
   var f=this.files && this.files[0]; this.value='';
   if(f) openAna(f,{});
 });
-cPaintLaps(); cBtns();
+/* ことばづかいの きりかえ */
+(function(){
+  var bs=$('wordSeg').querySelectorAll('button');
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
+    MODE=this.dataset.w;
+    try{ localStorage.setItem('swimiq_word',MODE); }catch(e){}
+    applyWords();
+  };
+})();
 
+cPaintLaps(); cBtns();
+applyWords();
 paintList();
 })();
 </script>

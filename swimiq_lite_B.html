@@ -92,6 +92,7 @@ button, select, input{ font-family:inherit; }
   color:var(--dim); font-variant-numeric:tabular-nums; }
 .none{ padding:12px; text-align:center; font-size:13px; font-weight:700; color:var(--dim); line-height:1.6; }
 .sr3{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+.sr4{ grid-template-columns:repeat(4,1fr); }
 .sr3 div{ background:var(--pane); border:2px solid var(--line2); border-radius:6px;
   padding:6px; text-align:center; }
 .sr3 b{ display:block; font-size:24px; font-weight:900; font-variant-numeric:tabular-nums; }
@@ -110,15 +111,24 @@ button, select, input{ font-family:inherit; }
   object-fit:contain; background:#000; }
 .tapL{ position:absolute; inset:0; z-index:1; margin:0; padding:0; border:0;
   background:transparent; cursor:pointer; touch-action:manipulation; }
-#ana.stroke::after{ content:""; position:absolute; inset:0; z-index:3; pointer-events:none;
-  box-shadow:inset 0 0 0 6px var(--am); }
+#ana.stroke::after, #detail.stroke::after{ content:""; position:absolute; inset:0; z-index:3;
+  pointer-events:none; box-shadow:inset 0 0 0 6px var(--am); }
+/* くわしく画面は 動画が 主役。ボタンは「メニュー」を おしたときだけ 出します */
+.ov.det .oAct{ display:none; }
+.ov.det.on .oAct{ display:grid; grid-template-columns:1fr 1fr; align-content:end;
+  width:min(276px,46vw); gap:6px; min-height:0; }
+.ov.det .oAct .ob{ min-height:44px; flex:0 0 auto; }
+.ov.det #dUndo{ display:none; }
+#detail.stroke .ov.det #dUndo{ display:block; }
+@media (orientation:portrait){ .ov.det.on .oAct{ width:auto; } }
+#detail.stroke .strokeTag{ display:block; }
 
 .ov{ position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; gap:8px;
   padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px)
           calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
   grid-template-columns:clamp(226px,28vw,268px) minmax(0,1fr) auto;
   grid-template-rows:auto minmax(0,1fr) auto;
-  grid-template-areas:"top top top" "info mid act" "ply seek act"; }
+  grid-template-areas:"top top top" "info mid act" "bar bar bar"; }
 .ov > *{ pointer-events:auto; }
 .ov > .mid{ pointer-events:none; }
 
@@ -138,7 +148,7 @@ button, select, input{ font-family:inherit; }
 .ob.y[aria-pressed="true"]{ background:var(--am); border-color:var(--am); color:#000; }
 
 /* 上のはし */
-.oTop{ grid-area:top; display:flex; align-items:center; gap:8px; min-width:0; }
+.oTop{ grid-area:top; position:relative; z-index:3; display:flex; align-items:center; gap:8px; min-width:0; }
 .oTop .ob{ min-height:40px; font-size:14px; flex:0 0 auto; }
 .oTop .tt{ flex:1 1 auto; min-width:0; font-size:16px; font-weight:900;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 1px 4px #000; }
@@ -192,20 +202,15 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   color:#000; font-size:15px; font-weight:900; text-align:center; }
 #ana.stroke .strokeTag{ display:block; }
 
-/* 左下：再生の そうさ */
-.oPly{ grid-area:ply; align-self:end; display:flex; flex-direction:column; gap:6px; min-width:0; }
-.oPly .seg{ padding:3px; background:rgba(0,0,0,.86); border:2px solid var(--line); }
-.oPly .seg button{ min-height:36px; font-size:13px; }
-.pr3{ display:grid; grid-template-columns:1fr 1.35fr 1fr; gap:6px; }
-.pr3 .ob{ min-height:54px; padding:4px 6px; font-size:14px; }
-.pr3 .pl{ font-size:16px; border-color:#fff; }
-
-/* まんなか下：動画の いち */
-.oSeek{ grid-area:seek; align-self:end; display:flex; align-items:center; gap:10px; min-width:0;
-  padding:6px 14px; border-radius:6px; }
-.oSeek .pos{ flex:0 0 auto; font-size:13px; font-weight:800; color:var(--dim);
+/* 画面の下：再生・コマ・はやさ・スライダーを 1れつに ならべる */
+.oBar{ grid-area:bar; align-self:end; display:flex; align-items:center; gap:7px; min-width:0;
+  padding:7px 10px; border-radius:6px; }
+.oBar .ob{ flex:0 0 auto; min-height:52px; padding:4px 10px; font-size:14px; white-space:nowrap; }
+.oBar .pl{ min-width:96px; font-size:16px; border-color:#fff; }
+.oBar .spdB{ min-width:104px; border-color:var(--am); color:var(--am); }
+.oBar .pos{ flex:0 0 auto; margin-left:4px; font-size:13px; font-weight:800; color:var(--dim);
   font-variant-numeric:tabular-nums; }
-.sk{ -webkit-appearance:none; appearance:none; flex:1; min-width:0; width:100%; height:34px; margin:0;
+.sk{ -webkit-appearance:none; appearance:none; flex:1 1 120px; min-width:60px; height:40px; margin:0;
   background:transparent; cursor:pointer; --p:0%; touch-action:none; }
 .sk::-webkit-slider-runnable-track{ height:8px; border-radius:0;
   background:linear-gradient(90deg,var(--am) var(--p),#3a3a3a var(--p)); }
@@ -216,7 +221,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .sk::-moz-range-thumb{ width:24px; height:24px; border-radius:4px; background:var(--am); border:3px solid #000; }
 
 /* 右：きろくの ボタン */
-.oAct{ grid-area:act; width:142px; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; }
+.oAct{ grid-area:act; width:142px; min-height:0; display:flex; flex-direction:column;
+  justify-content:flex-end; gap:8px; }
 .oAct .ob{ min-height:48px; padding:6px 8px; font-size:14px; white-space:nowrap; }
 /* この画面でいちばん押すボタンだけ、黄色でぬりつぶす */
 .circle{ align-self:center; flex:0 0 auto; width:108px; height:108px; min-height:0 !important;
@@ -230,16 +236,25 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   border-color:var(--line) !important; box-shadow:none; opacity:1; }
 .circle:disabled small{ color:#777 !important; }
 
+@media (orientation:landscape) and (max-height:440px){
+  .oAct{ gap:6px; }
+  .oAct .ob{ min-height:42px; font-size:13.5px; }
+  .circle{ width:96px; height:96px; font-size:18px !important; margin-top:2px; }
+  .oBar .ob{ min-height:48px; }
+}
 @media (orientation:landscape) and (max-height:360px){
-  .circle{ width:92px; height:92px; font-size:18px !important; }
-  .oAct .ob{ min-height:44px; }
-  .pr3 .ob{ min-height:48px; }
+  .circle{ width:86px; height:86px; font-size:17px !important; }
+  .oAct .ob{ min-height:40px; }
+  .oBar .ob{ min-height:44px; }
 }
 
 /* たて向き */
 @media (orientation:portrait){
-  .ov{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto auto;
-    grid-template-areas:"top" "info" "mid" "seek" "ply" "act"; }
+  .ov{ grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"top" "info" "mid" "bar" "act"; }
+  .oBar{ flex-wrap:wrap; }
+  .oBar .sk{ flex:1 1 100%; order:2; }
+  .oBar .pos{ order:1; margin-left:auto; }
   .oInfo{ max-height:30vh; }
   .ov.ana .oTop .tt{ visibility:hidden; }
   .oAct{ width:auto; display:grid; gap:6px; }
@@ -328,8 +343,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .lpSub{ display:flex; gap:8px; flex:0 0 auto; }
 .lpSub button{ flex:1; min-height:40px; border-radius:6px; cursor:pointer; color:#fff;
   background:var(--pane); border:2px solid var(--line); font-size:13px; font-weight:800; }
-#lapOpen{ align-self:flex-start; min-height:36px; padding:2px 12px; border-radius:4px; cursor:pointer;
-  border:2px solid var(--am); background:transparent; color:var(--am);
+#lapOpen{ flex:0 0 auto; min-height:32px; padding:2px 10px; border-radius:4px; cursor:pointer;
+  border:2px solid var(--am) !important; background:transparent; color:var(--am) !important;
   font-size:12px; font-weight:800; }
 #lapOpen.hide{ display:none; }
 
@@ -457,7 +472,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.13.5</p>
+  <p class="ver">ver 2026.09.13.9</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -479,14 +494,13 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
     <div class="oInfo">
       <div class="hudT glass" id="hud">0.00</div>
       <div class="box glass" id="anaBox">
-        <div class="boxH"><b data-t="result"></b><span class="sum" id="anaSum"></span><button type="button" data-fold="anaBox" data-t="fold"></button></div>
+        <div class="boxH"><b data-t="result"></b><span class="sum" id="anaSum"></span><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3">
             <div><b id="oSR">--</b><span data-t="srU"></span></div>
             <div><b id="oST">--</b><span data-t="stU"></span></div>
             <div><b id="oN">0</b><span data-t="nStr"></span></div>
           </div>
-          <button id="lapOpen" class="hide" type="button" data-t="lpOpen"></button>
           <div class="tbl" id="tbl"></div>
           <button class="clr" id="bClear" type="button" data-t="clearAll"></button>
         </div>
@@ -498,21 +512,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
       <span class="strokeTag" data-t="strokeTag"></span>
     </div>
 
-    <div class="oPly">
-      <div class="seg" id="spd">
-        <button data-r="0.25" type="button">0.25</button>
-        <button data-r="0.5" type="button">0.5</button>
-        <button data-r="0.75" type="button">0.75</button>
-        <button data-r="1" type="button" aria-pressed="true" data-t="normal"></button>
-      </div>
-      <div class="pr3">
-        <button class="ob" id="bBack1" type="button" data-t="frBack"></button>
-        <button class="ob pl" id="bPlay" type="button" data-t="play"></button>
-        <button class="ob" id="bFwd1" type="button" data-t="frFwd"></button>
-      </div>
-    </div>
-
-    <div class="oSeek glass">
+    <div class="oBar glass">
+      <button class="ob" id="bBack1" type="button" data-t="frBack"></button>
+      <button class="ob pl" id="bPlay" type="button" data-t="play"></button>
+      <button class="ob" id="bFwd1" type="button" data-t="frFwd"></button>
+      <button class="ob spdB" id="spd" type="button" data-r="1"></button>
       <span class="pos" id="pos">0:00</span>
       <input class="sk" id="sk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
     </div>
@@ -562,7 +566,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
     <div class="oTop">
       <button class="ob" id="dBack" type="button" data-t="back"></button>
       <span class="tt" id="dTitle"></span>
-      <button class="ob r" id="dDel" type="button" data-t="del"></button>
+      <button class="ob b" id="dMenu" type="button" data-t="dMenu"></button>
     </div>
 
     <div class="oInfo">
@@ -570,38 +574,31 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
       <div class="box glass" id="dBox">
         <div class="boxH"><b data-t="result"></b><span class="sum" id="dSum"></span><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
-          <div class="sr3" id="dStat"></div>
+          <div class="sr3 sr4" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
         </div>
       </div>
     </div>
 
-    <div class="mid"></div>
+    <div class="mid"><span class="strokeTag" data-t="strokeTag"></span></div>
 
-    <div class="oPly">
-      <div class="seg" id="dspd">
-        <button data-r="0.25" type="button">0.25</button>
-        <button data-r="0.5" type="button">0.5</button>
-        <button data-r="0.75" type="button">0.75</button>
-        <button data-r="1" type="button" aria-pressed="true" data-t="normal"></button>
-      </div>
-      <div class="pr3">
-        <button class="ob" id="dBack1" type="button" data-t="frBack"></button>
-        <button class="ob pl" id="dPlay" type="button" data-t="play"></button>
-        <button class="ob" id="dFwd1" type="button" data-t="frFwd"></button>
-      </div>
-    </div>
-
-    <div class="oSeek glass">
+    <div class="oBar glass">
+      <button class="ob" id="dBack1" type="button" data-t="frBack"></button>
+      <button class="ob pl" id="dPlay" type="button" data-t="play"></button>
+      <button class="ob" id="dFwd1" type="button" data-t="frFwd"></button>
+      <button class="ob spdB" id="dspd" type="button" data-r="1"></button>
       <span class="pos" id="dpos">0:00</span>
       <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
     </div>
 
     <div class="oAct">
-      <button class="ob b" id="dAgain" type="button" data-t="again"></button>
-      <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
-      <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
+      <button class="ob y" id="dStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
+      <button class="ob" id="dUndo" type="button" data-t="bUndo"></button>
       <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
+      <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
+      <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
+      <button class="ob b" id="dAgain" type="button" data-t="again"></button>
+      <button class="ob r" id="dDel" type="button" data-t="del"></button>
     </div>
   </div>
 </div>
@@ -706,6 +703,10 @@ var W={
  clearAll:['ぜんぶ 消す','すべて消去'],
  strokeTag:['画面の どこでも おすと 1かき','画面のどこを押しても1ストローク'],
  normal:['ふつう','等速'],
+ spd100:['はやさ ふつう','速さ 等速'],
+ spd75:['はやさ 0.75','速さ 0.75倍'],
+ spd50:['はやさ 0.5','速さ 0.5倍'],
+ spd25:['はやさ 0.25','速さ 0.25倍'],
  frBack:['◀ コマ','◀ コマ'],
  frFwd:['コマ ▶','コマ ▶'],
  play:['▶ 再生','▶ 再生'],
@@ -820,6 +821,7 @@ var W={
  lpCount1:['ラップは ','ラップは '],
  lpCount2:['こ あります','件あります'],
  lpFix:['ラップを 直す','ラップを直す'],
+ lpShort:['ラップ','ラップ'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -827,7 +829,10 @@ var W={
  g1:['① とび込んだ ところで〈スタート〉','① 飛び込んだ瞬間で〈スタート〉'],
  g2a:['② かべに ついたら〈つうか〉　つぎは ','② 壁に触れたら〈通過〉　次は '],
  g3:['③〈かきを 数える〉を おして、右手が 水に 入るたびに 画面を おす','③〈ストロークを数える〉を押し、右手の入水ごとに画面を押す'],
- g4:['④〈ほぞん〉で きろくを のこす','④〈保存〉で記録を残す']
+ g4:['④〈ほぞん〉で きろくを のこす','④〈保存〉で記録を残す'],
+ dMenu:['メニュー','メニュー'],
+ dMenuX:['とじる','閉じる'],
+ msgStrSaved:['かき数を ほぞんしました','ストローク数を保存しました']
 };
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
@@ -849,6 +854,8 @@ function applyWords(){
     cBtns();
     $('bPlay').textContent=T($('v').paused?'play':'pause');
     $('dPlay').textContent=T($('dv').paused?'play':'pause');
+    spdMark($('spd'), $('spd').dataset.r||1);
+    spdMark($('dspd'), $('dspd').dataset.r||1);
     if($('anaTitle').dataset.neu==='1') $('anaTitle').textContent=T('anaNew');
     if(!$('lapPick').classList.contains('hide')) lapPickOpen();
   }catch(e){}
@@ -1100,7 +1107,7 @@ function openAna(blob, opt){
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
   spdMark($('spd'),1); $('bPlay').textContent=T('play');
-  $('anaBox').classList.remove('fold'); foldLabel($('anaBox'));
+  $('anaBox').classList.add('fold'); foldLabel($('anaBox'));
   paintTbl(); paintSR();
   show('ana');
   $('lapOpen').classList.toggle('hide', !(aPreLaps && aPreLaps.length));
@@ -1215,9 +1222,15 @@ $('asLapFix').onclick=lapPickOpen;
 
 /* --- 動画のそうさ（分析と くわしくで おなじ しくみ） --- */
 function mmss(t){ if(!t||isNaN(t)) t=0; return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); }
-function spdMark(box,r){
-  var b=box.querySelectorAll('button');
-  for(var i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', Number(b[i].dataset.r)===Number(r)?'true':'false');
+var RATES=[1,0.75,0.5,0.25];
+function rateWord(r){
+  r=Number(r);
+  return r===1?'spd100':(r===0.75?'spd75':(r===0.5?'spd50':'spd25'));
+}
+function spdMark(btn,r){            /* はやさの ボタンの 見た目を そろえる */
+  btn.dataset.r=String(r);
+  btn.textContent=T(rateWord(r));
+  btn.setAttribute('aria-pressed', Number(r)===1?'false':'true');
 }
 function bindPlayer(o){
   var v=$(o.v), sk=$(o.sk), pl=$(o.play), drag=false;
@@ -1242,10 +1255,13 @@ function bindPlayer(o){
   pl.onclick=function(){ if(v.paused) v.play().catch(function(){}); else v.pause(); };
   $(o.back).onclick=function(){ v.pause(); v.currentTime=Math.max(0,v.currentTime-1/30); };
   $(o.fwd).onclick=function(){ v.pause(); v.currentTime=Math.min(v.duration||0,v.currentTime+1/30); };
-  var b=$(o.spd).querySelectorAll('button');
-  for(var i=0;i<b.length;i++) b[i].onclick=function(){
-    var r=Number(this.dataset.r); v.playbackRate=r; spdMark($(o.spd),r);
+  /* おすたびに ふつう → 0.75 → 0.5 → 0.25 → ふつう と 変わります */
+  $(o.spd).onclick=function(){
+    var now=Number(this.dataset.r||1), i=RATES.indexOf(now);
+    var r=RATES[(i+1)%RATES.length];
+    v.playbackRate=r; spdMark(this,r);
   };
+  spdMark($(o.spd),1);
   return { paint:paint, toggle:function(){ pl.onclick(); } };
 }
 var anaP = bindPlayer({ v:'v', sk:'sk', play:'bPlay', back:'bBack1', fwd:'bFwd1', spd:'spd',
@@ -1327,7 +1343,63 @@ $('tapZone').onclick=function(){
   }
   $('bPlay').click();
 };
-$('dTap').onclick=function(){ $('dPlay').click(); };
+/* くわしく画面：メニューの 開け閉め */
+$('dMenu').onclick=function(){
+  var ov=document.querySelector('.ov.det');
+  ov.classList.toggle('on');
+  this.textContent=T(ov.classList.contains('on')?'dMenuX':'dMenu');
+};
+/* くわしく画面で かきを 数える（ほぞんした きろくにも あとから 足せます） */
+var dStrokes=[];
+function dPaintSR(){
+  var sts=[], i;
+  for(i=1;i<dStrokes.length;i++){ var st=dStrokes[i]-dStrokes[i-1]; if(st>0.05) sts.push(st); }
+  var use=sts.slice(-6), sum=0;
+  for(i=0;i<use.length;i++) sum+=use[i];
+  var avg=use.length?sum/use.length:0;
+  var last = dRec && dRec.splits && dRec.splits.length ? dRec.splits[dRec.splits.length-1] : null;
+  $('dStat').innerHTML =
+    '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
+    '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
+    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>'+
+    '<div><b>'+dStrokes.length+'</b><span>'+T('nStr')+'</span></div>';
+}
+function dAddStroke(){
+  dStrokes.push($('dv').currentTime); dPaintSR();
+  try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
+}
+var dPd=false;
+$('dTap').addEventListener('pointerdown', function(){
+  if(!$('detail').classList.contains('stroke')) return;
+  dPd=true; dAddStroke();
+});
+$('dTap').onclick=function(){
+  if($('detail').classList.contains('stroke')){
+    if(dPd){ dPd=false; return; }
+    dAddStroke(); return;
+  }
+  $('dPlay').click();
+};
+$('dStroke').onclick=function(){
+  var on=$('detail').classList.toggle('stroke');
+  this.setAttribute('aria-pressed', on?'true':'false');
+  if(on){
+    if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').textContent=T('pause'); }
+    toast(T('msgTapStroke'));
+  }else{
+    $('dv').pause();
+    if(dRec){
+      dRec.strokes=dStrokes.slice();
+      dbPut(dRec).then(function(){ toast(T('msgStrSaved')); paintList(); });
+    }
+  }
+  dPaintSR();
+};
+$('dUndo').onclick=function(){
+  if(!dStrokes.length) return;
+  dStrokes.pop(); dPaintSR();
+  if(dRec){ dRec.strokes=dStrokes.slice(); dbPut(dRec); }
+};
 $('pool').onchange=function(){ paintTbl(); };
 $('dist').onchange=function(){ paintTbl(); };
 $('anaBack').onclick=function(){
@@ -1426,18 +1498,15 @@ function openDetail(id){
     dURL=URL.createObjectURL(r.video);
     $('dv').src=dURL; $('dv').playbackRate=1; spdMark($('dspd'),1);
     $('dTitle').textContent=r.title||T('dTitle');
-    $('dBox').classList.remove('fold'); foldLabel($('dBox'));
+    $('dBox').classList.add('fold'); foldLabel($('dBox'));
+    document.querySelector('.ov.det').classList.remove('on');
+    $('dMenu').textContent=T('dMenu');
+    $('detail').classList.remove('stroke'); $('dStroke').setAttribute('aria-pressed','false');
+    dStrokes=(r.strokes||[]).slice();
     // まとめ
-    var sts=[], i;
-    for(i=1;i<(r.strokes||[]).length;i++){ var st=r.strokes[i]-r.strokes[i-1]; if(st>0.05) sts.push(st); }
-    var sum=0; for(i=0;i<sts.length;i++) sum+=sts[i];
-    var avg = sts.length? sum/sts.length : 0;
-    var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
+    var i, last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
     $('dSum').textContent = last ? (last.d+'m '+fmt(last.t)) : '';
-    $('dStat').innerHTML =
-      '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
-      '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
-      '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>';
+    dPaintSR();
     // 表
     var b=$('dTbl'); b.innerHTML='';
     if(!r.splits || !r.splits.length){ b.innerHTML='<div class="none">'+T('splitNone')+'</div>'; }

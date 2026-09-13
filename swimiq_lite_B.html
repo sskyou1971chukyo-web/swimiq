@@ -294,7 +294,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
   font-size:10px; font-weight:800; color:#bfe3ff; }
 .lpHd .n{ flex:0 0 60px; } .lpHd .t{ flex:1; } .lpHd .d{ flex:0 0 104px; }
 .lpBtns{ display:flex; gap:8px; flex:0 0 auto; }
-.lpBtns .btn{ flex:1; min-height:50px; font-size:15px; }
+.lpBtns .btn{ flex:1; min-height:50px; font-size:15px; padding:6px 8px; }
 .lpSub{ display:flex; gap:8px; flex:0 0 auto; }
 .lpSub button{ flex:1; min-height:38px; border-radius:10px; cursor:pointer; color:#bfe3ff;
   background:rgba(255,255,255,.08); border:1.5px solid var(--line); font-size:12px; font-weight:800; }
@@ -421,7 +421,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.13.1</p>
+  <p class="ver">ver 2026.09.13.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -434,7 +434,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
       <span class="tt" id="anaTitle">分析</span>
       <select class="osel" id="pool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
       <select class="osel" id="dist" data-ta="distLbl">
-        <option value="50">50m</option><option value="100" selected>100m</option><option value="200">200m</option><option value="400">400m</option>
+        <option value="50">50m</option><option value="100" selected>100m</option><option value="200">200m</option>
+        <option value="400">400m</option><option value="800">800m</option><option value="1500">1500m</option>
       </select>
       <button class="ob g" id="anaSave" type="button" data-t="save"></button>
     </div>
@@ -604,7 +605,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
     <div class="lpSel">
       <select id="lpPool" aria-label="プール"><option value="25">25mプール</option><option value="50">50mプール</option></select>
       <select id="lpDist" aria-label="きょり">
-        <option value="50">50m</option><option value="100">100m</option><option value="200">200m</option><option value="400">400m</option>
+        <option value="50">50m</option><option value="100">100m</option><option value="200">200m</option>
+        <option value="400">400m</option><option value="800">800m</option><option value="1500">1500m</option>
       </select>
     </div>
     <div class="lpHd"><span class="n" data-t="lpNo"></span><span class="t" data-t="lpTime"></span><span class="d" data-t="lpDist"></span></div>
@@ -1043,17 +1045,41 @@ function openAna(blob, opt){
 }
 
 /* ===== さつえい中の ラップを 一覧で 見て、きょりを チェックする ===== */
+/* ラップに つけられる きょり
+   50m・100m … 15,25,35,45,50,65,75,85,95,100（その きょりまで）
+   200m・400m … 25mごと
+   800m・1500m … 50mごと */
+function lapDists(dist){
+  var out=[], d;
+  if(dist<=100){
+    var base=[15,25,35,45,50,65,75,85,95,100];
+    for(var i=0;i<base.length;i++) if(base[i]<=dist) out.push(base[i]);
+  }else{
+    var step = (dist>=800) ? 50 : 25;
+    for(d=step; d<=dist; d+=step) out.push(d);
+  }
+  if(out.indexOf(dist)<0) out.push(dist);
+  return out;
+}
+function lapWalls(pool,dist){            /* さいしょに わりあてる ＝ かべの ところ */
+  var out=[], d;
+  for(d=pool; d<=dist; d+=pool) out.push(d);
+  if(!out.length) out.push(dist);
+  return out;
+}
 function lapRows(){
   var L=$('lpList'); L.innerHTML='';
-  var p=[], pool=Number($('lpPool').value), dist=Number($('lpDist').value), d;
-  for(d=pool; d<=dist; d+=pool) p.push(d);
-  if(!p.length) p.push(dist);
+  var pool=Number($('lpPool').value), dist=Number($('lpDist').value);
+  var all=lapDists(dist), p=[], wl=lapWalls(pool,dist);
+  for(var q=0;q<wl.length;q++) if(all.indexOf(wl[q])>=0) p.push(wl[q]);   /* えらべる きょりだけ */
+  if(!p.length) p=all.slice();
   for(var i=0;i<aPreLaps.length;i++){
     var pv = i>0 ? aPreLaps[i-1] : 0;
     var row=document.createElement('div'); row.className='lpRow';
     var id='lpc'+i;
+    var pick = (i<p.length) ? p[i] : 0;
     var opt='<option value="">'+T('lpUnused')+'</option>';
-    for(var k=0;k<p.length;k++) opt+='<option value="'+p[k]+'"'+((k===i)?' selected':'')+'>'+p[k]+'m</option>';
+    for(var k=0;k<all.length;k++) opt+='<option value="'+all[k]+'"'+((all[k]===pick)?' selected':'')+'>'+all[k]+'m</option>';
     row.innerHTML='<input type="checkbox" id="'+id+'" data-i="'+i+'"'+((i<p.length)?' checked':'')+'>'+
       '<span class="n">'+(i+1)+'</span>'+
       '<label class="t" for="'+id+'">'+cFmt(aPreLaps[i])+'</label>'+

@@ -150,7 +150,7 @@ button, select, input{ font-family:inherit; }
 /* 左上：タイムと けっか */
 .oInfo{ grid-area:info; align-self:start; min-height:0; max-height:100%;
   display:flex; flex-direction:column; gap:6px; }
-body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
+body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .hudT{ align-self:flex-start; padding:0 12px; border-radius:4px; color:var(--am);
   font-size:32px; font-weight:900; line-height:1.3; letter-spacing:.01em;
   font-variant-numeric:tabular-nums; }
@@ -182,6 +182,12 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 
 /* まんなか：かきを数える ときの おしらせ */
 .mid{ grid-area:mid; display:flex; justify-content:center; align-items:flex-start; min-width:0; }
+/* いま 何を すれば いいかを ひとことで 出す（分析画面） */
+.guide{ max-width:min(92%,520px); padding:5px 14px; border-radius:4px;
+  background:rgba(0,0,0,.88); border:2px solid var(--line); border-left:6px solid var(--am);
+  color:#fff; font-size:14px; font-weight:800; line-height:1.45; text-align:left; }
+#ana.stroke .guide{ display:none; }
+.guide.hide{ display:none; }
 .strokeTag{ display:none; padding:6px 16px; border-radius:4px; background:var(--am);
   color:#000; font-size:15px; font-weight:900; text-align:center; }
 #ana.stroke .strokeTag{ display:block; }
@@ -251,10 +257,18 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 /* ===== たて向きの けっか一覧 ===== */
 #anaSheet{ display:none; position:absolute; inset:0; z-index:12;
   background:var(--bk); overflow-y:auto; -webkit-overflow-scrolling:touch;
-  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 20px); }
+  padding:0 16px calc(env(safe-area-inset-bottom) + 20px); }
 @media (orientation:portrait){ #ana:not(.anyway) #anaSheet{ display:block; } }
+.shHd{ position:sticky; top:0; z-index:2; margin:0 -16px 14px;
+  padding:calc(env(safe-area-inset-top) + 14px) 16px 8px;
+  background:#000; border-bottom:2px solid var(--line2); }
+.glRow{ display:flex; align-items:center; gap:10px; }
+.glRow .gl{ flex:1; }
+.lapFix{ flex:0 0 auto; min-height:38px; padding:2px 14px; border-radius:4px; cursor:pointer;
+  border:2px solid var(--am); background:transparent; color:var(--am); font-size:13px; font-weight:800; }
+.lapFix.hide{ display:none; }
 #anaSheet h2{ margin:0; font-size:23px; font-weight:900; }
-#anaSheet .lead{ margin:3px 0 16px; font-size:14px; font-weight:800; color:var(--am); }
+#anaSheet .lead{ margin:3px 0 0; font-size:14px; font-weight:800; color:var(--am); }
 #anaSheet .gl{ margin:22px 0 8px; }
 #anaSheet .row{ margin-top:12px; }
 .turn{ display:flex; align-items:center; gap:12px; margin:0 0 16px;
@@ -443,7 +457,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.13.3</p>
+  <p class="ver">ver 2026.09.13.5</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -479,7 +493,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
       </div>
     </div>
 
-    <div class="mid"><span class="strokeTag" data-t="strokeTag"></span></div>
+    <div class="mid">
+      <span class="guide" id="guide"></span>
+      <span class="strokeTag" data-t="strokeTag"></span>
+    </div>
 
     <div class="oPly">
       <div class="seg" id="spd">
@@ -510,14 +527,19 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 58px); bottom:auto; }
 
   <!-- たて向きに したときの けっか一覧（分析画面の うえに かぶさります） -->
   <div id="anaSheet">
-    <h2 data-t="sheetH"></h2>
-    <p class="lead" data-t="sheetLead"></p>
+    <div class="shHd">
+      <h2 data-t="sheetH"></h2>
+      <p class="lead" data-t="sheetLead"></p>
+    </div>
     <div class="turn">
       <span class="ic"></span>
       <span data-t="sheetRot"></span>
     </div>
     <div class="sr3" id="asStat"></div>
-    <div class="gl" data-t="glSplit"></div>
+    <div class="glRow">
+      <div class="gl" data-t="glSplit"></div>
+      <button class="lapFix hide" id="asLapFix" type="button" data-t="lpFix"></button>
+    </div>
     <div class="tbl" id="asTbl"></div>
     <div class="gl" data-t="glStroke"></div>
     <div class="tbl" id="asStr"></div>
@@ -700,7 +722,7 @@ var W={
  hDist:['きょり','距離'],
  hTime:['とおった時間','経過タイム'],
  hSplit:['その くぎり','区間'],
- anaNone:['とび込んだ ところで「スタート」、かべに ついたら「つうか」を おします。0.25に すると 合わせやすいです。','飛び込みの位置で「スタート」、壁に触れたら「通過」を押します。0.25倍にすると合わせやすくなります。'],
+ anaNone:['まだ ありません','まだありません'],
 
  sheetH:['けっかの 一覧','結果の一覧'],
  sheetLead:['よこ向きに すると 分析の ボタンが 出ます','横向きにすると分析のボタンが表示されます'],
@@ -796,7 +818,16 @@ var W={
  lpDup:['おなじ きょりが 2つ あります','同じ距離が重複しています'],
  lpOrder:['タイムの 順と きょりの 順が ちがいます','タイムの順と距離の順が一致しません'],
  lpCount1:['ラップは ','ラップは '],
- lpCount2:['こ あります','件あります']
+ lpCount2:['こ あります','件あります'],
+ lpFix:['ラップを 直す','ラップを直す'],
+ msgLapAuto1:['ラップ ','ラップ'],
+ msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
+ lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
+
+ g1:['① とび込んだ ところで〈スタート〉','① 飛び込んだ瞬間で〈スタート〉'],
+ g2a:['② かべに ついたら〈つうか〉　つぎは ','② 壁に触れたら〈通過〉　次は '],
+ g3:['③〈かきを 数える〉を おして、右手が 水に 入るたびに 画面を おす','③〈ストロークを数える〉を押し、右手の入水ごとに画面を押す'],
+ g4:['④〈ほぞん〉で きろくを のこす','④〈保存〉で記録を残す']
 };
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
@@ -944,11 +975,20 @@ function nextD(){
   var p=pts();
   return aSplits.length < p.length ? p[aSplits.length] : null;
 }
+function paintGuide(){
+  var g=$('guide'); if(!g) return;
+  var n=nextD();
+  if(aT0===null) g.textContent=T('g1');
+  else if(n!==null) g.textContent=T('g2a')+n+'m';
+  else if(!aStrokes.length) g.textContent=T('g3');
+  else g.textContent=T('g4');
+}
 function paintNext(){
   var n=nextD();
   $('nextD').textContent = n!==null ? (n+'m') : T('goal');
   $('bPass').disabled = (aT0===null) || (n===null);
   $('bStart').innerHTML = T(aT0===null ? 'bStart' : 'bStartRe');
+  paintGuide();
 }
 function paintTbl(){
   var b=$('tbl'); b.innerHTML='';
@@ -1031,6 +1071,7 @@ function anaText(){
 function paintSR(){
   var sts=strokeStats();
   $('oN').textContent = aStrokes.length;
+  paintGuide();
   if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintSheet(); return; }
   var use=sts.slice(-6), sum=0;
   for(var i=0;i<use.length;i++) sum+=use[i];
@@ -1063,7 +1104,20 @@ function openAna(blob, opt){
   paintTbl(); paintSR();
   show('ana');
   $('lapOpen').classList.toggle('hide', !(aPreLaps && aPreLaps.length));
-  if(aPreLaps && aPreLaps.length && !aSplits.length) setTimeout(lapPickOpen, 400);
+  $('asLapFix').classList.toggle('hide', !(aPreLaps && aPreLaps.length));
+  /* さつえい中の ラップは、まず そのまま 通過タイムに 入れて 見せます。
+     ちがっていたら「ラップを直す」で えらび直せます。 */
+  if(aPreLaps && aPreLaps.length && !aSplits.length){
+    var wl=lapWalls(Number($('pool').value), Number($('dist').value));
+    var ad=lapDists(Number($('dist').value)), w=[];
+    for(var q=0;q<wl.length;q++) if(ad.indexOf(wl[q])>=0) w.push(wl[q]);
+    if(!w.length) w=ad.slice();
+    aSplits=[];
+    for(var i=0;i<aPreLaps.length && i<w.length;i++) aSplits.push({ d:w[i], t:aPreLaps[i]/1000 });
+    aT0=aPreT0;
+    paintTbl(); anaP.paint();
+    setTimeout(function(){ toast(T('msgLapAuto1')+aSplits.length+T('msgLapAuto2')); }, 500);
+  }
 }
 
 /* ===== さつえい中の ラップを 一覧で 見て、きょりを チェックする ===== */
@@ -1089,6 +1143,11 @@ function lapWalls(pool,dist){            /* さいしょに わりあてる ＝ 
   if(!out.length) out.push(dist);
   return out;
 }
+function lapNow(i){                       /* この ラップに いま ついている きょり */
+  var t=aPreLaps[i]/1000;
+  for(var k=0;k<aSplits.length;k++) if(Math.abs(aSplits[k].t-t)<0.005) return aSplits[k].d;
+  return 0;
+}
 function lapRows(){
   var L=$('lpList'); L.innerHTML='';
   var pool=Number($('lpPool').value), dist=Number($('lpDist').value);
@@ -1099,15 +1158,15 @@ function lapRows(){
     var pv = i>0 ? aPreLaps[i-1] : 0;
     var row=document.createElement('div'); row.className='lpRow';
     var id='lpc'+i;
-    var pick = (i<p.length) ? p[i] : 0;
+    var pick = aSplits.length ? lapNow(i) : ((i<p.length) ? p[i] : 0);
     var opt='<option value="">'+T('lpUnused')+'</option>';
     for(var k=0;k<all.length;k++) opt+='<option value="'+all[k]+'"'+((all[k]===pick)?' selected':'')+'>'+all[k]+'m</option>';
-    row.innerHTML='<input type="checkbox" id="'+id+'" data-i="'+i+'"'+((i<p.length)?' checked':'')+'>'+
+    row.innerHTML='<input type="checkbox" id="'+id+'" data-i="'+i+'"'+(pick?' checked':'')+'>'+
       '<span class="n">'+(i+1)+'</span>'+
       '<label class="t" for="'+id+'">'+cFmt(aPreLaps[i])+'</label>'+
       '<span class="g">+'+cFmt(aPreLaps[i]-pv)+'</span>'+
       '<select aria-label="'+(i+1)+' '+T('lpDist')+'">'+opt+'</select>';
-    if(i>=p.length) row.className='lpRow off';
+    if(!pick) row.className='lpRow off';
     L.appendChild(row);
   }
   var cbs=L.querySelectorAll('input[type=checkbox]');
@@ -1118,7 +1177,8 @@ function lapRows(){
 function lapPickOpen(){
   if(!aPreLaps || !aPreLaps.length) return;
   $('lpPool').value=$('pool').value; $('lpDist').value=$('dist').value;
-  $('lpLead').textContent = T('lpCount1')+aPreLaps.length+T('lpCount2')+'。'+T('lpLead');
+  $('lpLead').textContent = T('lpCount1')+aPreLaps.length+T('lpCount2')+'。'+
+    T(aSplits.length ? 'lpNowLead' : 'lpLead');
   lapRows();
   $('lapPick').classList.remove('hide');
 }
@@ -1151,6 +1211,7 @@ $('lpOk').onclick=function(){
   toast(T('msgLapIn'));
 };
 $('lapOpen').onclick=lapPickOpen;
+$('asLapFix').onclick=lapPickOpen;
 
 /* --- 動画のそうさ（分析と くわしくで おなじ しくみ） --- */
 function mmss(t){ if(!t||isNaN(t)) t=0; return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); }

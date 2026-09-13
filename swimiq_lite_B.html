@@ -21,7 +21,7 @@
 :root{
   --bk:#000000; --pane:#161616; --pane2:#1f1f1f;
   --line:#4a4a4a; --line2:#2c2c2c;
-  --am:#ffc400; --am2:#ffdb63; --amd:#5a4300;
+  --am:#ffc400; --am2:#ffdb63; --amd:#5a4300; --go:#35e06a;
   --dim:#b5b5b5; --red:#ff4b2b;
   --shadow:0 2px 0 rgba(0,0,0,.9);
 }
@@ -361,9 +361,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 #cam{ position:fixed; inset:0; z-index:60; background:#000; }
 #cam.hide{ display:none !important; }
 #cv{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; }
-#camTop{ position:absolute; left:0; right:0; top:0; z-index:6; display:flex; align-items:center; gap:8px;
+#camTop{ position:absolute; left:0; right:0; top:0; z-index:7; display:flex; align-items:center; gap:8px;
   padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;
-  background:linear-gradient(180deg,rgba(0,0,0,.75),rgba(0,0,0,0)); }
+  background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0)); pointer-events:none; }
+#camTop button{ pointer-events:auto; }
 #camDot{ width:12px; height:12px; border-radius:50%; background:var(--red);
   animation:blink 1s infinite; }
 @keyframes blink{ 50%{ opacity:.2; } }
@@ -371,12 +372,18 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 #camTop .sp{ flex:1; }
 #camTop button{ min-height:36px; padding:5px 12px; border-radius:6px; cursor:pointer;
   border:2px solid var(--line); background:rgba(0,0,0,.86); color:#fff; font-size:13px; font-weight:800; }
-#camBig{ position:absolute; left:0; right:168px; top:calc(env(safe-area-inset-top) + 50px);
-  z-index:6; text-align:center; pointer-events:none; }
-#camTime{ display:inline-block; padding:2px 18px; border-radius:6px;
+/* タイマーは 左上のすみ。いちばん 見たい 数字なので 動画の じゃまに ならない 位置に */
+#camBig{ position:absolute; z-index:6; pointer-events:none; text-align:left;
+  left:calc(env(safe-area-inset-left) + 10px); top:calc(env(safe-area-inset-top) + 8px);
+  display:flex; align-items:center; gap:10px; }
+#camTime{ display:inline-block; padding:2px 16px; border-radius:6px;
   background:rgba(0,0,0,.86); border:3px solid var(--line);
-  font-size:clamp(38px,9.5vw,64px); font-weight:900; line-height:1.15; letter-spacing:.01em;
-  font-variant-numeric:tabular-nums; }
+  font-size:clamp(34px,8vw,56px); font-weight:900; line-height:1.15; letter-spacing:.01em;
+  font-variant-numeric:tabular-nums; transition:color .1s, border-color .1s; }
+#camRec{ display:flex; align-items:center; gap:5px; }
+/* スタートの しゅんかん、0.3秒だけ 緑に 光ります */
+#cam.go #camTime{ color:var(--go) !important; border-color:var(--go) !important;
+  box-shadow:0 0 0 4px rgba(53,224,106,.35); }
 #cam.armed #camTime{ color:var(--am); border-color:var(--am); animation:armA 1s steps(1) infinite; }
 @keyframes armA{ 50%{ border-color:#5a4300; } }
 #cam.run #camTime{ color:var(--am); border-color:var(--am); }
@@ -392,7 +399,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   background:rgba(0,0,0,.86); border:2px solid var(--line); border-radius:6px; padding:7px 10px; }
 #camMsg.hide{ display:none !important; }
 #camLapBox{ position:absolute; z-index:9;
-  left:calc(env(safe-area-inset-left) + 10px); top:calc(env(safe-area-inset-top) + 108px);
+  left:calc(env(safe-area-inset-left) + 10px); top:calc(env(safe-area-inset-top) + 96px);
   width:152px; max-height:min(44vh,260px); display:flex; flex-direction:column;
   background:rgba(0,0,0,.9); border:2px solid var(--line); border-radius:6px;
   overflow:hidden; touch-action:none; }
@@ -472,7 +479,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.13.9</p>
+  <p class="ver">ver 2026.09.13.10</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -608,13 +615,14 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 <div id="cam" class="hide" role="dialog" aria-modal="true" data-ta="camLbl">
   <video id="cv" playsinline autoplay muted></video>
   <div id="camTop">
-    <span id="camDot" class="hide"></span>
-    <span id="camRecT">0:00</span>
     <span class="sp"></span>
     <button id="cFlip" type="button" data-t="cFlip"></button>
     <button id="cClose" type="button" data-t="cClose"></button>
   </div>
-  <div id="camBig"><span id="camTime">0.00</span></div>
+  <div id="camBig">
+    <span id="camTime">0.00</span>
+    <span id="camRec"><span id="camDot" class="hide"></span><span id="camRecT">0:00</span></span>
+  </div>
   <div id="camLv"><i id="camLvB"></i></div>
   <p id="camMsg" class="hide"></p>
   <div id="camLapBox">
@@ -1792,7 +1800,12 @@ function cRecStart(){
     $('camRecT').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
   },250);
 }
-function cGo(t0){ cRun=true; cT0=t0||performance.now(); cancelAnimationFrame(cRaf); cLoop(); cBtns(); }
+function cGo(t0){
+  cRun=true; cT0=t0||performance.now(); cancelAnimationFrame(cRaf); cLoop(); cBtns();
+  /* はじまった しるしに 0.3秒だけ 緑に する */
+  $('cam').classList.add('go');
+  setTimeout(function(){ $('cam').classList.remove('go'); }, 300);
+}
 $('cStart').onclick=function(){
   if(cRun) return;
   if(cAC && cAC.state==='suspended'){ try{ cAC.resume(); }catch(e){} }

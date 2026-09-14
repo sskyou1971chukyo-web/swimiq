@@ -188,8 +188,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .box .sr3 span{ font-size:10px; }
 .box .tr{ padding:5px 8px; gap:6px; line-height:1.35; }
 .box .tr .c1{ flex:0 0 46px; font-size:13px; }
+.box .tr .cSel{ flex:0 0 70px; }
+.box .tr select.dSel{ font-size:13px; padding:2px 16px 2px 5px; }
 .box .tr .c2{ font-size:17px; }
-.box .tr .c3{ flex:0 0 64px; font-size:13px; }
+.box .tr .c3{ flex:0 0 58px; font-size:12.5px; }
 .box .tr.hd span{ font-size:11px; }
 .box .none{ padding:8px 6px; font-size:12px; line-height:1.55; }
 .clr{ align-self:flex-end; min-height:34px; padding:2px 12px; border-radius:4px; cursor:pointer;
@@ -231,6 +233,24 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   justify-content:flex-end; gap:8px; }
 .oAct .ob{ min-height:48px; padding:6px 8px; font-size:14px; white-space:nowrap; }
 /* この画面でいちばん押すボタンだけ、黄色でぬりつぶす */
+/* 分析画面の 右の列：よこ向きは 2れつに ならべて 上に あふれないように */
+@media (orientation:landscape){
+  .ov.ana .oAct{ display:grid; grid-template-columns:1fr 1fr; align-content:end; }
+  .ov.ana #bStart, .ov.ana #bStroke{ grid-column:1 / span 2; }
+  .ov.ana #bUndo{ grid-column:1; }
+  .ov.ana #nextSel{ grid-column:2; }
+  .ov.ana .circle{ grid-column:1 / span 2; justify-self:center; }
+}
+.nextSel{ min-height:42px; padding:2px 22px 2px 8px; text-align:center; text-align-last:center;
+  border-color:var(--am) !important; color:var(--am) !important; font-size:15px; }
+/* 表の 行：きょりを あとから 変えられる ように */
+.tr .cSel{ flex:0 0 74px; }
+.tr select.dSel{ width:100%; min-height:34px; padding:2px 18px 2px 6px; border-radius:4px; cursor:pointer;
+  -webkit-appearance:none; appearance:none; color:var(--am); font-size:14px; font-weight:900;
+  background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 4px center;
+  border:2px solid var(--line); font-variant-numeric:tabular-nums; }
+.tr .xBtn{ flex:0 0 34px; min-height:32px; border-radius:4px; cursor:pointer; padding:0;
+  border:2px solid var(--line); background:transparent; color:#ff8e78; font-size:14px; font-weight:900; }
 .circle{ align-self:center; flex:0 0 auto; width:108px; height:108px; min-height:0 !important;
   margin-top:4px; padding:0; border-radius:50%; border-width:4px !important;
   border-color:#000 !important; background:var(--am) !important; color:#000 !important;
@@ -267,9 +287,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   .oAct .ob{ min-height:46px; font-size:14px; }
   .oAct .ob small{ display:none; }
   .ov.ana .oAct{ grid-template-columns:1fr 1fr auto; }
-  #bStart{ grid-column:1; grid-row:1; }
-  #bStroke{ grid-column:2; grid-row:1; }
-  #bUndo{ grid-column:1 / span 2; grid-row:2; }
+  .ov.ana #bStart{ grid-column:1; grid-row:1; }
+  .ov.ana #bStroke{ grid-column:2; grid-row:1; }
+  .ov.ana #bUndo{ grid-column:1; grid-row:2; }
+  .ov.ana #nextSel{ grid-column:2; grid-row:2; }
   .oAct .circle{ grid-column:3; grid-row:1 / span 2; width:98px; height:98px; margin:0; font-size:18px !important; }
   .oAct .circle small{ display:block; }
   .ov.det .oAct{ grid-template-columns:1fr 1fr; }
@@ -493,7 +514,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.14.1</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.14.2</span></div>
   <p class="sub" data-t="sub"></p>
 
   <div class="gl" data-t="glTake"></div>
@@ -511,7 +532,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.14.1</p>
+  <p class="ver">ver 2026.09.14.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -564,6 +585,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
       <button class="ob g" id="bStart" type="button" data-t="bStart"></button>
       <button class="ob y" id="bStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
       <button class="ob" id="bUndo" type="button" data-t="bUndo"></button>
+      <select class="osel nextSel" id="nextSel" data-ta="nextLbl"></select>
       <button class="ob b circle" id="bPass" type="button" disabled><span data-t="pass"></span><small id="nextD">-</small></button>
     </div>
   </div>
@@ -876,6 +898,9 @@ var W={
  lpCount2:['こ あります','件あります'],
  lpFix:['ラップを 直す','ラップを直す'],
  lpShort:['ラップ','ラップ'],
+ nextLbl:['つぎに 入れる きょり','次に記録する距離'],
+ rowDel:['この 行を 消しますか。','この行を削除しますか。'],
+ rowTip:['表の きょりは あとから 変えられます','表の距離は後から変更できます'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -1032,9 +1057,36 @@ function pts(){                            // 通過ポイントの きょり一
   if(!out.length) out.push(dist);
   return out;
 }
+/* すでに つかった きょりを のぞいた 一覧 */
+function freeD(){
+  var all=lapDists(Number($('dist').value)), used={}, out=[], i;
+  for(i=0;i<aSplits.length;i++) used[aSplits[i].d]=1;
+  for(i=0;i<all.length;i++) if(!used[all[i]]) out.push(all[i]);
+  return out;
+}
+/* かべの ところを 先に すすめ、なければ 空いている いちばん 手前の きょり */
+function autoD(){
+  var p=pts(), used={}, i;
+  for(i=0;i<aSplits.length;i++) used[aSplits[i].d]=1;
+  for(i=0;i<p.length;i++) if(!used[p[i]]) return p[i];
+  var f=freeD();
+  return f.length ? f[0] : null;
+}
+function paintNextSel(){
+  var sel=$('nextSel'), f=freeD(), keep=Number(sel.value)||0, i;
+  sel.innerHTML='';
+  for(i=0;i<f.length;i++){
+    var o=document.createElement('option');
+    o.value=f[i]; o.textContent=f[i]+'m'; sel.appendChild(o);
+  }
+  if(!f.length){ sel.disabled=true; return; }
+  sel.disabled=false;
+  var want = (f.indexOf(keep)>=0) ? keep : autoD();
+  sel.value = String(want!==null?want:f[0]);
+}
 function nextD(){
-  var p=pts();
-  return aSplits.length < p.length ? p[aSplits.length] : null;
+  var v=Number($('nextSel').value);
+  return v ? v : null;
 }
 function paintGuide(){
   var g=$('guide'); if(!g) return;
@@ -1045,6 +1097,7 @@ function paintGuide(){
   else g.textContent=T('g4');
 }
 function paintNext(){
+  paintNextSel();
   var n=nextD();
   $('nextD').textContent = n!==null ? (n+'m') : T('goal');
   $('bPass').disabled = (aT0===null) || (n===null);
@@ -1060,11 +1113,25 @@ function paintTbl(){
   for(var i=0;i<aSplits.length;i++){
     var prev = i>0 ? aSplits[i-1].t : 0;
     var r=document.createElement('div'); r.className='tr';
-    r.innerHTML='<span class="c1">'+aSplits[i].d+'m</span>'+
+    var f=freeD(), opt='', k;
+    if(f.indexOf(aSplits[i].d)<0) f.push(aSplits[i].d);
+    f.sort(function(x,y){ return x-y; });
+    for(k=0;k<f.length;k++) opt+='<option value="'+f[k]+'"'+(f[k]===aSplits[i].d?' selected':'')+'>'+f[k]+'m</option>';
+    r.innerHTML='<span class="c1 cSel"><select class="dSel" data-i="'+i+'" aria-label="'+T('hDist')+'">'+opt+'</select></span>'+
                 '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
-                '<span class="c3">+'+fmt(aSplits[i].t-prev)+'</span>';
+                '<span class="c3">+'+fmt(aSplits[i].t-prev)+'</span>'+
+                '<button class="xBtn" type="button" data-x="'+i+'" aria-label="'+T('del')+'">✕</button>';
     b.appendChild(r);
   }
+  var ss=b.querySelectorAll('select.dSel'), xs=b.querySelectorAll('button[data-x]'), q;
+  for(q=0;q<ss.length;q++) ss[q].onchange=function(){
+    aSplits[Number(this.dataset.i)].d = Number(this.value);
+    paintTbl(); anaP.paint();
+  };
+  for(q=0;q<xs.length;q++) xs[q].onclick=function(){
+    aSplits.splice(Number(this.dataset.x),1);
+    paintTbl(); anaP.paint();
+  };
   paintNext(); paintSheet();
 }
 function strokeStats(){
@@ -1357,6 +1424,8 @@ $('bStart').onclick=function(){
 $('bPass').onclick=function(){
   var n=nextD(); if(n===null || aT0===null) return;
   aSplits.push({ d:n, t:$('v').currentTime-aT0 });
+  aSplits.sort(function(x,y){ return x.t-y.t; });
+  $('nextSel').value='';
   paintTbl();
   try{ if(navigator.vibrate) navigator.vibrate(16); }catch(e){}
 };

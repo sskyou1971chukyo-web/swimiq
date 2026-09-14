@@ -393,16 +393,42 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 #cam.armed #camTime{ color:var(--am); border-color:var(--am); animation:armA 1s steps(1) infinite; }
 @keyframes armA{ 50%{ border-color:#5a4300; } }
 #cam.run #camTime{ color:var(--am); border-color:var(--am); }
-#camLv{ display:none; position:absolute; left:calc(50% - 84px); transform:translateX(-50%);
-  top:calc(env(safe-area-inset-top) + 128px); z-index:6;
-  width:min(56vw,260px); height:10px; border-radius:0;
+/* 音の メーターと おしらせは、タイマー・ラップ・ボタンと かさならない 帯に 置きます */
+#camLv{ display:none; position:absolute; z-index:6;
+  left:calc(env(safe-area-inset-left) + 176px); right:calc(env(safe-area-inset-right) + 156px);
+  top:calc(env(safe-area-inset-top) + 96px); height:10px; border-radius:0;
   background:rgba(0,0,0,.86); border:2px solid var(--line); overflow:hidden; }
 #cam.armed #camLv{ display:block; }
 #camLvB{ display:block; width:0%; height:100%; background:#8a8a8a; }
-#camMsg{ position:absolute; left:calc(50% - 84px); transform:translateX(-50%); z-index:7;
-  top:calc(env(safe-area-inset-top) + 152px); width:min(70vw,380px); margin:0; text-align:center;
-  font-size:13px; font-weight:700; line-height:1.55; color:#fff;
-  background:rgba(0,0,0,.86); border:2px solid var(--line); border-radius:6px; padding:7px 10px; }
+#camMsg{ position:absolute; z-index:7;
+  left:calc(env(safe-area-inset-left) + 176px); right:calc(env(safe-area-inset-right) + 156px);
+  top:calc(env(safe-area-inset-top) + 112px); margin:0; text-align:center;
+  font-size:13px; font-weight:700; line-height:1.5; color:#fff;
+  background:rgba(0,0,0,.86); border:2px solid var(--line); border-radius:6px; padding:6px 10px;
+  max-height:86px; overflow:hidden; }
+@media (orientation:portrait){
+  #camLv, #camMsg{ left:calc(env(safe-area-inset-left) + 10px); right:calc(env(safe-area-inset-right) + 10px); }
+  #camLv{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 112px); }
+  #camMsg{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 62px); }
+  #sensBox{ left:calc(env(safe-area-inset-left) + 10px); right:calc(env(safe-area-inset-right) + 10px);
+    bottom:calc(env(safe-area-inset-bottom) + 58px); }
+  #cam.sens #camMsg, #cam.sens #camLv{ display:none; }
+}
+/* 感度を 決める まど */
+#sensBox{ position:absolute; z-index:9;
+  left:calc(env(safe-area-inset-left) + 12px); right:calc(env(safe-area-inset-right) + 156px);
+  bottom:calc(env(safe-area-inset-bottom) + 58px);
+  background:#000; border:3px solid var(--am); border-radius:8px; padding:10px 12px 8px; }
+#sensBox.hide{ display:none !important; }
+#sensBox .sbH{ display:flex; align-items:center; gap:10px; }
+#sensBox .sbH b{ font-size:14px; font-weight:900; color:var(--am); }
+#sensBox .sbH span{ flex:1; font-size:15px; font-weight:900; }
+#sensBox .sbH button{ min-height:34px; padding:2px 12px; border-radius:4px; cursor:pointer;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:12px; font-weight:800; }
+#sensBox #sensSk{ display:block; width:100%; flex:none; margin:2px 0; }
+#sensBox .sbE{ display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--dim); }
+#sensBox .sbP{ margin:4px 0 0; font-size:11px; font-weight:700; color:var(--dim); line-height:1.5; }
+#camOpt button[aria-expanded="true"]{ background:var(--am); color:#000; border-color:var(--am); }
 #camMsg.hide{ display:none !important; }
 #camLapBox{ position:absolute; z-index:9;
   left:calc(env(safe-area-inset-left) + 10px); top:calc(env(safe-area-inset-top) + 96px);
@@ -467,7 +493,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.13.10</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.14.1</span></div>
   <p class="sub" data-t="sub"></p>
 
   <div class="gl" data-t="glTake"></div>
@@ -485,7 +511,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.13.10</p>
+  <p class="ver">ver 2026.09.14.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -643,8 +669,16 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   </div>
   <div id="camOpt">
     <button id="cSound" type="button" aria-pressed="true" data-t="sndOn"></button>
-    <button id="cSens" type="button" data-t="sens1"></button>
+    <button id="cSens" type="button" aria-expanded="false"></button>
   </div>
+  <div id="sensBox" class="hide">
+    <div class="sbH"><b data-t="sensT"></b><span id="sensNow"></span>
+      <button type="button" id="sensX" data-t="sensDone"></button></div>
+    <input class="sk" id="sensSk" type="range" min="0" max="100" step="5" value="50">
+    <div class="sbE"><span data-t="sensL"></span><span data-t="sensH"></span></div>
+    <p class="sbP" data-t="sensLead"></p>
+  </div>
+
   <div id="camRot">
     <div class="ic"></div>
     <b data-t="rotB"></b>
@@ -766,7 +800,7 @@ var W={
  cClose:['とじる','閉じる'],
  cGrip:['ラップ<small>おして うごかせます</small>','ラップ<small>ドラッグで移動できます</small>'],
  cStart:['スタート','スタート'],
- cWait:['音まち…','音声待機中…'],
+ cWait:['おとまち…','待機中…'],
  cStop:['ストップ','ストップ'],
  cLap:['ラップ','ラップ'],
  cReset:['リセット','リセット'],
@@ -775,6 +809,12 @@ var W={
  sens0:['音 ふえだけ','感度 笛のみ'],
  sens1:['音 ふつう','感度 標準'],
  sens2:['音 こえも','感度 声も'],
+ sensT:['音の 感度','音の感度'],
+ sensL:['ふえだけ','笛のみ'],
+ sensM:['ふつう','標準'],
+ sensH:['こえも','声も'],
+ sensLead:['右に するほど 小さな 音でも うごきます','右にするほど小さな音でも反応します'],
+ sensDone:['とじる','閉じる'],
  rotB:['スマホを よこにして<br>さつえい してください','端末を横向きにして<br>撮影してください'],
  rotP:['よこ向きにすると コースぜんたいが 入り、ボタンも 右がわに ならびます。','横向きにするとコース全体が入り、ボタンも右側に並びます。'],
  rotOk:['このまま つかう','このまま使う'],
@@ -864,7 +904,7 @@ function applyWords(){
     if(typeof aSplits!=='undefined'){ paintTbl(); paintSR(); paintNext(); foldLabel($('anaBox')); }
     if(dRec && !$('detail').classList.contains('hide')) openDetail(dRec.id);
     $('cSound').textContent=T(cWantSound?'sndOn':'sndOff');
-    $('cSens').textContent=T('sens'+cSens);
+    sensPaint();
     cBtns();
     $('bPlay').textContent=T($('v').paused?'play':'pause');
     $('dPlay').textContent=T($('dv').paused?'play':'pause');
@@ -1662,7 +1702,8 @@ function sheetImage(r){
    ================================================================ */
 var cStream=null, cRec=null, cChunks=[], cBlob=null, cFacing='environment';
 var cRun=false, cArm=false, cT0=0, cEl=0, cLaps=[], cRaf=null;
-var cRecT0=0, cRecP0=0, cRecTm=null, cWantSound=true, cSens=1;
+var cRecT0=0, cRecP0=0, cRecTm=null, cWantSound=true, cSens=1, cSensV=50;
+try{ var _sv=localStorage.getItem('swimiq_sens'); if(_sv!==null) cSensV=Number(_sv); }catch(e){}
 var cAC=null, cAn=null, cTbuf=null, cFbuf=null, cSrc=null;
 var cBase=0.01, cArmAt=0, cLvRaf=null, cHist=[], cHold=0, cSR=48000;
 
@@ -1732,7 +1773,7 @@ function cWatch(){
   (function step(){
     cLvRaf=requestAnimationFrame(step);
     if(!cAn) return;
-    var now=performance.now(), v=cRms(), P=SENS[cSens];
+    var now=performance.now(), v=cRms(), P=sensP();
     cHist.push({t:now,v:v});
     while(cHist.length && now-cHist[0].t>500) cHist.shift();
     if(!cRun){ var a=(v>cBase)?0.02:0.05; cBase=cBase*(1-a)+v*a; }
@@ -1850,11 +1891,41 @@ $('cSound').onclick=function(){
   this.setAttribute('aria-pressed',cWantSound?'true':'false');
   this.textContent=T(cWantSound?'sndOn':'sndOff');
 };
-$('cSens').onclick=function(){
-  cSens=(cSens+1)%3;
-  this.textContent=T('sens'+cSens);
-  cSay(T('cS'+cSens));
+/* 0（ふえだけ）〜100（こえも）の あいだを なめらかに つなぎます */
+function sensP(){
+  var x=Math.max(0,Math.min(100,cSensV))/50, a, b, f;
+  if(x<=1){ a=SENS[0]; b=SENS[1]; f=x; } else { a=SENS[1]; b=SENS[2]; f=x-1; }
+  var o=[];
+  for(var i=0;i<5;i++) o.push(a[i]+(b[i]-a[i])*f);
+  o[4]=Math.max(2,Math.round(o[4]));
+  return o;
+}
+function sensWord(){ return cSensV<=30 ? T('sensL') : (cSensV<=70 ? T('sensM') : T('sensH')); }
+function sensPaint(){
+  $('cSens').textContent = T('sensT')+' '+sensWord();
+  $('sensNow').textContent = sensWord();
+  $('sensSk').value = cSensV;
+  $('sensSk').style.setProperty('--p', cSensV+'%');
+}
+$('sensSk').oninput=function(){
+  cSensV=Number(this.value);
+  try{ localStorage.setItem('swimiq_sens',String(cSensV)); }catch(e){}
+  sensPaint();
+};
+$('sensSk').onchange=function(){
+  cSay(cSensV<=30 ? T('cS0') : (cSensV<=70 ? T('cS1') : T('cS2')));
   setTimeout(function(){ if(!cArm&&!cRun) cSay(''); },3000);
+};
+$('cSens').onclick=function(){
+  var on=$('sensBox').classList.toggle('hide')===false;
+  this.setAttribute('aria-expanded', on?'true':'false');
+  $('cam').classList.toggle('sens', on);
+  if(on) sensPaint();
+};
+$('sensX').onclick=function(){
+  $('sensBox').classList.add('hide');
+  $('cam').classList.remove('sens');
+  $('cSens').setAttribute('aria-expanded','false');
 };
 $('cAnyway').onclick=function(){ $('cam').classList.add('anyway'); };
 $('cClose').onclick=function(){ cClose(); };
@@ -1915,7 +1986,7 @@ $('fPick').addEventListener('change', function(){
   };
 })();
 
-cPaintLaps(); cBtns();
+cPaintLaps(); cBtns(); sensPaint();
 applyWords();
 paintList();
 })();

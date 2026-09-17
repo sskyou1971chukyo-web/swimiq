@@ -375,6 +375,34 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:12px; font-weight:800; }
 #lapOpen.hide{ display:none; }
 
+/* ===== アンケート ===== */
+#survey{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+  background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
+#survey.hide{ display:none !important; }
+.svWrap{ width:100%; max-width:620px; background:var(--bk); border:3px solid var(--am);
+  border-radius:8px; padding:14px; }
+.svWrap h3{ margin:0; font-size:21px; font-weight:900; }
+.svWrap .lead{ margin:4px 0 12px; font-size:13px; font-weight:700; color:var(--dim); line-height:1.6; }
+.sq{ margin:0 0 14px; }
+.sq .q{ font-size:15px; font-weight:900; margin:0 0 6px; padding-left:9px; border-left:5px solid var(--am); }
+.sq .opts{ display:flex; flex-wrap:wrap; gap:6px; }
+.sq .opts.sc5{ display:grid; grid-template-columns:repeat(5,1fr); }
+.sq .opts button{ flex:1 1 auto; min-width:56px; min-height:46px; padding:6px 10px; border-radius:6px;
+  cursor:pointer; border:2px solid var(--line); background:var(--pane); color:#fff;
+  font-size:14px; font-weight:800; }
+.sq .opts button[aria-pressed="true"]{ background:var(--am); border-color:var(--am); color:#000; }
+.sq .ends{ display:flex; justify-content:space-between; margin-top:4px;
+  font-size:11px; font-weight:800; color:var(--dim); }
+.sq textarea{ width:100%; min-height:88px; padding:8px; border-radius:6px; resize:vertical;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:15px; font-weight:700;
+  line-height:1.6; }
+.sq input[type=text]{ width:100%; min-height:46px; padding:6px 10px; border-radius:6px;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:15px; font-weight:700; }
+.svBtns{ display:flex; gap:8px; margin-top:6px; }
+.svBtns .btn{ flex:1; min-height:52px; font-size:16px; }
+.svNote{ margin:10px 0 0; font-size:11px; font-weight:700; color:var(--dim); line-height:1.6; }
+
 /* ===== おしらせ ===== */
 #toast{ position:fixed; left:50%; transform:translateX(-50%); z-index:90;
   bottom:calc(env(safe-area-inset-bottom) + 22px);
@@ -514,13 +542,14 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.14.2</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.14.3</span></div>
   <p class="sub" data-t="sub"></p>
 
   <div class="gl" data-t="glTake"></div>
   <div class="take">
     <button class="btn g big" id="openCam" type="button" data-t="openCam"></button>
     <label class="btn b" for="fPick" data-t="pick"></label>
+    <button class="btn y" id="openSurvey" type="button" data-t="svBtn"></button>
     <p class="hint" data-t="homeHint"></p>
   </div>
 
@@ -532,7 +561,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.14.2</p>
+  <p class="ver">ver 2026.09.14.3</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -735,6 +764,19 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   </div>
 </div>
 
+<div id="survey" class="hide" role="dialog" aria-modal="true" aria-labelledby="svH">
+  <div class="svWrap">
+    <h3 id="svH" data-t="svH"></h3>
+    <p class="lead" data-t="svLead"></p>
+    <div id="svBody"></div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="svCancel" data-t="svClose"></button>
+      <button class="btn g" type="button" id="svSend" data-t="svSend"></button>
+    </div>
+    <p class="svNote" id="svNote"></p>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -901,6 +943,18 @@ var W={
  nextLbl:['つぎに 入れる きょり','次に記録する距離'],
  rowDel:['この 行を 消しますか。','この行を削除しますか。'],
  rowTip:['表の きょりは あとから 変えられます','表の距離は後から変更できます'],
+
+ svBtn:['アンケート<small>1分で おわります。ためした 感想を 教えてください</small>','アンケート<small>1分で終わります。使ってみた感想をお聞かせください</small>'],
+ svH:['つかってみた 感想','使ってみた感想'],
+ svLead:['テスト中の アプリです。えらぶだけで 答えられます。1分ほどで おわります。','テスト中のアプリです。選ぶだけで答えられます。1分ほどで終わります。'],
+ svSend:['送る','送信する'],
+ svClose:['やめる','閉じる'],
+ svThanks:['ありがとうございました','ご協力ありがとうございました'],
+ svNG:['送れませんでした。電波の いい ところで もう一度 おしてください','送信できませんでした。通信状況のよい場所でもう一度お試しください'],
+ svNeed:['答えていない ところが あります','未回答の項目があります'],
+ svSending:['送っています…','送信中…'],
+ svAgain:['もう一度 送る','もう一度送信'],
+ svDone:['前に 送った 答えが あります。書き直して また 送れます。','前回の回答があります。書き直して再送できます。'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -2054,6 +2108,112 @@ $('fPick').addEventListener('change', function(){
     applyWords();
   };
 })();
+
+/* ===== アンケート =====
+   答えは 佐々木の Google スプレッドシートにだけ 入ります。
+   このアプリから 読み出す しくみは 作っていないので、
+   ほかの人が 中身を 見ることは できません。
+   下の URL に、公開した GAS の ウェブアプリの アドレスを 入れてください。 */
+var SURVEY_URL = '';
+
+var SVQ = [
+ { id:'role', q:['あなたは どれですか','あなたの立場'], t:'one',
+   o:[['選手','選手'],['コーチ','コーチ'],['保護者','保護者'],['その他','その他']] },
+ { id:'scene', q:['どこで つかいましたか','使った場面'], t:'one',
+   o:[['練習','練習'],['記録会・試合','記録会・試合'],['まだ つかっていない','まだ使っていない']] },
+ { id:'easy', q:['そうさは 分かりやすかったですか','操作は分かりやすかったですか'], t:'sc' },
+ { id:'see', q:['文字や 数字は 見やすかったですか','文字や数字は見やすかったですか'], t:'sc' },
+ { id:'flow', q:['とる → 分析 の ながれは スムーズでしたか','撮影から分析までの流れはスムーズでしたか'], t:'sc' },
+ { id:'good', q:['役に立った ところ（いくつでも）','役に立った機能（複数選択可）'], t:'many',
+   o:[['タイム','タイム計測'],['音で スタート','音声スタート'],['ラップ','ラップ'],
+      ['ST・SR','ST・SR'],['動画の 見直し','動画の見直し'],['画像で ほぞん','画像で保存']] },
+ { id:'again', q:['これからも つかいたいですか','今後も使いたいですか'], t:'sc' },
+ { id:'pay', q:['もし 有料なら いくらまで','有料の場合いくらまで'], t:'one',
+   o:[['無料だけ','無料のみ'],['月300円','月300円'],['月500円','月500円'],
+      ['月1000円','月1000円'],['それ以上','それ以上']] },
+ { id:'free', q:['こまったこと、ほしい きのう（自由に）','困ったこと・欲しい機能（自由記入）'], t:'text' },
+ { id:'who', q:['お名前（書かなくても だいじょうぶ）','お名前（任意）'], t:'name' }
+];
+var SVA = {};
+try{ SVA = JSON.parse(localStorage.getItem('swimiq_survey')||'{}'); }catch(e){ SVA={}; }
+
+function svScale(i){
+  var w = MODE==='k' ? ['そう思わない','そう思う'] : ['そう思わない','そう思う'];
+  var h='<div class="opts sc5">';
+  for(var n=1;n<=5;n++) h+='<button type="button" data-q="'+i+'" data-v="'+n+'">'+n+'</button>';
+  return h+'</div><div class="ends"><span>1 '+w[0]+'</span><span>5 '+w[1]+'</span></div>';
+}
+function svPaint(){
+  var b=$('svBody'); b.innerHTML='';
+  for(var i=0;i<SVQ.length;i++){
+    var Q=SVQ[i], d=document.createElement('div'); d.className='sq';
+    var h='<p class="q">'+(MODE==='k'?Q.q[0]:Q.q[1])+'</p>';
+    if(Q.t==='sc') h+=svScale(i);
+    else if(Q.t==='text') h+='<textarea data-q="'+i+'"></textarea>';
+    else if(Q.t==='name') h+='<input type="text" data-q="'+i+'">';
+    else{
+      h+='<div class="opts">';
+      for(var k=0;k<Q.o.length;k++) h+='<button type="button" data-q="'+i+'" data-v="'+Q.o[k][1]+'">'+(MODE==='k'?Q.o[k][0]:Q.o[k][1])+'</button>';
+      h+='</div>';
+    }
+    d.innerHTML=h; b.appendChild(d);
+  }
+  var bs=b.querySelectorAll('.opts button'), i2;
+  for(i2=0;i2<bs.length;i2++) bs[i2].onclick=function(){
+    var qi=Number(this.dataset.q), Q=SVQ[qi], v=this.dataset.v;
+    if(Q.t==='many'){
+      var cur=SVA[Q.id]||[];
+      var at=cur.indexOf(v);
+      if(at>=0) cur.splice(at,1); else cur.push(v);
+      SVA[Q.id]=cur;
+    }else SVA[Q.id]=v;
+    svMark();
+  };
+  var ts=b.querySelectorAll('textarea,input[type=text]');
+  for(i2=0;i2<ts.length;i2++) ts[i2].oninput=function(){
+    SVA[SVQ[Number(this.dataset.q)].id]=this.value;
+  };
+  svMark();
+  $('svNote').textContent = SVA.sentAt ? T('svDone') : '';
+}
+function svMark(){
+  var b=$('svBody'), bs=b.querySelectorAll('.opts button'), i;
+  for(i=0;i<bs.length;i++){
+    var Q=SVQ[Number(bs[i].dataset.q)], v=bs[i].dataset.v, on=false;
+    if(Q.t==='many') on=(SVA[Q.id]||[]).indexOf(v)>=0;
+    else on=(SVA[Q.id]===v);
+    bs[i].setAttribute('aria-pressed', on?'true':'false');
+  }
+  var ts=b.querySelectorAll('textarea,input[type=text]');
+  for(i=0;i<ts.length;i++){
+    var id=SVQ[Number(ts[i].dataset.q)].id;
+    ts[i].value = SVA[id] || '';
+  }
+  try{ localStorage.setItem('swimiq_survey', JSON.stringify(SVA)); }catch(e){}
+}
+$('openSurvey').onclick=function(){ svPaint(); $('survey').classList.remove('hide'); };
+$('svCancel').onclick=function(){ $('survey').classList.add('hide'); };
+$('svSend').onclick=function(){
+  var need=['role','scene','easy','see','flow','again','pay'], i;
+  for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
+  var btn=this; btn.disabled=true; toast(T('svSending'));
+  var body={ at:new Date().toISOString(), ver:'2026.09.14.3', mode:MODE,
+             ua:navigator.userAgent, a:SVA };
+  if(!SURVEY_URL){ svOK(btn); return; }          /* URL 未設定でも 端末には のこします */
+  fetch(SURVEY_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+                      body:JSON.stringify(body) })
+    .then(function(r){ return r.text(); })
+    .then(function(){ svOK(btn); })
+    .catch(function(){ btn.disabled=false; toast(T('svNG')); });
+};
+function svOK(btn){
+  btn.disabled=false;
+  SVA.sentAt=new Date().toISOString();
+  try{ localStorage.setItem('swimiq_survey', JSON.stringify(SVA)); }catch(e){}
+  $('survey').classList.add('hide');
+  toast(T('svThanks'));
+  $('svSend').textContent=T('svAgain');
+}
 
 cPaintLaps(); cBtns(); sensPaint();
 applyWords();

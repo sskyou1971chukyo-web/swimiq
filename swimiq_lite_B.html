@@ -175,13 +175,16 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .boxH b{ font-size:13px; font-weight:900; color:var(--am); }
 .boxH .sum{ flex:1; min-width:0; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.boxH button{ flex:0 0 auto; min-height:32px; padding:2px 10px; border-radius:4px; cursor:pointer;
+.boxH button{ flex:0 0 auto; min-height:32px; padding:2px 8px; border-radius:4px; cursor:pointer;
   border:2px solid var(--line); background:var(--pane2); color:#fff;
   font-size:12px; font-weight:800; }
 .boxB{ min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
   padding:2px 6px 6px; display:flex; flex-direction:column; gap:6px; }
 .boxB > *{ flex:0 0 auto; }
-.box.fold .boxB{ display:none; }
+/* たたんだ ときも、SR・ST・ストローク数は 見えるままに する */
+.box.fold .boxB > *{ display:none; }
+.box.fold .boxB > .sr3{ display:grid; }
+.box.fold .boxB{ padding-bottom:6px; }
 .box .sr3{ gap:4px; }
 .box .sr3 div{ padding:3px 2px; line-height:1.25; }
 .box .sr3 b{ font-size:19px; }
@@ -375,6 +378,34 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:12px; font-weight:800; }
 #lapOpen.hide{ display:none; }
 
+/* ===== 数字を 直す まど ===== */
+.sr3 button.fixT{ cursor:pointer; font:inherit; padding:4px 2px; }
+.sr3 button.fixT span{ white-space:nowrap; }
+.sr3 button.fixT::after{ content:"直す"; display:block; margin-top:1px;
+  font-size:9px; font-weight:800; color:var(--am); }
+.box .sr3 button.fixT{ padding:2px 1px; }
+.box .sr3 button.fixT span{ font-size:9px; }
+.sumBtn{ cursor:pointer; border:0; padding:0 2px; border-radius:4px; background:transparent;
+  color:#fff; text-align:left; }
+.sumBtn:active{ background:rgba(255,255,255,.12); }
+#fixBox{ position:fixed; inset:0; z-index:75; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.88); padding:16px; }
+#fixBox.hide{ display:none !important; }
+.fxWrap{ width:100%; max-width:420px; background:var(--bk); border:3px solid var(--am);
+  border-radius:8px; padding:14px; }
+.fxH{ display:flex; align-items:center; gap:10px; }
+.fxH b{ flex:1; font-size:17px; font-weight:900; color:var(--am); }
+.fxH button{ min-height:38px; padding:2px 14px; border-radius:4px; cursor:pointer;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:13px; font-weight:800; }
+.fxRow{ display:flex; align-items:center; gap:10px; margin:12px 0 4px; }
+.fxRow button{ flex:0 0 76px; min-height:72px; border-radius:8px; cursor:pointer;
+  border:3px solid var(--am); background:var(--pane); color:var(--am); font-size:34px; font-weight:900; }
+.fxRow button:active{ background:var(--am); color:#000; }
+.fxRow input{ flex:1; min-width:0; min-height:72px; text-align:center; border-radius:8px;
+  border:3px solid var(--line); background:#000; color:#fff;
+  font-size:38px; font-weight:900; font-variant-numeric:tabular-nums; }
+.fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
+
 /* ===== アンケート ===== */
 #survey{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
@@ -542,7 +573,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.14.4</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.18.1</span></div>
   <p class="sub" data-t="sub"></p>
 
   <div class="gl" data-t="glTake"></div>
@@ -561,7 +592,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.14.4</p>
+  <p class="ver">ver 2026.09.18.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -583,12 +614,12 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
     <div class="oInfo">
       <div class="hudT glass" id="hud">0.00</div>
       <div class="box glass" id="anaBox">
-        <div class="boxH"><b data-t="result"></b><span class="sum" id="anaSum"></span><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
+        <div class="boxH"><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3">
-            <div><b id="oSR">--</b><span data-t="srU"></span></div>
-            <div><b id="oST">--</b><span data-t="stU"></span></div>
-            <div><b id="oN">0</b><span data-t="nStr"></span></div>
+            <button type="button" class="fixT" data-fix="sr"><b id="oSR">--</b><span data-t="srU"></span></button>
+            <button type="button" class="fixT" data-fix="st"><b id="oST">--</b><span data-t="stU"></span></button>
+            <button type="button" class="fixT" data-fix="n"><b id="oN">0</b><span data-t="nStr"></span></button>
           </div>
           <div class="tbl" id="tbl"></div>
           <button class="clr" id="bClear" type="button" data-t="clearAll"></button>
@@ -761,6 +792,18 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
         <button class="btn g" type="button" id="lpOk" data-t="lpUse"></button>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="fixBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="fixH">
+  <div class="fxWrap">
+    <div class="fxH"><b id="fixH"></b><button type="button" id="fixX" data-t="sensDone"></button></div>
+    <div class="fxRow">
+      <button type="button" id="fixMinus" aria-label="へらす">−</button>
+      <input type="text" id="fixVal" inputmode="decimal">
+      <button type="button" id="fixPlus" aria-label="ふやす">＋</button>
+    </div>
+    <p class="fxP" data-t="fixTip"></p>
   </div>
 </div>
 
@@ -955,6 +998,15 @@ var W={
  svSending:['送っています…','送信中…'],
  svAgain:['もう一度 送る','もう一度送信'],
  svDone:['前に 送った 答えが あります。書き直して また 送れます。','前回の回答があります。書き直して再送できます。'],
+
+ fixN:['ストローク数を 直す','ストローク数を直す'],
+ fixST:['テンポ（ST 秒/回）を 直す','テンポ（ST 秒/回）を直す'],
+ fixSR:['テンポ（SR 回/分）を 直す','テンポ（SR 回/分）を直す'],
+ fixT:['タイムを 直す','タイムを直す'],
+ fixTip:['−と＋で 直せます。数字を おして 打ちこむことも できます。','−と＋で調整できます。数字を押して直接入力もできます。'],
+ fixNeed:['さきに ストロークを 数えてください','先にストロークを数えてください'],
+ fixNoT:['さきに 通過タイムを 入れてください','先に通過タイムを入れてください'],
+ fixOK:['直しました','変更しました'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -1487,6 +1539,77 @@ $('bUndo').onclick=function(){
   if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
   if(aSplits.length){ aSplits.pop(); paintTbl(); }
 };
+/* ===== 数字を あとから 直す =====
+   ストローク数 … ふやすと 平均の 間かくで うしろに たし、へらすと うしろから 消します
+   テンポ       … その 間かくで きれいに ならべ直します（数は そのまま）
+   タイム       … いちばん 後ろの 通過タイムを 書きかえます               */
+var fixWhat='';
+function stAvg(){
+  var sts=strokeStats(), i, sum=0;
+  if(!sts.length) return 0;
+  for(i=0;i<sts.length;i++) sum+=sts[i];
+  return sum/sts.length;
+}
+function fixOpen(what){
+  var st=stAvg();
+  if((what==='st'||what==='sr'||what==='n') && !aStrokes.length && what!=='n'){ toast(T('fixNeed')); return; }
+  if((what==='st'||what==='sr') && aStrokes.length<2){ toast(T('fixNeed')); return; }
+  if(what==='t' && !aSplits.length){ toast(T('fixNoT')); return; }
+  fixWhat=what;
+  $('fixH').textContent = T(what==='n'?'fixN':(what==='st'?'fixST':(what==='sr'?'fixSR':'fixT')));
+  var v = what==='n' ? aStrokes.length
+        : (what==='st' ? st.toFixed(2)
+        : (what==='sr' ? (st?(60/st).toFixed(1):'0')
+        : fmt(aSplits[aSplits.length-1].t)));
+  $('fixVal').value=String(v);
+  $('fixBox').classList.remove('hide');
+}
+function fixStep(dir){
+  var v=parseFloat(String($('fixVal').value).replace(':','')) || 0;
+  var d = fixWhat==='n' ? 1 : (fixWhat==='st' ? 0.05 : (fixWhat==='sr' ? 0.5 : 0.01));
+  v = v + dir*d;
+  if(v<0) v=0;
+  $('fixVal').value = fixWhat==='n' ? String(Math.round(v))
+                    : (fixWhat==='sr' ? v.toFixed(1) : v.toFixed(2));
+  fixApply();
+}
+function fixApply(){
+  var raw=String($('fixVal').value).trim(), v;
+  if(raw.indexOf(':')>=0){                       /* 1:02.34 のような 書き方 */
+    var pp=raw.split(':'); v=Number(pp[0])*60+Number(pp[1]);
+  } else v=parseFloat(raw);
+  if(isNaN(v)) return;
+  var st=stAvg(), i;
+  if(fixWhat==='n'){
+    var n=Math.max(0,Math.round(v)), gap = st || 1.2;
+    while(aStrokes.length>n) aStrokes.pop();
+    while(aStrokes.length<n){
+      var last = aStrokes.length ? aStrokes[aStrokes.length-1] : (aT0!==null?aT0:0);
+      aStrokes.push(last+gap);
+    }
+    paintSR();
+  }else if(fixWhat==='st' || fixWhat==='sr'){
+    var gap2 = fixWhat==='st' ? v : (v>0 ? 60/v : 0);
+    if(gap2<=0.05) return;
+    var first = aStrokes[0];
+    for(i=0;i<aStrokes.length;i++) aStrokes[i]=first+i*gap2;
+    paintSR();
+  }else{
+    aSplits[aSplits.length-1].t = v;
+    aSplits.sort(function(x,y){ return x.t-y.t; });
+    paintTbl();
+  }
+}
+$('fixMinus').onclick=function(){ fixStep(-1); };
+$('fixPlus').onclick=function(){ fixStep(1); };
+$('fixVal').oninput=function(){ fixApply(); };
+$('fixX').onclick=function(){ $('fixBox').classList.add('hide'); toast(T('fixOK')); };
+(function(){
+  var bs=document.querySelectorAll('.sr3 button.fixT');
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ fixOpen(this.dataset.fix); };
+  $('anaSum').onclick=function(){ fixOpen('t'); };
+})();
+
 $('bClear').onclick=function(){
   if(!confirm(T('askClear'))) return;
   aSplits=[]; aStrokes=[]; aT0=null; paintTbl(); paintSR(); anaP.paint();
@@ -2197,7 +2320,7 @@ $('svSend').onclick=function(){
   var need=['role','scene','easy','see','flow','again','pay'], i;
   for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
   var btn=this; btn.disabled=true; toast(T('svSending'));
-  var body={ at:new Date().toISOString(), ver:'2026.09.14.4', mode:MODE,
+  var body={ at:new Date().toISOString(), ver:'2026.09.18.1', mode:MODE,
              ua:navigator.userAgent, a:SVA };
   if(!SURVEY_URL){ svOK(btn); return; }          /* URL 未設定でも 端末には のこします */
   fetch(SURVEY_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},

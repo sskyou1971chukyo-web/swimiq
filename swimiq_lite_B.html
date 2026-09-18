@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="app-ver" content="2026.09.18.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -391,6 +392,25 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:12px; font-weight:800; }
 #lapOpen.hide{ display:none; }
 
+/* ===== 新しい版の おしらせ ===== */
+#upBar{ display:flex; align-items:center; gap:10px; margin:0 0 20px;
+  padding:10px 12px; border-radius:8px; background:var(--am); color:#000; }
+#upBar.hide{ display:none !important; }
+#upBar b{ font-size:15px; font-weight:900; }
+#upBar span{ flex:1; font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+#upBar button{ flex:0 0 auto; min-height:42px; padding:4px 16px; border-radius:6px; cursor:pointer;
+  border:2px solid #000; background:#000; color:var(--am); font-size:14px; font-weight:900; }
+#upBox{ position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.9); padding:16px; overflow-y:auto; }
+#upBox.hide{ display:none !important; }
+#upBox .fxWrap{ max-width:520px; }
+.upNow{ margin:10px 0 12px; font-size:15px; font-weight:800; color:var(--am);
+  font-variant-numeric:tabular-nums; }
+.upStep{ margin:0 0 10px; padding:10px 12px; border-radius:6px; background:var(--pane);
+  border:2px solid var(--line2); font-size:14px; font-weight:700; line-height:1.7; }
+.upStep.keep{ border-color:var(--am); color:var(--am); }
+#upGo{ width:100%; min-height:54px; margin-top:6px; font-size:16px; }
+
 /* ===== 数字を 直す まど ===== */
 .sr3 button.fixT{ cursor:pointer; font:inherit; padding:4px 2px; }
 .sr3 button.fixT span{ white-space:nowrap; }
@@ -586,8 +606,13 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.18.3</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop" id="vtop">2026.09.18.4</span></div>
   <p class="sub" data-t="sub"></p>
+
+  <div id="upBar" class="hide">
+    <b data-t="upNew"></b><span id="upVer"></span>
+    <button type="button" id="upOpen" data-t="upDo"></button>
+  </div>
 
   <div class="gl" data-t="glTake"></div>
   <div class="take">
@@ -605,7 +630,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.18.3</p>
+  <p class="ver" id="verBottom">ver 2026.09.18.4</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -809,6 +834,18 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
         <button class="btn g" type="button" id="lpOk" data-t="lpUse"></button>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="upBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="upH">
+  <div class="fxWrap">
+    <div class="fxH"><b id="upH" data-t="upH"></b><button type="button" id="upX" data-t="upLater"></button></div>
+    <p class="upNow" id="upNow2"></p>
+    <p class="upStep" data-t="upS1"></p>
+    <p class="upStep" data-t="upS2"></p>
+    <p class="upStep" data-t="upS3"></p>
+    <p class="upStep keep" data-t="upKeep"></p>
+    <button class="btn g" type="button" id="upGo" data-t="upNow"></button>
   </div>
 </div>
 
@@ -1027,6 +1064,16 @@ var W={
  mAna:['分析','分析'],
  mPlay:['再生','再生'],
  mPlayOn:['再生モードです。ボタンを かくして 動画を 大きく 見ます','再生モードです。ボタンを隠して動画を大きく見ます'],
+
+ upNew:['新しい版が あります','新しい版があります'],
+ upDo:['更新する','更新する'],
+ upH:['アプリを 新しくする','アプリを更新する'],
+ upNow:['今すぐ 新しくする','今すぐ更新する'],
+ upLater:['あとで','あとで'],
+ upS1:['１　下の「今すぐ新しくする」を おします。画面が いったん 消えて、新しい画面に なります。','１　下の「今すぐ更新する」を押します。画面がいったん消えて、新しい画面に変わります。'],
+ upS2:['２　ロゴの 右の 数字が 新しく なっていれば 終わりです。','２　ロゴの右の数字が新しくなっていれば完了です。'],
+ upS3:['３　数字が 変わらないときは、ホーム画面の アイコンを 長おしして 削除し、Safariで もう一度 ひらいてから、共有ボタンで ホーム画面に 追加し直してください。','３　数字が変わらないときは、ホーム画面のアイコンを長押しして削除し、Safariで開き直してから、共有ボタンでホーム画面に追加し直してください。'],
+ upKeep:['ほぞんした きろくは 消えません。','保存した記録は消えません。'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -2275,6 +2322,43 @@ $('fPick').addEventListener('change', function(){
   };
 })();
 
+/* ===== 新しい版が 出ていないか しらべる =====
+   置いてある ファイルを そっと 読みに行き、中の 版の 数字を くらべます。
+   ちがっていたら、ホームの いちばん上に 黄色い おしらせを 出します。
+   電波が ないときは 何も しません。                                   */
+var APP_VER = (document.querySelector('meta[name=app-ver]')||{}).content || '0';
+var newVer = '';
+function verNum(v){
+  var a=String(v).split('.'), n=0, i;
+  for(i=0;i<4;i++) n = n*10000 + (Number(a[i])||0);
+  return n;
+}
+function checkUpdate(){
+  if(location.protocol==='file:') return;
+  var base = location.href.split('#')[0].split('?')[0];
+  fetch(base+'?vchk='+Date.now(), { cache:'no-store' })
+    .then(function(r){ return r.text(); })
+    .then(function(t){
+      var m = t.match(/name="app-ver" content="([0-9.]+)"/);
+      if(!m) return;
+      if(verNum(m[1]) > verNum(APP_VER)){
+        newVer = m[1];
+        $('upVer').textContent = newVer;
+        $('upBar').classList.remove('hide');
+      }
+    })
+    .catch(function(){});
+}
+$('upOpen').onclick=function(){
+  $('upNow2').textContent = APP_VER + ' → ' + newVer;
+  $('upBox').classList.remove('hide');
+};
+$('upX').onclick=function(){ $('upBox').classList.add('hide'); };
+$('upGo').onclick=function(){
+  var base = location.href.split('#')[0].split('?')[0];
+  location.replace(base+'?v='+Date.now());
+};
+
 /* ===== アンケート =====
    答えは 佐々木の Google スプレッドシートにだけ 入ります。
    このアプリから 読み出す しくみは 作っていないので、
@@ -2373,7 +2457,7 @@ $('svSend').onclick=function(){
   var need=['role','scene','easy','see','flow','again','pay'], i;
   for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
   var btn=this; btn.disabled=true; toast(T('svSending'));
-  var body={ at:new Date().toISOString(), ver:'2026.09.18.3', mode:MODE,
+  var body={ at:new Date().toISOString(), ver:APP_VER, mode:MODE,
              ua:navigator.userAgent, a:SVA };
   if(!SURVEY_URL){ svOK(btn); return; }          /* URL 未設定でも 端末には のこします */
   fetch(SURVEY_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
@@ -2393,6 +2477,9 @@ function svOK(btn){
 
 cPaintLaps(); cBtns(); sensPaint();
 applyWords();
+$('vtop').textContent = APP_VER;
+$('verBottom').textContent = 'ver ' + APP_VER;
+setTimeout(checkUpdate, 1200);
 paintList();
 })();
 </script>

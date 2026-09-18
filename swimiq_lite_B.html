@@ -163,6 +163,17 @@ button, select, input{ font-family:inherit; }
   background:rgba(0,0,0,.86) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 9px center;
   border:2px solid var(--line); }
 
+/* 分析モードと 再生モードの きりかえ */
+.modeSeg{ flex:0 0 auto; padding:3px; background:rgba(0,0,0,.86); border:2px solid var(--line); }
+.modeSeg button{ min-height:34px; padding:0 12px; font-size:14px; }
+/* 再生モードでは、きろくの ボタンを かくして 動画を 広く 見せます */
+.ov.ana.play .oAct{ display:none; }
+.ov.ana.play .guide{ display:none; }
+/* たたんでいる あいだは 数字も かくして、動画だけに します */
+.ov.ana.play .box.fold .boxB{ display:none; }
+/* 再生モードでは プールと きょりの えらび口も かくします */
+.ov.ana.play #pool, .ov.ana.play #dist{ display:none; }
+
 /* 左上：タイムと けっか */
 .oInfo{ grid-area:info; align-self:start; min-height:0; max-height:100%;
   display:flex; flex-direction:column; gap:6px; }
@@ -285,7 +296,9 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   .oBar .sk{ flex:1 1 100%; order:2; }
   .oBar .pos{ order:1; margin-left:auto; }
   .oInfo{ max-height:30vh; }
-  .ov.ana .oTop .tt{ visibility:hidden; }
+  .ov.ana .oTop{ flex-wrap:wrap; }
+  .ov.ana .oTop .tt{ display:none; }
+  .modeSeg button{ padding:0 10px; }
   .oAct{ width:auto; display:grid; gap:6px; }
   .oAct .ob{ min-height:46px; font-size:14px; }
   .oAct .ob small{ display:none; }
@@ -573,7 +586,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.18.1</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.18.2</span></div>
   <p class="sub" data-t="sub"></p>
 
   <div class="gl" data-t="glTake"></div>
@@ -592,7 +605,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.18.1</p>
+  <p class="ver">ver 2026.09.18.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -602,6 +615,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   <div class="ov ana">
     <div class="oTop">
       <button class="ob" id="anaBack" type="button" data-t="back"></button>
+      <div class="seg modeSeg" id="modeSeg">
+        <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
+        <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
+      </div>
       <span class="tt" id="anaTitle">分析</span>
       <select class="osel" id="pool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
       <select class="osel" id="dist" data-ta="distLbl">
@@ -1007,6 +1024,9 @@ var W={
  fixNeed:['さきに ストロークを 数えてください','先にストロークを数えてください'],
  fixNoT:['さきに 通過タイムを 入れてください','先に通過タイムを入れてください'],
  fixOK:['直しました','変更しました'],
+ mAna:['分析','分析'],
+ mPlay:['再生','再生'],
+ mPlayOn:['再生モードです。ボタンを かくして 動画を 大きく 見ます','再生モードです。ボタンを隠して動画を大きく見ます'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -1039,6 +1059,7 @@ function applyWords(){
     cBtns();
     $('bPlay').textContent=T($('v').paused?'play':'pause');
     $('dPlay').textContent=T($('dv').paused?'play':'pause');
+    setMode(anaMode, false);
     spdMark($('spd'), $('spd').dataset.r||1);
     spdMark($('dspd'), $('dspd').dataset.r||1);
     if($('anaTitle').dataset.neu==='1') $('anaTitle').textContent=T('anaNew');
@@ -1335,6 +1356,7 @@ function openAna(blob, opt){
   $('bStroke').setAttribute('aria-pressed','false');
   spdMark($('spd'),1); $('bPlay').textContent=T('play');
   $('anaBox').classList.add('fold'); foldLabel($('anaBox'));
+  setMode(anaMode, false);
   paintTbl(); paintSR();
   show('ana');
   $('lapOpen').classList.toggle('hide', !(aPreLaps && aPreLaps.length));
@@ -1445,6 +1467,27 @@ $('lpOk').onclick=function(){
   toast(T('msgLapIn'));
 };
 $('lapOpen').onclick=lapPickOpen;
+
+/* ===== 分析モード / 再生モード ===== */
+var anaMode='ana';
+try{ anaMode = (localStorage.getItem('swimiq_mode')==='play') ? 'play' : 'ana'; }catch(e){}
+function setMode(m, say){
+  anaMode = (m==='play') ? 'play' : 'ana';
+  try{ localStorage.setItem('swimiq_mode', anaMode); }catch(e){}
+  var ov=document.querySelector('.ov.ana');
+  ov.classList.toggle('play', anaMode==='play');
+  var bs=$('modeSeg').querySelectorAll('button');
+  for(var i=0;i<bs.length;i++) bs[i].setAttribute('aria-pressed', bs[i].dataset.m===anaMode ? 'true':'false');
+  if(anaMode==='play'){
+    $('anaBox').classList.add('fold'); foldLabel($('anaBox'));
+    $('ana').classList.remove('stroke'); $('bStroke').setAttribute('aria-pressed','false');
+    if(say) toast(T('mPlayOn'));
+  }
+}
+(function(){
+  var bs=$('modeSeg').querySelectorAll('button');
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ setMode(this.dataset.m, true); };
+})();
 $('asLapFix').onclick=lapPickOpen;
 
 /* --- 動画のそうさ（分析と くわしくで おなじ しくみ） --- */
@@ -2320,7 +2363,7 @@ $('svSend').onclick=function(){
   var need=['role','scene','easy','see','flow','again','pay'], i;
   for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
   var btn=this; btn.disabled=true; toast(T('svSending'));
-  var body={ at:new Date().toISOString(), ver:'2026.09.18.1', mode:MODE,
+  var body={ at:new Date().toISOString(), ver:'2026.09.18.2', mode:MODE,
              ua:navigator.userAgent, a:SVA };
   if(!SURVEY_URL){ svOK(btn); return; }          /* URL 未設定でも 端末には のこします */
   fetch(SURVEY_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},

@@ -586,7 +586,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.18.2</span></div>
+  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop">2026.09.18.3</span></div>
   <p class="sub" data-t="sub"></p>
 
   <div class="gl" data-t="glTake"></div>
@@ -605,7 +605,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
-  <p class="ver">ver 2026.09.18.2</p>
+  <p class="ver">ver 2026.09.18.3</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2297,7 +2297,17 @@ var SVQ = [
  { id:'pay', q:['もし 有料なら いくらまで','有料の場合いくらまで'], t:'one',
    o:[['無料だけ','無料のみ'],['月300円','月300円'],['月500円','月500円'],
       ['月1000円','月1000円'],['それ以上','それ以上']] },
- { id:'free', q:['こまったこと、ほしい きのう（自由に）','困ったこと・欲しい機能（自由記入）'], t:'text' },
+ { id:'want', q:['あったら つかいたい きのう（いくつでも）','あれば使いたい機能（複数選択可）'], t:'many',
+   o:[['2本を ならべて くらべる','2本を並べて比較'],
+      ['前の 記録と くらべる・のびを 見る','過去の記録と比較・伸びを見る'],
+      ['動画に 線や 印を かく','動画に線や印を描く'],
+      ['かきを 自動で 数える','ストロークの自動カウント'],
+      ['選手に そのまま わたす','選手への共有'],
+      ['チームで まとめて 見る','チームでまとめて管理'],
+      ['ターンや とび込みの 分析','ターン・飛び込みの分析'],
+      ['パソコンで 見る・書き出し','パソコンで閲覧・データ書き出し']] },
+ { id:'want2', q:['ほかに ほしい きのう（自由に）','ほかに欲しい機能（自由記入）'], t:'text' },
+ { id:'free', q:['こまったこと、つかいにくかったこと','困ったこと・使いにくかったこと'], t:'text' },
  { id:'who', q:['お名前（書かなくても だいじょうぶ）','お名前（任意）'], t:'name' }
 ];
 var SVA = {};
@@ -2363,7 +2373,7 @@ $('svSend').onclick=function(){
   var need=['role','scene','easy','see','flow','again','pay'], i;
   for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
   var btn=this; btn.disabled=true; toast(T('svSending'));
-  var body={ at:new Date().toISOString(), ver:'2026.09.18.2', mode:MODE,
+  var body={ at:new Date().toISOString(), ver:'2026.09.18.3', mode:MODE,
              ua:navigator.userAgent, a:SVA };
   if(!SURVEY_URL){ svOK(btn); return; }          /* URL 未設定でも 端末には のこします */
   fetch(SURVEY_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.18.4">
+<meta name="app-ver" content="2026.09.18.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -71,6 +71,16 @@ button, select, input{ font-family:inherit; }
 .take{ display:flex; flex-direction:column; gap:10px; }
 .take .big{ min-height:78px; font-size:19px; }
 #list{ display:flex; flex-direction:column; gap:9px; }
+.gl.sub2{ margin:16px 0 2px; font-size:13px; }
+.fold{ border:2px solid var(--line2); border-radius:6px; overflow:hidden; background:var(--pane); }
+.fold.on{ border-color:var(--am); }
+.foldH{ display:flex; align-items:center; gap:10px; width:100%; min-height:54px; padding:8px 12px;
+  cursor:pointer; border:0; background:transparent; color:#fff; font:inherit; text-align:left; }
+.foldH .fi{ flex:0 0 26px; height:20px; border-radius:3px 6px 3px 3px; background:var(--am); }
+.foldH .fn{ flex:1; font-size:16px; font-weight:900; }
+.foldH .fc{ flex:0 0 auto; font-size:13px; font-weight:800; color:var(--dim); }
+.foldH .fa{ flex:0 0 18px; text-align:right; font-size:15px; font-weight:900; color:var(--am); }
+.foldB{ display:flex; flex-direction:column; gap:8px; padding:0 8px 10px; }
 .card{ display:flex; gap:11px; align-items:center; cursor:pointer;
   background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
   border-radius:6px; padding:9px; }
@@ -1074,6 +1084,9 @@ var W={
  upS2:['２　ロゴの 右の 数字が 新しく なっていれば 終わりです。','２　ロゴの右の数字が新しくなっていれば完了です。'],
  upS3:['３　数字が 変わらないときは、ホーム画面の アイコンを 長おしして 削除し、Safariで もう一度 ひらいてから、共有ボタンで ホーム画面に 追加し直してください。','３　数字が変わらないときは、ホーム画面のアイコンを長押しして削除し、Safariで開き直してから、共有ボタンでホーム画面に追加し直してください。'],
  upKeep:['ほぞんした きろくは 消えません。','保存した記録は消えません。'],
+ lstNew:['さいきんの きろく','最近の記録'],
+ lstOld:['それより 前の きろく','それより前の記録'],
+ lstCnt:['こ','件'],
  msgLapAuto1:['ラップ ','ラップ'],
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
@@ -1862,20 +1875,54 @@ window.addEventListener('resize', function(){
 /* ================================================================
    ほぞんした きろくの 一覧と くわしく
    ================================================================ */
+/* ===== ほぞんした きろくの 一覧 =====
+   あたらしい 5つは そのまま ならべ、それより 前の ものは
+   その日ごとの ふくろに 入れます。ふくろを おすと 中が 出ます。 */
+var WD=['日','月','火','水','木','金','土'];
+var openDay={};
+function dayKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function dayName(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[d.getDay()]+'）'; }
+function recCard(r){
+  var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
+  var c=document.createElement('div'); c.className='card';
+  c.innerHTML='<img src="'+(r.thumb||'')+'" alt="">'+
+    '<div class="ci"><div class="ct">'+r.title+'</div>'+
+    '<div class="cd">'+new Date(r.at).toLocaleString('ja-JP')+
+    (last? '　'+last.d+'m '+fmt(last.t) : '')+'</div></div>';
+  c.onclick=function(){ openDetail(r.id); };
+  return c;
+}
 function paintList(){
   var box=$('list');
   dbAll().then(function(all){
     box.innerHTML='';
     if(!all.length){ box.innerHTML='<div class="empty">'+T('noRec')+'</div>'; return; }
-    all.forEach(function(r){
-      var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
-      var c=document.createElement('div'); c.className='card';
-      c.innerHTML='<img src="'+(r.thumb||'')+'" alt="">'+
-        '<div class="ci"><div class="ct">'+r.title+'</div>'+
-        '<div class="cd">'+new Date(r.at).toLocaleString('ja-JP')+
-        (last? '　'+last.d+'m '+fmt(last.t) : '')+'</div></div>';
-      c.onclick=function(){ openDetail(r.id); };
-      box.appendChild(c);
+    var recent=all.slice(0,5), rest=all.slice(5), i;
+    for(i=0;i<recent.length;i++) box.appendChild(recCard(recent[i]));
+    if(!rest.length) return;
+    var keys=[], map={};
+    for(i=0;i<rest.length;i++){
+      var d=new Date(rest[i].at), k=dayKey(d);
+      if(!map[k]){ map[k]={ name:dayName(d), items:[] }; keys.push(k); }
+      map[k].items.push(rest[i]);
+    }
+    var hd=document.createElement('div'); hd.className='gl sub2';
+    hd.textContent=T('lstOld'); box.appendChild(hd);
+    keys.forEach(function(k){
+      var g=map[k], on=!!openDay[k];
+      var f=document.createElement('div'); f.className='fold'+(on?' on':'');
+      var h=document.createElement('button'); h.type='button'; h.className='foldH';
+      h.innerHTML='<span class="fi"></span><span class="fn">'+g.name+'</span>'+
+                  '<span class="fc">'+g.items.length+T('lstCnt')+'</span>'+
+                  '<span class="fa">'+(on?'▾':'▸')+'</span>';
+      h.onclick=function(){ openDay[k]=!openDay[k]; paintList(); };
+      f.appendChild(h);
+      if(on){
+        var body=document.createElement('div'); body.className='foldB';
+        for(var j=0;j<g.items.length;j++) body.appendChild(recCard(g.items[j]));
+        f.appendChild(body);
+      }
+      box.appendChild(f);
     });
   });
 }

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.18.7">
+<meta name="app-ver" content="2026.09.19.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -404,6 +404,38 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:12px; font-weight:800; }
 #lapOpen.hide{ display:none; }
 
+/* ===== 同意の かくにん ===== */
+#consent{ position:fixed; inset:0; z-index:190; display:flex; align-items:center; justify-content:center;
+  background:#000; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); }
+#consent.hide{ display:none !important; }
+.cnWrap{ width:100%; max-width:560px; background:var(--bk); border:3px solid var(--am);
+  border-radius:10px; padding:18px 16px 16px; }
+.cnWrap h3{ margin:0 0 12px; font-size:22px; font-weight:900; color:var(--am); }
+.cnL{ margin:0 0 10px; font-size:17px; font-weight:800; line-height:1.75; }
+.cnL.sub{ font-size:15px; font-weight:700; color:var(--dim); }
+.cnChk{ display:flex; align-items:center; gap:12px; margin:16px 0 14px; cursor:pointer;
+  padding:12px; border-radius:6px; background:var(--pane); border:2px solid var(--line); }
+.cnChk input{ flex:0 0 auto; width:30px; height:30px; accent-color:var(--am); margin:0; }
+.cnChk span{ font-size:17px; font-weight:900; }
+.cnChk:has(input:checked){ border-color:var(--am); }
+.cnBtns{ display:flex; gap:8px; }
+.cnBtns .btn{ flex:1; min-height:54px; font-size:17px; }
+.cnStop h3{ color:#fff; }
+.cnStop .btn{ width:100%; min-height:50px; margin-top:8px; }
+.cnStop.hide, .cnMain.hide{ display:none !important; }
+
+/* ホームに いつも 出す「同意ずみ」の しるし */
+#cnMark{ display:flex; align-items:center; gap:8px; margin:0 0 18px;
+  padding:7px 12px; border-radius:6px; background:var(--pane);
+  border:2px solid var(--am); }
+#cnMark.hide{ display:none !important; }
+#cnMark .tick{ flex:0 0 26px; height:26px; border-radius:50%; background:var(--am); color:#000;
+  font-size:16px; font-weight:900; text-align:center; line-height:26px; }
+#cnMark b{ font-size:15px; font-weight:900; color:var(--am); }
+#cnMark span#cnDate{ margin-left:auto; font-size:13px; font-weight:800; color:var(--dim);
+  font-variant-numeric:tabular-nums; }
+
 /* ===== ひらいたときの 1秒の うごき ===== */
 #splash{ position:fixed; inset:0; z-index:200; background:#000;
   display:flex; align-items:center; justify-content:center;
@@ -647,6 +679,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 <div id="home">
   <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop" id="vtop">2026.09.18.4</span></div>
   <p class="sub" data-t="sub"></p>
+  <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
 
   <div id="upBar" class="hide">
     <b data-t="upNew"></b><span id="upVer"></span>
@@ -872,6 +905,30 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
         <button class="btn" type="button" id="lpCancel" data-t="lpSkip"></button>
         <button class="btn g" type="button" id="lpOk" data-t="lpUse"></button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="consent" class="hide" role="dialog" aria-modal="true" aria-labelledby="cnH">
+  <div class="cnWrap">
+    <div class="cnMain" id="cnMain">
+      <h3 id="cnH" data-t="cnH"></h3>
+      <p class="cnL" data-t="cnL1"></p>
+      <p class="cnL" data-t="cnL2"></p>
+      <p class="cnL sub" data-t="cnL3"></p>
+      <label class="cnChk" for="cnCheck">
+        <input type="checkbox" id="cnCheck">
+        <span data-t="cnChk"></span>
+      </label>
+      <div class="cnBtns">
+        <button class="btn" type="button" id="cnNo" data-t="cnNo"></button>
+        <button class="btn g" type="button" id="cnYes" data-t="cnYes"></button>
+      </div>
+    </div>
+    <div class="cnStop hide" id="cnStop">
+      <h3 data-t="cnNoH"></h3>
+      <p class="cnL" data-t="cnNoP"></p>
+      <button class="btn" type="button" id="cnBack" data-t="cnBack"></button>
     </div>
   </div>
 </div>
@@ -1121,6 +1178,19 @@ var W={
  upS2:['２　ロゴの 右の 数字が 新しく なっていれば 終わりです。','２　ロゴの右の数字が新しくなっていれば完了です。'],
  upS3:['３　数字が 変わらないときは、ホーム画面の アイコンを 長おしして 削除し、Safariで もう一度 ひらいてから、共有ボタンで ホーム画面に 追加し直してください。','３　数字が変わらないときは、ホーム画面のアイコンを長押しして削除し、Safariで開き直してから、共有ボタンでホーム画面に追加し直してください。'],
  upKeep:['ほぞんした きろくは 消えません。','保存した記録は消えません。'],
+
+ cnH:['つかう前に、おねがい','ご利用の前に'],
+ cnL1:['アンケートの こたえは、開発者の 佐々木だけが 見ます。','アンケートの回答は、開発者の佐々木だけが見ます。'],
+ cnL2:['外に もらすことは ありません。','外部に漏らすことはありません。'],
+ cnL3:['とった 動画と きろくは、この 携帯の 中だけに のこります。','撮影した動画と記録は、この端末の中だけに保存されます。'],
+ cnChk:['上の ことに 同意します','上記の内容に同意します'],
+ cnYes:['同意する','同意する'],
+ cnNo:['同意しない','同意しない'],
+ cnNeed:['チェックを 入れてください','チェックを入れてください'],
+ cnNoH:['同意が ないと つかえません','同意がない場合はご利用いただけません'],
+ cnNoP:['このまま とじて ください。もう一度 読むときは 下を おしてください。','このまま閉じてください。もう一度読む場合は下を押してください。'],
+ cnBack:['もう一度 読む','もう一度読む'],
+ cnOK:['同意ずみ','同意済み'],
  lstNew:['さいきんの きろく','最近の記録'],
  lstOld:['それより 前の きろく','それより前の記録'],
  lstCnt:['こ','件'],
@@ -1161,6 +1231,7 @@ function applyWords(){
     spdMark($('dspd'), $('dspd').dataset.r||1);
     if($('anaTitle').dataset.neu==='1') $('anaTitle').textContent=T('anaNew');
     if(!$('lapPick').classList.contains('hide')) lapPickOpen();
+    $('cnDate').textContent = cnDateText(CONSENT);
   }catch(e){}
 }
 
@@ -2542,7 +2613,7 @@ $('svSend').onclick=function(){
   for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
   var btn=this; btn.disabled=true; toast(T('svSending'));
   var body={ at:new Date().toISOString(), ver:APP_VER, mode:MODE,
-             ua:navigator.userAgent, a:SVA };
+             consent:CONSENT, ua:navigator.userAgent, a:SVA };
   if(!SURVEY_URL){ svOK(btn); return; }          /* URL 未設定でも 端末には のこします */
   fetch(SURVEY_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
                       body:JSON.stringify(body) })
@@ -2561,6 +2632,38 @@ function svOK(btn){
 
 cPaintLaps(); cBtns(); sensPaint();
 applyWords();
+/* ===== 同意の かくにん =====
+   はじめて ひらいた ときだけ 出します。同意すると、この 携帯に おぼえます。 */
+var CONSENT='';
+try{ CONSENT = localStorage.getItem('swimiq_consent') || ''; }catch(e){}
+function cnDateText(iso){
+  if(!iso) return '';
+  var d=new Date(iso);
+  if(isNaN(d)) return '';
+  return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate();
+}
+function cnPaint(){
+  var on=!!CONSENT;
+  $('cnMark').classList.toggle('hide', !on);
+  $('cnDate').textContent = cnDateText(CONSENT);
+  $('consent').classList.toggle('hide', on);
+  if(!on){ $('cnMain').classList.remove('hide'); $('cnStop').classList.add('hide'); }
+}
+$('cnYes').onclick=function(){
+  if(!$('cnCheck').checked){ toast(T('cnNeed')); return; }
+  CONSENT=new Date().toISOString();
+  try{ localStorage.setItem('swimiq_consent', CONSENT); }catch(e){}
+  cnPaint();
+};
+$('cnNo').onclick=function(){
+  $('cnMain').classList.add('hide'); $('cnStop').classList.remove('hide');
+};
+$('cnBack').onclick=function(){
+  $('cnStop').classList.add('hide'); $('cnMain').classList.remove('hide');
+  $('cnCheck').checked=false;
+};
+cnPaint();
+
 setTimeout(function(){ var sp=$('splash'); if(sp) sp.classList.add('done'); }, 1300);
 $('vtop').textContent = APP_VER;
 $('verBottom').textContent = 'ver ' + APP_VER;

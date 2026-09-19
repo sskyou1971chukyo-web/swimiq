@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.19.1">
+<meta name="app-ver" content="2026.09.19.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -538,6 +538,57 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .svBtns .btn{ flex:1; min-height:52px; font-size:16px; }
 .svNote{ margin:10px 0 0; font-size:11px; font-weight:700; color:var(--dim); line-height:1.6; }
 
+/* ===== きろくの 比較・進捗 =====
+   黒地に 白・黄色の 太い文字。線は うすい灰色、
+   いちばん はやい 点は 緑の輪、いちばん おそい 点は 赤の輪で かこみます。 */
+.cmp{ padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px); }
+.cmpHd{ display:flex; align-items:center; gap:10px; margin:0 0 6px; }
+.cmpHd h2{ margin:0; flex:1; font-size:22px; font-weight:900; color:#fff; }
+.cmpFRow{ display:flex; gap:8px; margin:10px 0; }
+.cmpFRow > *{ flex:1; min-height:46px; }
+.cmpFRow select{ -webkit-appearance:none; appearance:none; border-radius:6px; cursor:pointer;
+  color:#fff; font-size:15px; font-weight:800; padding:6px 26px 6px 10px;
+  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border:2px solid var(--line); }
+.cmpFRow input[type=text]{ border-radius:6px; padding:6px 12px; border:2px solid var(--line);
+  background:var(--pane); color:#fff; font-size:15px; font-weight:700; }
+.cmpFRow button{ flex:0 0 auto; min-height:46px; padding:0 14px; border-radius:6px; cursor:pointer;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:13px; font-weight:800; }
+.cmpCount{ margin:0 0 14px; font-size:13px; font-weight:800; color:var(--dim); }
+.cmpStats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 14px; }
+.cmpStat{ background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
+  border-radius:6px; padding:10px 12px; }
+.cmpStat b{ display:block; font-size:12.5px; font-weight:800; color:var(--dim); }
+.cmpStat .v{ font-size:26px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+.cmpStat .d{ font-size:12px; font-weight:700; color:var(--am); margin-top:2px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cmpGraphWrap{ background:var(--pane); border:2px solid var(--line2); border-radius:6px;
+  padding:10px; margin:10px 0 4px; }
+#cmpCanvas{ width:100%; display:block; }
+.cmpNote{ margin:0 0 12px; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
+.cmpItem{ display:flex; flex-direction:column; gap:4px; cursor:pointer;
+  background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
+  border-radius:6px; padding:10px 12px; margin:0 0 8px; }
+.cmpItem.sel{ border-color:var(--am); box-shadow:0 0 0 2px var(--am) inset; }
+.cmpItem .r1{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.cmpItem .r1 .t{ font-size:23px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+.cmpItem .r1 .tag{ font-size:12px; font-weight:800; color:var(--dim); }
+.cmpItem .r1 .diff{ margin-left:auto; font-size:13px; font-weight:800; color:var(--am);
+  font-variant-numeric:tabular-nums; }
+.cmpItem .r1 .diff.best{ color:var(--go); }
+.cmpItem .r2{ font-size:12.5px; font-weight:700; color:var(--dim); }
+.cmpPair{ background:var(--pane); border:3px solid var(--am); border-radius:8px;
+  padding:12px; margin:14px 0; }
+.cmpPair h3{ margin:0 0 8px; font-size:16px; font-weight:900; color:var(--am); }
+.cmpPairRow{ display:flex; align-items:baseline; gap:8px; padding:6px 0;
+  border-top:1px solid var(--line2); }
+.cmpPairRow:first-child{ border-top:0; }
+.cmpPairRow .lb{ flex:0 0 84px; font-size:12.5px; font-weight:800; color:var(--dim); }
+.cmpPairRow .a,.cmpPairRow .b{ flex:1; min-width:0; font-size:16px; font-weight:900; color:#fff;
+  font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cmpPairRow .df{ flex:0 0 70px; text-align:right; font-size:13px; font-weight:800;
+  color:var(--am); font-variant-numeric:tabular-nums; }
+
 /* ===== おしらせ ===== */
 #toast{ position:fixed; left:50%; transform:translateX(-50%); z-index:90;
   bottom:calc(env(safe-area-inset-bottom) + 22px);
@@ -700,6 +751,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
     <button type="button" data-w="a" data-t="wAdult"></button>
   </div>
 
+  <div class="gl" data-t="glCompare"></div>
+  <div class="take">
+    <button class="btn y big" id="openCompare" type="button" data-t="openCompare"></button>
+  </div>
+
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
   <p class="ver" id="verBottom">ver 2026.09.18.4</p>
@@ -717,6 +773,14 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
         <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
       </div>
       <span class="tt" id="anaTitle">分析</span>
+      <select class="osel" id="event" data-ta="eventLbl">
+        <option value="free" selected>自由形</option>
+        <option value="back">背泳ぎ</option>
+        <option value="breast">平泳ぎ</option>
+        <option value="fly">バタフライ</option>
+        <option value="im">個人メドレー</option>
+        <option value="other">その他</option>
+      </select>
       <select class="osel" id="pool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
       <select class="osel" id="dist" data-ta="distLbl">
         <option value="50">50m</option><option value="100" selected>100m</option><option value="200">200m</option>
@@ -832,10 +896,40 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
       <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
       <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
       <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
+      <button class="ob y" id="dCompare" type="button" data-t="dCompareBtn"></button>
       <button class="ob b" id="dAgain" type="button" data-t="again"></button>
       <button class="ob r" id="dDel" type="button" data-t="del"></button>
     </div>
   </div>
+</div>
+
+<!-- ================= きろくの比較・進捗 ================= -->
+<div id="compare" class="cmp hide">
+  <div class="cmpHd">
+    <button class="btn b" id="cmpBack" type="button" data-t="back" style="flex:0 0 auto;"></button>
+    <h2 data-t="cmpTitle"></h2>
+  </div>
+
+  <div class="gl" data-t="cmpFilterGl"></div>
+  <div class="cmpFRow">
+    <select id="cmpEvent" data-ta="eventLbl">
+      <option value="all" selected>すべて</option>
+      <option value="free">自由形</option>
+      <option value="back">背泳ぎ</option>
+      <option value="breast">平泳ぎ</option>
+      <option value="fly">バタフライ</option>
+      <option value="im">個人メドレー</option>
+      <option value="other">その他</option>
+    </select>
+    <select id="cmpDist" data-ta="cmpDistLbl"><option value="all">すべて</option></select>
+  </div>
+  <div class="cmpFRow">
+    <input type="text" id="cmpQ" data-ta="cmpSearchPh">
+    <button type="button" id="cmpQClear" data-t="cmpClearQ"></button>
+  </div>
+  <p class="cmpCount" id="cmpCount"></p>
+
+  <div id="cmpBody"></div>
 </div>
 
 <input type="file" id="fPick" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -1204,7 +1298,34 @@ var W={
  g4:['④〈ほぞん〉で きろくを のこす','④〈保存〉で記録を残す'],
  dMenu:['メニュー','メニュー'],
  dMenuX:['とじる','閉じる'],
- msgStrSaved:['かき数を ほぞんしました','ストローク数を保存しました']
+ msgStrSaved:['かき数を ほぞんしました','ストローク数を保存しました'],
+
+ glCompare:['きろくを くらべる','記録を比較'],
+ openCompare:['くらべる・のびを 見る<small>ベストや 進捗、2本の くらべっこが できます</small>','比較・進捗を見る<small>ベストタイムや進捗、2件の比較ができます</small>'],
+ cmpTitle:['きろくの くらべっこ','記録の比較'],
+ cmpFilterGl:['さがす・しぼりこむ','絞り込み検索'],
+ eventLbl:['しゅもく','種目'],
+ cmpDistLbl:['きょり','距離'],
+ distAll:['ぜんぶ','すべて'],
+ cmpSearchPh:['ことばで さがす','キーワードで検索'],
+ cmpClearQ:['けす','クリア'],
+ cmpBest:['いちばん はやい きろく','ベストタイム'],
+ cmpAvg:['えらんだ 中の へいきん','選択中の平均タイム'],
+ cmpUnit:['本','本'],
+ cmpAllN:['ぜんぶ','すべて'],
+ cmpTabTime:['タイム','タイム'],
+ cmpTabST:['ST・SR','ST・SR'],
+ cmpNoteFast:['上に いくほど はやい','上ほど速い'],
+ cmpNoteSC:['1レースの かき数','1レースあたりのストローク数'],
+ cmpNoGraph:['グラフに できる きろくが ありません','グラフにできる記録がありません'],
+ cmpListGl:['ならんだ きろく','レース一覧'],
+ cmpPickHint:['2つ タップすると ならべて くらべられます','2件タップすると並べて比較できます'],
+ cmpBestTag:['ベスト','ベスト'],
+ cmpPairGl:['ならべて くらべる','2件を比較'],
+ cmpPairClear:['くらべるのを やめる','比較を解除'],
+ cmpSplitDiffGl:['区間タイムの さ','区間タイムの差'],
+ cmpNoMatch:['あう きろくが ありません','条件に合う記録がありません'],
+ dCompareBtn:['この しゅもくで くらべる','この種目で比較']
 };
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
@@ -1232,6 +1353,8 @@ function applyWords(){
     if($('anaTitle').dataset.neu==='1') $('anaTitle').textContent=T('anaNew');
     if(!$('lapPick').classList.contains('hide')) lapPickOpen();
     $('cnDate').textContent = cnDateText(CONSENT);
+    $('cmpQ').placeholder = T('cmpSearchPh');
+    if(!$('compare').classList.contains('hide')) paintCompare();
   }catch(e){}
 }
 
@@ -1328,8 +1451,8 @@ function shareFile(blob,name,type,hint){
 
 /* ===== 画面の きりかえ ===== */
 function show(id){
-  ['home','ana','detail'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
-  document.body.classList.toggle('vs', id!=='home');
+  ['home','ana','detail','compare'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
+  document.body.classList.toggle('vs', id==='ana' || id==='detail');
   window.scrollTo(0,0);
 }
 
@@ -1520,6 +1643,7 @@ function openAna(blob, opt){
   $('anaTitle').dataset.neu = opt.title ? '0' : '1';
   if(opt.pool) $('pool').value=String(opt.pool);
   if(opt.dist) $('dist').value=String(opt.dist);
+  $('event').value = opt.event || 'free';
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
   spdMark($('spd'),1); $('bPlay').textContent=T('play');
@@ -1948,6 +2072,7 @@ $('anaSave').onclick=function(){
       title: (name||def).trim() || def,
       pool: Number($('pool').value),
       dist: Number($('dist').value),
+      event: $('event').value,
       t0: aT0,
       splits: aSplits.slice(),
       strokes: aStrokes.slice(),
@@ -1996,6 +2121,7 @@ function recCard(r){
   c.innerHTML='<img src="'+(r.thumb||'')+'" alt="">'+
     '<div class="ci"><div class="ct">'+r.title+'</div>'+
     '<div class="cd">'+new Date(r.at).toLocaleString('ja-JP')+
+    '　'+evLabel(r.event)+
     (last? '　'+last.d+'m '+fmt(last.t) : '')+'</div></div>';
   c.onclick=function(){ openDetail(r.id); };
   return c;
@@ -2042,7 +2168,7 @@ function openDetail(id){
     if(dURL){ try{ URL.revokeObjectURL(dURL); }catch(e){} }
     dURL=URL.createObjectURL(r.video);
     $('dv').src=dURL; $('dv').playbackRate=1; spdMark($('dspd'),1);
-    $('dTitle').textContent=r.title||T('dTitle');
+    $('dTitle').textContent=(r.title||T('dTitle'))+'　'+evLabel(r.event);
     $('dBox').classList.add('fold'); foldLabel($('dBox'));
     document.querySelector('.ov.det').classList.remove('on');
     $('dMenu').textContent=T('dMenu');
@@ -2079,7 +2205,7 @@ $('dAgain').onclick=function(){
   if(!dRec) return;
   $('dv').pause();
   openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
-                        t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes });
+                        event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes });
 };
 $('dVid').onclick=function(){
   if(!dRec) return;
@@ -2629,6 +2755,298 @@ function svOK(btn){
   toast(T('svThanks'));
   $('svSend').textContent=T('svAgain');
 }
+
+/* ================================================================
+   きろくの 比較・進捗
+   ================================================================
+   種目・きょり・ことばで しぼりこみ、直近 3/5/10/ぜんぶの
+   ベスト・平均・グラフ（タイム／ST・SR／かき数）を見せます。
+   一覧から 2つ タップすると、ならべて くらべられます。       */
+var EV_LABELS={ free:'自由形', back:'背泳ぎ', breast:'平泳ぎ', fly:'バタフライ', im:'個人メドレー', other:'その他' };
+function evLabel(k){ return EV_LABELS[k] || EV_LABELS.other; }
+function raceBest(r){
+  return (r.splits && r.splits.length) ? r.splits[r.splits.length-1].t : null;
+}
+function raceStroke(r){
+  var arr=r.strokes||[], sts=[], i;
+  for(i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) sts.push(d); }
+  var sum=0; for(i=0;i<sts.length;i++) sum+=sts[i];
+  var st = sts.length ? sum/sts.length : null;
+  return { st:st, sr: st ? (60/st) : null, n: arr.length || null };
+}
+
+var cmpAll=[], cmpSel=[], cmpN=5, cmpTab='time';
+
+function cmpOpen(prefill){
+  cmpSel = (prefill && prefill.id) ? [prefill.id] : [];
+  dbAll().then(function(all){
+    cmpAll = all;
+    if(prefill) $('cmpEvent').value = prefill.event || 'other';
+    cmpBuildDistOptions();
+    if(prefill && prefill.dist) $('cmpDist').value=String(prefill.dist);
+    $('cmpQ').value=''; $('cmpQ').placeholder=T('cmpSearchPh');
+    cmpN=5; cmpTab='time';
+    paintCompare();
+    show('compare');
+  });
+}
+$('openCompare').onclick=function(){ cmpOpen(null); };
+$('cmpBack').onclick=function(){ show('home'); };
+$('dCompare').onclick=function(){
+  if(!dRec) return;
+  cmpOpen({ id:dRec.id, event:dRec.event, dist:dRec.dist });
+};
+$('cmpEvent').onchange=function(){ cmpBuildDistOptions(); paintCompare(); };
+$('cmpDist').onchange=function(){ paintCompare(); };
+$('cmpQ').oninput=function(){ paintCompare(); };
+$('cmpQClear').onclick=function(){ $('cmpQ').value=''; paintCompare(); };
+
+function cmpBuildDistOptions(){
+  var ev=$('cmpEvent').value, ds={}, i;
+  for(i=0;i<cmpAll.length;i++){
+    if(ev!=='all' && (cmpAll[i].event||'other')!==ev) continue;
+    ds[cmpAll[i].dist]=1;
+  }
+  var keep=$('cmpDist').value||'all';
+  var arr=Object.keys(ds).map(Number).sort(function(a,b){ return a-b; });
+  var h='<option value="all">'+T('distAll')+'</option>';
+  for(i=0;i<arr.length;i++) h+='<option value="'+arr[i]+'">'+arr[i]+'m</option>';
+  $('cmpDist').innerHTML=h;
+  $('cmpDist').value = (arr.indexOf(Number(keep))>=0) ? keep : 'all';
+}
+
+function cmpFiltered(){
+  var ev=$('cmpEvent').value, ds=$('cmpDist').value, q=($('cmpQ').value||'').trim().toLowerCase();
+  return cmpAll.filter(function(r){
+    if(ev!=='all' && (r.event||'other')!==ev) return false;
+    if(ds!=='all' && String(r.dist)!==ds) return false;
+    if(q && (r.title||'').toLowerCase().indexOf(q)<0) return false;
+    return raceBest(r)!==null;
+  });
+}
+function cmpSetN(n){ cmpN=n; paintCompare(); }
+function cmpSetTab(t){ cmpTab=t; paintCompare(); }
+
+function paintCompare(){
+  var filtered = cmpFiltered();                 /* 新しい じゅん（dbAll のまま） */
+  var body = $('cmpBody');
+  $('cmpCount').textContent = filtered.length + T('lstCnt');
+  if(!filtered.length){
+    body.innerHTML = '<div class="empty">'+T('cmpNoMatch')+'</div>';
+    return;
+  }
+  var list = cmpN ? filtered.slice(0,cmpN) : filtered.slice();   /* 直近 N 本（新しい じゅん） */
+  var times = filtered.map(raceBest).filter(function(v){ return v!==null; });
+  var bestT = Math.min.apply(null, times);
+  var bestRec = filtered.filter(function(r){ return raceBest(r)===bestT; })[0];
+  var listTimes = list.map(raceBest).filter(function(v){ return v!==null; });
+  var avgT = listTimes.length ? (listTimes.reduce(function(a,b){ return a+b; },0)/listTimes.length) : null;
+
+  var h='';
+  h+='<div class="cmpStats">'+
+       '<div class="cmpStat"><b>'+T('cmpBest')+'</b><div class="v">'+fmt(bestT)+'</div>'+
+         '<div class="d">'+(bestRec ? (new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+bestRec.title) : '')+'</div></div>'+
+       '<div class="cmpStat"><b>'+T('cmpAvg')+'</b><div class="v">'+(avgT!=null?fmt(avgT):'--')+'</div>'+
+         '<div class="d">'+list.length+T('cmpUnit')+'</div></div>'+
+     '</div>';
+
+  h+='<div class="seg" id="cmpSegN">'+
+      ['3','5','10','0'].map(function(n){
+        var label = n==='0' ? T('cmpAllN') : n+T('cmpUnit');
+        return '<button type="button" data-n="'+n+'" aria-pressed="'+(cmpN===Number(n)?'true':'false')+'">'+label+'</button>';
+      }).join('')+
+     '</div>';
+
+  h+='<div class="seg" id="cmpSegTab" style="margin-top:8px;">'+
+      [['time',T('cmpTabTime')],['st',T('cmpTabST')],['sc',T('nStr')]].map(function(p){
+        return '<button type="button" data-tab="'+p[0]+'" aria-pressed="'+(cmpTab===p[0]?'true':'false')+'">'+p[1]+'</button>';
+      }).join('')+
+     '</div>';
+
+  h+='<div class="cmpGraphWrap"><canvas id="cmpCanvas" height="220"></canvas></div>';
+  h+='<p class="cmpNote">'+(cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast'))+'</p>';
+
+  h+='<div class="gl">'+T('cmpListGl')+'</div>';
+  h+='<p class="cmpNote">'+T('cmpPickHint')+'</p>';
+  h+='<div id="cmpList"></div>';
+
+  body.innerHTML = h;
+
+  var segN=$('cmpSegN').querySelectorAll('button'), i;
+  for(i=0;i<segN.length;i++) segN[i].onclick=function(){ cmpSetN(Number(this.dataset.n)); };
+  var segT=$('cmpSegTab').querySelectorAll('button');
+  for(i=0;i<segT.length;i++) segT[i].onclick=function(){ cmpSetTab(this.dataset.tab); };
+
+  var lb=$('cmpList');
+  for(i=0;i<list.length;i++){
+    var r=list[i], t=raceBest(r), ss=raceStroke(r);
+    var d=document.createElement('div'); d.className='cmpItem'+(cmpSel.indexOf(r.id)>=0?' sel':'');
+    var diff = (t!=null && bestT!=null) ? (t-bestT) : null;
+    d.innerHTML =
+      '<div class="r1"><span class="t">'+fmt(t)+'</span>'+
+        '<span class="tag">'+r.dist+'m　'+evLabel(r.event)+'</span>'+
+        '<span class="diff'+(diff===0?' best':'')+'">'+(diff===0?T('cmpBestTag'):(diff!=null?'+'+diff.toFixed(2):''))+'</span></div>'+
+      '<div class="r2">'+new Date(r.at).toLocaleDateString('ja-JP')+'　'+r.title+
+        '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
+        '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+'</div>';
+    (function(id){ d.onclick=function(){ cmpToggleSel(id); }; })(r.id);
+    lb.appendChild(d);
+  }
+
+  cmpPaintPair();
+  drawCmpChart(list.slice().reverse(), cmpTab);      /* 古い→新しい じゅんに */
+}
+
+function cmpToggleSel(id){
+  var at=cmpSel.indexOf(id);
+  if(at>=0){ cmpSel.splice(at,1); }
+  else{
+    if(cmpSel.length>=2) cmpSel.shift();
+    cmpSel.push(id);
+  }
+  paintCompare();
+}
+
+function pairRow(label, av, bv, diff){
+  var d = (diff==null) ? '' : ((diff>0?'+':'') + (typeof diff==='number' ? diff.toFixed(2) : diff));
+  return '<div class="cmpPairRow"><span class="lb">'+label+'</span><span class="a">'+av+'</span><span class="b">'+bv+'</span><span class="df">'+d+'</span></div>';
+}
+function cmpPaintPair(){
+  var old=document.getElementById('cmpPair');
+  if(old) old.remove();
+  if(cmpSel.length!==2) return;
+  var a=cmpAll.filter(function(r){ return r.id===cmpSel[0]; })[0];
+  var b=cmpAll.filter(function(r){ return r.id===cmpSel[1]; })[0];
+  if(!a||!b) return;
+  var ta=raceBest(a), tb=raceBest(b), sa=raceStroke(a), sb=raceStroke(b);
+  var box=document.createElement('div'); box.id='cmpPair'; box.className='cmpPair';
+  var rows='';
+  rows+=pairRow(T('timeLbl'), fmt(ta), fmt(tb), (ta!=null&&tb!=null)?(tb-ta):null);
+  rows+=pairRow(T('avgST'), sa.st!=null?sa.st.toFixed(2):'--', sb.st!=null?sb.st.toFixed(2):'--', (sa.st!=null&&sb.st!=null)?(sb.st-sa.st):null);
+  rows+=pairRow(T('avgSR'), sa.sr!=null?sa.sr.toFixed(1):'--', sb.sr!=null?sb.sr.toFixed(1):'--', (sa.sr!=null&&sb.sr!=null)?(sb.sr-sa.sr):null);
+  rows+=pairRow(T('nStr'), sa.n!=null?sa.n:'--', sb.n!=null?sb.n:'--', (sa.n!=null&&sb.n!=null)?(sb.n-sa.n):null);
+
+  var mapB={}; (b.splits||[]).forEach(function(s){ mapB[s.d]=s.t; });
+  var splitRows='';
+  (a.splits||[]).forEach(function(s){
+    if(mapB[s.d]===undefined) return;
+    splitRows += pairRow(s.d+'m', fmt(s.t), fmt(mapB[s.d]), mapB[s.d]-s.t);
+  });
+
+  box.innerHTML =
+    '<h3>'+T('cmpPairGl')+'</h3>'+
+    '<div class="cmpPairRow"><span class="lb"></span><span class="a">A：'+a.title+'</span><span class="b">B：'+b.title+'</span><span class="df"></span></div>'+
+    rows +
+    (splitRows ? ('<div class="gl sub2" style="margin-top:10px;">'+T('cmpSplitDiffGl')+'</div>'+splitRows) : '') +
+    '<button class="btn" id="cmpClearPair" type="button" style="width:100%;margin-top:10px;">'+T('cmpPairClear')+'</button>';
+  $('cmpBody').appendChild(box);
+  $('cmpClearPair').onclick=function(){ cmpSel=[]; paintCompare(); };
+}
+
+/* ===== グラフを かく（キャンバス） ===== */
+function drawCmpChart(list, tab){
+  var cv=$('cmpCanvas'); if(!cv) return;
+  var cssW = Math.max(240, cv.parentNode.clientWidth - 20);
+  var cssH = 220;
+  var dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(cssW*dpr); cv.height = Math.round(cssH*dpr);
+  cv.style.width = cssW+'px'; cv.style.height = cssH+'px';
+  var g = cv.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,cssW,cssH);
+  g.fillStyle='#000'; g.fillRect(0,0,cssW,cssH);
+
+  var pts=[], i;
+  for(i=0;i<list.length;i++){
+    var r=list[i], v=null;
+    if(tab==='time') v=raceBest(r);
+    else if(tab==='st') v=raceStroke(r).st;
+    else v=raceStroke(r).n;
+    if(v!=null) pts.push({ r:r, v:v });
+  }
+  if(!pts.length){
+    g.fillStyle='#b5b5b5'; g.font='800 14px "BIZ UDPGothic",sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(T('cmpNoGraph'), cssW/2, cssH/2);
+    return;
+  }
+
+  var padL=54, padR=14, padT=16, padB=30;
+  var plotW=cssW-padL-padR, plotH=cssH-padT-padB;
+  var vals=pts.map(function(p){ return p.v; });
+  var minV=Math.min.apply(null, vals), maxV=Math.max.apply(null, vals);
+  var loY, hiY;
+  if(tab==='sc'){ loY=0; hiY=(maxV===0?1:maxV)*1.3; }
+  else{
+    var pad=(maxV-minV)*0.15 || Math.max(0.1, minV*0.02);
+    loY=minV-pad; hiY=maxV+pad;
+  }
+  function xAt(idx){ return padL + (pts.length===1 ? plotW/2 : (plotW*idx/(pts.length-1))); }
+  function yAt(v){ return padT + (1-(v-loY)/((hiY-loY)||1)) * plotH; }
+
+  g.textBaseline='middle';
+  var steps=4, s;
+  for(s=0;s<=steps;s++){
+    var vv = loY + (hiY-loY)*s/steps;
+    var yy = padT + plotH - (plotH*s/steps);
+    g.strokeStyle='#2c2c2c'; g.lineWidth=1;
+    g.beginPath(); g.moveTo(padL,yy); g.lineTo(cssW-padR,yy); g.stroke();
+    g.fillStyle='#b5b5b5'; g.font='700 12px "BIZ UDPGothic",sans-serif'; g.textAlign='right';
+    g.fillText(tab==='sc' ? String(Math.round(vv)) : vv.toFixed(2), padL-8, yy);
+  }
+
+  var bestIdx=-1, worstIdx=-1;
+  if(tab!=='sc'){
+    var bv=Math.min.apply(null, vals), wv=Math.max.apply(null, vals);
+    pts.forEach(function(p,idx){
+      if(p.v===bv && bestIdx<0) bestIdx=idx;
+      if(p.v===wv) worstIdx=idx;
+    });
+  }
+
+  if(tab==='sc'){
+    var bw=Math.min(48, plotW/pts.length*0.6);
+    pts.forEach(function(p,idx){
+      var x=xAt(idx), y=yAt(p.v), base=padT+plotH;
+      g.fillStyle='#8a5cf5';
+      g.fillRect(x-bw/2, y, bw, base-y);
+      g.fillStyle='#fff'; g.font='900 14px sans-serif'; g.textAlign='center'; g.textBaseline='alphabetic';
+      g.fillText(String(p.v), x, Math.max(y-10, padT+12));
+    });
+  }else{
+    g.strokeStyle='#ffc400'; g.lineWidth=3; g.beginPath();
+    pts.forEach(function(p,idx){
+      var x=xAt(idx), y=yAt(p.v);
+      if(idx===0) g.moveTo(x,y); else g.lineTo(x,y);
+    });
+    g.stroke();
+    var showAll = pts.length<=8;
+    pts.forEach(function(p,idx){
+      var x=xAt(idx), y=yAt(p.v);
+      g.fillStyle='#ffc400'; g.beginPath(); g.arc(x,y,5,0,Math.PI*2); g.fill();
+      if(showAll || idx===bestIdx || idx===worstIdx){
+        g.fillStyle='#fff'; g.font='900 13px sans-serif'; g.textAlign='center'; g.textBaseline='alphabetic';
+        g.fillText(tab==='time' ? fmt(p.v) : p.v.toFixed(2), x, Math.max(y-14, padT+10));
+      }
+      if(idx===bestIdx){ g.strokeStyle='#35e06a'; g.lineWidth=3; g.beginPath(); g.arc(x,y,9,0,Math.PI*2); g.stroke(); }
+      else if(idx===worstIdx){ g.strokeStyle='#ff4b2b'; g.lineWidth=3; g.beginPath(); g.arc(x,y,9,0,Math.PI*2); g.stroke(); }
+    });
+  }
+
+  g.fillStyle='#b5b5b5'; g.font='700 11px sans-serif'; g.textAlign='center'; g.textBaseline='alphabetic';
+  var showEvery = pts.length>8 ? Math.ceil(pts.length/6) : 1;
+  pts.forEach(function(p,idx){
+    if(idx%showEvery!==0 && idx!==pts.length-1) return;
+    var x=xAt(idx), dd=new Date(p.r.at);
+    g.fillText((dd.getMonth()+1)+'/'+dd.getDate(), x, padT+plotH+18);
+  });
+}
+window.addEventListener('resize', function(){
+  if(!$('compare').classList.contains('hide')){
+    var filtered=cmpFiltered();
+    var list = cmpN ? filtered.slice(0,cmpN) : filtered.slice();
+    drawCmpChart(list.slice().reverse(), cmpTab);
+  }
+});
 
 cPaintLaps(); cBtns(); sensPaint();
 applyWords();

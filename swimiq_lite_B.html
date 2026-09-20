@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.20.1">
+<meta name="app-ver" content="2026.09.20.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -766,6 +766,14 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
     <button class="btn y big" id="openCompare" type="button" data-t="openCompare"></button>
   </div>
 
+  <div class="gl" data-t="exGl"></div>
+  <div class="take">
+    <button class="btn b" id="exCsv" type="button" data-t="exCsvBtn"></button>
+    <button class="btn b" id="exJson" type="button" data-t="exJsonBtn"></button>
+    <label class="btn" for="fImport" data-t="exImportBtn"></label>
+    <input type="file" id="fImport" accept="application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+  </div>
+
   <div class="gl" data-t="glRec"></div>
   <div id="list"></div>
   <p class="ver" id="verBottom">ver 2026.09.18.4</p>
@@ -789,6 +797,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
         <option value="breast">平泳ぎ</option>
         <option value="fly">バタフライ</option>
         <option value="im">個人メドレー</option>
+        <option value="relay">リレー</option>
         <option value="other">その他</option>
       </select>
       <select class="osel" id="pool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
@@ -906,6 +915,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
       <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
       <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
       <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
+      <button class="ob g" id="dShare" type="button" data-t="shareBtn"></button>
       <button class="ob y" id="dCompare" type="button" data-t="dCompareBtn"></button>
       <button class="ob b" id="dAgain" type="button" data-t="again"></button>
       <button class="ob r" id="dDel" type="button" data-t="del"></button>
@@ -929,6 +939,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
       <option value="breast">平泳ぎ</option>
       <option value="fly">バタフライ</option>
       <option value="im">個人メドレー</option>
+      <option value="relay">リレー</option>
       <option value="other">その他</option>
     </select>
     <select id="cmpDist" data-ta="cmpDistLbl"><option value="all">すべて</option></select>
@@ -1102,6 +1113,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
         <option value="breast">平泳ぎ</option>
         <option value="fly">バタフライ</option>
         <option value="im">個人メドレー</option>
+        <option value="relay">リレー</option>
         <option value="other">その他</option>
       </select>
     </div>
@@ -1401,7 +1413,19 @@ var W={
  mSTLbl:['平均ストロークタイム ST 秒（にんい）','平均ストロークタイム ST秒（任意）'],
  mNeedTime:['記録タイムを 入れてください','記録タイムを入力してください'],
  mSaved:['きろくを ほぞんしました','記録を保存しました'],
- mBadge:['手で 入力','手入力']
+ mBadge:['手で 入力','手入力'],
+
+ shareBtn:['選手に 共有する','選手に共有する'],
+ cmpShareBtn:['共有する（LINE・メールなど）','共有する（LINEやメールなど）'],
+ cmpShareTitle:['SwimIQ の きろく','SwimIQ の記録'],
+
+ exGl:['パソコン・ほかの端末と やりとり','パソコン・他の端末とやりとり'],
+ exCsvBtn:['ぜんぶ CSV で 書き出す<small>パソコンの表けいさんソフトで 開けます</small>','全記録をCSVで書き出す<small>パソコンの表計算ソフトで開けます</small>'],
+ exJsonBtn:['ほかの端末へ データを 書き出す<small>動画は 入りません。数字だけ うつせます</small>','他の端末へデータを書き出す<small>動画は含まれません。数字だけ移せます</small>'],
+ exImportBtn:['書き出した データを 読み込む','書き出したデータを読み込む'],
+ exImportOK:['きろくを 読み込みました','記録を読み込みました'],
+ exImportNG:['読み込めませんでした。ファイルを たしかめてください','読み込めませんでした。ファイルを確認してください'],
+ exNoData:['書き出す きろくが ありません','書き出す記録がありません']
 };
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
@@ -1523,6 +1547,23 @@ function shareFile(blob,name,type,hint){
       if(err && err.name!=='AbortError') download(blob,name);
     });
   }else download(blob,name);
+}
+/* ===== 文字を 共有（選手に そのまま わたす） =====
+   スマホの「共有」まどを ひらいて、LINEやメールなどに そのまま 送れます。
+   共有が つかえない ときは、コピーだけ しておきます。 */
+function shareText(text, title){
+  if(navigator.share){
+    navigator.share({ title:title||'SwimIQ', text:text }).then(function(){},function(err){
+      if(err && err.name!=='AbortError'){
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(function(){ toast(T('msgCopied')); });
+        }
+      }
+    });
+  }else if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ toast(T('msgCopied')); },
+      function(){ toast(T('msgCopyNG')); });
+  }else toast(T('msgCopyNo'));
 }
 
 /* ===== 画面の きりかえ ===== */
@@ -2315,6 +2356,10 @@ $('dCopy').onclick=function(){
       function(){ toast(T('msgCopyNG')); });
   }else toast(T('msgCopyNo'));
 };
+$('dShare').onclick=function(){
+  if(!dRec) return;
+  shareText(recText(dRec), dRec.title||'SwimIQ');
+};
 $('dImg').onclick=function(){
   if(!dRec) return;
   sheetImage(dRec).then(function(blob){
@@ -2839,7 +2884,7 @@ function svOK(btn){
    種目・きょり・ことばで しぼりこみ、直近 3/5/10/ぜんぶの
    ベスト・平均・グラフ（タイム／ST・SR／かき数）を見せます。
    一覧から 2つ タップすると、ならべて くらべられます。       */
-var EV_LABELS={ free:'自由形', back:'背泳ぎ', breast:'平泳ぎ', fly:'バタフライ', im:'個人メドレー', other:'その他' };
+var EV_LABELS={ free:'自由形', back:'背泳ぎ', breast:'平泳ぎ', fly:'バタフライ', im:'個人メドレー', relay:'リレー', other:'その他' };
 function evLabel(k){ return EV_LABELS[k] || EV_LABELS.other; }
 function raceBest(r){
   return (r.splits && r.splits.length) ? r.splits[r.splits.length-1].t : null;
@@ -2920,6 +2965,87 @@ $('mDel').onclick=function(){
   });
 };
 
+/* ===== パソコン・ほかの端末と やりとり =====
+   動画は おもすぎるので、書き出す 中身は 数字だけ（日づけ・種目・きょり・
+   タイム・ST・SR・かき数）。CSV は パソコンの Excel などで そのまま 開けます。
+   データを書き出す（JSON）は、ほかの スマホの SwimIQ LITE B に そのまま
+   読み込ませる ための ものです。                                       */
+function csvCell(s){
+  s = String(s==null ? '' : s);
+  if(/[",\n]/.test(s)) s = '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function buildCsv(all){
+  var head=['日付','大会名・メモ','種目','きょり(m)','記録タイム','平均ST(秒)','平均SR','ストローク数'];
+  var lines=[head.map(csvCell).join(',')];
+  all.forEach(function(r){
+    var t=raceBest(r), ss=raceStroke(r);
+    lines.push([
+      new Date(r.at).toLocaleDateString('ja-JP'),
+      r.title||'', evLabel(r.event), r.dist||'',
+      t!=null?fmt(t):'', ss.st!=null?ss.st.toFixed(2):'',
+      ss.sr!=null?ss.sr.toFixed(1):'', ss.n!=null?ss.n:''
+    ].map(csvCell).join(','));
+  });
+  return lines.join('\r\n');
+}
+$('exCsv').onclick=function(){
+  dbAll().then(function(all){
+    if(!all.length){ toast(T('exNoData')); return; }
+    var csv = '﻿' + buildCsv(all);
+    var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+    var d=new Date(), name='swimiq_records_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.csv';
+    shareFile(blob, name, 'text/csv', T('exCsvBtn'));
+  });
+};
+$('exJson').onclick=function(){
+  dbAll().then(function(all){
+    if(!all.length){ toast(T('exNoData')); return; }
+    var records = all.map(function(r){
+      return { id:r.id, at:r.at, title:r.title, pool:r.pool, dist:r.dist, event:r.event,
+               t0:r.t0, splits:r.splits, strokes:r.strokes,
+               manual:!!r.manual, manualN:(r.manualN!=null?r.manualN:null), manualST:(r.manualST!=null?r.manualST:null) };
+    });
+    var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
+    var blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
+    var d=new Date(), name='swimiq_data_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
+    shareFile(blob, name, 'application/json', T('exJsonBtn'));
+  });
+};
+$('fImport').onchange=function(){
+  var f = this.files && this.files[0];
+  this.value='';
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    var data;
+    try{ data = JSON.parse(String(reader.result)); }catch(e){ toast(T('exImportNG')); return; }
+    var arr = data && data.records;
+    if(!arr || !arr.length){ toast(T('exImportNG')); return; }
+    var i=0, n=0;
+    function next(){
+      if(i>=arr.length){ toast(T('exImportOK')+'（'+n+T('lstCnt')+'）'); paintList(); return; }
+      var src=arr[i]; i++;
+      if(!src || src.dist==null || !src.splits){ next(); return; }
+      var rec = {
+        id: 'imp'+Date.now()+'_'+i+'_'+Math.floor(Math.random()*10000),
+        at: src.at || Date.now(),
+        title: src.title || (src.dist+'m'),
+        pool: src.pool || 50, dist: src.dist, event: src.event || 'other',
+        manual: true, t0: (src.t0!=null?src.t0:null),
+        splits: src.splits || [], strokes: src.strokes || [],
+        manualN: (src.manualN!=null ? src.manualN : (src.manual ? null : null)),
+        manualST: (src.manualST!=null ? src.manualST : null),
+        thumb: ''
+      };
+      dbPut(rec).then(function(){ n++; next(); }, function(){ next(); });
+    }
+    next();
+  };
+  reader.onerror = function(){ toast(T('exImportNG')); };
+  reader.readAsText(f);
+};
+
 var cmpAll=[], cmpSel=[], cmpN=5, cmpTab='time';
 
 function cmpOpen(prefill){
@@ -2995,6 +3121,8 @@ function paintCompare(){
          '<div class="d">'+list.length+T('cmpUnit')+'</div></div>'+
      '</div>';
 
+  h+='<button class="btn y" id="cmpShare" type="button" style="width:100%;margin:0 0 14px;">'+T('cmpShareBtn')+'</button>';
+
   h+='<div class="seg" id="cmpSegN">'+
       ['3','5','10','0'].map(function(n){
         var label = n==='0' ? T('cmpAllN') : n+T('cmpUnit');
@@ -3016,6 +3144,8 @@ function paintCompare(){
   h+='<div id="cmpList"></div>';
 
   body.innerHTML = h;
+
+  $('cmpShare').onclick=function(){ shareText(cmpProgressText(list, bestT, bestRec, avgT), T('cmpShareTitle')); };
 
   var segN=$('cmpSegN').querySelectorAll('button'), i;
   for(i=0;i<segN.length;i++) segN[i].onclick=function(){ cmpSetN(Number(this.dataset.n)); };
@@ -3056,6 +3186,30 @@ function pairRow(label, av, bv, diff){
   var d = (diff==null) ? '' : ((diff>0?'+':'') + (typeof diff==='number' ? diff.toFixed(2) : diff));
   return '<div class="cmpPairRow"><span class="lb">'+label+'</span><span class="a">'+av+'</span><span class="b">'+bv+'</span><span class="df">'+d+'</span></div>';
 }
+function cmpProgressText(list, bestT, bestRec, avgT){
+  var L=['SwimIQ LITE B　記録の比較',''];
+  L.push(T('cmpBest')+'　'+fmt(bestT)+'　'+(bestRec?(new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+bestRec.title):''));
+  L.push(T('cmpAvg')+'　'+(avgT!=null?fmt(avgT):'--')+'（'+list.length+T('cmpUnit')+'）');
+  L.push('');
+  list.forEach(function(r){
+    var t=raceBest(r), ss=raceStroke(r);
+    L.push(new Date(r.at).toLocaleDateString('ja-JP')+'　'+fmt(t)+'　'+r.dist+'m　'+evLabel(r.event)+'　'+r.title+
+      '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
+      '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--'));
+  });
+  return L.join('\n');
+}
+function cmpPairText(a,b,ta,tb,sa,sb){
+  var L=['SwimIQ LITE B　2件を比較',''];
+  L.push('A：'+a.title+'　'+new Date(a.at).toLocaleDateString('ja-JP'));
+  L.push('B：'+b.title+'　'+new Date(b.at).toLocaleDateString('ja-JP'));
+  L.push('');
+  L.push(T('timeLbl')+'　A '+fmt(ta)+'　B '+fmt(tb));
+  L.push(T('avgST')+'　A '+(sa.st!=null?sa.st.toFixed(2):'--')+'　B '+(sb.st!=null?sb.st.toFixed(2):'--'));
+  L.push(T('avgSR')+'　A '+(sa.sr!=null?sa.sr.toFixed(1):'--')+'　B '+(sb.sr!=null?sb.sr.toFixed(1):'--'));
+  L.push(T('nStr')+'　A '+(sa.n!=null?sa.n:'--')+'　B '+(sb.n!=null?sb.n:'--'));
+  return L.join('\n');
+}
 function cmpPaintPair(){
   var old=document.getElementById('cmpPair');
   if(old) old.remove();
@@ -3083,9 +3237,11 @@ function cmpPaintPair(){
     '<div class="cmpPairRow"><span class="lb"></span><span class="a">A：'+a.title+'</span><span class="b">B：'+b.title+'</span><span class="df"></span></div>'+
     rows +
     (splitRows ? ('<div class="gl sub2" style="margin-top:10px;">'+T('cmpSplitDiffGl')+'</div>'+splitRows) : '') +
-    '<button class="btn" id="cmpClearPair" type="button" style="width:100%;margin-top:10px;">'+T('cmpPairClear')+'</button>';
+    '<button class="btn y" id="cmpPairShare" type="button" style="width:100%;margin-top:10px;">'+T('cmpShareBtn')+'</button>'+
+    '<button class="btn" id="cmpClearPair" type="button" style="width:100%;margin-top:8px;">'+T('cmpPairClear')+'</button>';
   $('cmpBody').appendChild(box);
   $('cmpClearPair').onclick=function(){ cmpSel=[]; paintCompare(); };
+  $('cmpPairShare').onclick=function(){ shareText(cmpPairText(a,b,ta,tb,sa,sb), T('cmpShareTitle')); };
 }
 
 /* ===== グラフを かく（キャンバス） ===== */

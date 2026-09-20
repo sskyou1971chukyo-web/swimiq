@@ -540,6 +540,9 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .sq select{ -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:28px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center; }
+.homeTop{ display:flex; align-items:center; gap:8px; margin:2px 0 10px; }
+.homeTop #cnMark{ margin:0; flex:1 1 auto; }
+.homeTop #openSettings{ flex:0 0 auto; margin-left:auto; min-height:40px; padding:6px 14px; font-size:13px; }
 .mSegRow{ padding:10px 0; border-top:1px solid var(--line2); }
 .mSegRow:first-child{ border-top:none; }
 .mSegRow .mSegLbl{ display:block; font-size:15px; font-weight:900; color:var(--am); margin-bottom:6px; }
@@ -750,7 +753,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 <div id="home">
   <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop" id="vtop">2026.09.18.4</span></div>
   <p class="sub" data-t="sub"></p>
-  <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
+
+  <div class="homeTop">
+    <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
+    <button class="btn" id="openSettings" type="button" data-t="settingsBtn"></button>
+  </div>
 
   <div id="upBar" class="hide">
     <b data-t="upNew"></b><span id="upVer"></span>
@@ -760,29 +767,16 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   <div class="gl" data-t="glTake"></div>
   <div class="take">
     <button class="btn g big" id="openCam" type="button" data-t="openCam"></button>
+    <button class="btn" id="moreTakeBtn" type="button" aria-expanded="false" data-t="moreOpen"></button>
+  </div>
+  <div id="moreTakeBox" class="take hide">
     <label class="btn b" for="fPick" data-t="pick"></label>
     <button class="btn b" id="openManual" type="button" data-t="openManual"></button>
-    <button class="btn y" id="openSurvey" type="button" data-t="svBtn"></button>
-    <p class="hint" data-t="homeHint"></p>
-  </div>
-
-  <div class="gl" data-t="glWord"></div>
-  <div class="seg" id="wordSeg">
-    <button type="button" data-w="k" data-t="wKid"></button>
-    <button type="button" data-w="a" data-t="wAdult"></button>
   </div>
 
   <div class="gl" data-t="glCompare"></div>
   <div class="take">
     <button class="btn y big" id="openCompare" type="button" data-t="openCompare"></button>
-  </div>
-
-  <div class="gl" data-t="exGl"></div>
-  <div class="take">
-    <button class="btn b" id="exCsv" type="button" data-t="exCsvBtn"></button>
-    <button class="btn b" id="exJson" type="button" data-t="exJsonBtn"></button>
-    <label class="btn" for="fImport" data-t="exImportBtn"></label>
-    <input type="file" id="fImport" accept="application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
   </div>
 
   <div class="gl" data-t="glRec"></div>
@@ -964,6 +958,32 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   <p class="cmpCount" id="cmpCount"></p>
 
   <div id="cmpBody"></div>
+</div>
+
+<div id="settings" class="cmp hide">
+  <div class="cmpHd">
+    <button class="btn b" id="setBack" type="button" data-t="back" style="flex:0 0 auto;"></button>
+    <h2 data-t="setTitle"></h2>
+  </div>
+
+  <div class="gl" data-t="glWord"></div>
+  <div class="seg" id="wordSeg">
+    <button type="button" data-w="k" data-t="wKid"></button>
+    <button type="button" data-w="a" data-t="wAdult"></button>
+  </div>
+
+  <div class="gl" data-t="glOther"></div>
+  <div class="take">
+    <button class="btn y" id="openSurvey" type="button" data-t="svBtn"></button>
+  </div>
+
+  <div class="gl" data-t="exGl"></div>
+  <div class="take">
+    <button class="btn b" id="exCsv" type="button" data-t="exCsvBtn"></button>
+    <button class="btn b" id="exJson" type="button" data-t="exJsonBtn"></button>
+    <label class="btn" for="fImport" data-t="exImportBtn"></label>
+    <input type="file" id="fImport" accept="application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+  </div>
 </div>
 
 <input type="file" id="fPick" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -1170,12 +1190,17 @@ var $=function(id){ return document.getElementById(id); };
    a = 中学生以上（常用漢字・ふつうの日本語）
    ホームの「ことばづかい」で 切りかえます。 */
 var W={
- sub:['練習用カメラで とる → そのまま 分析 → 携帯に ほぞん','練習用カメラで撮影 → そのまま分析 → 端末に保存'],
+ sub:['カメラで とる → そのまま 分析 → 携帯に ほぞん','カメラで撮る → そのまま分析 → 端末に保存'],
  glTake:['とる','撮影'],
  glRec:['ほぞんした きろく','保存した記録'],
- openCam:['練習用カメラで とる<small>とりおわると そのまま 分析に すすみます</small>','練習用カメラで撮影<small>撮影を終えると そのまま分析に進みます</small>'],
+ openCam:['カメラで とる','カメラで撮る'],
  pick:['とってある 動画を ひらく<small>あとから 分析したいとき</small>','保存済みの動画を開く<small>後から分析する場合</small>'],
  homeHint:['画面の 上に ストップウォッチが 出ます。ふえの音でも スタートできます。ストップを おすと、その動画で そのまま 分析が はじまります。','画面上部にストップウォッチを表示します。笛の音でも自動で計測を開始できます。ストップを押すと、その動画でそのまま分析が始まります。'],
+ moreOpen:['ほかの きろくの しかたも 見る','他の記録方法を見る'],
+ moreClose:['とじる','閉じる'],
+ settingsBtn:['せってい','設定'],
+ setTitle:['せってい','設定'],
+ glOther:['その他','その他'],
  glWord:['ことばづかい','表示の言葉'],
  wKid:['小学生用','小学生用'],
  wAdult:['中学生以上','中学生以上'],
@@ -1585,7 +1610,7 @@ function shareText(text, title){
 
 /* ===== 画面の きりかえ ===== */
 function show(id){
-  ['home','ana','detail','compare'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
+  ['home','ana','detail','compare','settings'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
   document.body.classList.toggle('vs', id==='ana' || id==='detail');
   window.scrollTo(0,0);
 }
@@ -3014,6 +3039,16 @@ function manualOpen(rec){
   $('manualBox').classList.remove('hide');
 }
 $('openManual').onclick=function(){ manualOpen(null); };
+var moreTakeOpen=false;
+$('moreTakeBtn').onclick=function(){
+  moreTakeOpen=!moreTakeOpen;
+  $('moreTakeBox').classList.toggle('hide', !moreTakeOpen);
+  this.setAttribute('aria-expanded', moreTakeOpen?'true':'false');
+  this.setAttribute('data-t', moreTakeOpen ? 'moreClose' : 'moreOpen');
+  this.textContent = T(this.getAttribute('data-t'));
+};
+$('openSettings').onclick=function(){ show('settings'); };
+$('setBack').onclick=function(){ show('home'); };
 $('mCancel').onclick=function(){ $('manualBox').classList.add('hide'); };
 $('mSave').onclick=function(){
   var t = parseTimeStr($('mTime').value);

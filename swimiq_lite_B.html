@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.20.3">
+<meta name="app-ver" content="2026.09.20.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -88,6 +88,10 @@ button, select, input{ font-family:inherit; }
 .card .ci{ min-width:0; flex:1; }
 .card .ct{ font-size:16px; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .card .cd{ font-size:12px; font-weight:700; color:var(--dim); }
+.cTimeBtn{ display:inline-block; padding:2px 8px; margin-left:2px; border-radius:4px;
+  border:1px solid var(--am); background:rgba(255,196,0,.12); color:var(--am);
+  font-size:12px; font-weight:900; font-variant-numeric:tabular-nums; cursor:pointer; }
+.cTimeBtn:active{ background:rgba(255,196,0,.28); }
 .ver{ margin:28px 0 0; text-align:center; font-size:12px; font-weight:700; color:#6d6d6d; }
 .empty{ text-align:center; font-size:13px; font-weight:700; color:var(--dim); padding:22px 0;
   border:2px dashed var(--line2); border-radius:6px; }
@@ -511,10 +515,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide{ display:none !important; }
 .svWrap{ width:100%; max-width:620px; background:var(--bk); border:3px solid var(--am);
   border-radius:8px; padding:14px; }
 .svWrap h3{ margin:0; font-size:21px; font-weight:900; }
@@ -895,7 +899,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
     <div class="oInfo">
       <div class="hudT glass" id="dhud">0.00</div>
       <div class="box glass" id="dBox">
-        <div class="boxH"><b data-t="result"></b><span class="sum" id="dSum"></span><button type="button" data-fold="dBox" data-t="fold"></button></div>
+        <div class="boxH"><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3 sr4" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
@@ -1178,6 +1182,48 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   </div>
 </div>
 
+<div id="vFix" class="hide" role="dialog" aria-modal="true" aria-labelledby="vfH">
+  <div class="svWrap">
+    <h3 id="vfH" data-t="vfTitle"></h3>
+    <p class="lead" data-t="vfLead"></p>
+    <div class="sq">
+      <p class="q" data-t="mDateLbl"></p>
+      <input type="date" id="vfDate">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="eventLbl"></p>
+      <select id="vfEvent">
+        <option value="free">自由形</option>
+        <option value="back">背泳ぎ</option>
+        <option value="breast">平泳ぎ</option>
+        <option value="fly">バタフライ</option>
+        <option value="im">個人メドレー</option>
+        <option value="relay">リレー</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div class="sq">
+      <p class="q" data-t="distLbl"></p>
+      <select id="vfDist">
+        <option value="50">50m</option>
+        <option value="100" selected>100m</option>
+        <option value="200">200m</option>
+        <option value="400">400m</option>
+        <option value="800">800m</option>
+        <option value="1500">1500m</option>
+      </select>
+    </div>
+    <div class="sq">
+      <p class="q" data-t="mTimeLbl"></p>
+      <input type="text" id="vfTime" inputmode="decimal">
+    </div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="vfCancel" data-t="dMenuX"></button>
+      <button class="btn g" type="button" id="vfSave" data-t="save"></button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1439,6 +1485,8 @@ var W={
  dCompareBtn:['この しゅもくで くらべる','この種目で比較'],
 
  openManual:['きろくを 手で 入力する<small>動画が なくても のこせます</small>','記録を手入力する<small>動画がなくても記録を残せます</small>'],
+ vfTitle:['きろくを なおす','記録を修正'],
+ vfLead:['日づけ・種目・きょり・タイムを なおせます。動画は そのまま のこります。','日付・種目・距離・タイムを修正できます。動画はそのまま残ります。'],
  manualTitle:['きろくの 手入力','記録の手入力'],
  manualLead:['動画が ない レースの きろくも、数字だけ のこせます。','動画がないレースの記録も、数字だけで残せます。'],
  mDateLbl:['日づけ','日付'],
@@ -2278,12 +2326,16 @@ function recCard(r){
   var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
   var c=document.createElement('div'); c.className='card'+(r.manual?' manual':'');
   var thumbHtml = r.manual ? '<div class="mThumb">'+T('mBadge')+'</div>' : '<img src="'+(r.thumb||'')+'" alt="">';
+  var timeHtml = last ? ('　<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+last.d+'m '+fmt(last.t)+'</button>') : '';
   c.innerHTML= thumbHtml +
     '<div class="ci"><div class="ct">'+r.title+'</div>'+
     '<div class="cd">'+new Date(r.at).toLocaleString('ja-JP')+
-    '　'+evLabel(r.event)+
-    (last? '　'+last.d+'m '+fmt(last.t) : '')+'</div></div>';
+    '　'+evLabel(r.event)+ timeHtml +'</div></div>';
   c.onclick=function(){ if(r.manual) manualOpen(r); else openDetail(r.id); };
+  if(!r.manual){
+    var tb=c.querySelector('.cTimeBtn');
+    if(tb) tb.onclick=function(e){ e.stopPropagation(); vfOpen(r); };
+  }
   return c;
 }
 function paintList(){
@@ -2372,6 +2424,7 @@ function openDetail(id){
   });
 }
 $('dBack').onclick=function(){ $('dv').pause(); show('home'); paintList(); };
+$('dSum').onclick=function(){ if(dRec) vfOpen(dRec); };
 $('dDel').onclick=function(){
   if(!dRec) return;
   if(!confirm(T('askDel'))) return;
@@ -3093,6 +3146,45 @@ $('mDel').onclick=function(){
     $('manualBox').classList.add('hide');
     toast(T('msgDeleted'));
     paintList();
+  });
+};
+
+/* ===== 動画の きろくを どこからでも すぐ なおせる =====
+   タイムを おすと、日づけ・種目・きょり・タイムだけを
+   さっと なおせる ちいさな 画面が 出ます。動画そのものは のこります。 */
+var vfEditId=null;
+function vfOpen(rec){
+  if(!rec || rec.manual) return;
+  vfEditId = rec.id;
+  var last = (rec.splits && rec.splits.length) ? rec.splits[rec.splits.length-1] : null;
+  $('vfDate').value = new Date(rec.at).toISOString().slice(0,10);
+  $('vfEvent').value = rec.event || 'free';
+  $('vfDist').value = String(last ? last.d : (rec.dist||100));
+  $('vfTime').value = last ? fmt(last.t) : '';
+  $('vFix').classList.remove('hide');
+}
+$('vfCancel').onclick=function(){ $('vFix').classList.add('hide'); };
+$('vfSave').onclick=function(){
+  if(!vfEditId) return;
+  var t = parseTimeStr($('vfTime').value);
+  if(t==null || t<=0){ toast(T('mNeedTime')); return; }
+  var dist = Number($('vfDist').value);
+  var dv = $('vfDate').value;
+  var dateVal = dv ? new Date(dv+'T12:00:00') : new Date();
+  dbGet(vfEditId).then(function(rec){
+    if(!rec){ toast(T('msgNotFound')); return; }
+    rec.at = dateVal.getTime();
+    rec.event = $('vfEvent').value;
+    rec.dist = dist;
+    if(!rec.splits) rec.splits=[];
+    if(rec.splits.length) rec.splits[rec.splits.length-1] = { d:dist, t:t };
+    else rec.splits.push({ d:dist, t:t });
+    return dbPut(rec);
+  }).then(function(){
+    $('vFix').classList.add('hide');
+    toast(T('mSaved'));
+    paintList();
+    if(dRec && dRec.id===vfEditId && !$('detail').classList.contains('hide')) openDetail(vfEditId);
   });
 };
 

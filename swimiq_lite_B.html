@@ -6,10 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.20.4">
+<meta name="app-ver" content="2026.09.21.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
 <style>
 /* =========================================================
    SwimIQ LITE B ― 見た目のきまり
@@ -23,11 +26,13 @@
    黄色は「いま効いているもの」だけに使い、増やしません。
    ========================================================= */
 :root{
-  --bk:#000000; --pane:#161616; --pane2:#1f1f1f;
-  --line:#4a4a4a; --line2:#2c2c2c;
+  --bk:#000000; --pane:#17181a; --pane2:#202124;
+  --line:#4a4a4a; --line2:#3a3b3d;
   --am:#ffc400; --am2:#ffdb63; --amd:#5a4300; --go:#35e06a;
-  --dim:#b5b5b5; --red:#ff4b2b;
+  --dim:#c9c9c9; --red:#ff4b2b;
   --shadow:0 2px 0 rgba(0,0,0,.9);
+  /* モック採用：角丸のきまり（大きいほど やわらかい見た目） */
+  --rS:8px; --rM:12px; --rL:16px; --rXL:20px;
 }
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body{ max-width:100%; overflow-x:hidden; overscroll-behavior-x:none; touch-action:pan-y; }
@@ -749,6 +754,44 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 @media (prefers-reduced-motion:reduce){
   *{ animation:none !important; transition:none !important; }
 }
+
+/* =========================================================
+   デザイン採用（モックの見た目）: 丸ゴシックのフォントと
+   大きめの角丸で、やわらかく親しみやすい見た目にします。
+   フォントが読み込めない時は BIZ UDPGothic（読みやすい
+   ユニバーサルデザイン書体）に自動で戻ります。
+   色・コントラスト・画面の作りは変えていません。
+   ========================================================= */
+body, button, select, input, textarea{
+  font-family:"Zen Kaku Gothic New","BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+}
+/* 見出し・ロゴ・ボタン・大きな数字は 丸ゴシックで */
+.logo, .gl, .foldH .fn, .btn, .ob, .seg button, .tr.c2,
+.hudT, .sr3 b, .lite, .tr .c2, .cmpPair, .fxRow input,
+.boxH b, #cnMark, #camTime, #camRot b, .spLite, .strokeTag,
+.tr.hd span, .sq h3, .lpH b{
+  font-family:"Zen Maru Gothic","Zen Kaku Gothic New","BIZ UDPGothic",sans-serif;
+}
+
+/* ---- 角丸を モックに合わせて 大きく ---- */
+.btn, .ob, .osel{ border-radius:var(--rM); }
+.btn.big, .take .big{ border-radius:var(--rL); }
+.fold, .card, .tbl, .box, .empty, .seg,
+.sr3 > *, .cmpGraphWrap, .cmpBar, #anaSheet .lpBox{ border-radius:var(--rL); }
+.foldH .fi{ border-radius:6px; }
+.card img, .mThumb{ border-radius:var(--rS); }
+#survey, #manualBox, #vFix, #anaSheet, #upBar,
+.fxWrap, .sqWrap, #sensBox, #camCtrl, #camRot,
+.lpBox, .cmpPair{ border-radius:var(--rXL); }
+.upStep, .lpRow, .lpSub button, .cmpFRow select,
+.cmpFRow input[type=text], .cmpFRow button, .sq .opts button,
+.sq textarea, .sq input[type=text], .mSegRow input,
+.lpSel select, .seg button, .boxH button, .clr, .cTimeBtn,
+.tr select.dSel, .tr .xBtn, .lapFix, #lapOpen, #camTop button,
+#camOpt button, #sensBox .sbH button, .fxH button,
+.fxRow button, #upBar button, #camRot button{ border-radius:var(--rM); }
+/* まん丸のボタンは そのまま（丸を くずさない） */
+.dReset, #camShot, #cnMark .tick, #camDot{ border-radius:50% !important; }
 </style>
 </head>
 <body>

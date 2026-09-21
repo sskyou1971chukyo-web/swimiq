@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.15">
+<meta name="app-ver" content="2026.09.21.16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1750,6 +1750,9 @@ var W={
 
  pdfBtn:['PDFで ダウンロード','PDFでダウンロード'],
  pdfHint:['印刷の まどが 出たら「PDFで保存」や「ファイルに保存」を えらんでください','印刷ウィンドウが出たら「PDFで保存」や「ファイルに保存」を選んでください'],
+ pdfMaking:['PDFを つくっています…','PDFを作成中…'],
+ pdfShareHint:['共有メニューで「ファイルに保存」を えらぶと PDFが のこせます','共有メニューで「ファイルに保存」を選ぶとPDFが保存できます'],
+ pdfNG:['PDFを つくれませんでした','PDFを作成できませんでした'],
  glSwimmer:['選手プロフィール','選手プロフィール'],
  openSwimmers:['選手プロフィール<small>名前・年齢・身長などを 登録</small>','選手プロフィール<small>名前・年齢・身長などを登録</small>'],
  swmTitle:['選手プロフィール','選手プロフィール'],
@@ -3880,14 +3883,150 @@ function buildReport(r){
   '</div>';
   $('report').innerHTML=html;
 }
-function downloadPDF(r){
-  if(!r){ return; }
-  buildReport(r);
-  toast(T('pdfHint'));
-  setTimeout(function(){ try{ window.print(); }catch(e){} }, 250);
+/* ===== レポートを 1枚のSVGに 組む（画像化して PDFにするため）=====
+   iPhoneのSafariは 印刷から PDFを 作りにくいので、アプリの中で
+   本物のPDFファイルを 作り、共有（ファイルに保存）に わたします。 */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function place(svgStr, x, y, w, h){ return svgStr.replace(/^<svg /, '<svg x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" '); }
+function reportSVG(r, W, H){
+  var mx=54, cw=W-mx*2;
+  var last=(r.splits&&r.splits.length)?r.splits[r.splits.length-1]:null;
+  var ss=raceStroke(r);
+  var arr=r.strokes||[], stv=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) stv.push(d); }
+  var tp=tempoStats(stv);
+  var sw=r.swimmerId?swById(r.swimmerId):null;
+  var swName=(sw&&sw.name)||r.swimmerName||'';
+  var ag=sw?ageAt(sw.birth,r.at):null;
+  var dt=new Date(r.at).toLocaleString('ja-JP');
+  var FF='font-family="Noto Sans CJK JP, Hiragino Kaku Gothic ProN, sans-serif"';
+  var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" '+FF+'>';
+  s+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#ffffff"/>';
+  // header
+  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="#16181d">スイム<tspan fill="#c98a00">IQ</tspan></text>';
+  s+='<text x="'+(mx+150)+'" y="60" font-size="13" font-weight="800" fill="#5b6270">レース分析レポート</text>';
+  s+='<text x="'+(W-mx)+'" y="46" font-size="11" font-weight="600" fill="#5b6270" text-anchor="end">'+esc(dt)+'</text>';
+  s+='<text x="'+(W-mx)+'" y="62" font-size="11" font-weight="600" fill="#5b6270" text-anchor="end">'+(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m</text>';
+  s+='<line x1="'+mx+'" y1="82" x2="'+(W-mx)+'" y2="82" stroke="#111318" stroke-width="3"/>';
+  // title
+  s+='<text x="'+mx+'" y="120" font-size="22" font-weight="900" fill="#16181d">'+esc(r.title||'')+'</text>';
+  // chips
+  var chips=[evLabel(r.event), (r.dist||'')+'m']; if(swName){ chips.push(swName+(ag!=null?(' '+ag+'歳'):'')); }
+  var cx=mx, cyT=138, ch=22;
+  chips.forEach(function(t){ var wpx=t.length*13+22;
+    s+='<rect x="'+cx+'" y="'+cyT+'" width="'+wpx+'" height="'+ch+'" rx="11" fill="#f4f5f7"/>';
+    s+='<text x="'+(cx+wpx/2)+'" y="'+(cyT+15)+'" font-size="12.5" font-weight="800" fill="#16181d" text-anchor="middle">'+esc(t)+'</text>';
+    cx+=wpx+8; });
+  // KPI row
+  var kp=[{k:'記録タイム',v:(last?fmt(last.t):'--'),u:'',hl:true},
+          {k:'平均ST',v:(ss.st!=null?ss.st.toFixed(2):'--'),u:'秒'},
+          {k:'平均SR',v:(ss.sr!=null?ss.sr.toFixed(1):'--'),u:''},
+          {k:T('nStr'),v:(ss.n!=null?ss.n:'--'),u:''}];
+  var kW=(cw-30)/4, kY=178, kH=66;
+  kp.forEach(function(x,idx){ var kx=mx+idx*(kW+10);
+    s+='<rect x="'+kx+'" y="'+kY+'" width="'+kW+'" height="'+kH+'" rx="12" fill="'+(x.hl?'#fffaf0':'#ffffff')+'" stroke="'+(x.hl?'#f2b01e':'#e4e6ea')+'" stroke-width="1.5"/>';
+    s+='<text x="'+(kx+13)+'" y="'+(kY+22)+'" font-size="10.5" font-weight="800" fill="#5b6270">'+esc(x.k)+'</text>';
+    s+='<text x="'+(kx+13)+'" y="'+(kY+52)+'" font-size="24" font-weight="900" fill="#16181d">'+esc(x.v)+'<tspan font-size="11" fill="#5b6270" dx="2">'+esc(x.u)+'</tspan></text>'; });
+  // splits section
+  s+='<rect x="'+mx+'" y="272" width="4" height="15" fill="#f2b01e"/>';
+  s+='<text x="'+(mx+10)+'" y="285" font-size="13" font-weight="900" fill="#16181d">通過タイム（25mラップ）</text>';
+  var splSvg=rpSVGsplits(r);
+  if(splSvg){ s+=place(splSvg, mx, 296, 340, 166); }
+  s+='<text x="'+mx+'" y="482" font-size="10" font-weight="700" fill="#5b6270">棒は各区間タイム（短いほど速い）</text>';
+  // splits table (right)
+  var tx=mx+366, tw=cw-366;
+  s+='<rect x="'+tx+'" y="272" width="4" height="15" fill="#f2b01e"/>';
+  s+='<text x="'+(tx+10)+'" y="285" font-size="13" font-weight="900" fill="#16181d">通過記録</text>';
+  var ty=310, col2=tx+tw*0.55, col3=tx+tw;
+  s+='<text x="'+tx+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270">区間</text>';
+  s+='<text x="'+col2+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="end">通過</text>';
+  s+='<text x="'+col3+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="end">ラップ</text>';
+  s+='<line x1="'+tx+'" y1="'+(ty+6)+'" x2="'+col3+'" y2="'+(ty+6)+'" stroke="#e4e6ea" stroke-width="1.5"/>';
+  (r.splits||[]).forEach(function(sp,idx){ var ry=ty+28+idx*26;
+    s+='<text x="'+tx+'" y="'+ry+'" font-size="12" font-weight="700" fill="#5b6270">'+sp.d+'m</text>';
+    s+='<text x="'+col2+'" y="'+ry+'" font-size="12" font-weight="700" fill="#16181d" text-anchor="end">'+esc(fmt(sp.t))+'</text>';
+    s+='<text x="'+col3+'" y="'+ry+'" font-size="12" font-weight="700" fill="#16181d" text-anchor="end">+'+esc(fmt(sp.t-(idx>0?r.splits[idx-1].t:0)))+'</text>';
+    s+='<line x1="'+tx+'" y1="'+(ry+7)+'" x2="'+col3+'" y2="'+(ry+7)+'" stroke="#eef0f2" stroke-width="1"/>'; });
+  // SR section
+  var srSvg=rpSVGsr(r), srY=522;
+  s+='<rect x="'+mx+'" y="'+(srY-13)+'" width="4" height="15" fill="#f2b01e"/>';
+  s+='<text x="'+(mx+10)+'" y="'+srY+'" font-size="13" font-weight="900" fill="#16181d">ストロークレート（SR）の推移</text>';
+  if(srSvg){
+    // legend
+    var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']], lx=mx, ly=srY+20;
+    lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(ly-9)+'" width="11" height="11" rx="3" fill="'+g[0]+'"/>'; s+='<text x="'+(lx+16)+'" y="'+ly+'" font-size="10.5" font-weight="800" fill="#5b6270">'+g[1]+'</text>'; lx+=g[1].length*11+40; });
+    s+=place(srSvg, mx, srY+30, cw, cw*250/900);
+    var srBottom=srY+30+cw*250/900;
+    s+='<text x="'+mx+'" y="'+(srBottom+16)+'" font-size="10" font-weight="700" fill="#5b6270">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</text>';
+  }
+  // note
+  if(tp.turns.length){
+    var ny=srSvg?800:560;
+    s+='<rect x="'+mx+'" y="'+ny+'" width="'+cw+'" height="30" rx="9" fill="#fff8ea" stroke="#f2dfb0" stroke-width="1"/>';
+    s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(turnNote(tp.turns))+'</text>';
+  }
+  // footer
+  s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>';
+  s+='<text x="'+mx+'" y="'+(H-36)+'" font-size="9.5" font-weight="700" fill="#9aa0ab">SwimIQ LITE B — レース分析レポート</text>';
+  s+='<text x="'+(W-mx)+'" y="'+(H-36)+'" font-size="9.5" font-weight="700" fill="#9aa0ab" text-anchor="end">作成 '+esc(dt)+'</text>';
+  s+='</svg>';
+  return s;
 }
+function svgToJpeg(svg, W, H, scale){
+  return new Promise(function(res,rej){
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var c=document.createElement('canvas');
+        c.width=Math.round(W*scale); c.height=Math.round(H*scale);
+        var ctx=c.getContext('2d');
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,c.width,c.height);
+        ctx.drawImage(img,0,0,c.width,c.height);
+        c.toBlob(function(b){ if(!b){ rej(new Error('blob')); return; }
+          b.arrayBuffer().then(function(ab){ res({ u8:new Uint8Array(ab), w:c.width, h:c.height }); }, function(){ rej(new Error('ab')); });
+        }, 'image/jpeg', 0.92);
+      }catch(e){ rej(e); }
+    };
+    img.onerror=function(){ rej(new Error('img')); };
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  });
+}
+function jpegToPdf(jpeg, w, h){
+  var pw=595.28, ph=841.89, scale=Math.min(pw/w, ph/h);
+  var iw=w*scale, ih=h*scale, ox=(pw-iw)/2, oy=(ph-ih)/2;
+  var enc=new TextEncoder(), chunks=[], off=[], pos=0;
+  function push(u8){ chunks.push(u8); pos+=u8.length; }
+  function ps(str){ push(enc.encode(str)); }
+  ps("%PDF-1.4\n");
+  off[1]=pos; ps("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+  off[2]=pos; ps("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+  off[3]=pos; ps("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+pw.toFixed(2)+" "+ph.toFixed(2)+"] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n");
+  off[4]=pos; ps("4 0 obj\n<< /Type /XObject /Subtype /Image /Width "+w+" /Height "+h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpeg.length+" >>\nstream\n");
+  push(jpeg); ps("\nendstream\nendobj\n");
+  var content="q "+iw.toFixed(2)+" 0 0 "+ih.toFixed(2)+" "+ox.toFixed(2)+" "+oy.toFixed(2)+" cm /Im0 Do Q";
+  off[5]=pos; ps("5 0 obj\n<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream\nendobj\n");
+  var xp=pos, xref="xref\n0 6\n0000000000 65535 f \n";
+  for(var i=1;i<=5;i++) xref+=String(off[i]).padStart(10,'0')+" 00000 n \n";
+  ps(xref); ps("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n"+xp+"\n%%EOF");
+  var total=0; chunks.forEach(function(c){ total+=c.length; });
+  var out=new Uint8Array(total), o=0; chunks.forEach(function(c){ out.set(c,o); o+=c.length; });
+  return new Blob([out], { type:'application/pdf' });
+}
+function downloadPDF(r){
+  if(!r) return;
+  toast(T('pdfMaking'));
+  var W=794, H=1123;
+  try{
+    var svg=reportSVG(r, W, H);
+    svgToJpeg(svg, W, H, 2).then(function(im){
+      var blob=jpegToPdf(im.u8, im.w, im.h);
+      var t=(r.title||'report').replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_').slice(0,40);
+      shareFile(blob, 'SwimIQ_'+t+'.pdf', 'application/pdf', T('pdfShareHint'));
+    }).catch(function(){ pdfFallback(r); });
+  }catch(e){ pdfFallback(r); }
+}
+function pdfFallback(r){ buildReport(r); toast(T('pdfHint')); setTimeout(function(){ try{ window.print(); }catch(e){} }, 250); }
 $('dPdf').onclick=function(){ if(dRec) downloadPDF(dRec); };
-$('mPdf').onclick=function(){ if(manualEditId){ var s=null; dbGet(manualEditId).then(function(rec){ if(rec) downloadPDF(rec); }); } };
+$('mPdf').onclick=function(){ if(manualEditId){ dbGet(manualEditId).then(function(rec){ if(rec) downloadPDF(rec); }); } };
 
 /* ================================================================
    ストップウォッチ（縦画面・独立）

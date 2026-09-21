@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.36">
+<meta name="app-ver" content="2026.09.22.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -307,6 +307,17 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 /* 画面の下：再生・コマ・はやさ・スライダーを 1れつに ならべる */
 .oBar{ grid-area:bar; align-self:end; display:flex; align-items:center; gap:7px; min-width:0;
   padding:7px 10px; border-radius:6px; }
+/* 下の バーも 動画が すける うすい 黒に します。
+   うしろが 明るくても 読めるよう、ボタンの 中は すこし こく、
+   文字には 黒い かげを つけます */
+.oBar.glass{ background:rgba(0,0,0,.28); border-color:rgba(255,255,255,.26);
+  -webkit-backdrop-filter:blur(9px); backdrop-filter:blur(9px); }
+.oBar .ob{ background:rgba(0,0,0,.62); border-color:rgba(255,255,255,.40);
+  text-shadow:0 2px 5px #000; }
+.oBar .spdB{ background:rgba(0,0,0,.62); }
+.oBar .modeSeg{ background:rgba(0,0,0,.62); border-color:rgba(255,255,255,.40); }
+.oBar .modeSeg button{ text-shadow:0 2px 5px #000; }
+.oBar .modeSeg button[aria-pressed="true"]{ text-shadow:none; }
 .oBar .ob{ flex:0 0 auto; min-height:52px; padding:4px 10px; font-size:14px; white-space:nowrap; }
 /* アイコンだけの ボタン（コマ・再生） */
 .ico{ display:block; width:1em; height:1em; }
@@ -321,13 +332,18 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-variant-numeric:tabular-nums; }
 .sk{ -webkit-appearance:none; appearance:none; flex:1 1 120px; min-width:60px; height:40px; margin:0;
   background:transparent; cursor:pointer; --p:0%; touch-action:none; }
-.sk::-webkit-slider-runnable-track{ height:8px; border-radius:0;
-  background:linear-gradient(90deg,var(--am) var(--p),#3a3a3a var(--p)); }
+.sk::-webkit-slider-runnable-track{ height:8px; border-radius:99px;
+  background:linear-gradient(90deg,var(--am) var(--p),rgba(0,0,0,.55) var(--p));
+  box-shadow:0 1px 3px rgba(0,0,0,.6); }
 .sk::-webkit-slider-thumb{ -webkit-appearance:none; width:28px; height:28px; margin-top:-10px;
-  border-radius:4px; background:var(--am); border:3px solid #000; }
-.sk::-moz-range-track{ height:8px; background:#3a3a3a; }
-.sk::-moz-range-progress{ height:8px; background:var(--am); }
-.sk::-moz-range-thumb{ width:24px; height:24px; border-radius:4px; background:var(--am); border:3px solid #000; }
+  border-radius:6px; background:var(--am); border:3px solid rgba(0,0,0,.65);
+  box-shadow:0 2px 6px rgba(0,0,0,.5); }
+.sk::-moz-range-track{ height:8px; border-radius:99px; background:rgba(0,0,0,.55); }
+.sk::-moz-range-progress{ height:8px; border-radius:99px; background:var(--am); }
+.sk::-moz-range-thumb{ width:24px; height:24px; border-radius:6px; background:var(--am);
+  border:3px solid rgba(0,0,0,.65); }
+/* 時間の 文字は うしろが 明るくても 読めるように 白＋かげ */
+.oBar .pos{ color:#fff; text-shadow:0 2px 5px #000, 0 0 2px #000; font-weight:900; }
 
 /* 右：きろくの ボタン */
 .oAct{ grid-area:act; width:142px; min-height:0; display:flex; flex-direction:column;
@@ -1933,6 +1949,7 @@ var W={
  msgCopied:['コピーしました','コピーしました'],
  msgCopyNG:['コピーできませんでした','コピーできませんでした'],
  msgCopyNo:['この端末では コピーできません','この端末ではコピーできません'],
+ msgVidNG:['動画を ひらけませんでした。もう一度 ためして ください','動画を開けませんでした。もう一度お試しください'],
  msgNotFound:['見つかりません','見つかりません'],
  msgDeleted:['消しました','削除しました'],
  msgImgNG:['画像に できませんでした','画像を作成できませんでした'],
@@ -2632,8 +2649,28 @@ function paintAnaSum(){
   }
 }
 
+/* iPhoneは 動画を 一度に 1つしか かかえられません。
+   もう ひとつの 動画を からっぽに してから 読みこみます。 */
+function freeVideo(id){
+  var v=$(id); if(!v) return;
+  try{ v.pause(); }catch(e){}
+  try{ v.removeAttribute('src'); v.load(); }catch(e){}
+}
+/* 読みこめなかった ときに 知らせる */
+function bindVidError(id){
+  var v=$(id); if(!v) return;
+  v.addEventListener('error', function(){
+    var src=v.getAttribute('src');
+    if(!src) return;                        /* わざと からに した ときは 何も しない */
+    setTimeout(function(){                  /* 切りかえの とちゅうの エラーは 見のがす */
+      if(v.getAttribute('src')===src && v.readyState===0 && v.error) toast(T('msgVidNG'));
+    }, 500);
+  });
+}
+bindVidError('v'); bindVidError('dv');
 function openAna(blob, opt){
   opt = opt || {};
+  freeVideo('dv');
   aBlob=blob; aId=opt.id||null;
   aSplits = opt.splits ? opt.splits.slice() : [];
   aStrokes = opt.strokes ? opt.strokes.slice() : [];
@@ -2645,7 +2682,14 @@ function openAna(blob, opt){
   if(aURL){ try{ URL.revokeObjectURL(aURL); }catch(e){} }
   aURL=URL.createObjectURL(blob);
   var v=$('v');
-  v.src=aURL; v.currentTime=0; v.playbackRate=1;
+  v.src=aURL;
+  try{ v.load(); }catch(e){}               /* iPhoneは 指で おした その場で 読みこませる */
+  try{ v.currentTime=0; }catch(e){}        /* まだ よみこみ前だと しっぱいする ことが ある */
+  v.addEventListener('loadedmetadata', function once(){
+    v.removeEventListener('loadedmetadata', once);
+    try{ v.currentTime=0; }catch(e){}
+  });
+  try{ v.playbackRate=1; }catch(e){}
   if(typeof anaZoom!=='undefined' && anaZoom) anaZoom.reset();
   $('anaTitle').textContent = opt.title || T('anaNew');
   $('anaTitle').dataset.neu = opt.title ? '0' : '1';
@@ -3567,9 +3611,14 @@ function openDetail(id){
   dbGet(id).then(function(r){
     if(!r){ toast(T('msgNotFound')); return; }
     dRec=r;
+    freeVideo('v');
     if(dURL){ try{ URL.revokeObjectURL(dURL); }catch(e){} }
     dURL=URL.createObjectURL(r.video);
-    $('dv').src=dURL; $('dv').playbackRate=1; spdMark($('dspd'),1);
+    var dv=$('dv');
+    dv.src=dURL;
+    try{ dv.load(); }catch(e){}
+    try{ dv.playbackRate=1; }catch(e){}
+    spdMark($('dspd'),1);
     if(typeof detZoom!=='undefined' && detZoom) detZoom.reset();
     $('dTitle').textContent=(r.title||T('dTitle'))+'　'+evLabel(r.event);
     $('dBox').classList.add('fold'); foldLabel($('dBox'));

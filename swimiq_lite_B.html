@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.24">
+<meta name="app-ver" content="2026.09.21.26">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -909,7 +909,7 @@ body, button, select, input, textarea{
   background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
   border-radius:var(--rL); padding:12px 14px; }
 .card2 .c2top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.card2 .c2head{ min-width:0; font-size:14px; font-weight:800; color:#fff;
+.card2 .c2head{ min-width:0; font-size:15px; font-weight:900; color:#fff;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .card2 .c2time{ flex:0 0 auto; font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
   font-size:20px; color:var(--am); font-variant-numeric:tabular-nums; }
@@ -917,6 +917,8 @@ body, button, select, input, textarea{
   border-radius:8px; color:var(--am); font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
   font-size:20px; font-variant-numeric:tabular-nums; cursor:pointer; }
 .card2 .cTimeBtn:active{ background:rgba(255,196,0,.18); }
+.card2 .c2sub{ font-size:12px; font-weight:700; color:var(--dim);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:-2px; }
 .card2 .c2sr{ display:flex; flex-wrap:wrap; gap:14px; font-size:11.5px; font-weight:700; color:var(--dim); }
 .card2.manual .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
   background:rgba(255,196,0,.14); color:var(--am); font-size:10.5px; font-weight:900; vertical-align:middle; }
@@ -1987,9 +1989,9 @@ var W={
  dMenuX:['とじる','閉じる'],
  msgStrSaved:['かき数を ほぞんしました','ストローク数を保存しました'],
 
- glCompare:['きろくを くらべる','記録を比較'],
- openCompare:['きろくを くらべる<small>タイム・ST・SR・SCも くらべる</small>','記録を比較する<small>タイム・ST・SR・SCも比較</small>'],
- cmpTitle:['きろくの くらべっこ','記録の比較'],
+ glCompare:['きろくを 見る','記録を見る'],
+ openCompare:['きろくを 見る<small>くらべる・直す</small>','記録を見る（比較、修正）<small>タイム・ST・SR・SCも比較</small>'],
+ cmpTitle:['きろくを 見る','記録を見る（比較、修正）'],
  cmpFilterGl:['さがす・しぼりこむ','絞り込み検索'],
  eventLbl:['しゅもく','種目'],
  cmpDistLbl:['きょり','距離'],
@@ -3244,13 +3246,27 @@ var openDay={};
 function dayKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 function dayName(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[d.getDay()]+'）'; }
 function mdShort(at){ var d=new Date(at); return (d.getMonth()+1)+'/'+d.getDate(); }
+/* 試合名。ただの「100m　自由形」など 中身の ない ものは 出しません */
+function meetName(r){
+  var t=(r&&r.title? String(r.title):'').trim();
+  if(!t) return '';
+  var d=(r.dist||'');
+  var junk=[ d+'m　'+evLabel(r.event), d+'m '+evLabel(r.event), d+'m',
+             evLabel(r.event), T('anaNew'), '分析' ];
+  for(var i=0;i<junk.length;i++) if(t===junk[i]) return '';
+  return t;
+}
 function recCard(r){
   var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
   var ss = raceStroke(r);
   var c=document.createElement('div'); c.className='card2'+(r.manual?' manual':'');
   var badge = r.manual ? '<span class="c2badge">'+T('mBadge')+'</span>' : '';
   var nm = r.swimmerName ? (r.swimmerName+'　') : '';
-  var head = badge + nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
+  var mt = meetName(r);
+  var info = nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
+  /* 試合名が あれば 1行めに 大きく、2行めに 選手・種目・きょり・日づけ */
+  var head = mt ? (badge + esc(mt)) : (badge + info);
+  var subHtml = mt ? '<div class="c2sub">'+esc(info)+'</div>' : '';
   var timeHtml = last
     ? '<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+fmt(last.t)+'</button>'
     : '';
@@ -3259,6 +3275,7 @@ function recCard(r){
                '　'+T('scAbbr')+' '+(ss.n!=null?ss.n:'--');
   c.innerHTML=
     '<div class="c2top"><span class="c2head">'+head+'</span>'+timeHtml+'</div>'+
+    subHtml+
     '<div class="c2sr">'+srLine+'</div>';
   c.onclick=function(){
     if(r.manual){ manualOpen(r); return; }

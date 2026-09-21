@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.35">
+<meta name="app-ver" content="2026.09.21.36">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -290,10 +290,15 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 /* 画面を すっきり させるため、説明の 帯は 出しません */
 .guide{ display:none !important; }
 #ana.stroke .guide{ display:none; }
-/* かきを 数える あいだは、時間を きろくする ボタンは 出しません（まよわない ため） */
-#ana.stroke #bStart, #ana.stroke #nextSel, #ana.stroke #bPass,
-#ana.stroke #bRt, #ana.stroke #hud, #ana.stroke .box{ display:none !important; }
+/* かきを 数える あいだは、時間を きろくする ボタンは 見えなく します。
+   display:none に すると ほかの ボタンの いちが ずれて、
+   おした 指の 下に〈ストロークを計る〉が 来て しまうので、
+   場所は そのまま のこして 見えなく するだけに します。 */
+#ana.stroke #bStart, #ana.stroke #nextSel, #ana.stroke #bPass, #ana.stroke #bRt{
+  visibility:hidden !important; pointer-events:none !important; }
+#ana.stroke #hud, #ana.stroke .box,
 #detail.stroke #dhud, #detail.stroke .box{ display:none !important; }
+#ana.stroke .oInfo, #detail.stroke .oInfo{ pointer-events:none !important; }
 .guide.hide{ display:none; }
 .strokeTag{ display:none; padding:6px 16px; border-radius:4px; background:var(--am);
   color:#000; font-size:15px; font-weight:900; text-align:center; }
@@ -3171,17 +3176,23 @@ $('rtClear').onclick=function(){
 };
 $('bStroke').onclick=function(){
   var on=this.getAttribute('aria-pressed')!=='true';
-  /* はじめる まえに、いままでの かきを けすか きく */
-  if(on && aStrokes.length){
-    if(confirm(T('askClearStroke'))){ aStrokes=[]; paintSR(); }
+  /* iPhoneでは たずねる まどを 出すと 指の 操作が 切れて 再生できなく なるので、
+     さきに 再生を はじめて から たずねます */
+  if(on){
+    var v=$('v');
+    if(v.paused){ v.play().catch(function(){}); $('bPlay').innerHTML=T('pauseI'); }
   }
   this.setAttribute('aria-pressed', on?'true':'false');
   $('ana').classList.toggle('stroke', on);
   hideQ();
   if(on){
-    var v=$('v');
-    if(v.paused){ v.play().catch(function(){}); $('bPlay').innerHTML=T('pauseI'); }
     toast(T('msgTapStroke'));
+    /* はじめる まえに、いままでの かきを けすか きく */
+    if(aStrokes.length){
+      setTimeout(function(){
+        if(confirm(T('askClearStroke'))){ aStrokes=[]; paintSR(); }
+      }, 60);
+    }
   }
 };
 /* 動画の 上を おしたとき
@@ -3198,15 +3209,30 @@ function addStroke(){
 function addStrokeUndo(){
   if(aStrokes.length && Date.now()-aStrokeAt < 600){ aStrokes.pop(); paintSR(); }
 }
+/* 指で さわった ときは touchstart で 数えます。
+   機種に よって pointerdown しか 来ない ことも あるので、
+   指で さわって いない ときだけ pointerdown でも 数えます。
+   （同じ 1回の タップを 2ど 数えない ための しくみです） */
+var aDownAt=0;
 $('tapZone').addEventListener('pointerdown', function(e){
   if(e && e.isPrimary===false) return;
+  aDownAt=Date.now();
   if(!$('ana').classList.contains('stroke')) return;
-  pdCounted=true; addStroke();
+  addStroke();
 });
-$('tapZone').onclick=function(){
+/* pointerdown が 来ない 機種の ための ひかえ */
+$('tapZone').addEventListener('touchstart', function(e){
+  if(e.touches && e.touches.length>1) return;
+  if(Date.now()-aDownAt < 500) return;       // もう 数えました
+  aDownAt=Date.now();
+  if(!$('ana').classList.contains('stroke')) return;
+  addStroke();
+}, {passive:true});
+$('tapZone').onclick=function(e){
   if($('ana').classList.contains('stroke')){
-    if(pdCounted){ pdCounted=false; return; }
-    addStroke(); return;           // 読み上げソフトや キーボードで おしたとき
+    /* 読み上げソフトや キーボードから の 操作（指では ない）だけ ここで 数えます */
+    if(e && e.detail===0 && Date.now()-aDownAt >= 500) addStroke();
+    return;
   }
   $('bPlay').click();
 };
@@ -3246,16 +3272,24 @@ function dAddStroke(){
 function dAddStrokeUndo(){
   if(dStrokes.length && Date.now()-dStrokeAt < 600){ dStrokes.pop(); dPaintSR(); }
 }
-var dPd=false;
+var dDownAt=0;
 $('dTap').addEventListener('pointerdown', function(e){
   if(e && e.isPrimary===false) return;
+  dDownAt=Date.now();
   if(!$('detail').classList.contains('stroke')) return;
-  dPd=true; dAddStroke();
+  dAddStroke();
 });
-$('dTap').onclick=function(){
+$('dTap').addEventListener('touchstart', function(e){
+  if(e.touches && e.touches.length>1) return;
+  if(Date.now()-dDownAt < 500) return;
+  dDownAt=Date.now();
+  if(!$('detail').classList.contains('stroke')) return;
+  dAddStroke();
+}, {passive:true});
+$('dTap').onclick=function(e){
   if($('detail').classList.contains('stroke')){
-    if(dPd){ dPd=false; return; }
-    dAddStroke(); return;
+    if(e && e.detail===0 && Date.now()-dDownAt >= 500) dAddStroke();
+    return;
   }
   $('dPlay').click();
 };
@@ -3336,15 +3370,16 @@ function makeZoomable(vid, tap, undo){
 var anaZoom = makeZoomable($('v'), $('tapZone'), addStrokeUndo);
 var detZoom = makeZoomable($('dv'), $('dTap'), dAddStrokeUndo);
 $('dStroke').onclick=function(){
-  var willOn = !$('detail').classList.contains('stroke');
-  if(willOn && dStrokes.length){
-    if(confirm(T('askClearStroke'))){ dStrokes=[]; dPaintSR(); }
-  }
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
   if(on){
     if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').innerHTML=T('pauseI'); }
     toast(T('msgTapStroke'));
+    if(dStrokes.length){
+      setTimeout(function(){
+        if(confirm(T('askClearStroke'))){ dStrokes=[]; dPaintSR(); }
+      }, 60);
+    }
   }else{
     $('dv').pause();
     if(dRec){

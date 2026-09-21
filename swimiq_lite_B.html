@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.27">
+<meta name="app-ver" content="2026.09.21.28">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -122,9 +122,12 @@ button, select, input{ font-family:inherit; }
 .sr3 > *{ display:block; width:100%; margin:0; -webkit-appearance:none; appearance:none;
   background:var(--pane); border:2px solid var(--line2); border-radius:6px;
   padding:6px; text-align:center; color:#fff; font:inherit; }
-.sr3 b{ display:block; font-size:24px; font-weight:900; color:#fff;
-  font-variant-numeric:tabular-nums; }
-.sr3 span{ display:block; font-size:12px; font-weight:800; color:#d8d8d8; }
+/* ちいさい 見出しが 上、大きい 数字が 下 */
+.sr3 > *{ display:flex; flex-direction:column; align-items:center; gap:1px; }
+.sr3 b{ display:block; order:2; font-size:26px; font-weight:900; color:#fff;
+  line-height:1.15; font-variant-numeric:tabular-nums; }
+.sr3 span{ display:block; order:1; font-size:11px; font-weight:800; color:var(--am);
+  letter-spacing:.04em; line-height:1.2; }
 .hint{ font-size:13px; font-weight:700; color:var(--dim); margin:0; line-height:1.7; }
 
 /* ===== 分析・くわしく（動画を 画面いっぱいに ひろげる） =====
@@ -230,9 +233,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   padding:2px 6px 6px; display:flex; flex-direction:column; gap:6px; }
 .boxB > *{ flex:0 0 auto; }
 /* たたんだ ときも、SR・ST・ストローク数は 見えるままに する */
-.box.fold .boxB > *{ display:none; }
-.box.fold .boxB > .sr3{ display:grid; }
-.box.fold .boxB{ padding-bottom:6px; }
+/* たたんで いる ときは かんたん表記の 1行だけ、
+   ひらいて いる ときは 数字の タイルだけ。おなじ ことを 2どは 出しません */
+.box.fold .boxB{ display:none; }
+.box:not(.fold) .boxH .sum{ display:none; }
 .box .sr3{ gap:4px; }
 .box .sr3 > *{ padding:3px 2px; line-height:1.25; }
 .box .sr3 b{ font-size:20px; }
@@ -272,7 +276,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .oBar .pl{ min-width:66px; font-size:22px; border-color:#fff; }
 .oBar .spdB{ min-width:74px; border-color:var(--am); color:var(--am); font-size:15px; }
 /* 分析・再生の きりかえを 下の バーに ならべる */
-.oBar .modeSeg{ flex:0 0 auto; margin-right:2px; }
+.oBar .modeSeg{ flex:0 0 auto; margin-left:2px; }
 .oBar .modeSeg button{ min-height:46px; padding:0 12px; font-size:14px; }
 .oBar .pos{ flex:0 0 auto; margin-left:4px; font-size:13px; font-weight:800; color:var(--dim);
   font-variant-numeric:tabular-nums; }
@@ -516,11 +520,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .sr3 button.fixT{ cursor:pointer; padding:5px 2px; border-color:var(--line); }
 .sr3 button.fixT:active{ background:#2a2a2a; }
 .sr3 button.fixT span{ white-space:nowrap; }
-.sr3 button.fixT::after{ content:"直す"; display:block; margin-top:2px;
-  font-size:11px; font-weight:900; color:var(--am); }
+.sr3 button.fixT::after{ content:"直す"; display:block; order:3; margin-top:1px;
+  font-size:10px; font-weight:900; color:var(--dim); }
 .box .sr3 button.fixT{ padding:3px 1px; }
 .box .sr3 button.fixT span{ font-size:10px; }
-.box .sr3 button.fixT::after{ font-size:10px; }
+.box .sr3 button.fixT::after{ font-size:9px; }
 .sumBtn{ cursor:pointer; border:0; padding:0 2px; border-radius:4px; background:transparent;
   color:#fff; text-align:left; }
 .sumBtn:active{ background:rgba(255,255,255,.12); }
@@ -1078,9 +1082,9 @@ body, button, select, input, textarea{
         <div class="boxH"><span class="boxGrip" id="anaGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3">
-            <button type="button" class="fixT" data-fix="sr"><b id="oSR">--</b><span data-t="srU"></span></button>
-            <button type="button" class="fixT" data-fix="st"><b id="oST">--</b><span data-t="stU"></span></button>
-            <button type="button" class="fixT" data-fix="n"><b id="oN">0</b><span data-t="nStr"></span></button>
+            <button type="button" class="fixT" data-fix="sr"><span data-t="srU"></span><b id="oSR">--</b></button>
+            <button type="button" class="fixT" data-fix="st"><span data-t="stU"></span><b id="oST">--</b></button>
+            <button type="button" class="fixT" data-fix="n"><span data-t="nStr"></span><b id="oN">0</b></button>
           </div>
           <div class="tbl" id="tbl"></div>
           <button class="clr" id="bClear" type="button" data-t="clearAll"></button>
@@ -1094,14 +1098,14 @@ body, button, select, input, textarea{
     </div>
 
     <div class="oBar glass">
-      <div class="seg modeSeg" id="modeSeg">
-        <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
-        <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
-      </div>
       <button class="ob ic" id="bBack1" type="button" data-t="frBackI" data-ta="frBack"></button>
       <button class="ob pl ic" id="bPlay" type="button" data-t="playI" data-ta="play"></button>
       <button class="ob ic" id="bFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="spd" type="button" data-r="1"></button>
+      <div class="seg modeSeg" id="modeSeg">
+        <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
+        <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
+      </div>
       <span class="pos" id="pos">0:00</span>
       <input class="sk" id="sk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
     </div>
@@ -1733,9 +1737,9 @@ var W={
  open:['ひらく','開く'],
  poolLbl:['プール','プール'],
  distLbl:['きょり','距離'],
- srU:['SR かき/分','SR 回/分'],
- stU:['ST 秒/かき','ST 秒/回'],
- nStr:['かき数','ストローク数'],
+ srU:['SR','SR'],
+ stU:['ST','ST'],
+ nStr:['SC','SC'],
  clearAll:['ぜんぶ 消す','すべて消去'],
  strokeTag:['画面の どこでも おすと 1かき','画面のどこを押しても1ストローク'],
  normal:['ふつう','等速'],
@@ -1808,8 +1812,8 @@ var W={
  toHome:['ホームに もどる','ホームに戻る'],
  keepPort:['このまま たてで つづける','縦向きのまま続ける'],
  timeLbl:['タイム','タイム'],
- avgST:['平均ST 秒','平均ST 秒'],
- avgSR:['平均SR','平均SR'],
+ avgST:['ST','ST'],
+ avgSR:['SR','SR'],
  sheetNone:['よこ向きに して「スタート」「つうか」を おすと 出ます','横向きにして「スタート」「通過」を押すと表示されます'],
  strNone:['「かきを 数える」で 出ます','「ストロークを数える」で表示されます'],
  splitNone:['通過タイムは ありません','通過タイムがありません'],
@@ -3085,11 +3089,11 @@ function dPaintSR(){
   var avg=use.length?sum/use.length:0;
   var last = dRec && dRec.splits && dRec.splits.length ? dRec.splits[dRec.splits.length-1] : null;
   $('dStat').innerHTML =
-    '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
-    '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
-    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>'+
-    '<div><b>'+dStrokes.length+'</b><span>'+T('nStr')+'</span></div>'+
-    ((dRec && dRec.rt!=null) ? ('<div><b>'+Number(dRec.rt).toFixed(2)+'</b><span>'+T('rtOutLbl')+'</span></div>') : '');
+    '<div><span>'+(last? last.d+'m':T('timeLbl'))+'</span><b>'+(last? fmt(last.t):'--')+'</b></div>'+
+    '<div><span>'+T('avgST')+'</span><b>'+(avg? avg.toFixed(2):'--')+'</b></div>'+
+    '<div><span>'+T('avgSR')+'</span><b>'+(avg? (60/avg).toFixed(1):'--')+'</b></div>'+
+    '<div><span>'+T('scAbbr')+'</span><b>'+dStrokes.length+'</b></div>'+
+    ((dRec && dRec.rt!=null) ? ('<div><span>'+T('rtOutLbl')+'</span><b>'+Number(dRec.rt).toFixed(2)+'</b></div>') : '');
 }
 var dStrokeAt=0;
 function dAddStroke(){

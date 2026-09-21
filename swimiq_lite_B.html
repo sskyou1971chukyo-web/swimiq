@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.22">
+<meta name="app-ver" content="2026.09.21.23">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -570,6 +570,14 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .homeTop{ display:flex; align-items:center; gap:8px; margin:2px 0 10px; }
 .homeTop #cnMark{ margin:0; flex:1 1 auto; }
 .homeTop #openSettings{ flex:0 0 auto; margin-left:auto; min-height:40px; padding:6px 14px; font-size:13px; }
+/* 通過タイムを 直す らん（1行 ＝ きょり・タイム・けす） */
+.vfSplRow{ display:flex; align-items:center; gap:8px; padding:6px 0; border-top:1px solid var(--line2); }
+.vfSplRow:first-child{ border-top:none; }
+.vfSplRow select{ flex:0 0 108px; min-height:46px; }
+.vfSplRow input{ flex:1 1 auto; min-width:0; min-height:46px; padding:4px 8px; border-radius:6px;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:16px; font-weight:900; }
+.vfSplRow button{ flex:0 0 46px; min-height:46px; border-radius:8px; border:2px solid var(--line);
+  background:var(--pane2); color:#fff; font-size:16px; font-weight:900; }
 .mSegRow{ padding:10px 0; border-top:1px solid var(--line2); }
 .mSegRow:first-child{ border-top:none; }
 .mSegRow .mSegLbl{ display:block; font-size:15px; font-weight:900; color:var(--am); margin-bottom:6px; }
@@ -1574,6 +1582,12 @@ body, button, select, input, textarea{
       <input type="text" id="vfTime" inputmode="decimal">
     </div>
     <div class="sq">
+      <p class="q" data-t="vfSplLbl"></p>
+      <p class="lead" data-t="vfSplHint"></p>
+      <div id="vfSplWrap"></div>
+      <button class="btn b" type="button" id="vfSplAdd" data-t="vfSplAdd" style="width:100%;margin-top:8px;"></button>
+    </div>
+    <div class="sq">
       <p class="q" data-t="vfNLbl"></p>
       <input type="text" id="vfN" inputmode="numeric">
     </div>
@@ -2048,6 +2062,10 @@ var W={
  syncDoing:['同期しています…','同期中…'],
  syncDone:['同期しました','同期が完了しました'],
  syncNG:['同期できませんでした。アドレスと つうしんを たしかめてください','同期できませんでした。アドレスと通信を確認してください'],
+ vfSplLbl:['通過タイムを 直す','通過タイムを直す'],
+ vfSplHint:['左が きょり、右が 経過タイムです。きょりが ちがう ときは 左で えらび直して ください。いらない 行は ✕ で けせます。','左が距離、右が経過タイムです。距離が違うときは左で選び直してください。いらない行は✕で消せます。'],
+ vfSplAdd:['＋ 行を ふやす','＋ 行を増やす'],
+ tooClose:['さっき おした ところと 近すぎます','直前に押した場面と近すぎます'],
  vfVidLbl:['動画リンク（Googleドライブなど・任意）','動画リンク（Googleドライブなど・任意）'],
  vidOpen:['リンクを 開く','リンクを開く'],
  vidNone:['動画リンクが ありません','動画リンクがありません'],
@@ -2150,11 +2168,16 @@ function dbPut(rec){
     });
   });
 }
+/* 通過タイムは いつも きょりの 順に そろえて つかいます */
+function normRec(r){
+  if(r && r.splits && r.splits.length>1) r.splits.sort(function(x,y){ return x.d-y.d; });
+  return r;
+}
 function dbAll(){
   return dbOpen().then(function(d){
     return new Promise(function(res,rej){
       var t=d.transaction(ST,'readonly'), q=t.objectStore(ST).getAll();
-      q.onsuccess=function(){ res((q.result||[]).sort(function(a,b){ return b.at-a.at; })); };
+      q.onsuccess=function(){ res((q.result||[]).map(normRec).sort(function(a,b){ return b.at-a.at; })); };
       q.onerror=function(){ rej(q.error); };
     });
   });
@@ -2163,7 +2186,7 @@ function dbGet(id){
   return dbOpen().then(function(d){
     return new Promise(function(res,rej){
       var t=d.transaction(ST,'readonly'), q=t.objectStore(ST).get(id);
-      q.onsuccess=function(){ res(q.result||null); };
+      q.onsuccess=function(){ res(q.result ? normRec(q.result) : null); };
       q.onerror=function(){ rej(q.error); };
     });
   });
@@ -2731,8 +2754,13 @@ $('bPass').onclick=function(){
   var n=nextD();
   if(n===null) return;
   if(aT0===null){ toast(T('needFoot')); return; }
-  aSplits.push({ d:n, t:t-aT0 });
-  aSplits.sort(function(x,y){ return x.t-y.t; });
+  var tt=t-aT0, j;
+  /* 2どおし・おしすぎを ふせぎます（0.3秒いないは 同じ ところと みなす） */
+  for(j=0;j<aSplits.length;j++){
+    if(Math.abs(aSplits[j].t-tt)<0.30){ toast(T('tooClose')); return; }
+  }
+  aSplits.push({ d:n, t:tt });
+  aSplits.sort(function(x,y){ return x.d-y.d; });   /* きょりの 順に ならべます */
   selManual=false; $('nextSel').value='';
   paintTbl();
 };
@@ -4186,7 +4214,8 @@ $('swmDelBtn').onclick=function(){
    PDFレポート（アプリ内で 作って、印刷→PDFで保存）
    ================================================================ */
 function rpSVGsplits(r){
-  var sp=r.splits||[]; if(!sp.length) return '';
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  if(!sp.length) return '';
   var laps=[]; for(var i=0;i<sp.length;i++){ laps.push({ d:sp[i].d, seg:sp[i].t-(i>0?sp[i-1].t:0), lab:(i>0?sp[i-1].d:0)+'-'+sp[i].d }); }
   var W=430,H=210,pad={l:34,r:12,t:22,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
   var maxV=Math.max.apply(null,laps.map(function(l){return l.seg;})); var yMax=Math.ceil(maxV/2)*2+2;
@@ -4256,8 +4285,9 @@ function buildReport(r){
     {k:T('nStr'), v:(ss.n!=null?ss.n:'--'), u:''}
   ];
   if(r.rt!=null) kp.push({ k:T('rtOutLbl'), v:Number(r.rt).toFixed(2), u:'秒' });
+  var spSorted=(r.splits||[]).slice().sort(function(x,y){ return x.d-y.d; });
   var spTbl='<tr><th>区間</th><th>通過</th><th>ラップ</th></tr>';
-  (r.splits||[]).forEach(function(sp,idx){ spTbl+='<tr><td>'+sp.d+'m</td><td>'+fmt(sp.t)+'</td><td>+'+fmt(sp.t-(idx>0?r.splits[idx-1].t:0))+'</td></tr>'; });
+  spSorted.forEach(function(sp,idx){ spTbl+='<tr><td>'+sp.d+'m</td><td>'+fmt(sp.t)+'</td><td>+'+fmt(sp.t-(idx>0?spSorted[idx-1].t:0))+'</td></tr>'; });
 
   var srSvg=rpSVGsr(r), splSvg=rpSVGsplits(r);
   var dt=new Date(r.at).toLocaleString('ja-JP');
@@ -4269,7 +4299,7 @@ function buildReport(r){
       (swBits.length?'<span class="chip">'+swBits.join('　')+'</span>':'')+'</div>'+
     '<div class="rkpis">'+kp.map(function(x){ return '<div class="rkpi'+(x.hl?' hl':'')+'"><div class="k">'+x.k+'</div><div class="v">'+x.v+'<span class="u">'+x.u+'</span></div></div>'; }).join('')+'</div>'+
     '<div class="rgrid">'+
-      '<div class="rsec"><h3>通過タイム（25mラップ）</h3>'+(splSvg||'<div class="rcap">通過データがありません</div>')+'<div class="rcap">棒は各区間タイム（短いほど速い）</div></div>'+
+      '<div class="rsec"><h3>区間タイム</h3>'+(splSvg||'<div class="rcap">通過データがありません</div>')+'<div class="rcap">棒は各区間タイム（短いほど速い）</div></div>'+
       '<div class="rsec"><h3>通過記録</h3><table>'+spTbl+'</table></div>'+
     '</div>'+
     (srSvg ?
@@ -4327,7 +4357,7 @@ function reportSVG(r, W, H){
     s+='<text x="'+(kx+13)+'" y="'+(kY+52)+'" font-size="24" font-weight="900" fill="#16181d">'+esc(x.v)+'<tspan font-size="11" fill="#5b6270" dx="2">'+esc(x.u)+'</tspan></text>'; });
   // splits section
   s+='<rect x="'+mx+'" y="272" width="4" height="15" fill="#f2b01e"/>';
-  s+='<text x="'+(mx+10)+'" y="285" font-size="13" font-weight="900" fill="#16181d">通過タイム（25mラップ）</text>';
+  s+='<text x="'+(mx+10)+'" y="285" font-size="13" font-weight="900" fill="#16181d">区間タイム</text>';
   var splSvg=rpSVGsplits(r);
   if(splSvg){ s+=place(splSvg, mx, 296, 340, 166); }
   s+='<text x="'+mx+'" y="482" font-size="10" font-weight="700" fill="#5b6270">棒は各区間タイム（短いほど速い）</text>';
@@ -4340,10 +4370,11 @@ function reportSVG(r, W, H){
   s+='<text x="'+col2+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="end">通過</text>';
   s+='<text x="'+col3+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="end">ラップ</text>';
   s+='<line x1="'+tx+'" y1="'+(ty+6)+'" x2="'+col3+'" y2="'+(ty+6)+'" stroke="#e4e6ea" stroke-width="1.5"/>';
-  (r.splits||[]).forEach(function(sp,idx){ var ry=ty+28+idx*26;
+  var spS=(r.splits||[]).slice().sort(function(x,y){ return x.d-y.d; });
+  spS.forEach(function(sp,idx){ var ry=ty+28+idx*26;
     s+='<text x="'+tx+'" y="'+ry+'" font-size="12" font-weight="700" fill="#5b6270">'+sp.d+'m</text>';
     s+='<text x="'+col2+'" y="'+ry+'" font-size="12" font-weight="700" fill="#16181d" text-anchor="end">'+esc(fmt(sp.t))+'</text>';
-    s+='<text x="'+col3+'" y="'+ry+'" font-size="12" font-weight="700" fill="#16181d" text-anchor="end">+'+esc(fmt(sp.t-(idx>0?r.splits[idx-1].t:0)))+'</text>';
+    s+='<text x="'+col3+'" y="'+ry+'" font-size="12" font-weight="700" fill="#16181d" text-anchor="end">+'+esc(fmt(sp.t-(idx>0?spS[idx-1].t:0)))+'</text>';
     s+='<line x1="'+tx+'" y1="'+(ry+7)+'" x2="'+col3+'" y2="'+(ry+7)+'" stroke="#eef0f2" stroke-width="1"/>'; });
   // SR section
   var srSvg=rpSVGsr(r), srY=522;
@@ -4638,6 +4669,44 @@ $('mDel').onclick=function(){
    タイムを おすと、日づけ・種目・きょり・タイムだけを
    さっと なおせる ちいさな 画面が 出ます。動画そのものは のこります。 */
 var vfEditId=null;
+/* 通過タイムを 1行ずつ 直せる らん */
+function vfSplRow(d, t, dist){
+  var all=lapDists(dist), opt='', i;
+  opt+='<option value="">--</option>';
+  for(i=0;i<all.length;i++) opt+='<option value="'+all[i]+'"'+(all[i]===d?' selected':'')+'>'+all[i]+'m</option>';
+  var row=document.createElement('div'); row.className='vfSplRow';
+  row.innerHTML='<select class="vfSplD" aria-label="'+T('hDist')+'">'+opt+'</select>'+
+    '<input type="text" class="vfSplT" inputmode="decimal" aria-label="'+T('hTime')+'" value="'+(t!=null?fmt(t):'')+'">'+
+    '<button type="button" class="vfSplX" aria-label="'+T('del')+'">✕</button>';
+  row.querySelector('.vfSplX').onclick=function(){
+    if(row.parentNode) row.parentNode.removeChild(row);
+  };
+  return row;
+}
+function vfSplPaint(sp){
+  var w=$('vfSplWrap'); if(!w) return;
+  w.innerHTML='';
+  var dist=Number($('vfDist').value)||100, i;
+  var list=(sp||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  for(i=0;i<list.length;i++) w.appendChild(vfSplRow(list[i].d, list[i].t, dist));
+}
+function vfSplRead(){
+  var rows=$('vfSplWrap').querySelectorAll('.vfSplRow'), out=[], seen={}, i;
+  for(i=0;i<rows.length;i++){
+    var dd=Number(rows[i].querySelector('.vfSplD').value);
+    var tt=parseTimeStr(rows[i].querySelector('.vfSplT').value);
+    if(!dd || tt==null || tt<=0) continue;
+    if(seen[dd]) continue;
+    seen[dd]=1; out.push({ d:dd, t:tt });
+  }
+  out.sort(function(a,b){ return a.d-b.d; });
+  return out;
+}
+$('vfSplAdd').onclick=function(){
+  $('vfSplWrap').appendChild(vfSplRow(null, null, Number($('vfDist').value)||100));
+};
+/* きょりを 変えたら 一覧も 作り直します（入れた タイムは のこします） */
+$('vfDist').onchange=function(){ vfSplPaint(vfSplRead()); };
 function vfOpen(rec){
   if(!rec || rec.manual) return;
   vfEditId = rec.id;
@@ -4650,6 +4719,7 @@ function vfOpen(rec){
   $('vfN').value = (ss.n!=null) ? String(ss.n) : '';
   $('vfST').value = (ss.st!=null) ? ss.st.toFixed(2) : '';
   $('vfVid').value = rec.videoUrl || '';
+  vfSplPaint(rec.splits || []);
   fillSwimSelect($('vfSwim'), rec.swimmerId || '');
   $('vfDel').classList.remove('hide');
   $('vFix').classList.remove('hide');
@@ -4686,9 +4756,12 @@ $('vfSave').onclick=function(){
     rec.at = dateVal.getTime();
     rec.event = $('vfEvent').value;
     rec.dist = dist;
-    if(!rec.splits) rec.splits=[];
-    if(rec.splits.length) rec.splits[rec.splits.length-1] = { d:dist, t:t };
-    else rec.splits.push({ d:dist, t:t });
+    /* 通過タイムの らんを そのまま つかい、さいごの きょり・タイムは 上の らんを ゆうせん */
+    var sp=vfSplRead(), k=-1, i2;
+    for(i2=0;i2<sp.length;i2++) if(sp[i2].d===dist) k=i2;
+    if(k>=0) sp[k].t=t; else sp.push({ d:dist, t:t });
+    sp.sort(function(x,y){ return x.d-y.d; });
+    rec.splits=sp;
     rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
     rec.videoUrl = ($('vfVid').value||'').trim();

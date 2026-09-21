@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.5">
+<meta name="app-ver" content="2026.09.21.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -813,7 +813,10 @@ body, button, select, input, textarea{
 #swTimeWrap{ text-align:center; padding:6px 0 0; }
 #swTime{ font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
   font-size:clamp(64px,21vw,112px); line-height:1.0; color:var(--am);
-  font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+  font-variant-numeric:tabular-nums; letter-spacing:0; white-space:nowrap; }
+/* 1文字ずつ 同じ幅の わく（よこ揺れ ぼうし） */
+#swTime .dg{ display:inline-block; width:.60em; text-align:center; }
+#swTime .sep{ display:inline-block; width:.34em; text-align:center; }
 #swState{ margin-top:2px; font-size:15px; font-weight:800; color:var(--dim); }
 .swDistRow{ display:flex; align-items:center; justify-content:center; gap:10px;
   font-size:15px; font-weight:800; color:var(--dim); }
@@ -3276,7 +3279,19 @@ function swFmt(s){
   return m+':'+ss+'.'+cc;
 }
 function swNow(){ return swElapsed + (swRunning ? (performance.now()-swStartTs)/1000 : 0); }
-function swPaint(){ $('swTime').textContent=swFmt(swNow()); }
+/* 数字が よこに ぶれないよう、1文字ずつ 同じ幅の わくに 入れて 表示します */
+var swLastStr='';
+function swPaint(){
+  var str=swFmt(swNow());
+  if(str===swLastStr) return;
+  swLastStr=str;
+  var out='', ch, i;
+  for(i=0;i<str.length;i++){
+    ch=str.charAt(i);
+    out += '<span class="'+((ch===':'||ch==='.')?'sep':'dg')+'">'+ch+'</span>';
+  }
+  $('swTime').innerHTML=out;
+}
 function swLoop(){ swPaint(); swRaf=requestAnimationFrame(swLoop); }
 function swRenderLaps(){
   var box=$('swLaps'), d=Number($('swDist').value)||50;
@@ -3331,7 +3346,7 @@ function swLap(){
 function swReset(){
   swRunning=false;
   if(swRaf){ cancelAnimationFrame(swRaf); swRaf=null; }
-  swElapsed=0; swLaps=[];
+  swElapsed=0; swLaps=[]; swLastStr='';
   swPaint(); swRenderLaps(); swBtns();
 }
 function swOpen(){

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.14">
+<meta name="app-ver" content="2026.09.21.15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -529,10 +529,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox, #vFix{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix, #swmBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide, #vFix.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide{ display:none !important; }
 .svWrap{ width:100%; max-width:620px; background:var(--bk); border:3px solid var(--am);
   border-radius:8px; padding:14px; }
 .svWrap h3{ margin:0; font-size:21px; font-weight:900; }
@@ -903,6 +903,58 @@ body, button, select, input, textarea{
 .card2 .c2sr{ display:flex; flex-wrap:wrap; gap:14px; font-size:11.5px; font-weight:700; color:var(--dim); }
 .card2.manual .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
   background:rgba(255,196,0,.14); color:var(--am); font-size:10.5px; font-weight:900; vertical-align:middle; }
+
+/* ===== 選手プロフィール 一覧 ===== */
+.swmCard{ display:flex; align-items:center; gap:12px; cursor:pointer;
+  background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
+  border-radius:var(--rL); padding:12px 14px; margin:0 0 8px; }
+.swmCard .si{ min-width:0; flex:1; }
+.swmCard .sn{ font-size:16px; font-weight:900; color:#fff; }
+.swmCard .sd{ margin-top:2px; font-size:12px; font-weight:700; color:var(--dim); }
+
+/* ===== PDFレポート（印刷用）=====
+   ふだんは 画面に 出さず、PDF（印刷）のときだけ 出す。白地・黒文字。 */
+#report{ display:none; }
+#report *{ box-sizing:border-box; }
+@media print{
+  html,body{ background:#fff !important; }
+  body > *{ display:none !important; }
+  #report{ display:block !important; }
+  @page{ size:A4 portrait; margin:0; }
+}
+#report .rp{ width:210mm; min-height:297mm; padding:14mm 15mm 12mm; background:#fff; color:#16181d;
+  font-family:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans CJK JP",sans-serif; }
+#report .rhd{ display:flex; align-items:flex-end; justify-content:space-between;
+  border-bottom:3px solid #111318; padding-bottom:9px; }
+#report .rlogo{ font-weight:900; font-size:23px; }
+#report .rlogo .iq{ color:#c98a00; }
+#report .rlogo .rep{ margin-left:10px; font-size:13px; font-weight:800; color:#5b6270; }
+#report .rmeta{ text-align:right; font-size:11px; color:#5b6270; font-weight:600; line-height:1.5; }
+#report .rtitle{ margin:11px 0 3px; font-size:19px; font-weight:900; }
+#report .rsub .chip{ display:inline-block; margin-right:8px; padding:2px 10px; border-radius:999px;
+  background:#f4f5f7; color:#16181d; font-size:12px; font-weight:800; }
+#report .rkpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:14px 0 4px; }
+#report .rkpi{ border:1.5px solid #e4e6ea; border-radius:12px; padding:11px 13px; }
+#report .rkpi.hl{ border-color:#f2b01e; background:#fffaf0; }
+#report .rkpi .k{ font-size:10.5px; font-weight:800; color:#5b6270; }
+#report .rkpi .v{ margin-top:3px; font-size:24px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; }
+#report .rkpi .u{ font-size:11px; font-weight:800; color:#5b6270; margin-left:2px; }
+#report .rgrid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px; }
+#report .rsec h3{ font-size:13px; font-weight:900; margin:0 0 9px; padding-left:9px; border-left:4px solid #f2b01e; }
+#report .rsec.full{ margin-top:16px; }
+#report table{ width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+#report th,#report td{ text-align:right; padding:6px 8px; font-size:12px; }
+#report th{ font-size:10px; font-weight:800; color:#5b6270; border-bottom:1.5px solid #e4e6ea; }
+#report td{ border-bottom:1px solid #e4e6ea; font-weight:700; }
+#report td:first-child,#report th:first-child{ text-align:left; color:#5b6270; }
+#report .rnote{ margin-top:10px; font-size:11px; font-weight:700; color:#c98a00;
+  background:#fff8ea; border:1px solid #f2dfb0; border-radius:9px; padding:8px 11px; line-height:1.55; }
+#report .rlegend{ display:flex; gap:16px; font-size:10.5px; font-weight:800; color:#5b6270; margin:2px 0 6px; }
+#report .rlegend i{ display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
+#report .rcap{ font-size:10px; color:#5b6270; font-weight:700; margin-top:4px; }
+#report .rft{ margin-top:16px; padding-top:8px; border-top:1px solid #e4e6ea;
+  display:flex; justify-content:space-between; font-size:9.5px; color:#9aa0ab; font-weight:700; }
+#report svg{ display:block; width:100%; }
 </style>
 </head>
 <body>
@@ -1088,6 +1140,7 @@ body, button, select, input, textarea{
       <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
       <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
       <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
+      <button class="ob b" id="dPdf" type="button" data-t="pdfBtn"></button>
       <button class="ob g" id="dShare" type="button" data-t="shareBtn"></button>
       <button class="ob y" id="dCompare" type="button" data-t="dCompareBtn"></button>
       <button class="ob b" id="dAgain" type="button" data-t="again"></button>
@@ -1137,6 +1190,14 @@ body, button, select, input, textarea{
     <button class="btn g" id="setReload" type="button" data-t="setReloadBtn"></button>
     <p class="hint" style="margin:6px 2px 2px;"><span data-t="setVerNow"></span>：<b id="setVer" style="color:var(--am);"></b></p>
     <p class="hint" data-t="setUpHint" style="margin:2px;"></p>
+  </div>
+
+  <div class="gl" data-t="glSwimmer"></div>
+  <div class="take">
+    <button class="btn homeBtn dk" id="openSwimmers" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></span>
+      <span class="hbTxt" data-t="openSwimmers"></span>
+    </button>
   </div>
 
   <div class="gl" data-t="glWord"></div>
@@ -1354,6 +1415,10 @@ body, button, select, input, textarea{
     <h3 id="mH" data-t="manualTitle"></h3>
     <p class="lead" data-t="manualLead"></p>
     <div class="sq">
+      <p class="q" data-t="swmSelLbl"></p>
+      <select id="mSwim"></select>
+    </div>
+    <div class="sq">
       <p class="q" data-t="mDateLbl"></p>
       <input type="date" id="mDate">
     </div>
@@ -1397,6 +1462,7 @@ body, button, select, input, textarea{
       <p class="lead" data-t="mSegHint"></p>
       <div id="mSegWrap"></div>
     </div>
+    <button class="btn b hide" type="button" id="mPdf" data-t="pdfBtn" style="margin-top:4px;"></button>
     <div class="svBtns">
       <button class="btn" type="button" id="mCancel" data-t="dMenuX"></button>
       <button class="btn r hide" type="button" id="mDel" data-t="del"></button>
@@ -1409,6 +1475,10 @@ body, button, select, input, textarea{
   <div class="svWrap">
     <h3 id="vfH" data-t="vfTitle"></h3>
     <p class="lead" data-t="vfLead"></p>
+    <div class="sq">
+      <p class="q" data-t="swmSelLbl"></p>
+      <select id="vfSwim"></select>
+    </div>
     <div class="sq">
       <p class="q" data-t="mDateLbl"></p>
       <input type="date" id="vfDate">
@@ -1461,6 +1531,68 @@ body, button, select, input, textarea{
     </div>
   </div>
 </div>
+
+<!-- ================= 選手プロフィール ================= -->
+<div id="swimmers" class="cmp hide">
+  <div class="cmpHd">
+    <button class="btn b" id="swmBack" type="button" data-t="back" style="flex:0 0 auto;"></button>
+    <h2 data-t="swmTitle"></h2>
+  </div>
+  <div class="take">
+    <button class="btn g" id="swmAddBtn" type="button" data-t="swmAdd"></button>
+  </div>
+  <div id="swmList" style="margin-top:12px;"></div>
+</div>
+
+<div id="swmBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="swmH">
+  <div class="svWrap">
+    <h3 id="swmH" data-t="swmNew"></h3>
+    <div class="sq">
+      <p class="q" data-t="swmName"></p>
+      <input type="text" id="swName">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmSex"></p>
+      <select id="swSex">
+        <option value="">未設定</option>
+        <option value="m">男</option>
+        <option value="f">女</option>
+      </select>
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmBirth"></p>
+      <input type="date" id="swBirth">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmHeight"></p>
+      <input type="text" id="swHeight" inputmode="decimal">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmWeight"></p>
+      <input type="text" id="swWeight" inputmode="decimal">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmHist"></p>
+      <input type="text" id="swHist" inputmode="numeric">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmTeam"></p>
+      <input type="text" id="swTeam">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="swmSpec"></p>
+      <input type="text" id="swSpec">
+    </div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="swmCancel" data-t="dMenuX"></button>
+      <button class="btn r hide" type="button" id="swmDelBtn" data-t="del"></button>
+      <button class="btn g" type="button" id="swmSave" data-t="save"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PDFレポート（印刷用・ふだんは非表示） ================= -->
+<div id="report"></div>
 
 <div id="toast"></div>
 
@@ -1615,6 +1747,32 @@ var W={
  dragBox:['つまんで うごかす（動画が 見えるように）','つまんで動かす（動画が見えるように）'],
  turnLbl:['ターン','ターン'],
  turnExHint:['は ターン局面のため 平均から のぞいています','はターン局面のため平均から除外しています'],
+
+ pdfBtn:['PDFで ダウンロード','PDFでダウンロード'],
+ pdfHint:['印刷の まどが 出たら「PDFで保存」や「ファイルに保存」を えらんでください','印刷ウィンドウが出たら「PDFで保存」や「ファイルに保存」を選んでください'],
+ glSwimmer:['選手プロフィール','選手プロフィール'],
+ openSwimmers:['選手プロフィール<small>名前・年齢・身長などを 登録</small>','選手プロフィール<small>名前・年齢・身長などを登録</small>'],
+ swmTitle:['選手プロフィール','選手プロフィール'],
+ swmAdd:['選手を ついか','選手を追加'],
+ swmNone:['まだ 選手が いません。「選手を追加」から とうろくしてください','まだ選手がいません。「選手を追加」から登録してください'],
+ swmEdit:['選手を なおす','選手を編集'],
+ swmNew:['選手を ついか','選手を追加'],
+ swmName:['名前','名前'],
+ swmSex:['性別','性別'],
+ swmSexM:['男','男'],
+ swmSexF:['女','女'],
+ swmSexO:['未設定','未設定'],
+ swmBirth:['生年月日','生年月日'],
+ swmHeight:['身長（cm）','身長（cm）'],
+ swmWeight:['体重（kg）','体重（kg）'],
+ swmHist:['水泳を 始めた年（西暦）','水泳を始めた年（西暦）'],
+ swmTeam:['所属','所属'],
+ swmSpec:['専門種目','専門種目'],
+ swmSaveNoName:['名前を 入れてください','名前を入れてください'],
+ swmSelLbl:['選手（任意）','選手（任意）'],
+ swmSelNone:['（選手なし）','（選手なし）'],
+ ageU:['歳','歳'],
+ histU:['年','年'],
 
  lpH:['さつえい中の ラップ','撮影中のラップ'],
  lpLead:['つかう ラップに チェックを 入れて、きょりを えらんでください。','使用するラップにチェックを入れ、距離を選んでください。'],
@@ -1948,7 +2106,7 @@ function shareText(text, title){
 
 /* ===== 画面の きりかえ ===== */
 function show(id){
-  ['home','ana','detail','compare','settings'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
+  ['home','ana','detail','compare','settings','swimmers'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
   document.body.classList.toggle('vs', id==='ana' || id==='detail');
   window.scrollTo(0,0);
 }
@@ -2667,7 +2825,8 @@ function recCard(r){
   var ss = raceStroke(r);
   var c=document.createElement('div'); c.className='card2'+(r.manual?' manual':'');
   var badge = r.manual ? '<span class="c2badge">'+T('mBadge')+'</span>' : '';
-  var head = badge + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
+  var nm = r.swimmerName ? (r.swimmerName+'　') : '';
+  var head = badge + nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
   var timeHtml = last
     ? '<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+fmt(last.t)+'</button>'
     : '';
@@ -3514,10 +3673,221 @@ function manualOpen(rec){
   $('mTime').value = last!=null ? fmt(last) : '';
   renderMSegs(dist, (rec && rec.manualSegs) ? rec.manualSegs : null);
   $('mVid').value = (rec && rec.videoUrl) ? rec.videoUrl : '';
+  fillSwimSelect($('mSwim'), rec ? rec.swimmerId : '');
   $('mDel').classList.toggle('hide', !rec);
+  $('mPdf').classList.toggle('hide', !rec);
   $('manualBox').classList.remove('hide');
 }
 $('openManual').onclick=function(){ manualOpen(null); };
+
+/* ================================================================
+   選手プロフィール（名前・性別・生年月日・身長・体重・水泳歴・所属・専門）
+   端末の中に ほぞん（localStorage）。記録には 選手を むすびつけられる。
+   ================================================================ */
+function loadSwimmers(){
+  try{ return JSON.parse(localStorage.getItem('swimiq_swimmers')||'[]'); }catch(e){ return []; }
+}
+function saveSwimmers(arr){
+  try{ localStorage.setItem('swimiq_swimmers', JSON.stringify(arr)); }catch(e){}
+}
+function swById(id){ if(!id) return null; var a=loadSwimmers(); for(var i=0;i<a.length;i++) if(a[i].id===id) return a[i]; return null; }
+function ageAt(birth, at){
+  if(!birth) return null;
+  var b=new Date(birth+'T00:00:00'), d=at?new Date(at):new Date();
+  if(isNaN(b)) return null;
+  var y=d.getFullYear()-b.getFullYear();
+  var m=d.getMonth()-b.getMonth();
+  if(m<0 || (m===0 && d.getDate()<b.getDate())) y--;
+  return (y>=0 && y<130) ? y : null;
+}
+/* 選手を選ぶ プルダウンを つくり直す（記録の むすびつけ用）*/
+function fillSwimSelect(sel, curId){
+  if(!sel) return;
+  var a=loadSwimmers();
+  sel.innerHTML='<option value="">'+T('swmSelNone')+'</option>';
+  a.forEach(function(s){
+    var o=document.createElement('option'); o.value=s.id; o.textContent=s.name;
+    sel.appendChild(o);
+  });
+  sel.value = curId || '';
+}
+/* 一覧を かき出す */
+function paintSwimmers(){
+  var box=$('swmList'), a=loadSwimmers();
+  box.innerHTML='';
+  if(!a.length){ box.innerHTML='<div class="empty">'+T('swmNone')+'</div>'; return; }
+  a.forEach(function(s){
+    var c=document.createElement('div'); c.className='swmCard';
+    var bits=[];
+    var ag=ageAt(s.birth); if(ag!=null) bits.push(ag+T('ageU'));
+    if(s.sex==='m') bits.push(T('swmSexM')); else if(s.sex==='f') bits.push(T('swmSexF'));
+    if(s.height) bits.push(s.height+'cm');
+    if(s.weight) bits.push(s.weight+'kg');
+    if(s.team) bits.push(s.team);
+    if(s.spec) bits.push(s.spec);
+    c.innerHTML='<div class="si"><div class="sn">'+s.name+'</div><div class="sd">'+(bits.join('　')||'—')+'</div></div>';
+    (function(id){ c.onclick=function(){ swmOpen(id); }; })(s.id);
+    box.appendChild(c);
+  });
+}
+var swmEditId=null;
+function swmOpen(id){
+  var s = id ? swById(id) : null;
+  swmEditId = s ? s.id : null;
+  $('swmH').textContent = T(s ? 'swmEdit' : 'swmNew');
+  $('swName').value  = s ? (s.name||'') : '';
+  $('swSex').value   = s ? (s.sex||'') : '';
+  $('swBirth').value = s ? (s.birth||'') : '';
+  $('swHeight').value= s ? (s.height||'') : '';
+  $('swWeight').value= s ? (s.weight||'') : '';
+  $('swHist').value  = s ? (s.hist||'') : '';
+  $('swTeam').value  = s ? (s.team||'') : '';
+  $('swSpec').value  = s ? (s.spec||'') : '';
+  $('swmDelBtn').classList.toggle('hide', !s);
+  $('swmBox').classList.remove('hide');
+}
+$('openSwimmers').onclick=function(){ paintSwimmers(); show('swimmers'); };
+$('swmBack').onclick=function(){ show('settings'); };
+$('swmAddBtn').onclick=function(){ swmOpen(null); };
+$('swmCancel').onclick=function(){ $('swmBox').classList.add('hide'); };
+$('swmSave').onclick=function(){
+  var name=($('swName').value||'').trim();
+  if(!name){ toast(T('swmSaveNoName')); return; }
+  var a=loadSwimmers();
+  var rec={
+    id: swmEditId || ('s'+Date.now()),
+    name:name, sex:$('swSex').value,
+    birth:$('swBirth').value,
+    height:($('swHeight').value||'').trim(),
+    weight:($('swWeight').value||'').trim(),
+    hist:($('swHist').value||'').trim(),
+    team:($('swTeam').value||'').trim(),
+    spec:($('swSpec').value||'').trim()
+  };
+  var found=false;
+  for(var i=0;i<a.length;i++){ if(a[i].id===rec.id){ a[i]=rec; found=true; break; } }
+  if(!found) a.push(rec);
+  saveSwimmers(a);
+  $('swmBox').classList.add('hide');
+  toast(T('mSaved'));
+  paintSwimmers();
+};
+$('swmDelBtn').onclick=function(){
+  if(!swmEditId) return;
+  if(!confirm(T('askDel'))) return;
+  var a=loadSwimmers().filter(function(s){ return s.id!==swmEditId; });
+  saveSwimmers(a);
+  $('swmBox').classList.add('hide');
+  toast(T('msgDeleted'));
+  paintSwimmers();
+};
+
+/* ================================================================
+   PDFレポート（アプリ内で 作って、印刷→PDFで保存）
+   ================================================================ */
+function rpSVGsplits(r){
+  var sp=r.splits||[]; if(!sp.length) return '';
+  var laps=[]; for(var i=0;i<sp.length;i++){ laps.push({ d:sp[i].d, seg:sp[i].t-(i>0?sp[i-1].t:0), lab:(i>0?sp[i-1].d:0)+'-'+sp[i].d }); }
+  var W=430,H=210,pad={l:34,r:12,t:22,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  var maxV=Math.max.apply(null,laps.map(function(l){return l.seg;})); var yMax=Math.ceil(maxV/2)*2+2;
+  var gap=iw/laps.length, bw=gap*0.56, slow=maxV;
+  var s='<svg viewBox="0 0 '+W+' '+H+'">';
+  for(var g=0; g<=yMax; g+=4){ var yy=pad.t+ih-(g/yMax*ih);
+    s+='<line x1="'+pad.l+'" y1="'+yy+'" x2="'+(W-pad.r)+'" y2="'+yy+'" stroke="#eceef1" stroke-width="1"/>';
+    s+='<text x="'+(pad.l-6)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9" fill="#9aa0ab">'+g+'</text>'; }
+  laps.forEach(function(l,i){ var x=pad.l+gap*i+(gap-bw)/2, h=l.seg/yMax*ih, y=pad.t+ih-h;
+    s+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+h+'" rx="4" fill="'+(l.seg===slow?'#c98a00':'#f2b01e')+'"/>';
+    s+='<text x="'+(x+bw/2)+'" y="'+(y-6)+'" text-anchor="middle" font-size="11" font-weight="800" fill="#16181d">'+l.seg.toFixed(2)+'</text>';
+    s+='<text x="'+(x+bw/2)+'" y="'+(H-pad.b+15)+'" text-anchor="middle" font-size="9.5" font-weight="700" fill="#5b6270">'+l.lab+'m</text>'; });
+  s+='<line x1="'+pad.l+'" y1="'+(pad.t+ih)+'" x2="'+(W-pad.r)+'" y2="'+(pad.t+ih)+'" stroke="#16181d" stroke-width="1.5"/>';
+  s+='<text x="'+pad.l+'" y="13" font-size="9.5" fill="#9aa0ab" font-weight="700">秒</text></svg>';
+  return s;
+}
+function rpSVGsr(r){
+  var arr=r.strokes||[], st=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) st.push(d); }
+  if(st.length<2) return '';
+  var med=tempoMedian(st), tp=tempoStats(st);
+  var pts=st.map(function(v,i){ return { i:i+1, sr:60/v, turn:tp.turns.indexOf(i+1)>=0 }; });
+  var swim=pts.filter(function(p){return !p.turn;});
+  var srMax=Math.max.apply(null,swim.map(function(p){return p.sr;})), srMin=Math.min.apply(null,swim.map(function(p){return p.sr;}));
+  var yLo=Math.floor((srMin-2)/5)*5, yHi=Math.ceil((srMax+2)/5)*5, n=pts.length;
+  var W=900,H=250,pad={l:38,r:16,t:16,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  function X(i){ return pad.l+(i-1)/(n-1)*iw; } function Y(v){ return pad.t+ih-(v-yLo)/(yHi-yLo)*ih; }
+  var s='<svg viewBox="0 0 '+W+' '+H+'">';
+  for(var g=yLo; g<=yHi; g+=5){ var yy=Y(g);
+    s+='<line x1="'+pad.l+'" y1="'+yy+'" x2="'+(W-pad.r)+'" y2="'+yy+'" stroke="#eceef1" stroke-width="1"/>';
+    s+='<text x="'+(pad.l-6)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9" fill="#9aa0ab">'+g+'</text>'; }
+  for(var k=1;k<=n;k++){ if(k===1||k%5===0) s+='<text x="'+X(k)+'" y="'+(H-pad.b+15)+'" text-anchor="middle" font-size="9" fill="#9aa0ab" font-weight="700">'+k+'</text>'; }
+  var ay=Y(tp.sr);
+  s+='<line x1="'+pad.l+'" y1="'+ay+'" x2="'+(W-pad.r)+'" y2="'+ay+'" stroke="#c98a00" stroke-width="1.4" stroke-dasharray="5 4"/>';
+  s+='<text x="'+(W-pad.r)+'" y="'+(ay-5)+'" text-anchor="end" font-size="9.5" font-weight="800" fill="#c98a00">平均SR '+tp.sr.toFixed(1)+'</text>';
+  var dp=swim.map(function(p,idx){ return (idx?'L':'M')+X(p.i)+' '+Y(p.sr); }).join(' ');
+  s+='<path d="'+dp+'" fill="none" stroke="#1e6fe0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';
+  swim.forEach(function(p){ s+='<circle cx="'+X(p.i)+'" cy="'+Y(p.sr)+'" r="3" fill="#1e6fe0"/>'; });
+  var ty=pad.t+ih-6;
+  pts.filter(function(p){return p.turn;}).forEach(function(p){
+    s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty-4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty+4)+'" stroke="#d64545" stroke-width="2.2"/>';
+    s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty+4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty-4)+'" stroke="#d64545" stroke-width="2.2"/>';
+    s+='<text x="'+X(p.i)+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#d64545">'+T('turnLbl')+'</text>'; });
+  var f=swim[0], la=swim[swim.length-1];
+  s+='<text x="'+X(f.i)+'" y="'+(Y(f.sr)-8)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="#1e6fe0">'+f.sr.toFixed(1)+'</text>';
+  s+='<text x="'+X(la.i)+'" y="'+(Y(la.sr)-8)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="#1e6fe0">'+la.sr.toFixed(1)+'</text>';
+  s+='<line x1="'+pad.l+'" y1="'+(pad.t+ih)+'" x2="'+(W-pad.r)+'" y2="'+(pad.t+ih)+'" stroke="#16181d" stroke-width="1.2"/>';
+  s+='<text x="'+pad.l+'" y="12" font-size="9.5" fill="#9aa0ab" font-weight="700">SR</text></svg>';
+  return s;
+}
+function buildReport(r){
+  var last = (r.splits&&r.splits.length) ? r.splits[r.splits.length-1] : null;
+  var ss = raceStroke(r);
+  var arr=r.strokes||[], st=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) st.push(d); }
+  var tp = tempoStats(st);
+  var sw = r.swimmerId ? swById(r.swimmerId) : null;
+  var swName = (sw && sw.name) || r.swimmerName || '';
+  var ag = sw ? ageAt(sw.birth, r.at) : null;
+  var swBits=[]; if(swName) swBits.push(swName);
+  if(ag!=null) swBits.push(ag+T('ageU'));
+  if(sw && sw.height) swBits.push(sw.height+'cm'); if(sw && sw.weight) swBits.push(sw.weight+'kg');
+  if(sw && sw.team) swBits.push(sw.team);
+
+  var kp=[
+    {k:'記録タイム', v:(last?fmt(last.t):'--'), u:'', hl:true},
+    {k:'平均ST', v:(ss.st!=null?ss.st.toFixed(2):'--'), u:'秒'},
+    {k:'平均SR', v:(ss.sr!=null?ss.sr.toFixed(1):'--'), u:''},
+    {k:T('nStr'), v:(ss.n!=null?ss.n:'--'), u:''}
+  ];
+  var spTbl='<tr><th>区間</th><th>通過</th><th>ラップ</th></tr>';
+  (r.splits||[]).forEach(function(sp,idx){ spTbl+='<tr><td>'+sp.d+'m</td><td>'+fmt(sp.t)+'</td><td>+'+fmt(sp.t-(idx>0?r.splits[idx-1].t:0))+'</td></tr>'; });
+
+  var srSvg=rpSVGsr(r), splSvg=rpSVGsplits(r);
+  var dt=new Date(r.at).toLocaleString('ja-JP');
+  var html='<div class="rp">'+
+    '<div class="rhd"><div class="rlogo">スイム<span class="iq">IQ</span><span class="rep">レース分析レポート</span></div>'+
+      '<div class="rmeta">'+dt+'<br>'+(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m</div></div>'+
+    '<div class="rtitle">'+(r.title||'')+'</div>'+
+    '<div class="rsub"><span class="chip">'+evLabel(r.event)+'</span><span class="chip">'+(r.dist||'')+'m</span>'+
+      (swBits.length?'<span class="chip">'+swBits.join('　')+'</span>':'')+'</div>'+
+    '<div class="rkpis">'+kp.map(function(x){ return '<div class="rkpi'+(x.hl?' hl':'')+'"><div class="k">'+x.k+'</div><div class="v">'+x.v+'<span class="u">'+x.u+'</span></div></div>'; }).join('')+'</div>'+
+    '<div class="rgrid">'+
+      '<div class="rsec"><h3>通過タイム（25mラップ）</h3>'+(splSvg||'<div class="rcap">通過データがありません</div>')+'<div class="rcap">棒は各区間タイム（短いほど速い）</div></div>'+
+      '<div class="rsec"><h3>通過記録</h3><table>'+spTbl+'</table></div>'+
+    '</div>'+
+    (srSvg ?
+      ('<div class="rsec full"><h3>ストロークレート（SR）の推移</h3>'+
+       '<div class="rlegend"><span><i style="background:#1e6fe0"></i>泳ぎのSR</span><span><i style="background:#d64545"></i>ターン（除外）</span><span><i style="background:#c98a00"></i>平均SR</span></div>'+
+       srSvg+'<div class="rcap">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</div></div>') : '')+
+    (tp.turns.length ? '<div class="rnote">※ '+turnNote(tp.turns)+'</div>' : '')+
+    '<div class="rft"><span>SwimIQ LITE B — レース分析レポート</span><span>作成 '+dt+'</span></div>'+
+  '</div>';
+  $('report').innerHTML=html;
+}
+function downloadPDF(r){
+  if(!r){ return; }
+  buildReport(r);
+  toast(T('pdfHint'));
+  setTimeout(function(){ try{ window.print(); }catch(e){} }, 250);
+}
+$('dPdf').onclick=function(){ if(dRec) downloadPDF(dRec); };
+$('mPdf').onclick=function(){ if(manualEditId){ var s=null; dbGet(manualEditId).then(function(rec){ if(rec) downloadPDF(rec); }); } };
 
 /* ================================================================
    ストップウォッチ（縦画面・独立）
@@ -3690,6 +4060,8 @@ $('mSave').onclick=function(){
     manualN: hasN ? totalN : null,
     manualST: cntST ? (sumST/cntST) : null,
     videoUrl: ($('mVid').value||'').trim(),
+    swimmerId: $('mSwim').value || '',
+    swimmerName: (swById($('mSwim').value)||{}).name || '',
     updatedAt: Date.now(),
     thumb: ''
   };
@@ -3730,6 +4102,7 @@ function vfOpen(rec){
   $('vfN').value = (ss.n!=null) ? String(ss.n) : '';
   $('vfST').value = (ss.st!=null) ? ss.st.toFixed(2) : '';
   $('vfVid').value = rec.videoUrl || '';
+  fillSwimSelect($('vfSwim'), rec.swimmerId || '');
   $('vfDel').classList.remove('hide');
   $('vFix').classList.remove('hide');
 }
@@ -3771,6 +4144,8 @@ $('vfSave').onclick=function(){
     rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
     rec.videoUrl = ($('vfVid').value||'').trim();
+    rec.swimmerId = $('vfSwim').value || '';
+    rec.swimmerName = (swById($('vfSwim').value)||{}).name || '';
     rec.updatedAt = Date.now();
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
@@ -4000,7 +4375,8 @@ $('exJson').onclick=function(){
       return { id:r.id, at:r.at, title:r.title, pool:r.pool, dist:r.dist, event:r.event,
                t0:r.t0, splits:r.splits, strokes:r.strokes,
                manual:!!r.manual, manualN:(r.manualN!=null?r.manualN:null), manualST:(r.manualST!=null?r.manualST:null),
-               manualSegs:(r.manualSegs||null), videoUrl:(r.videoUrl||''), updatedAt:(r.updatedAt||r.at) };
+               manualSegs:(r.manualSegs||null), videoUrl:(r.videoUrl||''),
+               swimmerId:(r.swimmerId||''), swimmerName:(r.swimmerName||''), updatedAt:(r.updatedAt||r.at) };
     });
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
     var blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
@@ -4034,6 +4410,7 @@ $('fImport').onchange=function(){
         manualST: (src.manualST!=null ? src.manualST : null),
         manualSegs: (src.manualSegs && src.manualSegs.length) ? src.manualSegs : segsFromStrokes(src.splits, src.strokes),
         videoUrl: (src.videoUrl||''),
+        swimmerId: (src.swimmerId||''), swimmerName: (src.swimmerName||''),
         updatedAt: (src.updatedAt || src.at || Date.now()),
         thumb: ''
       };

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.32">
+<meta name="app-ver" content="2026.09.21.34">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -198,7 +198,7 @@ button, select, input{ font-family:inherit; }
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 1px 4px #000; }
 .osel{ flex:0 0 auto; min-height:40px; padding:4px 26px 4px 10px; border-radius:6px; cursor:pointer;
   -webkit-appearance:none; appearance:none; color:#fff; font-size:15px; font-weight:800;
-  background:rgba(0,0,0,.86) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 9px center;
+  background:rgba(0,0,0,.86) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
   border:2px solid var(--line); }
 
 /* 分析モードと 再生モードの きりかえ */
@@ -218,18 +218,17 @@ button, select, input{ font-family:inherit; }
   touch-action:none; cursor:move; }
 /* 時間を おすと よこの けっかが 出たり しまったり します。
    おせる ことが わかるように、右はしに 黄色い まるの しるしを つけます */
-.hudT{ flex:0 0 auto; cursor:pointer; position:relative; }
-.hudT::after{ content:"▶"; position:absolute; right:7px; top:50%; transform:translateY(-50%);
-  width:24px; height:24px; display:flex; align-items:center; justify-content:center;
-  border-radius:999px; background:var(--am); color:#000;
-  font-size:13px; font-weight:900; line-height:1; text-shadow:none;
-  box-shadow:0 1px 4px rgba(0,0,0,.6); }
-.hudT[aria-expanded="true"]::after{ content:"◀"; }
-.hudT:active::after{ transform:translateY(-50%) scale(.9); }
+.hudT{ flex:0 0 auto; cursor:pointer; position:relative; display:flex; align-items:center; gap:10px; }
+.hudV{ display:block; }
+.hudMk{ flex:0 0 auto; width:26px; height:26px; display:flex; align-items:center; justify-content:center;
+  border-radius:999px; background:var(--am); color:#000; font-size:17px; line-height:1;
+  text-shadow:none; box-shadow:0 1px 5px rgba(0,0,0,.55);
+  transition:transform .12s ease; }
+.hudT:active .hudMk{ transform:scale(.9); }
 .oInfo .box{ flex:1 1 auto; min-width:0; }
 .oInfo .box.shut{ display:none; }
 body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
-.hudT{ align-self:flex-start; padding:0 42px 0 12px; border-radius:6px; color:var(--am);
+.hudT{ align-self:flex-start; padding:0 9px 0 12px; border-radius:6px; color:var(--am);
   font-size:32px; font-weight:900; line-height:1.3; letter-spacing:.01em;
   font-variant-numeric:tabular-nums; }
 .box{ border-radius:6px; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
@@ -238,7 +237,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .boxH b{ font-size:13px; font-weight:900; color:var(--am); }
 /* かんたん表記が 長い ときは 2行めに まわします */
 .boxH .sum{ order:3; flex:1 1 100%; }
-.boxGrip{ flex:0 0 auto; cursor:grab; padding:2px 8px 2px 2px; margin-right:2px;
+.boxGrip{ flex:0 0 auto; display:flex; align-items:center; font-size:17px;
+  cursor:grab; padding:2px 8px 2px 2px; margin-right:2px;
   color:var(--am); font-size:16px; font-weight:900; line-height:1; letter-spacing:-1px;
   touch-action:none; -webkit-user-select:none; user-select:none; }
 .boxGrip:active{ cursor:grabbing; }
@@ -290,6 +290,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 /* 画面を すっきり させるため、説明の 帯は 出しません */
 .guide{ display:none !important; }
 #ana.stroke .guide{ display:none; }
+/* かきを 数える あいだは、時間を きろくする ボタンは 出しません（まよわない ため） */
+#ana.stroke #bStart, #ana.stroke #nextSel, #ana.stroke #bPass,
+#ana.stroke #bRt, #ana.stroke #hud, #ana.stroke .box{ display:none !important; }
+#detail.stroke #dhud, #detail.stroke .box{ display:none !important; }
 .guide.hide{ display:none; }
 .strokeTag{ display:none; padding:6px 16px; border-radius:4px; background:var(--am);
   color:#000; font-size:15px; font-weight:900; text-align:center; }
@@ -300,8 +304,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   padding:7px 10px; border-radius:6px; }
 .oBar .ob{ flex:0 0 auto; min-height:52px; padding:4px 10px; font-size:14px; white-space:nowrap; }
 /* アイコンだけの ボタン（コマ・再生） */
-.oBar .ic{ min-width:58px; padding:4px 6px; font-size:20px; line-height:1; }
-.oBar .pl{ min-width:66px; font-size:22px; border-color:#fff; }
+.ico{ display:block; width:1em; height:1em; }
+.oBar .ic{ min-width:58px; padding:4px 6px; font-size:22px; line-height:1;
+  display:flex; align-items:center; justify-content:center; }
+.oBar .pl{ min-width:66px; font-size:24px; border-color:#fff; }
 .oBar .spdB{ min-width:74px; border-color:var(--am); color:var(--am); font-size:15px; }
 /* 分析・再生の きりかえを 下の バーに ならべる */
 .oBar .modeSeg{ flex:0 0 auto; margin-left:2px; }
@@ -338,9 +344,10 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .tr .cSel{ flex:0 0 74px; }
 .tr select.dSel{ width:100%; min-height:34px; padding:2px 18px 2px 6px; border-radius:4px; cursor:pointer;
   -webkit-appearance:none; appearance:none; color:var(--am); font-size:14px; font-weight:900;
-  background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 4px center;
+  background:rgba(255,255,255,.08) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 4px center;
   border:2px solid var(--line); font-variant-numeric:tabular-nums; }
 .tr .xBtn{ flex:0 0 34px; min-height:32px; border-radius:4px; cursor:pointer; padding:0;
+  display:flex; align-items:center; justify-content:center; font-size:17px;
   border:2px solid var(--line); background:transparent; color:#ff8e78; font-size:14px; font-weight:900; }
 .circle{ align-self:center; flex:0 0 auto; width:108px; height:108px; min-height:0 !important;
   margin-top:4px; padding:0; border-radius:50%; border-width:4px !important;
@@ -439,7 +446,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .lpSel{ display:flex; gap:8px; flex:0 0 auto; }
 .lpSel select{ flex:1; min-height:46px; padding:6px 30px 6px 10px; border-radius:6px; cursor:pointer;
   -webkit-appearance:none; appearance:none; color:#fff; font-size:16px; font-weight:800;
-  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 10px center;
+  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
   border:2px solid var(--line); }
 #lpList{ min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
   border:2px solid var(--line2); border-radius:6px; background:var(--pane); }
@@ -453,7 +460,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-variant-numeric:tabular-nums; }
 .lpRow select{ flex:0 0 108px; min-height:42px; padding:4px 26px 4px 8px; border-radius:6px; cursor:pointer;
   -webkit-appearance:none; appearance:none; color:#fff; font-size:15px; font-weight:800;
-  background:var(--pane2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 8px center;
+  background:var(--pane2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 8px center;
   border:2px solid var(--line); }
 .lpHd{ display:flex; align-items:center; gap:8px; padding:5px 8px; background:var(--am);
   border-radius:4px; font-size:12px; font-weight:900; color:#000; }
@@ -578,7 +585,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:13px; font-weight:800; }
 .fxRow{ display:flex; align-items:center; gap:10px; margin:12px 0 4px; }
 .fxRow button{ flex:0 0 76px; min-height:72px; border-radius:8px; cursor:pointer;
-  border:3px solid var(--am); background:var(--pane); color:var(--am); font-size:34px; font-weight:900; }
+  display:flex; align-items:center; justify-content:center;
+  border:3px solid var(--am); background:var(--pane); color:var(--am); font-size:32px; font-weight:900; }
 .fxRow button:active{ background:var(--am); color:#000; }
 .fxRow input{ flex:1; min-width:0; min-height:72px; text-align:center; border-radius:8px;
   border:3px solid var(--line); background:#000; color:#fff;
@@ -613,7 +621,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   border-radius:6px; border:2px solid var(--line); background:var(--pane); color:#fff;
   font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
 .sq select{ -webkit-appearance:none; appearance:none; cursor:pointer; padding-right:28px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center; }
 .homeTop{ display:flex; align-items:center; gap:8px; margin:2px 0 10px; }
 .homeTop #cnMark{ margin:0; flex:1 1 auto; }
@@ -654,7 +662,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .cmpFRow > *{ flex:1; min-height:46px; }
 .cmpFRow select{ -webkit-appearance:none; appearance:none; border-radius:6px; cursor:pointer;
   color:#fff; font-size:15px; font-weight:800; padding:6px 26px 6px 10px;
-  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 10px center;
+  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
   border:2px solid var(--line); }
 .cmpFRow input[type=text]{ border-radius:6px; padding:6px 12px; border:2px solid var(--line);
   background:var(--pane); color:#fff; font-size:15px; font-weight:700; }
@@ -900,7 +908,7 @@ body, button, select, input, textarea{
   font-size:15px; font-weight:800; color:var(--dim); }
 #swDist{ -webkit-appearance:none; appearance:none; min-height:44px; padding:4px 34px 4px 16px;
   border-radius:var(--rM); border:2px solid var(--line2); color:#fff; font-size:17px; font-weight:900;
-  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 12px center; }
+  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
 #swDist:disabled{ opacity:.5; }
 .swModeRow{ display:flex; align-items:center; gap:10px; }
 .swModeLbl{ flex:0 0 auto; font-size:15px; font-weight:800; color:var(--dim); }
@@ -1108,9 +1116,9 @@ body, button, select, input, textarea{
     </div>
 
     <div class="oInfo">
-      <div class="hudT glass" id="hud" role="button" tabindex="0" aria-expanded="true" data-ta="hudTip">0.00</div>
+      <div class="hudT glass" id="hud" role="button" tabindex="0" aria-expanded="true" data-ta="hudTip"><span class="hudV" id="hudV">0.00</span><span class="hudMk" id="hudMk"></span></div>
       <div class="box glass" id="anaBox">
-        <div class="boxH"><span class="boxGrip" id="anaGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
+        <div class="boxH"><span class="boxGrip" id="anaGrip" data-ta="dragBox"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></g></svg></span><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3 sr4">
             <button type="button" class="fixT" data-fix="t"><span id="oTL" data-t="timeLbl"></span><b id="oT">--</b></button>
@@ -1194,9 +1202,9 @@ body, button, select, input, textarea{
     </div>
 
     <div class="oInfo">
-      <div class="hudT glass" id="dhud" role="button" tabindex="0" aria-expanded="true" data-ta="hudTip">0.00</div>
+      <div class="hudT glass" id="dhud" role="button" tabindex="0" aria-expanded="true" data-ta="hudTip"><span class="hudV" id="dhudV">0.00</span><span class="hudMk" id="dhudMk"></span></div>
       <div class="box glass" id="dBox">
-        <div class="boxH"><span class="boxGrip" id="dGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
+        <div class="boxH"><span class="boxGrip" id="dGrip" data-ta="dragBox"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></g></svg></span><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3 sr4" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
@@ -1370,7 +1378,7 @@ body, button, select, input, textarea{
   <div id="camLv"><i id="camLvB"></i></div>
   <p id="camMsg" class="hide"></p>
   <div id="camLapBox">
-    <div id="camGrip"><span>⠿</span><b data-t="cLap"></b><small data-t="lapMove"></small></div>
+    <div id="camGrip"><span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></g></svg></span><b data-t="cLap"></b><small data-t="lapMove"></small></div>
     <div id="camLaps"></div>
   </div>
   <div id="camCtrl">
@@ -1513,9 +1521,9 @@ body, button, select, input, textarea{
   <div class="fxWrap">
     <div class="fxH"><b id="fixH"></b><button type="button" id="fixX" data-t="sensDone"></button></div>
     <div class="fxRow">
-      <button type="button" id="fixMinus" aria-label="へらす">−</button>
+      <button type="button" id="fixMinus" aria-label="へらす"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5.5 12h13" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></button>
       <input type="text" id="fixVal" inputmode="decimal">
-      <button type="button" id="fixPlus" aria-label="ふやす">＋</button>
+      <button type="button" id="fixPlus" aria-label="ふやす"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5.5 12h13M12 5.5v13" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></button>
     </div>
     <p class="fxP" data-t="fixTip"></p>
   </div>
@@ -1784,12 +1792,12 @@ var W={
  spd25:['0.25倍','0.25倍'],
  frBack:['1コマ もどす','1コマ戻す'],
  frFwd:['1コマ すすむ','1コマ進む'],
- frBackI:['◀|','◀|'],
- frFwdI:['|▶','|▶'],
+ frBackI:['<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5.2" width="2.9" height="13.6" rx="1.45" fill="currentColor"/><path d="M20 5.9 10 12l10 6.1Z" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>','<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4" y="5.2" width="2.9" height="13.6" rx="1.45" fill="currentColor"/><path d="M20 5.9 10 12l10 6.1Z" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>'],
+ frFwdI:['<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.9 14 12 4 18.1Z" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><rect x="17.1" y="5.2" width="2.9" height="13.6" rx="1.45" fill="currentColor"/></svg>','<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.9 14 12 4 18.1Z" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><rect x="17.1" y="5.2" width="2.9" height="13.6" rx="1.45" fill="currentColor"/></svg>'],
  play:['再生','再生'],
  pause:['とめる','停止'],
- playI:['▶','▶'],
- pauseI:['❚❚','❚❚'],
+ playI:['<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.2 5.3 19 12 8.2 18.7Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>','<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.2 5.3 19 12 8.2 18.7Z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>'],
+ pauseI:['<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6.6" y="4.8" width="3.9" height="14.4" rx="1.9" fill="currentColor"/><rect x="13.5" y="4.8" width="3.9" height="14.4" rx="1.9" fill="currentColor"/></svg>','<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6.6" y="4.8" width="3.9" height="14.4" rx="1.9" fill="currentColor"/><rect x="13.5" y="4.8" width="3.9" height="14.4" rx="1.9" fill="currentColor"/></svg>'],
  spdLbl:['はやさ','再生速度'],
  bStart:['タイムを 計る<small>足離れで おす</small>','タイムを計る<small>足離れで押す</small>'],
  bStartRe:['タイムを 計る<small>やりなおす</small>','タイムを計る<small>やり直す</small>'],
@@ -1887,6 +1895,7 @@ var W={
  msgStartSet:['足離れを きめました','足離れを決めました'],
  msgSigSet:['合図を きめました','合図を決めました'],
  needFoot:['さきに 足離れを きめて ください','先に足離れを決めてください'],
+ askClearStroke:['いままでの ストロークを けしますか？\n「OK」で ぜんぶ けして 0から かぞえます。\n「キャンセル」で つづきから かぞえます。','これまでのストローク情報を消しますか？\n「OK」で全て消して0から数えます。\n「キャンセル」で続きから数えます。'],
  msgTapStroke:['かきに あわせて 画面を おしてください','ストロークに合わせて画面を押してください'],
  msgNoVid:['動画が ありません','動画がありません'],
  msgSavedDev:['携帯の中に ほぞんしました','端末内に保存しました'],
@@ -2174,8 +2183,8 @@ function applyWords(){
     $('cSound').textContent=T(cWantSound?'sndOn':'sndOff');
     sensPaint();
     cBtns();
-    $('bPlay').textContent=T($('v').paused?'playI':'pauseI');
-    $('dPlay').textContent=T($('dv').paused?'playI':'pauseI');
+    $('bPlay').innerHTML=T($('v').paused?'playI':'pauseI');
+    $('dPlay').innerHTML=T($('dv').paused?'playI':'pauseI');
     $('bPlay').setAttribute('aria-label', T($('v').paused?'play':'pause'));
     $('dPlay').setAttribute('aria-label', T($('dv').paused?'play':'pause'));
     spdMark($('spd'), Number($('spd').dataset.r||1));
@@ -2425,7 +2434,7 @@ function paintTbl(){
     r.innerHTML='<span class="c1 cSel"><select class="dSel" data-i="'+i+'" aria-label="'+T('hDist')+'">'+opt+'</select></span>'+
                 '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
                 '<span class="c3">+'+fmt(aSplits[i].t-prev)+'</span>'+
-                '<button class="xBtn" type="button" data-x="'+i+'" aria-label="'+T('del')+'">✕</button>';
+                '<button class="xBtn" type="button" data-x="'+i+'" aria-label="'+T('del')+'"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>';
     b.appendChild(r);
   }
   var ss=b.querySelectorAll('select.dSel'), xs=b.querySelectorAll('button[data-x]'), q;
@@ -2565,6 +2574,9 @@ function anaText(){
 function paintSR(){
   var sts=strokeStats();
   $('oN').textContent = aStrokes.length;
+  /* かきを 数える あいだは、いま 何かき かを 帯に 出します */
+  var tg=$('ana').querySelector('.strokeTag');
+  if(tg) tg.textContent = T('strokeTag')+'　'+T('scAbbr')+' '+aStrokes.length;
   paintGuide();
   if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintAnaSum(); paintSheet(); return; }
   var med=tempoMedian(sts);
@@ -2613,7 +2625,7 @@ function openAna(blob, opt){
   $('event').value = opt.event || 'free';
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
-  spdMark($('spd'),1); $('bPlay').textContent=T('playI');
+  spdMark($('spd'),1); $('bPlay').innerHTML=T('playI');
   $('anaBox').classList.add('fold'); foldLabel($('anaBox'));
   setMode(anaMode, false);
   paintTbl(); paintSR();
@@ -2770,7 +2782,7 @@ function spdMark(btn,r){            /* はやさの ボタンの 見た目を �
 function bindPlayer(o){
   var v=$(o.v), sk=$(o.sk), pl=$(o.play), drag=false;
   function lab(){
-    pl.textContent = T(v.paused ? 'playI' : 'pauseI');
+    pl.innerHTML = T(v.paused ? 'playI' : 'pauseI');
     pl.setAttribute('aria-label', T(v.paused ? 'play' : 'pause'));
   }
   function paint(){
@@ -2803,9 +2815,9 @@ function bindPlayer(o){
   return { paint:paint, toggle:function(){ pl.onclick(); } };
 }
 var anaP = bindPlayer({ v:'v', sk:'sk', play:'bPlay', back:'bBack1', fwd:'bFwd1', spd:'spd',
-                        hud:'hud', pos:'pos', t0:function(){ return aT0; } });
+                        hud:'hudV', pos:'pos', t0:function(){ return aT0; } });
 var detP = bindPlayer({ v:'dv', sk:'dsk', play:'dPlay', back:'dBack1', fwd:'dFwd1', spd:'dspd',
-                        hud:'dhud', pos:'dpos', t0:function(){ return dRec ? dRec.t0 : null; } });
+                        hud:'dhudV', pos:'dpos', t0:function(){ return dRec ? dRec.t0 : null; } });
 
 /* けっかの 表を たたむ／ひらく */
 function foldLabel(box){
@@ -3004,7 +3016,7 @@ function rtStop(found){
   rtScanning=false;
   if(rtRaf){ cancelAnimationFrame(rtRaf); rtRaf=null; }
   try{ $('v').pause(); }catch(e){}
-  $('bPlay').textContent=T('playI');
+  $('bPlay').innerHTML=T('playI');
   if(found){ $('rtStatus').textContent=T(aT0==null ? 'rtNextFoot' : 'rtFound'); rtCalc(); }
   else $('rtStatus').textContent=T('rtNotFound');
 }
@@ -3079,11 +3091,15 @@ $('rtClear').onclick=function(){
 };
 $('bStroke').onclick=function(){
   var on=this.getAttribute('aria-pressed')!=='true';
+  /* はじめる まえに、いままでの かきを けすか きく */
+  if(on && aStrokes.length){
+    if(confirm(T('askClearStroke'))){ aStrokes=[]; paintSR(); }
+  }
   this.setAttribute('aria-pressed', on?'true':'false');
   $('ana').classList.toggle('stroke', on);
   if(on){
     var v=$('v');
-    if(v.paused){ v.play().catch(function(){}); $('bPlay').textContent=T('pauseI'); }
+    if(v.paused){ v.play().catch(function(){}); $('bPlay').innerHTML=T('pauseI'); }
     toast(T('msgTapStroke'));
   }
 };
@@ -3123,6 +3139,8 @@ $('dMenu').onclick=function(){
 var dStrokes=[];
 function dPaintSR(){
   var sts=[], i;
+  var dtg=$('detail').querySelector('.strokeTag');
+  if(dtg) dtg.textContent = T('strokeTag')+'　'+T('scAbbr')+' '+dStrokes.length;
   for(i=1;i<dStrokes.length;i++){ var st=dStrokes[i]-dStrokes[i-1]; if(st>0.05) sts.push(st); }
   var dmed=tempoMedian(sts);
   var use=sts.slice(-6).filter(function(d){ return !isTurn(d, dmed); });
@@ -3237,10 +3255,14 @@ function makeZoomable(vid, tap, undo){
 var anaZoom = makeZoomable($('v'), $('tapZone'), addStrokeUndo);
 var detZoom = makeZoomable($('dv'), $('dTap'), dAddStrokeUndo);
 $('dStroke').onclick=function(){
+  var willOn = !$('detail').classList.contains('stroke');
+  if(willOn && dStrokes.length){
+    if(confirm(T('askClearStroke'))){ dStrokes=[]; dPaintSR(); }
+  }
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
   if(on){
-    if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').textContent=T('pauseI'); }
+    if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').innerHTML=T('pauseI'); }
     toast(T('msgTapStroke'));
   }else{
     $('dv').pause();
@@ -3938,20 +3960,28 @@ function makeDraggable(box){
   box.addEventListener('click', function(e){ if(justDragged){ e.stopPropagation(); e.preventDefault(); } }, true);
 }
 /* 時間を おすと よこの けっかを 出したり しまったり します */
-function bindHudToggle(hudId, boxId){
-  var h=$(hudId), bx=$(boxId);
+var ICO_L='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.6 5.4 8 12l6.6 6.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var ICO_R='<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.4 5.4 16 12l-6.6 6.6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function bindHudToggle(hudId, boxId, mkId){
+  var h=$(hudId), bx=$(boxId), mk=$(mkId);
   if(!h || !bx) return;
-  function toggle(){
-    var shut = bx.classList.toggle('shut');
+  function paintMk(){
+    var shut = bx.classList.contains('shut');
+    if(mk) mk.innerHTML = shut ? ICO_R : ICO_L;
     h.setAttribute('aria-expanded', shut ? 'false' : 'true');
+  }
+  paintMk();
+  function toggle(){
+    bx.classList.toggle('shut');
+    paintMk();
   }
   h.addEventListener('click', toggle);
   h.addEventListener('keydown', function(e){
     if(e.key===' ' || e.key==='Enter'){ e.preventDefault(); toggle(); }
   });
 }
-bindHudToggle('hud','anaBox');
-bindHudToggle('dhud','dBox');
+bindHudToggle('hud','anaBox','hudMk');
+bindHudToggle('dhud','dBox','dhudMk');
 makeDraggable($('ana').querySelector('.oInfo'));
 makeDraggable($('detail').querySelector('.oInfo'));
 
@@ -4821,7 +4851,7 @@ function vfSplRow(d, t, dist){
   var row=document.createElement('div'); row.className='vfSplRow';
   row.innerHTML='<select class="vfSplD" aria-label="'+T('hDist')+'">'+opt+'</select>'+
     '<input type="text" class="vfSplT" inputmode="decimal" aria-label="'+T('hTime')+'" value="'+(t!=null?fmt(t):'')+'">'+
-    '<button type="button" class="vfSplX" aria-label="'+T('del')+'">✕</button>';
+    '<button type="button" class="vfSplX" aria-label="'+T('del')+'"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>';
   row.querySelector('.vfSplX').onclick=function(){
     if(row.parentNode) row.parentNode.removeChild(row);
   };

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.30">
+<meta name="app-ver" content="2026.09.21.31">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -158,7 +158,7 @@ button, select, input{ font-family:inherit; }
 .ov{ position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; gap:8px;
   padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px)
           calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px);
-  grid-template-columns:clamp(226px,28vw,268px) minmax(0,1fr) auto;
+  grid-template-columns:clamp(300px,44vw,540px) minmax(0,1fr) auto;
   grid-template-rows:auto minmax(0,1fr) auto;
   grid-template-areas:"top top top" "info mid act" "bar bar bar"; }
 .ov > *{ pointer-events:auto; }
@@ -214,9 +214,14 @@ button, select, input{ font-family:inherit; }
 
 /* 左上：タイムと けっか */
 .oInfo{ grid-area:info; align-self:start; min-height:0; max-height:100%;
-  display:flex; flex-direction:column; gap:6px; touch-action:none; cursor:move; }
+  display:flex; flex-direction:row; align-items:flex-start; gap:8px;
+  touch-action:none; cursor:move; }
+/* 時間を おすと よこの けっかが 出たり しまったり します */
+.hudT{ flex:0 0 auto; cursor:pointer; }
+.oInfo .box{ flex:1 1 auto; min-width:0; }
+.oInfo .box.shut{ display:none; }
 body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
-.hudT{ align-self:flex-start; padding:0 12px; border-radius:4px; color:var(--am);
+.hudT{ align-self:flex-start; padding:0 12px; border-radius:6px; color:var(--am);
   font-size:32px; font-weight:900; line-height:1.3; letter-spacing:.01em;
   font-variant-numeric:tabular-nums; }
 .box{ border-radius:6px; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
@@ -1095,7 +1100,7 @@ body, button, select, input, textarea{
     </div>
 
     <div class="oInfo">
-      <div class="hudT glass" id="hud">0.00</div>
+      <div class="hudT glass" id="hud" role="button" tabindex="0" aria-expanded="true" data-ta="hudTip">0.00</div>
       <div class="box glass" id="anaBox">
         <div class="boxH"><span class="boxGrip" id="anaGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
@@ -1181,7 +1186,7 @@ body, button, select, input, textarea{
     </div>
 
     <div class="oInfo">
-      <div class="hudT glass" id="dhud">0.00</div>
+      <div class="hudT glass" id="dhud" role="button" tabindex="0" aria-expanded="true" data-ta="hudTip">0.00</div>
       <div class="box glass" id="dBox">
         <div class="boxH"><span class="boxGrip" id="dGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
@@ -1910,6 +1915,7 @@ var W={
  cS2:['こえでも うごきます。しずかな 場所むきです。','声にも反応します。静かな場所向きです。'],
  lapNone:['まだ ありません','まだありません'],
  lapMove:['おして うごかせます','ドラッグで移動できます'],
+ hudTip:['タイム。おすと よこの けっかを 出したり しまったり します','タイム。押すと横の結果を表示・収納します'],
  dragBox:['つまんで うごかす（動画が 見えるように）','つまんで動かす（動画が見えるように）'],
  turnLbl:['ターン','ターン'],
  turnExHint:['は ターン局面のため 平均から のぞいています','はターン局面のため平均から除外しています'],
@@ -3923,6 +3929,21 @@ function makeDraggable(box){
   /* 動かした直後の click（ボタン誤爆）を 止める */
   box.addEventListener('click', function(e){ if(justDragged){ e.stopPropagation(); e.preventDefault(); } }, true);
 }
+/* 時間を おすと よこの けっかを 出したり しまったり します */
+function bindHudToggle(hudId, boxId){
+  var h=$(hudId), bx=$(boxId);
+  if(!h || !bx) return;
+  function toggle(){
+    var shut = bx.classList.toggle('shut');
+    h.setAttribute('aria-expanded', shut ? 'false' : 'true');
+  }
+  h.addEventListener('click', toggle);
+  h.addEventListener('keydown', function(e){
+    if(e.key===' ' || e.key==='Enter'){ e.preventDefault(); toggle(); }
+  });
+}
+bindHudToggle('hud','anaBox');
+bindHudToggle('dhud','dBox');
 makeDraggable($('ana').querySelector('.oInfo'));
 makeDraggable($('detail').querySelector('.oInfo'));
 

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.1">
+<meta name="app-ver" content="2026.09.21.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -792,6 +792,58 @@ body, button, select, input, textarea{
 .fxRow button, #upBar button, #camRot button{ border-radius:var(--rM); }
 /* まん丸のボタンは そのまま（丸を くずさない） */
 .dReset, #camShot, #cnMark .tick, #camDot{ border-radius:50% !important; }
+
+/* =========================================================
+   ストップウォッチ（縦画面・独立）
+   スタートで はかりはじめ、ラップで 区切りの タイムを のこします。
+   ラップは 上に つみ上がり、10個までは そのまま、
+   それ以上は スクロールで 見られます。
+   ========================================================= */
+#sw{ position:fixed; inset:0; z-index:55; background:var(--bk); color:#fff;
+  display:flex; flex-direction:column; gap:12px;
+  padding:calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 16px)
+          calc(env(safe-area-inset-bottom) + 16px) calc(env(safe-area-inset-left) + 16px);
+  font-family:"Zen Kaku Gothic New","BIZ UDPGothic",sans-serif; }
+#sw.hide{ display:none !important; }
+.swHd{ display:flex; align-items:center; gap:10px; }
+.swHd h2{ flex:1; margin:0; text-align:center; font-size:18px; font-weight:900;
+  font-family:"Zen Maru Gothic",sans-serif; }
+.swHd .sp{ flex:0 0 92px; }
+#swBack{ flex:0 0 auto; }
+#swTimeWrap{ text-align:center; padding:6px 0 0; }
+#swTime{ font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
+  font-size:clamp(54px,18vw,88px); line-height:1.02; color:var(--am);
+  font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+#swState{ margin-top:2px; font-size:13px; font-weight:800; color:var(--dim); }
+.swDistRow{ display:flex; align-items:center; justify-content:center; gap:10px;
+  font-size:13px; font-weight:800; color:var(--dim); }
+#swDist{ -webkit-appearance:none; appearance:none; min-height:42px; padding:4px 32px 4px 14px;
+  border-radius:var(--rM); border:2px solid var(--line2); color:#fff; font-size:15px; font-weight:900;
+  background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 12px center; }
+#swDist:disabled{ opacity:.5; }
+.swListHd{ display:flex; align-items:center; padding:7px 16px; border-radius:var(--rM);
+  background:var(--am); }
+.swListHd span{ font-size:12px; font-weight:900; color:#000; }
+.swListHd .swLZ{ flex:0 0 86px; }
+.swListHd .swLL{ flex:1; text-align:right; }
+.swListHd .swLS{ flex:1; text-align:right; }
+#swLaps{ flex:0 1 auto; min-height:0; max-height:calc(52px * 10); overflow-y:auto;
+  border:2px solid var(--line2); border-radius:var(--rL); background:var(--pane);
+  display:flex; flex-direction:column; -webkit-overflow-scrolling:touch; }
+.swRow{ display:flex; align-items:center; padding:0 16px; min-height:52px; }
+.swRow + .swRow{ border-top:1px solid var(--line2); }
+.swRow.new{ background:rgba(255,196,0,.12); }
+.swRow .z{ flex:0 0 86px; font-size:16px; font-weight:900; color:var(--am);
+  font-family:"Zen Maru Gothic",sans-serif; }
+.swRow .l{ flex:1; text-align:right; font-size:22px; font-weight:900;
+  font-variant-numeric:tabular-nums; }
+.swRow .s{ flex:1; text-align:right; font-size:15px; font-weight:800; color:var(--dim);
+  font-variant-numeric:tabular-nums; }
+.swEmpty{ margin:auto; padding:26px 16px; text-align:center; font-size:14px;
+  font-weight:800; color:var(--dim); line-height:1.9; white-space:pre-line; }
+.swCtrl{ display:flex; gap:10px; margin-top:auto; }
+.swCtrl .btn{ flex:1; min-height:66px; font-size:21px; border-radius:var(--rL); }
+#swSave{ min-height:52px; }
 </style>
 </head>
 <body>
@@ -819,6 +871,7 @@ body, button, select, input, textarea{
   <div id="moreTakeBox" class="take hide">
     <label class="btn b" for="fPick" data-t="pick"></label>
     <button class="btn b" id="openManual" type="button" data-t="openManual"></button>
+    <button class="btn b" id="openStopwatch" type="button" data-t="swOpen"></button>
   </div>
 
   <div class="gl" data-t="glCompare"></div>
@@ -1031,6 +1084,39 @@ body, button, select, input, textarea{
     <label class="btn" for="fImport" data-t="exImportBtn"></label>
     <input type="file" id="fImport" accept="application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
   </div>
+</div>
+
+<!-- ================= ストップウォッチ（縦画面） ================= -->
+<div id="sw" class="hide" role="dialog" aria-modal="true" aria-labelledby="swH">
+  <div class="swHd">
+    <button class="btn b" id="swBack" type="button" data-t="back"></button>
+    <h2 id="swH" data-t="swTitle"></h2>
+    <span class="sp"></span>
+  </div>
+  <div id="swTimeWrap">
+    <div id="swTime">0:00.00</div>
+    <div id="swState" data-t="swReady"></div>
+  </div>
+  <div class="swDistRow">
+    <span data-t="swLapDist"></span>
+    <select id="swDist" data-ta="swLapDist">
+      <option value="25">25m</option>
+      <option value="50" selected>50m</option>
+      <option value="100">100m</option>
+    </select>
+  </div>
+  <div class="swListHd">
+    <span class="swLZ" data-t="swHDist"></span>
+    <span class="swLL" data-t="swHLap"></span>
+    <span class="swLS" data-t="swHSplit"></span>
+  </div>
+  <div id="swLaps"><div class="swEmpty" data-t="swEmpty"></div></div>
+  <div class="swCtrl">
+    <button class="btn y big hide" id="swLapBtn" type="button" data-t="swLap"></button>
+    <button class="btn g big" id="swMain" type="button" data-t="swStart"></button>
+    <button class="btn b hide" id="swReset" type="button" data-t="swReset"></button>
+  </div>
+  <button class="btn b hide" id="swSave" type="button" data-t="swSave"></button>
 </div>
 
 <input type="file" id="fPick" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -1558,7 +1644,25 @@ var W={
  exImportBtn:['書き出した データを 読み込む','書き出したデータを読み込む'],
  exImportOK:['きろくを 読み込みました','記録を読み込みました'],
  exImportNG:['読み込めませんでした。ファイルを たしかめてください','読み込めませんでした。ファイルを確認してください'],
- exNoData:['書き出す きろくが ありません','書き出す記録がありません']
+ exNoData:['書き出す きろくが ありません','書き出す記録がありません'],
+
+ swOpen:['ストップウォッチ<small>タイムと ラップを はかる</small>','ストップウォッチ<small>タイム・ラップ計測</small>'],
+ swTitle:['ストップウォッチ','ストップウォッチ'],
+ swStart:['スタート','スタート'],
+ swStop:['ストップ','ストップ'],
+ swResume:['つづける','再スタート'],
+ swLap:['ラップ','ラップ'],
+ swReset:['リセット','リセット'],
+ swSave:['この記録を のこす','この記録を保存する'],
+ swReady:['「スタート」を おしてください','スタートを押してください'],
+ swRun:['はかっています…','計測中…'],
+ swPause:['とまっています','停止中'],
+ swHDist:['ところ','区間'],
+ swHLap:['ラップ','ラップ'],
+ swHSplit:['トータル','スプリット'],
+ swLapDist:['1本の きょり','1区間の距離'],
+ swEmpty:['「スタート」を おして、\nかべに ついたら「ラップ」を おします','スタート後、区切りごとに「ラップ」を押すと\nラップとスプリットが たまっていきます'],
+ swSaved:['のこしました','保存しました']
 };
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
@@ -3135,6 +3239,110 @@ function manualOpen(rec){
   $('manualBox').classList.remove('hide');
 }
 $('openManual').onclick=function(){ manualOpen(null); };
+
+/* ================================================================
+   ストップウォッチ（縦画面・独立）
+   時計は 実際の時刻(performance.now)を もとに計算するので、
+   画面を とじても タイムは ずれません。
+   ================================================================ */
+var swRunning=false, swElapsed=0, swStartTs=0, swRaf=null, swLaps=[];
+function swVib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+function swFmt(s){
+  if(s==null || isNaN(s) || s<0) s=0;
+  var m=Math.floor(s/60), r=s-m*60;
+  var ss=String(Math.floor(r)).padStart(2,'0');
+  var cc=String(Math.floor((r-Math.floor(r))*100)).padStart(2,'0');
+  return m+':'+ss+'.'+cc;
+}
+function swNow(){ return swElapsed + (swRunning ? (performance.now()-swStartTs)/1000 : 0); }
+function swPaint(){ $('swTime').textContent=swFmt(swNow()); }
+function swLoop(){ swPaint(); swRaf=requestAnimationFrame(swLoop); }
+function swRenderLaps(){
+  var box=$('swLaps'), d=Number($('swDist').value)||50;
+  if(!swLaps.length){
+    box.innerHTML='<div class="swEmpty" data-t="swEmpty">'+T('swEmpty')+'</div>';
+    return;
+  }
+  var html='', i;
+  for(i=swLaps.length-1; i>=0; i--){
+    var cum=swLaps[i], prev=(i>0?swLaps[i-1]:0), lap=cum-prev, dist=(i+1)*d;
+    html+='<div class="swRow'+(i===swLaps.length-1?' new':'')+'">'+
+          '<span class="z">'+dist+'m</span>'+
+          '<span class="l">'+swFmt(lap)+'</span>'+
+          '<span class="s">'+swFmt(cum)+'</span></div>';
+  }
+  box.innerHTML=html; box.scrollTop=0;
+}
+function swBtns(){
+  var main=$('swMain'), lap=$('swLapBtn'), rst=$('swReset'), sav=$('swSave');
+  main.className='btn big';
+  if(swRunning){
+    main.classList.add('r'); main.setAttribute('data-t','swStop');
+    lap.classList.remove('hide'); rst.classList.add('hide');
+  }else{
+    main.classList.add('g');
+    main.setAttribute('data-t', swElapsed>0 ? 'swResume' : 'swStart');
+    lap.classList.add('hide');
+    rst.classList.toggle('hide', !(swElapsed>0 || swLaps.length>0));
+  }
+  main.textContent=T(main.getAttribute('data-t'));
+  lap.textContent=T('swLap');
+  rst.textContent=T('swReset');
+  sav.classList.toggle('hide', !(!swRunning && swLaps.length>0));
+  sav.textContent=T('swSave');
+  $('swState').textContent=T(swRunning ? 'swRun' : (swElapsed>0 ? 'swPause' : 'swReady'));
+  $('swDist').disabled = swRunning || swLaps.length>0;
+}
+function swStart(){
+  swRunning=true; swStartTs=performance.now();
+  swBtns(); swLoop(); swVib(16);
+}
+function swStop(){
+  swElapsed=swNow(); swRunning=false;
+  if(swRaf){ cancelAnimationFrame(swRaf); swRaf=null; }
+  swPaint(); swBtns(); swVib(16);
+}
+function swLap(){
+  if(!swRunning) return;
+  swLaps.push(swNow());
+  swRenderLaps(); swBtns(); swVib(26);
+}
+function swReset(){
+  swRunning=false;
+  if(swRaf){ cancelAnimationFrame(swRaf); swRaf=null; }
+  swElapsed=0; swLaps=[];
+  swPaint(); swRenderLaps(); swBtns();
+}
+function swOpen(){
+  $('sw').classList.remove('hide');
+  swRenderLaps(); swBtns(); swPaint();
+  if(swRunning && !swRaf) swLoop();
+}
+function swClose(){
+  $('sw').classList.add('hide');
+  if(swRaf){ cancelAnimationFrame(swRaf); swRaf=null; }
+}
+$('openStopwatch').onclick=function(){ swOpen(); };
+$('swBack').onclick=function(){ swClose(); };
+$('swMain').onclick=function(){ if(swRunning) swStop(); else swStart(); };
+$('swLapBtn').onclick=function(){ swLap(); };
+$('swReset').onclick=function(){ swReset(); };
+$('swDist').onchange=function(){ swRenderLaps(); };
+$('swSave').onclick=function(){
+  if(swRunning || !swLaps.length) return;
+  var d=Number($('swDist').value)||50;
+  var splits=swLaps.map(function(c,i){ return { d:(i+1)*d, t:c }; });
+  var total=swLaps.length*d;
+  var rec={ id:'sw'+Date.now(), at:Date.now(),
+    title:total+'m　'+evLabel('free'),
+    pool:(d===25?25:50), dist:total, event:'free',
+    splits:splits, strokes:[], manual:true, manualSegs:null, thumb:'' };
+  dbPut(rec).then(function(){
+    toast(T('swSaved'));
+    swReset(); swClose(); paintList();
+  });
+};
+
 var moreTakeOpen=false;
 $('moreTakeBtn').onclick=function(){
   moreTakeOpen=!moreTakeOpen;

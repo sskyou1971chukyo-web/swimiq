@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.9">
+<meta name="app-ver" content="2026.09.21.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -851,28 +851,77 @@ body, button, select, input, textarea{
 .swCtrl{ display:flex; gap:10px; margin-top:auto; }
 .swCtrl .btn{ flex:1; min-height:72px; font-size:24px; border-radius:var(--rL); }
 #swSave{ min-height:56px; font-size:18px; }
+
+/* =========================================================
+   ホーム画面（中学生以上のイメージ）
+   ロゴ＋アイコン付きの大ボタン＋ST・SR・SC入りのカード
+   ========================================================= */
+.homeHd{ display:flex; align-items:flex-start; gap:10px; margin:0 0 14px; }
+.homeHd .hdL{ flex:1 1 auto; min-width:0; }
+.logo2{ font-family:"Zen Maru Gothic",sans-serif; font-weight:900; font-size:27px;
+  color:var(--am); letter-spacing:.5px; line-height:1.15; }
+.logo2 span{ color:var(--am); }
+.sub2{ margin:2px 0 0; font-size:13px; font-weight:500; color:var(--dim); }
+.homeHd #openSettings{ flex:0 0 auto; min-height:40px; padding:6px 14px; font-size:13px; }
+.homeBtn{ display:flex; align-items:center; gap:14px; text-align:left;
+  padding:16px 18px; border-radius:var(--rL); }
+.homeBtn .hbIcon{ flex:0 0 auto; width:44px; height:44px; border-radius:13px;
+  display:flex; align-items:center; justify-content:center; }
+.homeBtn.g .hbIcon{ background:rgba(0,0,0,.14); }
+.homeBtn.dk .hbIcon{ background:rgba(255,196,0,.14); }
+.homeBtn .hbTxt{ display:flex; flex-direction:column; gap:1px;
+  font-family:"Zen Maru Gothic",sans-serif; font-weight:900; font-size:17px; line-height:1.2; }
+.homeBtn .hbTxt small{ display:block; font-family:"Zen Kaku Gothic New",sans-serif;
+  font-size:12px; font-weight:700; margin-top:2px; }
+.homeBtn.dk{ background:var(--pane2); border-color:var(--line2); }
+.recHd{ display:flex; align-items:baseline; justify-content:space-between; }
+/* あたらしいカード（種目・距離・日付／大きな黄色タイム／ST・SR・SC） */
+.card2{ display:flex; flex-direction:column; gap:6px; cursor:pointer;
+  background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
+  border-radius:var(--rL); padding:12px 14px; }
+.card2 .c2top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.card2 .c2head{ min-width:0; font-size:14px; font-weight:800; color:#fff;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.card2 .c2time{ flex:0 0 auto; font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
+  font-size:20px; color:var(--am); font-variant-numeric:tabular-nums; }
+.card2 .cTimeBtn{ flex:0 0 auto; border:0; background:transparent; padding:2px 4px; margin:0;
+  border-radius:8px; color:var(--am); font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
+  font-size:20px; font-variant-numeric:tabular-nums; cursor:pointer; }
+.card2 .cTimeBtn:active{ background:rgba(255,196,0,.18); }
+.card2 .c2sr{ display:flex; flex-wrap:wrap; gap:14px; font-size:11.5px; font-weight:700; color:var(--dim); }
+.card2.manual .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
+  background:rgba(255,196,0,.14); color:var(--am); font-size:10.5px; font-weight:900; vertical-align:middle; }
 </style>
 </head>
 <body>
 
 <!-- ================= ホーム ================= -->
 <div id="home">
-  <div class="logo">SWIM<span>IQ</span><span class="lite">LITE B</span><span class="vtop" id="vtop">2026.09.18.4</span></div>
-  <p class="sub" data-t="sub"></p>
-
-  <div class="homeTop">
-    <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
+  <div class="homeHd">
+    <div class="hdL">
+      <div class="logo2">スイム<span>IQ</span></div>
+      <p class="sub2" data-t="sub"></p>
+    </div>
     <button class="btn" id="openSettings" type="button" data-t="settingsBtn"></button>
+    <span class="vtop hide" id="vtop"></span>
   </div>
+
+  <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
 
   <div id="upBar" class="hide">
     <b data-t="upNew"></b><span id="upVer"></span>
     <button type="button" id="upOpen" data-t="upDo"></button>
   </div>
 
-  <div class="gl" data-t="glTake"></div>
   <div class="take">
-    <button class="btn g big" id="openCam" type="button" data-t="openCam"></button>
+    <button class="btn homeBtn g big" id="openCam" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+      <span class="hbTxt" data-t="openCam"></span>
+    </button>
+    <button class="btn homeBtn dk" id="openCompare" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5 5 5-5"/><path d="M7 10l5-5 5 5"/></svg></span>
+      <span class="hbTxt" data-t="openCompare"></span>
+    </button>
     <button class="btn" id="moreTakeBtn" type="button" aria-expanded="false" data-t="moreOpen"></button>
   </div>
   <div id="moreTakeBox" class="take hide">
@@ -881,12 +930,7 @@ body, button, select, input, textarea{
     <button class="btn b" id="openStopwatch" type="button" data-t="swOpen"></button>
   </div>
 
-  <div class="gl" data-t="glCompare"></div>
-  <div class="take">
-    <button class="btn y big" id="openCompare" type="button" data-t="openCompare"></button>
-  </div>
-
-  <div class="gl" data-t="glRec"></div>
+  <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
   <p class="ver" id="verBottom">ver 2026.09.18.4</p>
 </div>
@@ -1408,10 +1452,11 @@ var $=function(id){ return document.getElementById(id); };
    a = 中学生以上（常用漢字・ふつうの日本語）
    ホームの「ことばづかい」で 切りかえます。 */
 var W={
- sub:['カメラで とる → そのまま 分析 → 携帯に ほぞん','カメラで撮る → そのまま分析 → 端末に保存'],
+ sub:['きろく・分析・くらべる','記録・分析・比較'],
  glTake:['とる','撮影'],
- glRec:['ほぞんした きろく','保存した記録'],
- openCam:['カメラで とる','カメラで撮る'],
+ glRec:['さいきんの きろく','最近の記録'],
+ scAbbr:['SC','SC'],
+ openCam:['カメラで とる<small>動画を とって 分析</small>','カメラで撮る<small>動画を撮って解析</small>'],
  pick:['とってある 動画を ひらく<small>あとから 分析したいとき</small>','保存済みの動画を開く<small>後から分析する場合</small>'],
  homeHint:['画面の 上に ストップウォッチが 出ます。ふえの音でも スタートできます。ストップを おすと、その動画で そのまま 分析が はじまります。','画面上部にストップウォッチを表示します。笛の音でも自動で計測を開始できます。ストップを押すと、その動画でそのまま分析が始まります。'],
  moreOpen:['ほかの きろくの しかたも 見る','他の記録方法を見る'],
@@ -1634,7 +1679,7 @@ var W={
  msgStrSaved:['かき数を ほぞんしました','ストローク数を保存しました'],
 
  glCompare:['きろくを くらべる','記録を比較'],
- openCompare:['くらべる・のびを 見る<small>ベストや 進捗、2本の くらべっこが できます</small>','比較・進捗を見る<small>ベストタイムや進捗、2件の比較ができます</small>'],
+ openCompare:['きろくを くらべる<small>タイム・ST・SR・SCも くらべる</small>','記録を比較する<small>タイム・ST・SR・SCも比較</small>'],
  cmpTitle:['きろくの くらべっこ','記録の比較'],
  cmpFilterGl:['さがす・しぼりこむ','絞り込み検索'],
  eventLbl:['しゅもく','種目'],
@@ -1712,6 +1757,9 @@ var W={
  vidOpen:['リンクを 開く','リンクを開く'],
  vidNone:['動画リンクが ありません','動画リンクがありません'],
  dOpenLink:['動画リンクを 開く','動画リンクを開く'],
+ upStart:['動画を アップロードしています…','動画をアップロード中…'],
+ upDoneOne:['動画を 共有しました','動画を共有しました'],
+ upBig:['動画が 大きすぎて 自動で 上げられません。画質を 下げて 撮るか、手で リンクを 貼ってください','動画が大きすぎて自動アップロードできません。画質を下げて撮るか、手動でリンクを貼ってください'],
 
  swOpen:['ストップウォッチ<small>タイムと ラップを はかる</small>','ストップウォッチ<small>タイム・ラップ計測</small>'],
  swTitle:['ストップウォッチ','ストップウォッチ'],
@@ -2511,6 +2559,7 @@ $('anaSave').onclick=function(){
     toast(T('msgSavedDev'));
     aId=null;
     $('v').pause(); show('home'); paintList();
+    setTimeout(uploadPending, 600);
   }).catch(function(){ toast(T('msgSaveNG')); });
 };
 
@@ -2542,15 +2591,22 @@ var WD=['日','月','火','水','木','金','土'];
 var openDay={};
 function dayKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 function dayName(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[d.getDay()]+'）'; }
+function mdShort(at){ var d=new Date(at); return (d.getMonth()+1)+'/'+d.getDate(); }
 function recCard(r){
   var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
-  var c=document.createElement('div'); c.className='card'+(r.manual?' manual':'');
-  var thumbHtml = r.manual ? '<div class="mThumb">'+T('mBadge')+'</div>' : '<img src="'+(r.thumb||'')+'" alt="">';
-  var timeHtml = last ? ('　<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+last.d+'m '+fmt(last.t)+'</button>') : '';
-  c.innerHTML= thumbHtml +
-    '<div class="ci"><div class="ct">'+r.title+'</div>'+
-    '<div class="cd">'+new Date(r.at).toLocaleString('ja-JP')+
-    '　'+evLabel(r.event)+ timeHtml +'</div></div>';
+  var ss = raceStroke(r);
+  var c=document.createElement('div'); c.className='card2'+(r.manual?' manual':'');
+  var badge = r.manual ? '<span class="c2badge">'+T('mBadge')+'</span>' : '';
+  var head = badge + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
+  var timeHtml = last
+    ? '<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+fmt(last.t)+'</button>'
+    : '';
+  var srLine = 'ST '+(ss.st!=null?ss.st.toFixed(2)+'秒':'--')+
+               '　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
+               '　'+T('scAbbr')+' '+(ss.n!=null?ss.n:'--');
+  c.innerHTML=
+    '<div class="c2top"><span class="c2head">'+head+'</span>'+timeHtml+'</div>'+
+    '<div class="c2sr">'+srLine+'</div>';
   c.onclick=function(){
     if(r.manual){ manualOpen(r); return; }
     if(!r.video){                     /* 同期で来た記録：この端末に動画が無い */
@@ -3691,6 +3747,7 @@ function syncNow(opts){
     paintList();
     if(!$('compare').classList.contains('hide')) cmpReload();
     if(opts.toast) toast(T('syncDone'));
+    setTimeout(uploadPending, 600);
   }).catch(function(){
     syncing=false;
     if(opts.toast) toast(T('syncNG'));
@@ -3715,6 +3772,58 @@ function openVid(url){
   try{ window.open(url, '_blank'); }catch(e){ location.href=url; }
 }
 $('vfVidOpen').onclick=function(){ openVid($('vfVid').value); };
+
+/* ================================================================
+   動画の 自動アップロード（GAS経由でGoogleドライブへ）
+   ・アプリを 開いている間、動画つきの記録で まだリンクが 無いものを
+     じゅんばんに アップロードして、リンクを 記録に 自動で 貼ります。
+   ・上げ残しは 次に 開いたとき 自動で つづきを やります。
+   ・大きすぎる動画（目安30MB超）は 自動では 上げず、印を 付けて とばします。
+   ================================================================ */
+var MAX_UP = 30*1024*1024;
+var uploading=false;
+function blobToB64(blob){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){ var s=String(r.result), i=s.indexOf(','); res(i>=0?s.slice(i+1):s); };
+    r.onerror=function(){ rej(r.error); };
+    r.readAsDataURL(blob);
+  });
+}
+function needUpload(r){ return !!(SYNC_URL && r.video && !r.videoUrl && !r.vidSkip); }
+function uploadOne(rec){
+  if(rec.video.size > MAX_UP){
+    rec.vidSkip=true; rec.updatedAt=Date.now();
+    return dbPut(rec).then(function(){ pushOne(rec); toast(T('upBig')); });
+  }
+  return blobToB64(rec.video).then(function(b64){
+    return fetch(SYNC_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'upload', id:rec.id,
+        name:'swimiq_'+rec.id+((rec.video.type||'').indexOf('webm')>=0?'.webm':'.mp4'),
+        mime:(rec.video.type||'video/mp4'), b64:b64 }) })
+      .then(function(r){ return r.json().catch(function(){ return null; }); });
+  }).then(function(res){
+    if(res && res.ok && res.url){
+      rec.videoUrl=res.url; rec.updatedAt=Date.now();
+      return dbPut(rec).then(function(){ pushOne(rec); toast(T('upDoneOne')); });
+    }
+    throw new Error('upload');
+  });
+}
+function uploadPending(){
+  if(uploading || !SYNC_URL) return;
+  uploading=true;
+  dbAll().then(function(all){
+    var q=all.filter(needUpload), i=0;
+    if(!q.length){ uploading=false; return; }
+    toast(T('upStart'));
+    (function nx(){
+      if(i>=q.length){ uploading=false; paintList(); return; }
+      var rec=q[i++];
+      uploadOne(rec).then(nx, function(){ uploading=false; });  /* 失敗したら止めて、次に開いたとき再挑戦 */
+    })();
+  }, function(){ uploading=false; });
+}
 
 /* ===== パソコン・ほかの端末と やりとり =====
    動画は おもすぎるので、書き出す 中身は 数字だけ（日づけ・種目・きょり・
@@ -4149,8 +4258,27 @@ $('verBottom').textContent = 'ver ' + APP_VER;
 $('setVer').textContent = APP_VER;
 setTimeout(checkUpdate, 1200);
 paintList();
-/* アプリを開いたとき、同期アドレスが 入っていれば クラウドから 読み込む */
-if(SYNC_URL) setTimeout(function(){ syncNow(); }, 900);
+/* アプリを開いたとき、同期アドレスが 入っていれば クラウドから 読み込み、
+   上げ残した動画があれば つづきを アップロードする */
+if(SYNC_URL){
+  setTimeout(function(){ syncNow(); }, 900);
+  setTimeout(function(){ uploadPending(); }, 2200);
+}
+
+/* ===== ボタンを おしたときの バイブ（使用感）=====
+   0.2秒ほど ふるえます。動画の全画面タップや、連続で おす
+   ラップ・ストロークは 別の みじかい ふるえに するので のぞきます。
+   ※iPhoneのSafariは ウェブからの バイブに 対応していないため、
+     iPhoneでは ふるえない ことが あります。 */
+(function(){
+  var SKIP={ tapZone:1, dTap:1, swLapBtn:1, cLap:1, bStroke:1, dStroke:1 };
+  document.addEventListener('click', function(e){
+    var el = e.target && e.target.closest ? e.target.closest('button, .btn, label.btn') : null;
+    if(!el) return;
+    if(el.id && SKIP[el.id]) return;
+    try{ if(navigator.vibrate) navigator.vibrate(200); }catch(_){}
+  }, true);
+})();
 })();
 </script>
 </body>

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.3">
+<meta name="app-ver" content="2026.09.21.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1066,6 +1066,13 @@ body, button, select, input, textarea{
     <h2 data-t="setTitle"></h2>
   </div>
 
+  <div class="gl" data-t="glUpdate"></div>
+  <div class="take">
+    <button class="btn g" id="setReload" type="button" data-t="setReloadBtn"></button>
+    <p class="hint" style="margin:6px 2px 2px;"><span data-t="setVerNow"></span>：<b id="setVer" style="color:var(--am);"></b></p>
+    <p class="hint" data-t="setUpHint" style="margin:2px;"></p>
+  </div>
+
   <div class="gl" data-t="glWord"></div>
   <div class="seg" id="wordSeg">
     <button type="button" data-w="k" data-t="wKid"></button>
@@ -1558,6 +1565,10 @@ var W={
  upS2:['２　ロゴの 右の 数字が 新しく なっていれば 終わりです。','２　ロゴの右の数字が新しくなっていれば完了です。'],
  upS3:['３　数字が 変わらないときは、ホーム画面の アイコンを 長おしして 削除し、Safariで もう一度 ひらいてから、共有ボタンで ホーム画面に 追加し直してください。','３　数字が変わらないときは、ホーム画面のアイコンを長押しして削除し、Safariで開き直してから、共有ボタンでホーム画面に追加し直してください。'],
  upKeep:['ほぞんした きろくは 消えません。','保存した記録は消えません。'],
+ glUpdate:['アプリの こうしん','アプリの更新'],
+ setReloadBtn:['最新に 更新する','最新に更新する'],
+ setVerNow:['いまの ばん','現在の版'],
+ setUpHint:['更新ボタンを おすと、いちど 画面を 読み込み直して 最新に します。新しい ファイルに 入れかえた あとや、表示が 古いままの ときに おしてください。ほぞんした きろくは 消えません。','更新ボタンを押すと、画面を読み込み直して最新にします。新しいファイルに入れ替えた後や、表示が古いままのときに押してください。保存した記録は消えません。'],
 
  cnH:['つかう前に、おねがい','ご利用の前に'],
  cnL1:['アンケートの こたえは、開発者の 佐々木だけが 見ます。','アンケートの回答は、開発者の佐々木だけが見ます。'],
@@ -3014,6 +3025,14 @@ $('upOpen').onclick=function(){
   $('upNow2').textContent = APP_VER + ' → ' + newVer;
   $('upBox').classList.remove('hide');
 };
+/* ===== 設定の「最新に更新する」ボタン =====
+   画面を いちど 読み込み直して、いちばん新しい状態にします。
+   ネットから 開いている ときは キャッシュを 使わずに 取り直します。 */
+$('setReload').onclick=function(){
+  if(location.protocol==='file:'){ location.reload(); return; }
+  var base = location.href.split('#')[0].split('?')[0];
+  location.replace(base + '?v=' + Date.now());
+};
 $('upX').onclick=function(){ $('upBox').classList.add('hide'); };
 $('upGo').onclick=function(){
   var base = location.href.split('#')[0].split('?')[0];
@@ -3857,6 +3876,7 @@ cnPaint();
 setTimeout(function(){ var sp=$('splash'); if(sp) sp.classList.add('done'); }, 1300);
 $('vtop').textContent = APP_VER;
 $('verBottom').textContent = 'ver ' + APP_VER;
+$('setVer').textContent = APP_VER;
 setTimeout(checkUpdate, 1200);
 paintList();
 })();

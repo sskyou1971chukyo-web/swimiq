@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.34">
+<meta name="app-ver" content="2026.09.21.35">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -563,6 +563,27 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .box .sr3 button.fixT{ padding:3px 1px; }
 .box .sr3 button.fixT span{ font-size:10px; }
 .box .sr3 button.fixT::after{ font-size:9px; }
+/* きろくした あとに さっと 出る きょりの 一覧（1秒で しまいます） */
+#qList{ position:fixed; z-index:92; right:12px; top:50%; transform:translateY(-50%);
+  width:min(238px,42vw); max-height:74vh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:6px; border-radius:20px; background:rgba(238,238,240,.80);
+  -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:0 12px 40px rgba(0,0,0,.45); animation:qIn .16s ease-out; }
+#qList.hide{ display:none !important; }
+@keyframes qIn{ from{ opacity:0; transform:translateY(-50%) scale(.94); }
+                to{ opacity:1; transform:translateY(-50%) scale(1); } }
+.qItem{ display:block; width:100%; margin:0; padding:11px 14px; border:0; background:transparent;
+  border-radius:12px; text-align:center; cursor:pointer; color:#111;
+  font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.2; }
+.qItem + .qItem{ border-top:1px solid rgba(0,0,0,.10); }
+.qItem.on{ background:rgba(255,196,0,.55); color:#000; font-weight:900; }
+/* きろくした 数字が 大きく 出て、けっかの 箱に すいこまれます */
+.flyNum{ position:fixed; z-index:96; left:50%; top:42%; pointer-events:none;
+  padding:10px 26px; border-radius:16px; background:rgba(0,0,0,.55);
+  border:3px solid var(--am); color:#fff; white-space:nowrap;
+  font-size:clamp(30px,7vw,52px); font-weight:900; line-height:1.15;
+  font-variant-numeric:tabular-nums; text-shadow:0 3px 12px #000;
+  will-change:transform,opacity; }
 .sumBtn{ cursor:pointer; border:0; padding:0 2px; border-radius:4px; background:transparent;
   color:#fff; text-align:left; }
 .sumBtn:active{ background:rgba(255,255,255,.12); }
@@ -1516,6 +1537,9 @@ body, button, select, input, textarea{
     </div>
   </div>
 </div>
+
+<!-- きろくした あとに 1秒だけ 出る きょりの 一覧 -->
+<div id="qList" class="hide" aria-hidden="true"></div>
 
 <div id="fixBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="fixH">
   <div class="fxWrap">
@@ -2866,12 +2890,66 @@ function setSig(t){
 }
 $('bStart').onclick=function(){ setFoot($('v').currentTime); };
 $('nextSel').onchange=function(){ selManual=true; paintNext(); };
+/* ① きろくの あと、1秒だけ きょりの 一覧を 出します */
+var qTimer=null;
+function hideQ(){
+  var b=$('qList'); if(b) b.classList.add('hide');
+  if(qTimer){ clearTimeout(qTimer); qTimer=null; }
+}
+function showQ(){
+  var box=$('qList'), sel=$('nextSel'); if(!box||!sel) return;
+  box.innerHTML='';
+  var i, opts=sel.options;
+  for(i=0;i<opts.length;i++){
+    (function(o){
+      var b=document.createElement('button');
+      b.type='button';
+      b.className='qItem'+(o.value===sel.value ? ' on' : '');
+      b.textContent=o.textContent;
+      b.onclick=function(){ sel.value=o.value; selManual=true; paintNext(); hideQ(); };
+      box.appendChild(b);
+    })(opts[i]);
+  }
+  box.classList.remove('hide');
+  var on=box.querySelector('.qItem.on');
+  if(on) box.scrollTop = on.offsetTop - box.clientHeight/2 + on.offsetHeight/2;
+  if(qTimer) clearTimeout(qTimer);
+  qTimer=setTimeout(hideQ, 1000);
+}
+/* ② きろくした 数字が 大きく 出て、小さく なりながら 箱に 入ります */
+function flyNum(text, boxId, hudId){
+  if(!text) return;
+  var el=document.createElement('div');
+  el.className='flyNum'; el.textContent=text;
+  el.style.transform='translate(-50%,-50%) scale(1)';
+  document.body.appendChild(el);
+  var bx=$(boxId), hd=$(hudId);
+  var target = (bx && !bx.classList.contains('shut') && bx.offsetParent!==null) ? bx : hd;
+  var r0=el.getBoundingClientRect();
+  var rb= target ? target.getBoundingClientRect() : { left:16, top:70, width:80, height:40 };
+  var dx=(rb.left+rb.width/2)-(r0.left+r0.width/2);
+  var dy=(rb.top+Math.min(rb.height/2,30))-(r0.top+r0.height/2);
+  var done=function(){ if(el.parentNode) el.parentNode.removeChild(el); };
+  if(el.animate){
+    var an=el.animate([
+      { transform:'translate(-50%,-50%) scale(1)', opacity:1 },
+      { transform:'translate(calc(-50% + '+(dx*0.45)+'px), calc(-50% + '+(dy*0.45)+'px)) scale(.62)', opacity:.9, offset:.55 },
+      { transform:'translate(calc(-50% + '+dx+'px), calc(-50% + '+dy+'px)) scale(.16)', opacity:0 }
+    ], { duration:520, easing:'cubic-bezier(.35,0,.5,1)', fill:'forwards' });
+    an.onfinish=done; an.oncancel=done;
+    setTimeout(done, 900);
+  }else{
+    setTimeout(done, 520);
+  }
+}
 $('bPass').onclick=function(){
   var k=selKind(), t=$('v').currentTime;
   if(k==='') return;
   try{ if(navigator.vibrate) navigator.vibrate(16); }catch(e){}
-  if(k==='sig'){ selManual=false; $('nextSel').value=''; setSig(t); return; }
-  if(k==='t0'){  selManual=false; $('nextSel').value=''; setFoot(t); return; }
+  if(k==='sig'){ selManual=false; $('nextSel').value=''; setSig(t);
+    flyNum(T('rtSigLbl'),'anaBox','hud'); showQ(); return; }
+  if(k==='t0'){  selManual=false; $('nextSel').value=''; setFoot(t);
+    flyNum(T('rtFootLbl'),'anaBox','hud'); showQ(); return; }
   var n=nextD();
   if(n===null) return;
   if(aT0===null){ toast(T('needFoot')); return; }
@@ -2887,6 +2965,8 @@ $('bPass').onclick=function(){
   aSplits.sort(function(x,y){ return x.d-y.d; });   /* きょりの 順に ならべます */
   selManual=false; $('nextSel').value='';
   paintTbl();
+  flyNum(n+'m　'+fmt(tt), 'anaBox', 'hud');
+  showQ();
 };
 $('bUndo').onclick=function(){
   if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
@@ -3097,6 +3177,7 @@ $('bStroke').onclick=function(){
   }
   this.setAttribute('aria-pressed', on?'true':'false');
   $('ana').classList.toggle('stroke', on);
+  hideQ();
   if(on){
     var v=$('v');
     if(v.paused){ v.play().catch(function(){}); $('bPlay').innerHTML=T('pauseI'); }
@@ -3285,6 +3366,7 @@ $('anaBack').onclick=function(){
   if(aSplits.length || aStrokes.length){
     if(!confirm(T('askLeave'))) return;
   }
+  hideQ();
   $('v').pause(); show('home'); paintList();
 };
 

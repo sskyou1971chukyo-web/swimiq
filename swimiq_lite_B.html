@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.20">
+<meta name="app-ver" content="2026.09.21.21">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1420,6 +1420,7 @@ body, button, select, input, textarea{
       <p class="fxP" data-t="rtOffNote" style="margin-top:10px;"></p>
     </div>
     <div id="rtOnPane" class="hide">
+      <p class="fxP" data-t="rtOrder" style="margin-top:10px;"></p>
       <p class="q" data-t="rtHowLbl" style="margin:12px 2px 4px;font-size:13px;font-weight:800;"></p>
       <div class="seg" id="rtModeSeg">
         <button type="button" data-rm="sound" aria-pressed="true" data-t="rtSound"></button>
@@ -1731,6 +1732,9 @@ var W={
  rtOffNote:['RTは「なし」です。〈タイムを計る〉で 足離れを 決めるだけで だいじょうぶです。','RTは「なし」です。〈タイムを計る〉で足離れを決めるだけで大丈夫です。'],
  rtHowLbl:['合図の 見つけ方','合図の見つけ方'],
  rtAskLbl:['どちらを 記録しますか？','どちらを記録しますか？'],
+ rtOrder:['じゅんばんは ①合図を 決める ②〈タイムを計る〉で 足離れを おす、の 2つです。','順番は①合図を決める②〈タイムを計る〉で足離れを押す、の2つです。'],
+ rtNextFoot:['合図が きまりました。つぎは〈タイムを計る〉で 足離れを おしてください。','合図が決まりました。次は〈タイムを計る〉で足離れを押してください。'],
+ msgRtSet:['足離れを きめました。RTも きまりました','足離れを決めました。RTも決まりました'],
  rtNoteSound:['音で さがします。しずかな ところから 音が 鳴った ところを 合図に します。','音で探します。静かな状態から音が鳴った瞬間を合図とします。'],
  rtNoteLight:['光で さがします。画面が パッと 明るく なった ところを 合図に します。','光で探します。画面が急に明るくなった瞬間を合図とします。'],
  rtNoteManual:['じぶんで 合わせます。合図の ところで ボタンを おすか、RTの 数字を 入れます。','自分で合わせます。合図の場面でボタンを押すか、RTの数字を直接入れます。'],
@@ -2230,12 +2234,8 @@ function headRow(){
          '<span class="c2">'+T('hTime')+'</span><span class="c3">'+T('hSplit')+'</span></div>';
 }
 function pts(){                            // 通過ポイントの きょり一覧
-  var pool=Number($('pool').value), dist=Number($('dist').value), out=[];
-  /* 50mは 15m・25m・35m・45m・50m を 通過ポイントに する */
-  if(dist===50) return lapDists(50);
-  for(var d=pool; d<=dist; d+=pool) out.push(d);
-  if(!out.length) out.push(dist);
-  return out;
+  /* きょりに かかわらず 15m・25m・35m・45m・50m の くりかえしで すすみます */
+  return lapDists(Number($('dist').value));
 }
 /* すでに つかった きょりを のぞいた 一覧 */
 function freeD(){
@@ -2479,16 +2479,21 @@ function openAna(blob, opt){
    50m・100m … 15,25,35,45,50,65,75,85,95,100（その きょりまで）
    200m・400m … 25mごと
    800m・1500m … 50mごと */
+/* 通過ポイントの きめかた
+   50mごとに 15m・25m・35m・45m・50m の かたちを くりかえします。
+   25m …… 15, 25
+   100m … 15, 25, 35, 45, 50, 65, 75, 85, 95, 100
+   200m … そのあと 115, 125, 135, 145, 150 … と 1500mまで 同じ */
 function lapDists(dist){
-  var out=[], d;
-  if(dist<=100){
-    var base=[15,25,35,45,50,65,75,85,95,100];
-    for(var i=0;i<base.length;i++) if(base[i]<=dist) out.push(base[i]);
-  }else{
-    var step = (dist>=800) ? 50 : 25;
-    for(d=step; d<=dist; d+=step) out.push(d);
+  var out=[], add=[15,25,35,45,50], base, i, d;
+  for(base=0; base<dist; base+=50){
+    for(i=0;i<add.length;i++){
+      d=base+add[i];
+      if(d<=dist && out.indexOf(d)<0) out.push(d);
+    }
   }
   if(out.indexOf(dist)<0) out.push(dist);
+  out.sort(function(a,b){ return a-b; });
   return out;
 }
 function lapWalls(pool,dist){            /* さいしょに わりあてる ＝ かべの ところ */
@@ -2666,7 +2671,9 @@ document.addEventListener('keydown', function(e){
 /* --- きろくを とる --- */
 $('bStart').onclick=function(){
   aT0=$('v').currentTime; aSplits=[]; paintTbl(); anaP.paint();
-  toast(T('msgStartSet'));
+  /* 合図を さきに 決めて あれば、ここで RTが きまります */
+  if(typeof aSigT!=='undefined' && aSigT!=null){ rtCalc(); toast(T('msgRtSet')); }
+  else toast(T('msgStartSet'));
 };
 $('bPass').onclick=function(){
   var n=nextD(); if(n===null || aT0===null) return;
@@ -2804,15 +2811,16 @@ function rtStop(found){
   if(rtRaf){ cancelAnimationFrame(rtRaf); rtRaf=null; }
   try{ $('v').pause(); }catch(e){}
   $('bPlay').textContent=T('play');
-  if(found){ $('rtStatus').textContent=T('rtFound'); rtCalc(); }
+  if(found){ $('rtStatus').textContent=T(aT0==null ? 'rtNextFoot' : 'rtFound'); rtCalc(); }
   else $('rtStatus').textContent=T('rtNotFound');
 }
 function rtScanStart(){
-  if(aT0==null){ toast(T('rtNeedStart')); return; }
   var v=$('v'), useSound=(rtMode==='sound');
   if(useSound && !rtAudioInit()){ $('rtStatus').textContent=T('rtAudioNG'); return; }
   if(!useSound && !rtCv){ rtCv=document.createElement('canvas'); rtCv.width=64; rtCv.height=36; rtCtx=rtCv.getContext('2d'); }
-  try{ v.currentTime=Math.max(0, aT0-3); }catch(e){}
+  /* 足離れが すでに あるときは その 3秒前から、
+     まだ ないときは いま 見ている ところから さがします */
+  if(aT0!=null){ try{ v.currentTime=Math.max(0, aT0-3); }catch(e){} }
   rtScanning=true; $('rtStatus').textContent=T('rtFinding');
   if(rtAC && rtAC.state==='suspended'){ try{ rtAC.resume(); }catch(e){} }
   v.play().catch(function(){});
@@ -2820,7 +2828,7 @@ function rtScanStart(){
   function loop(){
     if(!rtScanning) return;
     var t=v.currentTime;
-    if(v.ended || t>=aT0){ rtStop(false); return; }
+    if(v.ended || (aT0!=null && t>=aT0)){ rtStop(false); return; }
     var val;
     if(useSound){
       rtAn.getByteTimeDomainData(rtBuf);
@@ -2861,8 +2869,9 @@ $('rtX').onclick=function(){ if(rtScanning) rtStop(false); $('rtBox').classList.
 })();
 $('rtFind').onclick=function(){ rtScanStart(); };
 $('rtNow').onclick=function(){
-  if(aT0==null){ toast(T('rtNeedStart')); return; }
-  aSigT=$('v').currentTime; $('rtStatus').textContent=T('rtFound'); rtCalc();
+  aSigT=$('v').currentTime;
+  $('rtStatus').textContent=T(aT0==null ? 'rtNextFoot' : 'rtFound');
+  rtCalc();
 };
 $('rtVal').oninput=function(){
   var n=parseFloat(this.value);

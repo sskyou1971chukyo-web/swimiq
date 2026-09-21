@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.17">
+<meta name="app-ver" content="2026.09.21.19">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -198,7 +198,7 @@ button, select, input{ font-family:inherit; }
 
 /* 左上：タイムと けっか */
 .oInfo{ grid-area:info; align-self:start; min-height:0; max-height:100%;
-  display:flex; flex-direction:column; gap:6px; }
+  display:flex; flex-direction:column; gap:6px; touch-action:none; cursor:move; }
 body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .hudT{ align-self:flex-start; padding:0 12px; border-radius:4px; color:var(--am);
   font-size:32px; font-weight:900; line-height:1.3; letter-spacing:.01em;
@@ -283,7 +283,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   .ov.ana .oAct{ display:grid; grid-template-columns:1fr 1fr; align-content:end; }
   .ov.ana #bStart, .ov.ana #bStroke{ grid-column:1 / span 2; }
   .ov.ana #bUndo{ grid-column:1; }
-  .ov.ana #nextSel{ grid-column:2; }
+  .ov.ana #bRt{ grid-column:2; }
+  .ov.ana #nextSel{ grid-column:1 / span 2; }
   .ov.ana .circle{ grid-column:1 / span 2; justify-self:center; }
 }
 .nextSel{ min-height:42px; padding:2px 22px 2px 8px; text-align:center; text-align-last:center;
@@ -510,9 +511,17 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .sumBtn{ cursor:pointer; border:0; padding:0 2px; border-radius:4px; background:transparent;
   color:#fff; text-align:left; }
 .sumBtn:active{ background:rgba(255,255,255,.12); }
-#fixBox{ position:fixed; inset:0; z-index:75; display:flex; align-items:center; justify-content:center;
+#fixBox, #rtBox{ position:fixed; inset:0; z-index:75; display:flex; align-items:center; justify-content:center;
   background:rgba(0,0,0,.88); padding:16px; }
-#fixBox.hide{ display:none !important; }
+#fixBox.hide, #rtBox.hide{ display:none !important; }
+#rtBox .fxWrap{ max-height:92vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.rtRows{ margin-top:10px; border:2px solid var(--line2); border-radius:var(--rM); overflow:hidden; }
+.rtRows > div{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:9px 13px; font-size:14px; font-weight:800; color:var(--dim); }
+.rtRows > div + div{ border-top:1px solid var(--line2); }
+.rtRows b{ font-size:19px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+.rtRows .hl{ background:rgba(255,196,0,.10); }
+.rtRows .hl b{ color:var(--am); font-size:22px; }
 .fxWrap{ width:100%; max-width:420px; background:var(--bk); border:3px solid var(--am);
   border-radius:8px; padding:14px; }
 .fxH{ display:flex; align-items:center; gap:10px; }
@@ -933,7 +942,7 @@ body, button, select, input, textarea{
 #report .rtitle{ margin:11px 0 3px; font-size:19px; font-weight:900; }
 #report .rsub .chip{ display:inline-block; margin-right:8px; padding:2px 10px; border-radius:999px;
   background:#f4f5f7; color:#16181d; font-size:12px; font-weight:800; }
-#report .rkpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin:14px 0 4px; }
+#report .rkpis{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:9px; margin:14px 0 4px; }
 #report .rkpi{ border:1.5px solid #e4e6ea; border-radius:12px; padding:11px 13px; }
 #report .rkpi.hl{ border-color:#f2b01e; background:#fffaf0; }
 #report .rkpi .k{ font-size:10.5px; font-weight:800; color:#5b6270; }
@@ -1078,6 +1087,7 @@ body, button, select, input, textarea{
       <button class="ob g" id="bStart" type="button" data-t="bStart"></button>
       <button class="ob y" id="bStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
       <button class="ob" id="bUndo" type="button" data-t="bUndo"></button>
+      <button class="ob y" id="bRt" type="button" data-t="rtBtn"></button>
       <select class="osel nextSel" id="nextSel" data-ta="nextLbl"></select>
       <button class="ob b circle" id="bPass" type="button" disabled><span data-t="pass"></span><small id="nextD">-</small></button>
     </div>
@@ -1398,6 +1408,34 @@ body, button, select, input, textarea{
   </div>
 </div>
 
+<div id="rtBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="rtH">
+  <div class="fxWrap">
+    <div class="fxH"><b id="rtH" data-t="rtTitle"></b><button type="button" id="rtX" data-t="sensDone"></button></div>
+    <p class="fxP" data-t="rtLead"></p>
+    <div class="seg" id="rtModeSeg">
+      <button type="button" data-rm="sound" aria-pressed="true" data-t="rtSound"></button>
+      <button type="button" data-rm="light" aria-pressed="false" data-t="rtLight"></button>
+      <button type="button" data-rm="manual" aria-pressed="false" data-t="rtManual"></button>
+    </div>
+    <div id="rtAuto">
+      <button class="btn g" type="button" id="rtFind" data-t="rtFind" style="width:100%;margin-top:8px;"></button>
+    </div>
+    <div id="rtMan" class="hide">
+      <button class="btn g" type="button" id="rtNow" data-t="rtNow" style="width:100%;margin-top:8px;"></button>
+      <p class="q" data-t="rtInputLbl" style="margin:10px 2px 4px;font-size:13px;font-weight:800;"></p>
+      <input type="text" id="rtVal" inputmode="decimal"
+        style="width:100%;box-sizing:border-box;min-height:46px;padding:6px 10px;border-radius:var(--rM);border:2px solid var(--line);background:var(--pane);color:#fff;font-size:16px;font-weight:900;">
+    </div>
+    <p class="fxP" id="rtStatus" style="margin-top:8px;"></p>
+    <div class="rtRows">
+      <div><span data-t="rtSigLbl"></span><b id="rtSig">--</b></div>
+      <div><span data-t="rtFootLbl"></span><b id="rtFoot">--</b></div>
+      <div class="hl"><span data-t="rtOutLbl"></span><b id="rtOut">--</b></div>
+    </div>
+    <button class="btn b" type="button" id="rtClear" data-t="rtClear" style="width:100%;margin-top:8px;"></button>
+  </div>
+</div>
+
 <div id="fixBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="fixH">
   <div class="fxWrap">
     <div class="fxH"><b id="fixH"></b><button type="button" id="fixX" data-t="sensDone"></button></div>
@@ -1668,8 +1706,28 @@ var W={
  frFwd:['コマ ▶','コマ ▶'],
  play:['▶ 再生','▶ 再生'],
  pause:['⏸ とめる','⏸ 停止'],
- bStart:['タイムを 計る<small>とび込みで おす</small>','タイムを計る<small>飛び込みで押す</small>'],
+ bStart:['タイムを 計る<small>足離れで おす</small>','タイムを計る<small>足離れで押す</small>'],
  bStartRe:['タイムを 計る<small>やりなおす</small>','タイムを計る<small>やり直す</small>'],
+
+ rtBtn:['RT','RT'],
+ rtTitle:['リアクションタイム（RT）','リアクションタイム（RT）'],
+ rtLead:['合図の しゅんかんを 決めると、足離れまでの 時間が RTに なります。','合図の瞬間を決めると、足離れまでの時間がRTになります。'],
+ rtSound:['音','音'],
+ rtLight:['光','光'],
+ rtManual:['手動','手動'],
+ rtFind:['合図を さがす（再生します）','合図を探す（再生します）'],
+ rtFinding:['合図を さがしています…','合図を探しています…'],
+ rtFound:['合図を 見つけました','合図を見つけました'],
+ rtNotFound:['合図が 見つかりませんでした。手動で 合わせてください','合図が見つかりませんでした。手動で合わせてください'],
+ rtNow:['いま 合図（おす）','いま合図（押す）'],
+ rtInputLbl:['RTを ちょくせつ 入力（秒）','RTを直接入力（秒）'],
+ rtSigLbl:['合図','合図'],
+ rtFootLbl:['足離れ','足離れ'],
+ rtOutLbl:['RT','RT'],
+ rtClear:['けす','消す'],
+ rtNeedStart:['先に〈タイムを計る〉で 足離れを 決めてください','先に〈タイムを計る〉で足離れを決めてください'],
+ rtBad:['合図は 足離れより 前に してください','合図は足離れより前にしてください'],
+ rtAudioNG:['音の かいせきが できませんでした','音の解析ができませんでした'],
  bStroke:['かきを 計る','ストロークを計る'],
  bUndo:['1つ もどす','1つ戻す'],
  pass:['つうか','通過'],
@@ -1880,7 +1938,7 @@ var W={
  msgLapAuto2:['こを 通過タイムに 入れました','件を通過タイムにしました'],
  lpNowLead:['いま 入っている ラップです。ちがうときは きょりを えらび直してください。','現在取り込んでいるラップです。違う場合は距離を選び直してください。'],
 
- g1:['① とび込んだ ところで〈タイムを 計る〉','① 飛び込んだ瞬間で〈タイムを計る〉'],
+ g1:['① 足が はなれた ところで〈タイムを 計る〉','① 足離れの瞬間で〈タイムを計る〉'],
  g2a:['② かべに ついたら〈つうか〉　つぎは ','② 壁に触れたら〈通過〉　次は '],
  g3:['③〈かきを 計る〉を おして、右手が 水に 入るたびに 画面を おす','③〈ストロークを計る〉を押し、右手の入水ごとに画面を押す'],
  g4:['④〈ほぞん〉で きろくを のこす','④〈保存〉で記録を残す'],
@@ -2279,7 +2337,8 @@ function paintSheet(){
   $('asStat').innerHTML =
     '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
     '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
-    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>';
+    '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>'+
+    ((typeof aRT!=='undefined' && aRT!=null) ? ('<div><b>'+aRT.toFixed(2)+'</b><span>'+T('rtOutLbl')+'</span></div>') : '');
   var b=$('asTbl'); b.innerHTML='';
   if(!aSplits.length){ b.innerHTML='<div class="none">'+T('sheetNone')+'</div>'; }
   else{
@@ -2323,6 +2382,7 @@ function anaText(){
       L.push(aSplits[i].d+'m  '+fmt(aSplits[i].t)+'  (+'+fmt(aSplits[i].t-pv)+')');
     }
   }
+  if(aRT!=null) L.push('', T('rtOutLbl')+'  '+aRT.toFixed(2)+'秒（'+T('rtFootLbl')+'までの時間）');
   var sts=strokeStats(), tp=tempoStats(sts);
   if(sts.length){
     L.push('', '['+T('glStroke')+']');
@@ -2356,6 +2416,8 @@ function openAna(blob, opt){
   aSplits = opt.splits ? opt.splits.slice() : [];
   aStrokes = opt.strokes ? opt.strokes.slice() : [];
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
+  aSigT = (opt.sigT!=null) ? opt.sigT : null;
+  aRT   = (opt.rt!=null)   ? opt.rt   : null;
   aPreLaps = opt.laps || null;
   aPreT0 = opt.raceT0 || 0;          // 録画の はじめから レースの スタートまでの 秒
   if(aURL){ try{ URL.revokeObjectURL(aURL); }catch(e){} }
@@ -2670,7 +2732,110 @@ $('fixX').onclick=function(){ $('fixBox').classList.add('hide'); toast(T('fixOK'
 
 $('bClear').onclick=function(){
   if(!confirm(T('askClear'))) return;
-  aSplits=[]; aStrokes=[]; aT0=null; paintTbl(); paintSR(); anaP.paint();
+  aSplits=[]; aStrokes=[]; aT0=null; aSigT=null; aRT=null; paintTbl(); paintSR(); anaP.paint();
+};
+
+/* ================================================================
+   リアクションタイム（RT）
+   合図の しゅんかんを「音」「光」「手動」の どれかで 決めると、
+   足離れ（〈タイムを計る〉で 決めた ところ）までが RTに なります。
+   ================================================================ */
+var aSigT=null, aRT=null, rtMode='sound';
+try{ rtMode = localStorage.getItem('swimiq_rtmode') || 'sound'; }catch(e){}
+var rtScanning=false, rtRaf=null, rtAC=null, rtAn=null, rtSrcNode=null, rtBuf=null, rtCv=null, rtCtx=null;
+function rtPaint(){
+  $('rtSig').textContent  = (aSigT!=null) ? aSigT.toFixed(2) : '--';
+  $('rtFoot').textContent = (aT0!=null)   ? aT0.toFixed(2)   : '--';
+  $('rtOut').textContent  = (aRT!=null)   ? (aRT.toFixed(2)+'秒') : '--';
+  var b=$('rtModeSeg').querySelectorAll('button'), i;
+  for(i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', b[i].dataset.rm===rtMode ? 'true':'false');
+  $('rtAuto').classList.toggle('hide', rtMode==='manual');
+  $('rtMan').classList.toggle('hide', rtMode!=='manual');
+}
+function rtCalc(){
+  if(aSigT!=null && aT0!=null){
+    if(aT0>aSigT) aRT = aT0-aSigT;
+    else { aRT=null; toast(T('rtBad')); }
+  }
+  rtPaint();
+  paintSheet();
+}
+function rtAudioInit(){
+  if(rtAn) return true;
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return false;
+    rtAC=new AC();
+    rtSrcNode=rtAC.createMediaElementSource($('v'));
+    rtAn=rtAC.createAnalyser(); rtAn.fftSize=1024;
+    rtSrcNode.connect(rtAn); rtAn.connect(rtAC.destination);
+    rtBuf=new Uint8Array(rtAn.fftSize);
+    return true;
+  }catch(e){ return false; }
+}
+function rtStop(found){
+  rtScanning=false;
+  if(rtRaf){ cancelAnimationFrame(rtRaf); rtRaf=null; }
+  try{ $('v').pause(); }catch(e){}
+  $('bPlay').textContent=T('play');
+  if(found){ $('rtStatus').textContent=T('rtFound'); rtCalc(); }
+  else $('rtStatus').textContent=T('rtNotFound');
+}
+function rtScanStart(){
+  if(aT0==null){ toast(T('rtNeedStart')); return; }
+  var v=$('v'), useSound=(rtMode==='sound');
+  if(useSound && !rtAudioInit()){ $('rtStatus').textContent=T('rtAudioNG'); return; }
+  if(!useSound && !rtCv){ rtCv=document.createElement('canvas'); rtCv.width=64; rtCv.height=36; rtCtx=rtCv.getContext('2d'); }
+  try{ v.currentTime=Math.max(0, aT0-3); }catch(e){}
+  rtScanning=true; $('rtStatus').textContent=T('rtFinding');
+  if(rtAC && rtAC.state==='suspended'){ try{ rtAC.resume(); }catch(e){} }
+  v.play().catch(function(){});
+  var base=null, quiet=0;
+  function loop(){
+    if(!rtScanning) return;
+    var t=v.currentTime;
+    if(v.ended || t>=aT0){ rtStop(false); return; }
+    var val;
+    if(useSound){
+      rtAn.getByteTimeDomainData(rtBuf);
+      var peak=0; for(var i=0;i<rtBuf.length;i++){ var dd=Math.abs(rtBuf[i]-128); if(dd>peak) peak=dd; }
+      val=peak;                                   /* 0〜128 */
+    }else{
+      try{ rtCtx.drawImage(v,0,0,rtCv.width,rtCv.height); }catch(e){ rtStop(false); return; }
+      var im; try{ im=rtCtx.getImageData(0,0,rtCv.width,rtCv.height).data; }catch(e){ rtStop(false); return; }
+      var sum=0; for(var k=0;k<im.length;k+=4) sum += im[k]*0.299+im[k+1]*0.587+im[k+2]*0.114;
+      val=sum/(im.length/4);                      /* 0〜255 */
+    }
+    if(base==null) base=val;
+    var thr = useSound ? Math.max(20, base+14) : (base+16);
+    if(quiet>5 && val>thr){ aSigT=t; rtStop(true); return; }
+    if(val<=thr){ base=base*0.9+val*0.1; quiet++; }
+    rtRaf=requestAnimationFrame(loop);
+  }
+  rtRaf=requestAnimationFrame(loop);
+}
+$('bRt').onclick=function(){ $('rtStatus').textContent=''; rtPaint(); $('rtBox').classList.remove('hide'); };
+$('rtX').onclick=function(){ if(rtScanning) rtStop(false); $('rtBox').classList.add('hide'); };
+(function(){
+  var b=$('rtModeSeg').querySelectorAll('button');
+  for(var i=0;i<b.length;i++) b[i].onclick=function(){
+    if(rtScanning) rtStop(false);
+    rtMode=this.dataset.rm;
+    try{ localStorage.setItem('swimiq_rtmode', rtMode); }catch(e){}
+    $('rtStatus').textContent=''; rtPaint();
+  };
+})();
+$('rtFind').onclick=function(){ rtScanStart(); };
+$('rtNow').onclick=function(){
+  if(aT0==null){ toast(T('rtNeedStart')); return; }
+  aSigT=$('v').currentTime; $('rtStatus').textContent=T('rtFound'); rtCalc();
+};
+$('rtVal').oninput=function(){
+  var n=parseFloat(this.value);
+  if(!isNaN(n) && n>0){ aRT=n; if(aT0!=null) aSigT=aT0-n; } else { aRT=null; }
+  rtPaint(); paintSheet();
+};
+$('rtClear').onclick=function(){
+  aSigT=null; aRT=null; $('rtVal').value=''; $('rtStatus').textContent=''; rtPaint(); paintSheet();
 };
 $('bStroke').onclick=function(){
   var on=this.getAttribute('aria-pressed')!=='true';
@@ -2723,7 +2888,8 @@ function dPaintSR(){
     '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
     '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
     '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>'+
-    '<div><b>'+dStrokes.length+'</b><span>'+T('nStr')+'</span></div>';
+    '<div><b>'+dStrokes.length+'</b><span>'+T('nStr')+'</span></div>'+
+    ((dRec && dRec.rt!=null) ? ('<div><b>'+Number(dRec.rt).toFixed(2)+'</b><span>'+T('rtOutLbl')+'</span></div>') : '');
 }
 function dAddStroke(){
   dStrokes.push($('dv').currentTime); dPaintSR();
@@ -2801,6 +2967,7 @@ $('anaSave').onclick=function(){
       dist: Number($('dist').value),
       event: $('event').value,
       t0: aT0,
+      sigT: aSigT, rt: aRT, rtMode: (aRT!=null ? rtMode : null),
       splits: aSplits.slice(),
       strokes: aStrokes.slice(),
       video: aBlob,
@@ -2985,7 +3152,8 @@ $('dAgain').onclick=function(){
   if(!dRec) return;
   $('dv').pause();
   openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
-                        event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes });
+                        event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
+                        sigT:dRec.sigT, rt:dRec.rt });
 };
 $('dVid').onclick=function(){
   if(!dRec) return;
@@ -3002,6 +3170,7 @@ function recText(r){
       L.push(r.splits[i].d+'m  '+fmt(r.splits[i].t)+'  (+'+fmt(r.splits[i].t-pv)+')');
     }
   }
+  if(r.rt!=null) L.push('', T('rtOutLbl')+'  '+Number(r.rt).toFixed(2)+'秒（'+T('rtFootLbl')+'までの時間）');
   var sts=[];
   for(var k=1;k<(r.strokes||[]).length;k++){ var st=r.strokes[k]-r.strokes[k-1]; if(st>0.05) sts.push(st); }
   if(sts.length){
@@ -3380,35 +3549,50 @@ $('openCam').onclick=function(){
   grip.addEventListener('pointerup',end); grip.addEventListener('pointercancel',end);
 })();
 
-/* 分析・くわしく画面の「結果」の枠を つまんで うごかす
-   （動画に かぶって 見えないとき、じゃまに ならない ところへ よけられる） */
-function makeDraggable(grip, target){
-  if(!grip || !target) return;
-  var cx=0, cy=0, sx=0, sy=0, ox=0, oy=0, baseL=0, baseT=0, w=0, h=0, on=false;
-  var M=6;
-  grip.addEventListener('pointerdown', function(e){
-    on=true; sx=e.clientX; sy=e.clientY; ox=cx; oy=cy;
-    var r=target.getBoundingClientRect();
+/* 分析・くわしく画面の「結果」の枠を うごかす。
+   枠の どこを おしても つかめる（どこでもドラッグ）。
+   すこし 動かすと 移動、動かさず 指を はなすと ふつうの タップ。 */
+function makeDraggable(box){
+  if(!box) return;
+  var cx=0, cy=0, sx=0, sy=0, ox=0, oy=0, baseL=0, baseT=0, w=0, h=0;
+  var down=false, moved=false, pid=null, justDragged=false;
+  var M=6, TH=6;
+  box.addEventListener('pointerdown', function(e){
+    if(e.button && e.button!==0) return;
+    down=true; moved=false; pid=e.pointerId;
+    sx=e.clientX; sy=e.clientY; ox=cx; oy=cy;
+    var r=box.getBoundingClientRect();
     baseL=r.left-cx; baseT=r.top-cy; w=r.width; h=r.height;
-    try{ grip.setPointerCapture(e.pointerId); }catch(err){}
-    e.preventDefault(); e.stopPropagation();
   });
-  grip.addEventListener('pointermove', function(e){
-    if(!on) return;
-    var nx=ox+(e.clientX-sx), ny=oy+(e.clientY-sy);
+  box.addEventListener('pointermove', function(e){
+    if(!down) return;
+    var dx=e.clientX-sx, dy=e.clientY-sy;
+    if(!moved){
+      if(Math.abs(dx)+Math.abs(dy) < TH) return;   /* しきい値を こえたら 移動開始 */
+      moved=true;
+      try{ box.setPointerCapture(pid); }catch(err){}
+    }
     var minx=M-baseL, maxx=window.innerWidth-w-M-baseL;
     var miny=M-baseT, maxy=window.innerHeight-h-M-baseT;
-    cx=Math.max(minx, Math.min(nx, maxx));
-    cy=Math.max(miny, Math.min(ny, maxy));
-    target.style.transform='translate('+cx+'px,'+cy+'px)';
+    cx=Math.max(minx, Math.min(ox+dx, maxx));
+    cy=Math.max(miny, Math.min(oy+dy, maxy));
+    box.style.transform='translate('+cx+'px,'+cy+'px)';
     e.preventDefault();
   });
-  function end2(e){ if(!on) return; on=false; try{ grip.releasePointerCapture(e.pointerId); }catch(err){} }
-  grip.addEventListener('pointerup', end2);
-  grip.addEventListener('pointercancel', end2);
+  function end(e){
+    if(!down) return; down=false;
+    if(moved){
+      try{ box.releasePointerCapture(pid); }catch(err){}
+      justDragged=true; setTimeout(function(){ justDragged=false; }, 60);  /* 直後のタップを 打ち消す */
+    }
+  }
+  box.addEventListener('pointerup', end);
+  box.addEventListener('pointercancel', end);
+  /* 動かした直後の click（ボタン誤爆）を 止める */
+  box.addEventListener('click', function(e){ if(justDragged){ e.stopPropagation(); e.preventDefault(); } }, true);
 }
-makeDraggable($('anaGrip'), $('ana').querySelector('.oInfo'));
-makeDraggable($('dGrip'), $('detail').querySelector('.oInfo'));
+makeDraggable($('ana').querySelector('.oInfo'));
+makeDraggable($('detail').querySelector('.oInfo'));
 
 /* とってある 動画を ひらく */
 $('fPick').addEventListener('change', function(){
@@ -3882,6 +4066,7 @@ function buildReport(r){
     {k:'平均SR', v:(ss.sr!=null?ss.sr.toFixed(1):'--'), u:''},
     {k:T('nStr'), v:(ss.n!=null?ss.n:'--'), u:''}
   ];
+  if(r.rt!=null) kp.push({ k:T('rtOutLbl'), v:Number(r.rt).toFixed(2), u:'秒' });
   var spTbl='<tr><th>区間</th><th>通過</th><th>ラップ</th></tr>';
   (r.splits||[]).forEach(function(sp,idx){ spTbl+='<tr><td>'+sp.d+'m</td><td>'+fmt(sp.t)+'</td><td>+'+fmt(sp.t-(idx>0?r.splits[idx-1].t:0))+'</td></tr>'; });
 
@@ -3945,7 +4130,8 @@ function reportSVG(r, W, H){
           {k:'平均ST',v:(ss.st!=null?ss.st.toFixed(2):'--'),u:'秒'},
           {k:'平均SR',v:(ss.sr!=null?ss.sr.toFixed(1):'--'),u:''},
           {k:T('nStr'),v:(ss.n!=null?ss.n:'--'),u:''}];
-  var kW=(cw-30)/4, kY=178, kH=66;
+  if(r.rt!=null) kp.push({k:T('rtOutLbl'),v:Number(r.rt).toFixed(2),u:'秒'});
+  var kW=(cw-10*(kp.length-1))/kp.length, kY=178, kH=66;
   kp.forEach(function(x,idx){ var kx=mx+idx*(kW+10);
     s+='<rect x="'+kx+'" y="'+kY+'" width="'+kW+'" height="'+kH+'" rx="12" fill="'+(x.hl?'#fffaf0':'#ffffff')+'" stroke="'+(x.hl?'#f2b01e':'#e4e6ea')+'" stroke-width="1.5"/>';
     s+='<text x="'+(kx+13)+'" y="'+(kY+22)+'" font-size="10.5" font-weight="800" fill="#5b6270">'+esc(x.k)+'</text>';
@@ -4549,7 +4735,9 @@ $('exJson').onclick=function(){
                t0:r.t0, splits:r.splits, strokes:r.strokes,
                manual:!!r.manual, manualN:(r.manualN!=null?r.manualN:null), manualST:(r.manualST!=null?r.manualST:null),
                manualSegs:(r.manualSegs||null), videoUrl:(r.videoUrl||''),
-               swimmerId:(r.swimmerId||''), swimmerName:(r.swimmerName||''), updatedAt:(r.updatedAt||r.at) };
+               swimmerId:(r.swimmerId||''), swimmerName:(r.swimmerName||''),
+               sigT:(r.sigT!=null?r.sigT:null), rt:(r.rt!=null?r.rt:null), rtMode:(r.rtMode||null),
+               updatedAt:(r.updatedAt||r.at) };
     });
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
     var blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
@@ -4584,6 +4772,7 @@ $('fImport').onchange=function(){
         manualSegs: (src.manualSegs && src.manualSegs.length) ? src.manualSegs : segsFromStrokes(src.splits, src.strokes),
         videoUrl: (src.videoUrl||''),
         swimmerId: (src.swimmerId||''), swimmerName: (src.swimmerName||''),
+        sigT: (src.sigT!=null?src.sigT:null), rt: (src.rt!=null?src.rt:null), rtMode: (src.rtMode||null),
         updatedAt: (src.updatedAt || src.at || Date.now()),
         thumb: ''
       };

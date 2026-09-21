@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.23">
+<meta name="app-ver" content="2026.09.21.24">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -2066,6 +2066,7 @@ var W={
  vfSplHint:['左が きょり、右が 経過タイムです。きょりが ちがう ときは 左で えらび直して ください。いらない 行は ✕ で けせます。','左が距離、右が経過タイムです。距離が違うときは左で選び直してください。いらない行は✕で消せます。'],
  vfSplAdd:['＋ 行を ふやす','＋ 行を増やす'],
  tooClose:['さっき おした ところと 近すぎます','直前に押した場面と近すぎます'],
+ msgOver:['上書きしました　','上書きしました　'],
  vfVidLbl:['動画リンク（Googleドライブなど・任意）','動画リンク（Googleドライブなど・任意）'],
  vidOpen:['リンクを 開く','リンクを開く'],
  vidNone:['動画リンクが ありません','動画リンクがありません'],
@@ -2285,7 +2286,11 @@ function rtIsOn(){ return (typeof rtOn!=='undefined') && !!rtOn; }
 /* 自分で 一覧を えらんだ ときだけ、その えらびを のこします */
 var selManual=false;
 function paintNextSel(){
-  var sel=$('nextSel'), f=freeD(), keep=sel.value||'', i, o;
+  /* 一覧は いつも ぜんぶ 出します。
+     すでに 入れた ところには ✓ を つけ、えらび直せば 上書きできます。 */
+  var sel=$('nextSel'), all=lapDists(Number($('dist').value)), keep=sel.value||'', i, o;
+  var used={};
+  for(i=0;i<aSplits.length;i++) used[aSplits[i].d]=1;
   sel.innerHTML='';
   if(rtIsOn()){
     o=document.createElement('option'); o.value='sig';
@@ -2293,16 +2298,16 @@ function paintNextSel(){
   }
   o=document.createElement('option'); o.value='t0';
   o.textContent=T('rtFootLbl')+(aT0!=null?' ✓':''); sel.appendChild(o);
-  for(i=0;i<f.length;i++){
+  for(i=0;i<all.length;i++){
     o=document.createElement('option');
-    o.value=String(f[i]); o.textContent=f[i]+'m'; sel.appendChild(o);
+    o.value=String(all[i]); o.textContent=all[i]+'m'+(used[all[i]]?' ✓':''); sel.appendChild(o);
   }
   sel.disabled=false;
   /* つぎに やる ところを じどうで えらびます */
   var want='';
   if(rtIsOn() && aSigT==null) want='sig';
   else if(aT0==null) want='t0';
-  else { var a=autoD(); want = (a!==null) ? String(a) : ''; }
+  else { var a=autoD(); want = (a!==null) ? String(a) : String(all[all.length-1]); }
   /* 自分で えらんだ ものが まだ 一覧に あれば そのまま のこします */
   var has=false;
   for(i=0;i<sel.options.length;i++) if(sel.options[i].value===keep) has=true;
@@ -2349,9 +2354,9 @@ function paintTbl(){
   for(var i=0;i<aSplits.length;i++){
     var prev = i>0 ? aSplits[i-1].t : 0;
     var r=document.createElement('div'); r.className='tr';
-    var f=freeD(), opt='', k;
-    if(f.indexOf(aSplits[i].d)<0) f.push(aSplits[i].d);
-    f.sort(function(x,y){ return x-y; });
+    /* きょりの らんも ぜんぶ 出します（えらび直せます） */
+    var f=lapDists(Number($('dist').value)).slice(), opt='', k;
+    if(f.indexOf(aSplits[i].d)<0){ f.push(aSplits[i].d); f.sort(function(x,y){ return x-y; }); }
     for(k=0;k<f.length;k++) opt+='<option value="'+f[k]+'"'+(f[k]===aSplits[i].d?' selected':'')+'>'+f[k]+'m</option>';
     r.innerHTML='<span class="c1 cSel"><select class="dSel" data-i="'+i+'" aria-label="'+T('hDist')+'">'+opt+'</select></span>'+
                 '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
@@ -2361,7 +2366,13 @@ function paintTbl(){
   }
   var ss=b.querySelectorAll('select.dSel'), xs=b.querySelectorAll('button[data-x]'), q;
   for(q=0;q<ss.length;q++) ss[q].onchange=function(){
-    aSplits[Number(this.dataset.i)].d = Number(this.value);
+    var idx=Number(this.dataset.i), nd=Number(this.value), j2;
+    /* おなじ きょりが ほかの 行に あれば、きょりを 入れかえます */
+    for(j2=0;j2<aSplits.length;j2++){
+      if(j2!==idx && aSplits[j2].d===nd){ aSplits[j2].d=aSplits[idx].d; break; }
+    }
+    aSplits[idx].d = nd;
+    aSplits.sort(function(x,y){ return x.d-y.d; });
     paintTbl(); anaP.paint();
   };
   for(q=0;q<xs.length;q++) xs[q].onclick=function(){
@@ -2754,12 +2765,15 @@ $('bPass').onclick=function(){
   var n=nextD();
   if(n===null) return;
   if(aT0===null){ toast(T('needFoot')); return; }
-  var tt=t-aT0, j;
-  /* 2どおし・おしすぎを ふせぎます（0.3秒いないは 同じ ところと みなす） */
+  var tt=t-aT0, j, hit=-1;
   for(j=0;j<aSplits.length;j++){
+    if(aSplits[j].d===n){ hit=j; continue; }
+    /* ほかの きょりと 0.3秒いないは、おしすぎと みなして ことわります */
     if(Math.abs(aSplits[j].t-tt)<0.30){ toast(T('tooClose')); return; }
   }
-  aSplits.push({ d:n, t:tt });
+  /* おなじ きょりを えらび直した ときは 上書きします */
+  if(hit>=0){ aSplits[hit].t=tt; toast(T('msgOver')+n+'m'); }
+  else aSplits.push({ d:n, t:tt });
   aSplits.sort(function(x,y){ return x.d-y.d; });   /* きょりの 順に ならべます */
   selManual=false; $('nextSel').value='';
   paintTbl();

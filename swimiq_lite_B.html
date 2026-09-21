@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.8">
+<meta name="app-ver" content="2026.09.21.9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1091,6 +1091,16 @@ body, button, select, input, textarea{
     <button class="btn y" id="openSurvey" type="button" data-t="svBtn"></button>
   </div>
 
+  <div class="gl" data-t="glSync"></div>
+  <div class="take">
+    <p class="hint" data-t="syncHint" style="margin:0 2px 4px;"></p>
+    <p class="q" data-t="syncUrlLbl" style="margin:2px;font-size:13px;font-weight:800;"></p>
+    <input type="text" id="syncUrl" inputmode="url" autocomplete="off" spellcheck="false"
+      style="width:100%;box-sizing:border-box;min-height:46px;padding:8px 12px;border-radius:var(--rM);border:2px solid var(--line);background:var(--pane);color:#fff;font-size:14px;">
+    <button class="btn b" id="syncSaveUrl" type="button" data-t="syncSaveUrl"></button>
+    <button class="btn g" id="syncNow" type="button" data-t="syncNowBtn"></button>
+  </div>
+
   <div class="gl" data-t="exGl"></div>
   <div class="take">
     <button class="btn b" id="exCsv" type="button" data-t="exCsvBtn"></button>
@@ -1313,6 +1323,10 @@ body, button, select, input, textarea{
       <input type="text" id="mTime" inputmode="decimal">
     </div>
     <div class="sq">
+      <p class="q" data-t="vfVidLbl"></p>
+      <input type="text" id="mVid" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://drive.google.com/…">
+    </div>
+    <div class="sq">
       <p class="q" data-t="mSegLbl"></p>
       <p class="lead" data-t="mSegHint"></p>
       <div id="mSegWrap"></div>
@@ -1368,6 +1382,11 @@ body, button, select, input, textarea{
       <p class="q" data-t="vfSTLbl"></p>
       <p class="lead" data-t="vfSTHint"></p>
       <input type="text" id="vfST" inputmode="decimal">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="vfVidLbl"></p>
+      <input type="text" id="vfVid" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://drive.google.com/…">
+      <button class="btn b" type="button" id="vfVidOpen" data-t="vidOpen" style="margin-top:6px;"></button>
     </div>
     <div class="svBtns">
       <button class="btn" type="button" id="vfCancel" data-t="dMenuX"></button>
@@ -1677,6 +1696,22 @@ var W={
  exImportOK:['きろくを 読み込みました','記録を読み込みました'],
  exImportNG:['読み込めませんでした。ファイルを たしかめてください','読み込めませんでした。ファイルを確認してください'],
  exNoData:['書き出す きろくが ありません','書き出す記録がありません'],
+
+ glSync:['クラウド同期（パソコンと共有）','クラウド同期（パソコンと共有）'],
+ syncUrlLbl:['同期の アドレス（GASのURL）','同期のアドレス（GASのURL）'],
+ syncUrlPh:['https://script.google.com/macros/s/…/exec','https://script.google.com/macros/s/…/exec'],
+ syncSaveUrl:['アドレスを ほぞん','アドレスを保存'],
+ syncNowBtn:['いま すぐ 同期する','今すぐ同期する'],
+ syncHint:['スマホで入れた記録をパソコンと共有します。数字と動画リンクだけ共有し、動画そのものは各端末に残ります。撮った動画はGoogleドライブに上げ、そのリンクを記録に貼ると、ほかの端末でも見られます。','スマホで入れた記録をパソコンと共有します。数字と動画リンクだけ共有し、動画そのものは各端末に残ります。撮った動画はGoogleドライブに上げ、そのリンクを記録に貼ると、他の端末でも見られます。'],
+ syncUrlSaved:['アドレスを ほぞんしました','アドレスを保存しました'],
+ syncNoUrl:['先に 同期の アドレスを 入れてください','先に同期のアドレスを入れてください'],
+ syncDoing:['同期しています…','同期中…'],
+ syncDone:['同期しました','同期が完了しました'],
+ syncNG:['同期できませんでした。アドレスと つうしんを たしかめてください','同期できませんでした。アドレスと通信を確認してください'],
+ vfVidLbl:['動画リンク（Googleドライブなど・任意）','動画リンク（Googleドライブなど・任意）'],
+ vidOpen:['リンクを 開く','リンクを開く'],
+ vidNone:['動画リンクが ありません','動画リンクがありません'],
+ dOpenLink:['動画リンクを 開く','動画リンクを開く'],
 
  swOpen:['ストップウォッチ<small>タイムと ラップを はかる</small>','ストップウォッチ<small>タイム・ラップ計測</small>'],
  swTitle:['ストップウォッチ','ストップウォッチ'],
@@ -2413,7 +2448,8 @@ $('dStroke').onclick=function(){
     $('dv').pause();
     if(dRec){
       dRec.strokes=dStrokes.slice();
-      dbPut(dRec).then(function(){ toast(T('msgStrSaved')); paintList(); });
+      dRec.updatedAt=Date.now();
+      dbPut(dRec).then(function(){ pushOne(dRec); toast(T('msgStrSaved')); paintList(); });
     }
   }
   dPaintSR();
@@ -2465,10 +2501,13 @@ $('anaSave').onclick=function(){
       splits: aSplits.slice(),
       strokes: aStrokes.slice(),
       video: aBlob,
+      videoUrl: '',
+      updatedAt: Date.now(),
       thumb: th
     };
-    return dbPut(rec);
-  }).then(function(){
+    return dbPut(rec).then(function(){ return rec; });
+  }).then(function(rec){
+    if(rec) pushOne(rec);
     toast(T('msgSavedDev'));
     aId=null;
     $('v').pause(); show('home'); paintList();
@@ -2512,7 +2551,15 @@ function recCard(r){
     '<div class="ci"><div class="ct">'+r.title+'</div>'+
     '<div class="cd">'+new Date(r.at).toLocaleString('ja-JP')+
     '　'+evLabel(r.event)+ timeHtml +'</div></div>';
-  c.onclick=function(){ if(r.manual) manualOpen(r); else openDetail(r.id); };
+  c.onclick=function(){
+    if(r.manual){ manualOpen(r); return; }
+    if(!r.video){                     /* 同期で来た記録：この端末に動画が無い */
+      if(r.videoUrl) openVid(r.videoUrl);
+      else vfOpen(r);
+      return;
+    }
+    openDetail(r.id);
+  };
   if(!r.manual){
     var tb=c.querySelector('.cTimeBtn');
     if(tb) tb.onclick=function(e){ e.stopPropagation(); vfOpen(r); };
@@ -2609,7 +2656,8 @@ $('dSum').onclick=function(){ if(dRec) vfOpen(dRec); };
 $('dDel').onclick=function(){
   if(!dRec) return;
   if(!confirm(T('askDel'))) return;
-  dbDel(dRec.id).then(function(){ toast(T('msgDeleted')); $('dv').pause(); show('home'); paintList(); });
+  var id=dRec.id;
+  dbDel(id).then(function(){ cloudTomb(id); toast(T('msgDeleted')); $('dv').pause(); show('home'); paintList(); });
 };
 $('dAgain').onclick=function(){
   if(!dRec) return;
@@ -2638,6 +2686,7 @@ function recText(r){
     L.push('', '['+T('glStroke')+']');
     for(var m=0;m<sts.length;m++) L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  SR'+(60/sts[m]).toFixed(1));
   }
+  if(r.videoUrl){ L.push('', '['+T('dOpenLink')+']', r.videoUrl); }
   return L.join('\n');
 }
 $('dCopy').onclick=function(){
@@ -3288,6 +3337,7 @@ function manualOpen(rec){
   var last = (rec && rec.splits && rec.splits.length) ? rec.splits[rec.splits.length-1].t : null;
   $('mTime').value = last!=null ? fmt(last) : '';
   renderMSegs(dist, (rec && rec.manualSegs) ? rec.manualSegs : null);
+  $('mVid').value = (rec && rec.videoUrl) ? rec.videoUrl : '';
   $('mDel').classList.toggle('hide', !rec);
   $('manualBox').classList.remove('hide');
 }
@@ -3398,11 +3448,12 @@ $('swSave').onclick=function(){
   var d=Number($('swDist').value)||50;
   var splits=swLaps.map(function(c,i){ return { d:(i+1)*d, t:c }; });
   var total=swLaps.length*d;
-  var rec={ id:'sw'+Date.now(), at:Date.now(),
+  var rec={ id:'sw'+Date.now(), at:Date.now(), updatedAt:Date.now(),
     title:total+'m　'+evLabel('free'),
     pool:(d===25?25:50), dist:total, event:'free',
-    splits:splits, strokes:[], manual:true, manualSegs:null, thumb:'' };
+    splits:splits, strokes:[], manual:true, manualSegs:null, videoUrl:'', thumb:'' };
   dbPut(rec).then(function(){
+    pushOne(rec);
     toast(T('swSaved'));
     swReset(); swClose(); paintList();
   });
@@ -3447,9 +3498,12 @@ $('mSave').onclick=function(){
     manualSegs: segs,
     manualN: hasN ? totalN : null,
     manualST: cntST ? (sumST/cntST) : null,
+    videoUrl: ($('mVid').value||'').trim(),
+    updatedAt: Date.now(),
     thumb: ''
   };
   dbPut(rec).then(function(){
+    pushOne(rec);
     $('manualBox').classList.add('hide');
     toast(T('mSaved'));
     paintList();
@@ -3459,7 +3513,9 @@ $('mSave').onclick=function(){
 $('mDel').onclick=function(){
   if(!manualEditId) return;
   if(!confirm(T('askDel'))) return;
-  dbDel(manualEditId).then(function(){
+  var id=manualEditId;
+  dbDel(id).then(function(){
+    cloudTomb(id);
     $('manualBox').classList.add('hide');
     toast(T('msgDeleted'));
     paintList();
@@ -3482,6 +3538,7 @@ function vfOpen(rec){
   $('vfTime').value = last ? fmt(last.t) : '';
   $('vfN').value = (ss.n!=null) ? String(ss.n) : '';
   $('vfST').value = (ss.st!=null) ? ss.st.toFixed(2) : '';
+  $('vfVid').value = rec.videoUrl || '';
   $('vfDel').classList.remove('hide');
   $('vFix').classList.remove('hide');
 }
@@ -3496,6 +3553,7 @@ $('vfDel').onclick=function(){
   if(!confirm(T('askDel'))) return;
   var id=vfEditId;
   dbDel(id).then(function(){
+    cloudTomb(id);
     $('vFix').classList.add('hide');
     toast(T('msgDeleted'));
     paintList();
@@ -3521,8 +3579,11 @@ $('vfSave').onclick=function(){
     else rec.splits.push({ d:dist, t:t });
     rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
-    return dbPut(rec);
-  }).then(function(){
+    rec.videoUrl = ($('vfVid').value||'').trim();
+    rec.updatedAt = Date.now();
+    return dbPut(rec).then(function(){ return rec; });
+  }).then(function(rec){
+    if(rec) pushOne(rec);
     $('vFix').classList.add('hide');
     toast(T('mSaved'));
     vfRefresh();
@@ -3561,6 +3622,99 @@ function bindDigitTime(el){
 }
 bindDigitTime($('mTime'));
 bindDigitTime($('vfTime'));
+
+/* ================================================================
+   クラウド同期（Googleスプレッドシート + GAS）
+   数字のデータと 動画リンクだけ 共有します。動画そのもの(video)は
+   おもいので 送らず、各端末に のこします。
+   ================================================================ */
+var SYNC_URL='';
+try{ SYNC_URL = localStorage.getItem('swimiq_sync_url') || ''; }catch(e){}
+function cloudRec(r){                       /* 送る用：動画Blobを のぞく */
+  var o={}, k;
+  for(k in r){ if(k==='video') continue; o[k]=r[k]; }
+  if(o.updatedAt==null) o.updatedAt = r.at || Date.now();
+  return o;
+}
+function cloudPush(recs){
+  if(!SYNC_URL || !recs || !recs.length) return Promise.resolve(null);
+  var body = JSON.stringify({ records: recs.map(cloudRec) });
+  return fetch(SYNC_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:body })
+    .then(function(r){ return r.json().catch(function(){ return {}; }); })
+    .catch(function(){ return null; });
+}
+function cloudTomb(id){
+  if(!SYNC_URL || !id) return Promise.resolve(null);
+  return cloudPush([{ id:id, deleted:true, updatedAt:Date.now() }]);
+}
+function cloudPull(){
+  if(!SYNC_URL) return Promise.resolve(null);
+  return fetch(SYNC_URL, { method:'GET' })
+    .then(function(r){ return r.json(); }).catch(function(){ return null; });
+}
+var syncing=false;
+function syncNow(opts){
+  opts = opts || {};
+  if(!SYNC_URL){ if(opts.toast) toast(T('syncNoUrl')); return Promise.resolve(); }
+  if(syncing) return Promise.resolve();
+  syncing=true;
+  if(opts.toast) toast(T('syncDoing'));
+  return Promise.all([ dbAll(), cloudPull() ]).then(function(res){
+    var local=res[0]||[], pulled=res[1];
+    if(!pulled || !pulled.records){ throw new Error('pull'); }
+    var cloud=pulled.records||[];
+    var lmap={}; local.forEach(function(r){ lmap[r.id]=r; });
+    var cmap={}; cloud.forEach(function(c){ if(c&&c.id) cmap[c.id]=c; });
+    var chain=Promise.resolve();
+    /* クラウド → ローカル（新しい方を のこす／消えたものは 消す） */
+    cloud.forEach(function(cr){
+      if(!cr||!cr.id) return;
+      var lr=lmap[cr.id];
+      var cu=cr.updatedAt||0, lu=lr?(lr.updatedAt||lr.at||0):-1;
+      if(cr.deleted){ if(lr) chain=chain.then(function(){ return dbDel(cr.id); }); return; }
+      if(!lr || cu>lu){
+        if(lr && lr.video && !cr.video) cr.video=lr.video;   /* ローカルの動画は のこす */
+        chain=chain.then(function(){ return dbPut(cr); });
+      }
+    });
+    /* ローカル → クラウド（クラウドに無い・ローカルが新しい） */
+    var toPush=[];
+    local.forEach(function(lr){
+      var cr=cmap[lr.id];
+      var lu=lr.updatedAt||lr.at||0, cu=cr?(cr.updatedAt||0):-1;
+      if(cr&&cr.deleted) return;
+      if(!cr || lu>cu) toPush.push(lr);
+    });
+    return chain.then(function(){ return cloudPush(toPush); });
+  }).then(function(){
+    syncing=false;
+    paintList();
+    if(!$('compare').classList.contains('hide')) cmpReload();
+    if(opts.toast) toast(T('syncDone'));
+  }).catch(function(){
+    syncing=false;
+    if(opts.toast) toast(T('syncNG'));
+  });
+}
+/* 保存した記録を すぐ クラウドへ（うまくいかなくても 画面は そのまま） */
+function pushOne(rec){ if(SYNC_URL && rec) cloudPush([rec]); }
+
+/* 設定：同期アドレスの ほぞんと 同期ボタン */
+$('syncUrl').value = SYNC_URL;
+$('syncUrl').placeholder = T('syncUrlPh');
+$('syncSaveUrl').onclick=function(){
+  SYNC_URL = ($('syncUrl').value||'').trim();
+  try{ localStorage.setItem('swimiq_sync_url', SYNC_URL); }catch(e){}
+  toast(T('syncUrlSaved'));
+};
+$('syncNow').onclick=function(){ syncNow({ toast:true }); };
+/* 動画リンクを 開く */
+function openVid(url){
+  url=(url||'').trim();
+  if(!url){ toast(T('vidNone')); return; }
+  try{ window.open(url, '_blank'); }catch(e){ location.href=url; }
+}
+$('vfVidOpen').onclick=function(){ openVid($('vfVid').value); };
 
 /* ===== パソコン・ほかの端末と やりとり =====
    動画は おもすぎるので、書き出す 中身は 数字だけ（日づけ・種目・きょり・
@@ -3602,7 +3756,7 @@ $('exJson').onclick=function(){
       return { id:r.id, at:r.at, title:r.title, pool:r.pool, dist:r.dist, event:r.event,
                t0:r.t0, splits:r.splits, strokes:r.strokes,
                manual:!!r.manual, manualN:(r.manualN!=null?r.manualN:null), manualST:(r.manualST!=null?r.manualST:null),
-               manualSegs:(r.manualSegs||null) };
+               manualSegs:(r.manualSegs||null), videoUrl:(r.videoUrl||''), updatedAt:(r.updatedAt||r.at) };
     });
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
     var blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
@@ -3635,6 +3789,8 @@ $('fImport').onchange=function(){
         manualN: (src.manualN!=null ? src.manualN : (src.manual ? null : null)),
         manualST: (src.manualST!=null ? src.manualST : null),
         manualSegs: (src.manualSegs && src.manualSegs.length) ? src.manualSegs : segsFromStrokes(src.splits, src.strokes),
+        videoUrl: (src.videoUrl||''),
+        updatedAt: (src.updatedAt || src.at || Date.now()),
         thumb: ''
       };
       dbPut(rec).then(function(){ n++; next(); }, function(){ next(); });
@@ -3993,6 +4149,8 @@ $('verBottom').textContent = 'ver ' + APP_VER;
 $('setVer').textContent = APP_VER;
 setTimeout(checkUpdate, 1200);
 paintList();
+/* アプリを開いたとき、同期アドレスが 入っていれば クラウドから 読み込む */
+if(SYNC_URL) setTimeout(function(){ syncNow(); }, 900);
 })();
 </script>
 </body>

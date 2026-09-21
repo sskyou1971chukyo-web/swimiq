@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.26">
+<meta name="app-ver" content="2026.09.21.27">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -204,8 +204,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:32px; font-weight:900; line-height:1.3; letter-spacing:.01em;
   font-variant-numeric:tabular-nums; }
 .box{ border-radius:6px; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
-.boxH{ display:flex; align-items:center; gap:6px; padding:3px 4px 3px 10px; flex:0 0 auto; line-height:1.3; }
+.boxH{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:3px 4px 3px 10px;
+  flex:0 0 auto; line-height:1.3; }
 .boxH b{ font-size:13px; font-weight:900; color:var(--am); }
+/* かんたん表記が 長い ときは 2行めに まわします */
+.boxH .sum{ order:3; flex:1 1 100%; }
 .boxGrip{ flex:0 0 auto; cursor:grab; padding:2px 8px 2px 2px; margin-right:2px;
   color:var(--am); font-size:16px; font-weight:900; line-height:1; letter-spacing:-1px;
   touch-action:none; -webkit-user-select:none; user-select:none; }
@@ -215,8 +218,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .turnTag{ font-size:10px; font-weight:900; color:var(--am); }
 .turnNote{ padding:8px 11px; font-size:12px; font-weight:800; color:var(--am);
   line-height:1.55; border-top:1px solid var(--line2); background:rgba(255,196,0,.06); }
-.boxH .sum{ flex:1; min-width:0; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
-  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.boxH .sum{ min-width:0; font-size:14px; font-weight:900; color:#fff; text-align:left;
+  font-variant-numeric:tabular-nums; padding:0 2px 3px; line-height:1.5;
+  white-space:normal; word-break:keep-all; overflow-wrap:anywhere; }
+.boxH b, .boxGrip{ order:1; }
+.boxH button:not(.sum){ order:2; margin-left:auto; }
 .boxH button{ flex:0 0 auto; min-height:32px; padding:2px 8px; border-radius:4px; cursor:pointer;
   border:2px solid var(--line); background:var(--pane2); color:#fff;
   font-size:12px; font-weight:800; }
@@ -249,6 +255,8 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .guide{ max-width:min(92%,520px); padding:5px 14px; border-radius:4px;
   background:rgba(0,0,0,.88); border:2px solid var(--line); border-left:6px solid var(--am);
   color:#fff; font-size:14px; font-weight:800; line-height:1.45; text-align:left; }
+/* 画面を すっきり させるため、説明の 帯は 出しません */
+.guide{ display:none !important; }
 #ana.stroke .guide{ display:none; }
 .guide.hide{ display:none; }
 .strokeTag{ display:none; padding:6px 16px; border-radius:4px; background:var(--am);
@@ -259,8 +267,13 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .oBar{ grid-area:bar; align-self:end; display:flex; align-items:center; gap:7px; min-width:0;
   padding:7px 10px; border-radius:6px; }
 .oBar .ob{ flex:0 0 auto; min-height:52px; padding:4px 10px; font-size:14px; white-space:nowrap; }
-.oBar .pl{ min-width:96px; font-size:16px; border-color:#fff; }
-.oBar .spdB{ min-width:104px; border-color:var(--am); color:var(--am); }
+/* アイコンだけの ボタン（コマ・再生） */
+.oBar .ic{ min-width:58px; padding:4px 6px; font-size:20px; line-height:1; }
+.oBar .pl{ min-width:66px; font-size:22px; border-color:#fff; }
+.oBar .spdB{ min-width:74px; border-color:var(--am); color:var(--am); font-size:15px; }
+/* 分析・再生の きりかえを 下の バーに ならべる */
+.oBar .modeSeg{ flex:0 0 auto; margin-right:2px; }
+.oBar .modeSeg button{ min-height:46px; padding:0 12px; font-size:14px; }
 .oBar .pos{ flex:0 0 auto; margin-left:4px; font-size:13px; font-weight:800; color:var(--dim);
   font-variant-numeric:tabular-nums; }
 .sk{ -webkit-appearance:none; appearance:none; flex:1 1 120px; min-width:60px; height:40px; margin:0;
@@ -1041,10 +1054,6 @@ body, button, select, input, textarea{
   <div class="ov ana">
     <div class="oTop">
       <button class="ob" id="anaBack" type="button" data-t="back"></button>
-      <div class="seg modeSeg" id="modeSeg">
-        <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
-        <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
-      </div>
       <span class="tt" id="anaTitle">分析</span>
       <select class="osel" id="event" data-ta="eventLbl">
         <option value="free" selected>自由形</option>
@@ -1085,9 +1094,13 @@ body, button, select, input, textarea{
     </div>
 
     <div class="oBar glass">
-      <button class="ob" id="bBack1" type="button" data-t="frBack"></button>
-      <button class="ob pl" id="bPlay" type="button" data-t="play"></button>
-      <button class="ob" id="bFwd1" type="button" data-t="frFwd"></button>
+      <div class="seg modeSeg" id="modeSeg">
+        <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
+        <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
+      </div>
+      <button class="ob ic" id="bBack1" type="button" data-t="frBackI" data-ta="frBack"></button>
+      <button class="ob pl ic" id="bPlay" type="button" data-t="playI" data-ta="play"></button>
+      <button class="ob ic" id="bFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="spd" type="button" data-r="1"></button>
       <span class="pos" id="pos">0:00</span>
       <input class="sk" id="sk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
@@ -1159,9 +1172,9 @@ body, button, select, input, textarea{
     <div class="mid"><span class="strokeTag" data-t="strokeTag"></span></div>
 
     <div class="oBar glass">
-      <button class="ob" id="dBack1" type="button" data-t="frBack"></button>
-      <button class="ob pl" id="dPlay" type="button" data-t="play"></button>
-      <button class="ob" id="dFwd1" type="button" data-t="frFwd"></button>
+      <button class="ob ic" id="dBack1" type="button" data-t="frBackI" data-ta="frBack"></button>
+      <button class="ob pl ic" id="dPlay" type="button" data-t="playI" data-ta="play"></button>
+      <button class="ob ic" id="dFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="dspd" type="button" data-r="1"></button>
       <span class="pos" id="dpos">0:00</span>
       <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
@@ -1726,14 +1739,20 @@ var W={
  clearAll:['ぜんぶ 消す','すべて消去'],
  strokeTag:['画面の どこでも おすと 1かき','画面のどこを押しても1ストローク'],
  normal:['ふつう','等速'],
- spd100:['はやさ ふつう','速さ 等速'],
- spd75:['はやさ 0.75','速さ 0.75倍'],
- spd50:['はやさ 0.5','速さ 0.5倍'],
- spd25:['はやさ 0.25','速さ 0.25倍'],
- frBack:['◀ コマ','◀ コマ'],
- frFwd:['コマ ▶','コマ ▶'],
- play:['▶ 再生','▶ 再生'],
- pause:['⏸ とめる','⏸ 停止'],
+ spd200:['2倍','2倍'],
+ spd150:['1.5倍','1.5倍'],
+ spd100:['1倍','1倍'],
+ spd50:['0.5倍','0.5倍'],
+ spd25:['0.25倍','0.25倍'],
+ frBack:['1コマ もどす','1コマ戻す'],
+ frFwd:['1コマ すすむ','1コマ進む'],
+ frBackI:['◀|','◀|'],
+ frFwdI:['|▶','|▶'],
+ play:['再生','再生'],
+ pause:['とめる','停止'],
+ playI:['▶','▶'],
+ pauseI:['❚❚','❚❚'],
+ spdLbl:['はやさ','再生速度'],
  bStart:['タイムを 計る<small>足離れで おす</small>','タイムを計る<small>足離れで押す</small>'],
  bStartRe:['タイムを 計る<small>やりなおす</small>','タイムを計る<small>やり直す</small>'],
 
@@ -2116,8 +2135,12 @@ function applyWords(){
     $('cSound').textContent=T(cWantSound?'sndOn':'sndOff');
     sensPaint();
     cBtns();
-    $('bPlay').textContent=T($('v').paused?'play':'pause');
-    $('dPlay').textContent=T($('dv').paused?'play':'pause');
+    $('bPlay').textContent=T($('v').paused?'playI':'pauseI');
+    $('dPlay').textContent=T($('dv').paused?'playI':'pauseI');
+    $('bPlay').setAttribute('aria-label', T($('v').paused?'play':'pause'));
+    $('dPlay').setAttribute('aria-label', T($('dv').paused?'play':'pause'));
+    spdMark($('spd'), Number($('spd').dataset.r||1));
+    spdMark($('dspd'), Number($('dspd').dataset.r||1));
     setMode(anaMode, false);
     spdMark($('spd'), $('spd').dataset.r||1);
     spdMark($('dspd'), $('dspd').dataset.r||1);
@@ -2350,7 +2373,7 @@ function paintNext(){
 function paintTbl(){
   var b=$('tbl'); b.innerHTML='';
   var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
-  $('anaSum').textContent = lastS ? (lastS.d+'m '+fmt(lastS.t)) : '';
+  paintAnaSum();
   if(!aSplits.length){ b.innerHTML='<div class="none">'+T('anaNone')+'</div>'; paintNext(); paintSheet(); return; }
   b.innerHTML=headRow();
   for(var i=0;i<aSplits.length;i++){
@@ -2413,6 +2436,22 @@ function tempoStats(intervals){
   var sum=0; for(var j=0;j<keep.length;j++) sum+=keep[j];
   var st=sum/keep.length;
   return { st:st, sr:60/st, turns:turns };
+}
+/* かきの あいだの 秒を ならべる */
+function stInts(arr){
+  var out=[], i;
+  for(i=1;i<(arr||[]).length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) out.push(d); }
+  return out;
+}
+/* けっかの 見出しに 出す かんたんな 1行
+   れい： 1:00.62　1.29ST　46.5SR　0.53RT */
+function sumLine(last, ss, rt){
+  var p=[];
+  if(last) p.push(fmt(last.t));
+  if(ss && ss.st!=null && ss.st>0) p.push(ss.st.toFixed(2)+'ST');
+  if(ss && ss.sr!=null && ss.sr>0) p.push(ss.sr.toFixed(1)+'SR');
+  if(rt!=null) p.push(Number(rt).toFixed(2)+'RT');
+  return p.join('　');
 }
 function turnNote(turns){
   if(!turns || !turns.length) return '';
@@ -2488,7 +2527,7 @@ function paintSR(){
   var sts=strokeStats();
   $('oN').textContent = aStrokes.length;
   paintGuide();
-  if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintSheet(); return; }
+  if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintAnaSum(); paintSheet(); return; }
   var med=tempoMedian(sts);
   var use=sts.slice(-6).filter(function(d){ return !isTurn(d, med); });
   if(!use.length) use=sts.slice(-6);
@@ -2496,7 +2535,13 @@ function paintSR(){
   var st=sum/use.length;
   $('oST').textContent = st.toFixed(2);
   $('oSR').textContent = (60/st).toFixed(1);
+  paintAnaSum();
   paintSheet();
+}
+/* けっかの 見出しの かんたん表記を 出しなおす */
+function paintAnaSum(){
+  var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
+  $('anaSum').textContent = sumLine(lastS, tempoStats(stInts(aStrokes)), aRT);
 }
 
 function openAna(blob, opt){
@@ -2521,7 +2566,7 @@ function openAna(blob, opt){
   $('event').value = opt.event || 'free';
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
-  spdMark($('spd'),1); $('bPlay').textContent=T('play');
+  spdMark($('spd'),1); $('bPlay').textContent=T('playI');
   $('anaBox').classList.add('fold'); foldLabel($('anaBox'));
   setMode(anaMode, false);
   paintTbl(); paintSR();
@@ -2664,19 +2709,23 @@ $('asLapFix').onclick=lapPickOpen;
 
 /* --- 動画のそうさ（分析と くわしくで おなじ しくみ） --- */
 function mmss(t){ if(!t||isNaN(t)) t=0; return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); }
-var RATES=[1,0.75,0.5,0.25];
+var RATES=[2,1.5,1,0.5,0.25];
 function rateWord(r){
   r=Number(r);
-  return r===1?'spd100':(r===0.75?'spd75':(r===0.5?'spd50':'spd25'));
+  return r===2?'spd200':(r===1.5?'spd150':(r===1?'spd100':(r===0.5?'spd50':'spd25')));
 }
 function spdMark(btn,r){            /* はやさの ボタンの 見た目を そろえる */
   btn.dataset.r=String(r);
   btn.textContent=T(rateWord(r));
+  btn.setAttribute('aria-label', T('spdLbl')+' '+T(rateWord(r)));
   btn.setAttribute('aria-pressed', Number(r)===1?'false':'true');
 }
 function bindPlayer(o){
   var v=$(o.v), sk=$(o.sk), pl=$(o.play), drag=false;
-  function lab(){ pl.textContent = T(v.paused ? 'play' : 'pause'); }
+  function lab(){
+    pl.textContent = T(v.paused ? 'playI' : 'pauseI');
+    pl.setAttribute('aria-label', T(v.paused ? 'play' : 'pause'));
+  }
   function paint(){
     var t0=o.t0();
     $(o.hud).textContent = (t0===null || t0===undefined) ? fmt(v.currentTime) : fmt(v.currentTime-t0);
@@ -2697,7 +2746,7 @@ function bindPlayer(o){
   pl.onclick=function(){ if(v.paused) v.play().catch(function(){}); else v.pause(); };
   $(o.back).onclick=function(){ v.pause(); v.currentTime=Math.max(0,v.currentTime-1/30); };
   $(o.fwd).onclick=function(){ v.pause(); v.currentTime=Math.min(v.duration||0,v.currentTime+1/30); };
-  /* おすたびに ふつう → 0.75 → 0.5 → 0.25 → ふつう と 変わります */
+  /* おすたびに 2倍 → 1.5倍 → 1倍 → 0.5倍 → 0.25倍 → 2倍 と 変わります */
   $(o.spd).onclick=function(){
     var now=Number(this.dataset.r||1), i=RATES.indexOf(now);
     var r=RATES[(i+1)%RATES.length];
@@ -2908,7 +2957,7 @@ function rtStop(found){
   rtScanning=false;
   if(rtRaf){ cancelAnimationFrame(rtRaf); rtRaf=null; }
   try{ $('v').pause(); }catch(e){}
-  $('bPlay').textContent=T('play');
+  $('bPlay').textContent=T('playI');
   if(found){ $('rtStatus').textContent=T(aT0==null ? 'rtNextFoot' : 'rtFound'); rtCalc(); }
   else $('rtStatus').textContent=T('rtNotFound');
 }
@@ -2987,7 +3036,7 @@ $('bStroke').onclick=function(){
   $('ana').classList.toggle('stroke', on);
   if(on){
     var v=$('v');
-    if(v.paused){ v.play().catch(function(){}); $('bPlay').textContent=T('pause'); }
+    if(v.paused){ v.play().catch(function(){}); $('bPlay').textContent=T('pauseI'); }
     toast(T('msgTapStroke'));
   }
 };
@@ -3143,7 +3192,7 @@ $('dStroke').onclick=function(){
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
   if(on){
-    if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').textContent=T('pause'); }
+    if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').textContent=T('pauseI'); }
     toast(T('msgTapStroke'));
   }else{
     $('dv').pause();
@@ -3343,7 +3392,7 @@ function openDetail(id){
     dStrokes=(r.strokes||[]).slice();
     // まとめ
     var i, last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
-    $('dSum').textContent = last ? (last.d+'m '+fmt(last.t)) : '';
+    $('dSum').textContent = sumLine(last, raceStroke(r), (r.rt!=null?r.rt:null));
     dPaintSR();
     // 表
     var b=$('dTbl'); b.innerHTML='';

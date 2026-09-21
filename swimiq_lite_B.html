@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.21.12">
+<meta name="app-ver" content="2026.09.21.14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -206,6 +206,15 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .box{ border-radius:6px; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
 .boxH{ display:flex; align-items:center; gap:6px; padding:3px 4px 3px 10px; flex:0 0 auto; line-height:1.3; }
 .boxH b{ font-size:13px; font-weight:900; color:var(--am); }
+.boxGrip{ flex:0 0 auto; cursor:grab; padding:2px 8px 2px 2px; margin-right:2px;
+  color:var(--am); font-size:16px; font-weight:900; line-height:1; letter-spacing:-1px;
+  touch-action:none; -webkit-user-select:none; user-select:none; }
+.boxGrip:active{ cursor:grabbing; }
+/* ターン区間（平均から のぞく）の しるし */
+.tr.turnRow{ opacity:.7; }
+.turnTag{ font-size:10px; font-weight:900; color:var(--am); }
+.turnNote{ padding:8px 11px; font-size:12px; font-weight:800; color:var(--am);
+  line-height:1.55; border-top:1px solid var(--line2); background:rgba(255,196,0,.06); }
 .boxH .sum{ flex:1; min-width:0; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .boxH button{ flex:0 0 auto; min-height:32px; padding:2px 8px; border-radius:4px; cursor:pointer;
@@ -828,6 +837,9 @@ body, button, select, input, textarea{
   border-radius:var(--rM); border:2px solid var(--line2); color:#fff; font-size:17px; font-weight:900;
   background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffc400'/%3E%3C/svg%3E") no-repeat right 12px center; }
 #swDist:disabled{ opacity:.5; }
+.swModeRow{ display:flex; align-items:center; gap:10px; }
+.swModeLbl{ flex:0 0 auto; font-size:15px; font-weight:800; color:var(--dim); }
+.swModeRow .seg{ flex:1; }
 .swListHd{ display:flex; align-items:center; padding:9px 16px; border-radius:var(--rM);
   background:var(--am); }
 .swListHd span{ font-size:14px; font-weight:900; color:#000; }
@@ -970,7 +982,7 @@ body, button, select, input, textarea{
     <div class="oInfo">
       <div class="hudT glass" id="hud">0.00</div>
       <div class="box glass" id="anaBox">
-        <div class="boxH"><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
+        <div class="boxH"><span class="boxGrip" id="anaGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" id="anaSum" type="button"></button><button id="lapOpen" class="hide" type="button" data-t="lpShort"></button><button type="button" data-fold="anaBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3">
             <button type="button" class="fixT" data-fix="sr"><b id="oSR">--</b><span data-t="srU"></span></button>
@@ -1049,7 +1061,7 @@ body, button, select, input, textarea{
     <div class="oInfo">
       <div class="hudT glass" id="dhud">0.00</div>
       <div class="box glass" id="dBox">
-        <div class="boxH"><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
+        <div class="boxH"><span class="boxGrip" id="dGrip" data-ta="dragBox">⠿</span><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
           <div class="sr3 sr4" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
@@ -1175,6 +1187,13 @@ body, button, select, input, textarea{
       <option value="50" selected>50m</option>
       <option value="100">100m</option>
     </select>
+  </div>
+  <div class="swModeRow">
+    <span class="swModeLbl" data-t="swModeLbl"></span>
+    <div class="seg" id="swModeSeg">
+      <button type="button" data-sm="dist" aria-pressed="true" data-t="swModeDist"></button>
+      <button type="button" data-sm="num" aria-pressed="false" data-t="swModeNum"></button>
+    </div>
   </div>
   <div class="swListHd">
     <span class="swLZ" data-t="swHDist"></span>
@@ -1593,6 +1612,9 @@ var W={
  cS2:['こえでも うごきます。しずかな 場所むきです。','声にも反応します。静かな場所向きです。'],
  lapNone:['まだ ありません','まだありません'],
  lapMove:['おして うごかせます','ドラッグで移動できます'],
+ dragBox:['つまんで うごかす（動画が 見えるように）','つまんで動かす（動画が見えるように）'],
+ turnLbl:['ターン','ターン'],
+ turnExHint:['は ターン局面のため 平均から のぞいています','はターン局面のため平均から除外しています'],
 
  lpH:['さつえい中の ラップ','撮影中のラップ'],
  lpLead:['つかう ラップに チェックを 入れて、きょりを えらんでください。','使用するラップにチェックを入れ、距離を選んでください。'],
@@ -1779,6 +1801,9 @@ var W={
  swHLap:['ラップ','ラップ'],
  swHSplit:['トータル','スプリット'],
  swLapDist:['1本の きょり','1区間の距離'],
+ swModeLbl:['区間の 表示','区間の表示'],
+ swModeDist:['きょり','距離'],
+ swModeNum:['連番','連番'],
  swEmpty:['「スタート」を おして、\nかべに ついたら「ラップ」を おします','スタート後、区切りごとに「ラップ」を押すと\nラップとスプリットが たまっていきます'],
  swSaved:['のこしました','保存しました']
 };
@@ -2034,11 +2059,37 @@ function strokeStats(){
   }
   return out;
 }
+/* ふつうの かき間隔の 中央値を もとに、その2倍以上を「ターン」とみなし、
+   平均ST・SR からは のぞく。のぞいた区間の 番号（1から）も返す。
+   区間の一覧や ストローク数は そのまま（この関数は 平均だけに かかわる）。 */
+function tempoMedian(intervals){
+  if(!intervals.length) return 0;
+  var s=intervals.slice().sort(function(a,b){ return a-b; }), m=s.length;
+  return (m%2) ? s[(m-1)/2] : (s[m/2-1]+s[m/2])/2;
+}
+function isTurn(d, med){ return med>0 && d>=med*2 && d>med; }
+function tempoStats(intervals){
+  intervals = intervals || [];
+  var n=intervals.length;
+  if(!n) return { st:null, sr:null, turns:[] };
+  var med=tempoMedian(intervals), keep=[], turns=[];
+  for(var i=0;i<n;i++){
+    if(isTurn(intervals[i], med)) turns.push(i+1);
+    else keep.push(intervals[i]);
+  }
+  if(!keep.length){ keep=intervals.slice(); turns=[]; }
+  var sum=0; for(var j=0;j<keep.length;j++) sum+=keep[j];
+  var st=sum/keep.length;
+  return { st:st, sr:60/st, turns:turns };
+}
+function turnNote(turns){
+  if(!turns || !turns.length) return '';
+  return turns.join('・')+T('turnExHint');
+}
 /* たて向きの けっか一覧を かきなおす */
 function paintSheet(){
-  var sts=strokeStats(), i, sum=0;
-  for(i=0;i<sts.length;i++) sum+=sts[i];
-  var avg = sts.length? sum/sts.length : 0;
+  var sts=strokeStats(), i;
+  var tp=tempoStats(sts), avg = tp.st || 0;
   var last = aSplits.length ? aSplits[aSplits.length-1] : null;
   $('asStat').innerHTML =
     '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
@@ -2063,11 +2114,17 @@ function paintSheet(){
     t.innerHTML='<div class="tr hd"><span class="c1">＃</span>'+
                 '<span class="c2">ST 秒</span><span class="c3">SR</span></div>';
     for(i=0;i<sts.length;i++){
-      var r2=document.createElement('div'); r2.className='tr';
+      var isT = tp.turns.indexOf(i+1)>=0;
+      var r2=document.createElement('div'); r2.className='tr'+(isT?' turnRow':'');
       r2.innerHTML='<span class="c1">'+(i+1)+'</span>'+
-                   '<span class="c2">'+sts[i].toFixed(2)+'</span>'+
-                   '<span class="c3">'+(60/sts[i]).toFixed(1)+'</span>';
+                   '<span class="c2">'+sts[i].toFixed(2)+(isT?'　<b class="turnTag">'+T('turnLbl')+'</b>':'')+'</span>'+
+                   '<span class="c3">'+(isT?'—':(60/sts[i]).toFixed(1))+'</span>';
       t.appendChild(r2);
+    }
+    if(tp.turns.length){
+      var nt=document.createElement('div'); nt.className='turnNote';
+      nt.textContent=turnNote(tp.turns);
+      t.appendChild(nt);
     }
   }
 }
@@ -2081,10 +2138,15 @@ function anaText(){
       L.push(aSplits[i].d+'m  '+fmt(aSplits[i].t)+'  (+'+fmt(aSplits[i].t-pv)+')');
     }
   }
-  var sts=strokeStats();
+  var sts=strokeStats(), tp=tempoStats(sts);
   if(sts.length){
     L.push('', '['+T('glStroke')+']');
-    for(var k=0;k<sts.length;k++) L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  SR'+(60/sts[k]).toFixed(1));
+    for(var k=0;k<sts.length;k++){
+      var isT = tp.turns.indexOf(k+1)>=0;
+      L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  '+(isT ? ('（'+T('turnLbl')+'）') : ('SR'+(60/sts[k]).toFixed(1))));
+    }
+    L.push('平均ST '+(tp.st!=null?tp.st.toFixed(2)+'秒':'--')+'　平均SR '+(tp.sr!=null?tp.sr.toFixed(1):'--'));
+    if(tp.turns.length) L.push('※ '+turnNote(tp.turns));
   }
   return L.join('\n');
 }
@@ -2093,8 +2155,10 @@ function paintSR(){
   $('oN').textContent = aStrokes.length;
   paintGuide();
   if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintSheet(); return; }
-  var use=sts.slice(-6), sum=0;
-  for(var i=0;i<use.length;i++) sum+=use[i];
+  var med=tempoMedian(sts);
+  var use=sts.slice(-6).filter(function(d){ return !isTurn(d, med); });
+  if(!use.length) use=sts.slice(-6);
+  var sum=0; for(var i=0;i<use.length;i++) sum+=use[i];
   var st=sum/use.length;
   $('oST').textContent = st.toFixed(2);
   $('oSR').textContent = (60/st).toFixed(1);
@@ -2463,7 +2527,10 @@ var dStrokes=[];
 function dPaintSR(){
   var sts=[], i;
   for(i=1;i<dStrokes.length;i++){ var st=dStrokes[i]-dStrokes[i-1]; if(st>0.05) sts.push(st); }
-  var use=sts.slice(-6), sum=0;
+  var dmed=tempoMedian(sts);
+  var use=sts.slice(-6).filter(function(d){ return !isTurn(d, dmed); });
+  if(!use.length) use=sts.slice(-6);
+  var sum=0;
   for(i=0;i<use.length;i++) sum+=use[i];
   var avg=use.length?sum/use.length:0;
   var last = dRec && dRec.splits && dRec.splits.length ? dRec.splits[dRec.splits.length-1] : null;
@@ -2705,6 +2772,16 @@ function openDetail(id){
                          '<span class="c3">'+(sg.st!=null?(sg.st.toFixed(2)+'秒'):'--')+'</span>';
           sb.appendChild(sgtr);
         }
+        if(!r.manual){
+          var dint=[]; var da=r.strokes||[];
+          for(var z=1;z<da.length;z++){ var dv=da[z]-da[z-1]; if(dv>0.05) dint.push(dv); }
+          var dtp=tempoStats(dint);
+          if(dtp.turns.length){
+            var dnote=document.createElement('div'); dnote.className='turnNote';
+            dnote.textContent=turnNote(dtp.turns);
+            sb.appendChild(dnote);
+          }
+        }
       }
     }
     show('detail'); detP.paint();
@@ -2742,8 +2819,14 @@ function recText(r){
   var sts=[];
   for(var k=1;k<(r.strokes||[]).length;k++){ var st=r.strokes[k]-r.strokes[k-1]; if(st>0.05) sts.push(st); }
   if(sts.length){
+    var tp=tempoStats(sts);
     L.push('', '['+T('glStroke')+']');
-    for(var m=0;m<sts.length;m++) L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  SR'+(60/sts[m]).toFixed(1));
+    for(var m=0;m<sts.length;m++){
+      var isT = tp.turns.indexOf(m+1)>=0;
+      L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  '+(isT ? ('（'+T('turnLbl')+'）') : ('SR'+(60/sts[m]).toFixed(1))));
+    }
+    L.push('平均ST '+(tp.st!=null?tp.st.toFixed(2)+'秒':'--')+'　平均SR '+(tp.sr!=null?tp.sr.toFixed(1):'--'));
+    if(tp.turns.length) L.push('※ '+turnNote(tp.turns));
   }
   if(r.videoUrl){ L.push('', '['+T('dOpenLink')+']', r.videoUrl); }
   return L.join('\n');
@@ -3110,6 +3193,37 @@ $('openCam').onclick=function(){
   function end(e){ if(!on) return; on=false; try{ grip.releasePointerCapture(e.pointerId); }catch(err){} }
   grip.addEventListener('pointerup',end); grip.addEventListener('pointercancel',end);
 })();
+
+/* 分析・くわしく画面の「結果」の枠を つまんで うごかす
+   （動画に かぶって 見えないとき、じゃまに ならない ところへ よけられる） */
+function makeDraggable(grip, target){
+  if(!grip || !target) return;
+  var cx=0, cy=0, sx=0, sy=0, ox=0, oy=0, baseL=0, baseT=0, w=0, h=0, on=false;
+  var M=6;
+  grip.addEventListener('pointerdown', function(e){
+    on=true; sx=e.clientX; sy=e.clientY; ox=cx; oy=cy;
+    var r=target.getBoundingClientRect();
+    baseL=r.left-cx; baseT=r.top-cy; w=r.width; h=r.height;
+    try{ grip.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault(); e.stopPropagation();
+  });
+  grip.addEventListener('pointermove', function(e){
+    if(!on) return;
+    var nx=ox+(e.clientX-sx), ny=oy+(e.clientY-sy);
+    var minx=M-baseL, maxx=window.innerWidth-w-M-baseL;
+    var miny=M-baseT, maxy=window.innerHeight-h-M-baseT;
+    cx=Math.max(minx, Math.min(nx, maxx));
+    cy=Math.max(miny, Math.min(ny, maxy));
+    target.style.transform='translate('+cx+'px,'+cy+'px)';
+    e.preventDefault();
+  });
+  function end2(e){ if(!on) return; on=false; try{ grip.releasePointerCapture(e.pointerId); }catch(err){} }
+  grip.addEventListener('pointerup', end2);
+  grip.addEventListener('pointercancel', end2);
+}
+makeDraggable($('anaGrip'), $('ana').querySelector('.oInfo'));
+makeDraggable($('dGrip'), $('detail').querySelector('.oInfo'));
+
 /* とってある 動画を ひらく */
 $('fPick').addEventListener('change', function(){
   var f=this.files && this.files[0]; this.value='';
@@ -3307,17 +3421,17 @@ function raceStroke(r){
     if((st1==null || n1==null) && !r.manual){   /* 上書きされていない側は 動画のtapから 計算 */
       var a=r.strokes||[], s2=[];
       for(j=1;j<a.length;j++){ var dd=a[j]-a[j-1]; if(dd>0.05) s2.push(dd); }
-      if(st1==null && s2.length){ var sm=0; for(j=0;j<s2.length;j++) sm+=s2[j]; st1=sm/s2.length; }
+      var ts2=tempoStats(s2);
+      if(st1==null && ts2.st!=null) st1=ts2.st;
       if(n1==null && a.length) n1=a.length;
     }
-    return { st:st1, sr: st1?(60/st1):null, n:n1 };
+    return { st:st1, sr: st1?(60/st1):null, n:n1, turns:[] };
   }
-  if(r.manual) return { st:null, sr:null, n:null };
+  if(r.manual) return { st:null, sr:null, n:null, turns:[] };
   var arr=r.strokes||[], sts=[], i;
   for(i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) sts.push(d); }
-  var sum=0; for(i=0;i<sts.length;i++) sum+=sts[i];
-  var st = sts.length ? sum/sts.length : null;
-  return { st:st, sr: st ? (60/st) : null, n: arr.length || null };
+  var tp=tempoStats(sts);
+  return { st: tp.st, sr: tp.sr, n: arr.length || null, turns: tp.turns };
 }
 /* ストローク数の かぞえかた：50mごとに 1くぎり
    （100m＝2くぎり、200m＝4くぎり、400m＝8くぎり、1500m＝30くぎり） */
@@ -3330,11 +3444,14 @@ function segCount(dist){
 function segsFromStrokes(splits, strokes){
   var arr=strokes||[], out=[];
   if(!splits || !splits.length || !arr.length) return out;
+  /* 全体の かき間隔から しきい値を 決め、ターンは 各区間の平均から のぞく */
+  var allInt=[]; for(var m=1;m<arr.length;m++){ var dg=arr[m]-arr[m-1]; if(dg>0.05) allInt.push(dg); }
+  var med=tempoMedian(allInt);
   var prevT=0;
   for(var i=0;i<splits.length;i++){
     var segEndT=splits[i].t;
     var within=[]; for(var k=0;k<arr.length;k++){ if(arr[k]>prevT && arr[k]<=segEndT) within.push(arr[k]); }
-    var sts=[]; for(k=1;k<within.length;k++){ var d=within[k]-within[k-1]; if(d>0.05) sts.push(d); }
+    var sts=[]; for(k=1;k<within.length;k++){ var d=within[k]-within[k-1]; if(d>0.05 && !isTurn(d, med)) sts.push(d); }
     var sum=0; for(k=0;k<sts.length;k++) sum+=sts[k];
     var st = sts.length ? sum/sts.length : null;
     out.push({ n:(within.length||null), st:st });
@@ -3408,6 +3525,8 @@ $('openManual').onclick=function(){ manualOpen(null); };
    画面を とじても タイムは ずれません。
    ================================================================ */
 var swRunning=false, swElapsed=0, swStartTs=0, swRaf=null, swLaps=[];
+var swMode='dist';
+try{ swMode = localStorage.getItem('swimiq_swmode')==='num' ? 'num' : 'dist'; }catch(e){}
 function swVib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 function swFmt(s){
   if(s==null || isNaN(s) || s<0) s=0;
@@ -3439,9 +3558,10 @@ function swRenderLaps(){
   }
   var html='', i;
   for(i=swLaps.length-1; i>=0; i--){
-    var cum=swLaps[i], prev=(i>0?swLaps[i-1]:0), lap=cum-prev, dist=(i+1)*d;
+    var cum=swLaps[i], prev=(i>0?swLaps[i-1]:0), lap=cum-prev;
+    var zlabel = (swMode==='num') ? (i+1) : ((i+1)*d+'m');
     html+='<div class="swRow'+(i===swLaps.length-1?' new':'')+'">'+
-          '<span class="z">'+dist+'m</span>'+
+          '<span class="z">'+zlabel+'</span>'+
           '<span class="l">'+swFmt(cum)+'</span>'+
           '<span class="s">'+swFmt(lap)+'</span></div>';
   }
@@ -3487,9 +3607,13 @@ function swReset(){
   swElapsed=0; swLaps=[]; swLastStr='';
   swPaint(); swRenderLaps(); swBtns();
 }
+function swModePaint(){
+  var b=$('swModeSeg').querySelectorAll('button');
+  for(var i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', b[i].dataset.sm===swMode ? 'true':'false');
+}
 function swOpen(){
   $('sw').classList.remove('hide');
-  swRenderLaps(); swBtns(); swPaint();
+  swModePaint(); swRenderLaps(); swBtns(); swPaint();
   if(swRunning && !swRaf) swLoop();
 }
 function swClose(){
@@ -3502,6 +3626,14 @@ $('swMain').onclick=function(){ if(swRunning) swStop(); else swStart(); };
 $('swLapBtn').onclick=function(){ swLap(); };
 $('swReset').onclick=function(){ swReset(); };
 $('swDist').onchange=function(){ swRenderLaps(); };
+(function(){
+  var b=$('swModeSeg').querySelectorAll('button');
+  for(var i=0;i<b.length;i++) b[i].onclick=function(){
+    swMode=this.dataset.sm;
+    try{ localStorage.setItem('swimiq_swmode', swMode); }catch(e){}
+    swModePaint(); swRenderLaps();
+  };
+})();
 $('swSave').onclick=function(){
   if(swRunning || !swLaps.length) return;
   var d=Number($('swDist').value)||50;

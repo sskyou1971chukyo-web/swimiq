@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.14">
+<meta name="app-ver" content="2026.09.22.15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -143,6 +143,9 @@ button, select, input{ font-family:inherit; }
   object-fit:contain; background:#000; }
 .tapL{ position:absolute; inset:0; z-index:1; margin:0; padding:0; border:0;
   background:transparent; cursor:pointer; touch-action:none; }
+/* 「ストロークの測定終了」は 文字が 長いので 2行まで 折りかえします */
+#bStroke, #dStroke{ white-space:normal; line-height:1.3; }
+#bStroke[aria-pressed="true"], #dStroke[aria-pressed="true"]{ font-size:13.5px; padding:6px 8px; }
 #ana.stroke::after, #detail.stroke::after{ content:""; position:absolute; inset:0; z-index:3;
   pointer-events:none; box-shadow:inset 0 0 0 6px var(--am); }
 /* くわしく画面は 動画が 主役。ボタンは「メニュー」を おしたときだけ 出します */
@@ -320,7 +323,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 #detail.stroke #dhud, #detail.stroke .box{ display:none !important; }
 #ana.stroke .oInfo, #detail.stroke .oInfo{ pointer-events:none !important; }
 .guide.hide{ display:none; }
-.strokeTag{ display:none; padding:6px 16px; border-radius:4px; background:var(--am);
+.strokeTag{ display:none; margin-top:46px; padding:6px 16px; border-radius:4px; background:var(--am);
   color:#000; font-size:15px; font-weight:900; text-align:center; }
 #ana.stroke .strokeTag{ display:none; }
 /* おしらせの 帯は 1秒だけ 出して 消します */
@@ -544,11 +547,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
    せまい 画面では ふたつ 目が 下に まわります。 */
 #topRow{ display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:0 0 16px; }
 #topRow > *{ margin:0 !important; }
-#topRow #cnMark{ flex:0 0 auto; padding:7px 10px; gap:6px; }
+#topRow #cnMark{ flex:4 1 0; min-width:0; padding:7px 10px; gap:6px; justify-content:center; }
 #topRow #cnMark .tick{ flex:0 0 22px; height:22px; font-size:14px; line-height:22px; }
 #topRow #cnMark b{ font-size:14px; }
 #topRow #cnDate{ display:none; }
-#topRow #verBar{ flex:1 1 auto; min-width:0; padding:7px 10px; gap:7px; }
+#topRow #verBar{ flex:6 1 0; min-width:0; padding:7px 10px; gap:7px; }
 #topRow #verBar b{ font-size:13px; }
 #topRow #verBar span{ font-size:14px; }
 #topRow #verBar button{ min-height:38px; padding:4px 12px; font-size:13px; }
@@ -2057,6 +2060,7 @@ var W={
  rtBad:['合図は 足離れより 前に してください','合図は足離れより前にしてください'],
  rtAudioNG:['音の かいせきが できませんでした','音の解析ができませんでした'],
  bStroke:['かきを 計る','ストロークを計る'],
+ bStrokeEnd:['かきの そくてい しゅうりょう','ストロークの測定終了'],
  bUndo:['1つ もどす','1つ戻す'],
  pass:['きろく','記録'],
  goal:['おわり','ゴール'],
@@ -2427,6 +2431,8 @@ function applyWords(){
     $('cSound').textContent=T(cWantSound?'sndOn':'sndOff');
     sensPaint();
     cBtns();
+    $('bStroke').textContent=T($('ana').classList.contains('stroke')?'bStrokeEnd':'bStroke');
+    $('dStroke').textContent=T($('detail').classList.contains('stroke')?'bStrokeEnd':'bStroke');
     $('bPlay').innerHTML=T($('v').paused?'playI':'pauseI');
     $('dPlay').innerHTML=T($('dv').paused?'playI':'pauseI');
     $('bPlay').setAttribute('aria-label', T($('v').paused?'play':'pause'));
@@ -3051,6 +3057,8 @@ function openAna(blob, opt){
   $('event').value = opt.event || 'free';
   $('ana').classList.remove('stroke','anyway');
   $('bStroke').setAttribute('aria-pressed','false');
+  $('bStroke').textContent=T('bStroke');
+  stHudHide(); stModeShow(false);
   spdMark($('spd'),1); $('bPlay').innerHTML=T('playI');
   $('anaBox').classList.add('fold'); foldLabel($('anaBox'));
   setMode(anaMode, false);
@@ -3661,6 +3669,7 @@ $('bStroke').onclick=function(){
     if(v.paused){ v.play().catch(function(){}); $('bPlay').innerHTML=T('pauseI'); }
   }
   this.setAttribute('aria-pressed', on?'true':'false');
+  this.textContent = T(on ? 'bStrokeEnd' : 'bStroke');
   $('ana').classList.toggle('stroke', on);
   hideQ(); stHudHide(); stModeShow(on);
   if(on){
@@ -3857,6 +3866,7 @@ var detZoom = makeZoomable($('dv'), $('dTap'), dAddStrokeUndo);
 $('dStroke').onclick=function(){
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
+  this.textContent = T(on ? 'bStrokeEnd' : 'bStroke');
   stHudHide(); stModeShow(on);
   if(on){
     if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').innerHTML=T('pauseI'); }
@@ -4085,6 +4095,8 @@ function openDetail(id){
     document.querySelector('.ov.det').classList.remove('on');
     $('dMenu').textContent=T('dMenu');
     $('detail').classList.remove('stroke'); $('dStroke').setAttribute('aria-pressed','false');
+    $('dStroke').textContent=T('bStroke');
+    stHudHide(); stModeShow(false);
     dStrokes=(r.strokes||[]).slice();
     // まとめ
     var i, last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.10">
+<meta name="app-ver" content="2026.09.22.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -560,6 +560,16 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 }
 
 /* ===== 新しい版の おしらせ ===== */
+/* いまの バージョンと 更新の ボタン（ホームの 上のほう） */
+#verBar{ display:flex; align-items:center; gap:10px; margin:0 0 14px;
+  padding:9px 12px; border-radius:var(--rL);
+  background:var(--pane2); border:2px solid var(--line2); }
+#verBar b{ flex:0 0 auto; font-size:13px; font-weight:900; color:var(--dim); }
+#verBar span{ flex:1; min-width:0; font-size:15px; font-weight:900; color:#fff;
+  font-variant-numeric:tabular-nums; }
+#verBar button{ flex:0 0 auto; min-height:42px; padding:4px 14px; border-radius:var(--rM);
+  border:2px solid var(--am); background:rgba(255,196,0,.14); color:var(--am);
+  font-size:14px; font-weight:900; cursor:pointer; }
 #upBar{ display:flex; align-items:center; gap:10px; margin:0 0 20px;
   padding:10px 12px; border-radius:8px; background:var(--am); color:#000; }
 #upBar.hide{ display:none !important; }
@@ -618,16 +628,17 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .spdItem.on{ background:rgba(255,196,0,.60); color:#000; font-weight:900; }
 /* かきを 数える たびに 出る 大きな すきとおった 数字 */
 #stHud{ position:fixed; left:50%; top:46%; transform:translate(-50%,-50%);
+  will-change:left,top;
   z-index:93; pointer-events:none; text-align:center; line-height:1;
   opacity:0; transition:opacity .18s ease-out; }
 #stHud.on{ opacity:1; }
 #stHud.hide{ display:none !important; }
 #stHud b{ display:block; font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
-  font-size:min(26vw,34vh,240px); color:rgba(255,255,255,.55);
+  font-size:min(20vw,26vh,170px); color:rgba(255,255,255,.55);
   font-variant-numeric:tabular-nums; letter-spacing:-.02em;
   text-shadow:0 6px 26px rgba(0,0,0,.75), 0 0 8px rgba(0,0,0,.6); }
 #stHud span{ display:block; margin-top:-6px; font-weight:900;
-  font-size:min(8vw,10vh,60px); color:rgba(255,196,0,.66);
+  font-size:min(6.5vw,8vh,46px); color:rgba(255,196,0,.70);
   font-variant-numeric:tabular-nums;
   text-shadow:0 4px 18px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.7); }
 /* きろくした 数字が 大きく 出て、けっかの 箱に すいこまれます */
@@ -668,10 +679,23 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox, #vFix, #swmBox, #viewBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide{ display:none !important; }
+/* 使い方の 中身 */
+.hpSec{ margin-top:18px; }
+.hpSec h4{ margin:0 0 8px; padding-left:9px; border-left:5px solid var(--am);
+  font-size:17px; font-weight:900; color:#fff; }
+.hpStep{ display:flex; gap:10px; padding:9px 2px; border-top:1px solid var(--line2); }
+.hpStep:first-of-type{ border-top:none; }
+.hpStep .no{ flex:0 0 28px; height:28px; border-radius:999px; background:var(--am); color:#000;
+  display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; }
+.hpStep .tx{ flex:1; min-width:0; font-size:15px; font-weight:700; line-height:1.65; color:#fff; }
+.hpStep .tx b{ color:var(--am); font-weight:900; }
+.hpTip{ margin-top:10px; padding:10px 12px; border-radius:var(--rM);
+  background:rgba(255,196,0,.08); border:1px solid var(--line2);
+  font-size:14px; font-weight:700; color:var(--am); line-height:1.7; }
 /* きろくの ないようを 見る まど */
 #viewBox .vwHd{ display:flex; align-items:center; gap:10px; }
 #viewBox .vwHd h3{ flex:1; min-width:0; }
@@ -1160,6 +1184,11 @@ body, button, select, input, textarea{
 
   <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
 
+  <div id="verBar">
+    <b data-t="verNowLbl"></b><span id="verNowV">-</span>
+    <button type="button" id="verChk" data-t="verChkBtn"></button>
+  </div>
+
   <div id="upBar" class="hide">
     <b data-t="upNew"></b><span id="upVer"></span>
     <button type="button" id="upOpen" data-t="upDo"></button>
@@ -1178,6 +1207,7 @@ body, button, select, input, textarea{
       <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/><path d="M18.4 6.6l-1.3 1.3"/></svg></span>
       <span class="hbTxt" data-t="swOpen"></span>
     </button>
+    <button class="btn b" id="openHelp" type="button" data-t="helpBtn"></button>
     <button class="btn" id="moreTakeBtn" type="button" aria-expanded="false" data-t="moreOpen"></button>
   </div>
   <div id="moreTakeBox" class="take hide">
@@ -1332,7 +1362,7 @@ body, button, select, input, textarea{
       <button class="ob y" id="dStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
       <button class="ob" id="dUndo" type="button" data-t="bUndo"></button>
       <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
-      <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
+      <button class="ob" id="dVid" type="button" data-t="saveVidBtn"></button>
       <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
       <button class="ob y" id="dView" type="button" data-t="vwNumBtn"></button>
       <button class="ob b" id="dPdf" type="button" data-t="pdfBtn"></button>
@@ -1622,6 +1652,14 @@ body, button, select, input, textarea{
 
 <!-- きろくした あとに 1秒だけ 出る きょりの 一覧 -->
 <div id="qList" class="hide" aria-hidden="true"></div>
+
+<!-- 使い方 -->
+<div id="helpBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="hpH">
+  <div class="svWrap">
+    <div class="vwHd"><h3 id="hpH" data-t="helpTitle"></h3><button class="btn" type="button" id="hpClose" data-t="dMenuX"></button></div>
+    <div id="hpBody"></div>
+  </div>
+</div>
 
 <!-- かきを 数える たびに 大きく 出る 数（0.4秒で 消えます） -->
 <div id="stHud" class="hide" aria-hidden="true"><b id="stHudN">0</b><span id="stHudT"></span></div>
@@ -2000,7 +2038,7 @@ var W={
 
  dTitle:['きろく','記録'],
  again:['分析を やりなおす','分析をやり直す'],
- saveVid:['動画を ほぞん','動画を保存'],
+ saveVidOld:['動画を ほぞん','動画を保存'],
  saveImg:['画像で ほぞん','画像で保存'],
 
  camLbl:['練習用カメラ','練習用カメラ'],
@@ -2043,6 +2081,15 @@ var W={
  vwTempoGl:['区間ごとの 平均ST','区間ごとの平均ST'],
  vwLapCol:['区間','区間'],
  vwNoSeg:['ストロークが ないので 出せません','ストロークが記録されていません'],
+ verNowLbl:['いまの バージョン','いまのバージョン'],
+ verChkBtn:['更新を たしかめる','更新をたしかめる'],
+ verLatest:['いまが いちばん 新しい です','最新の状態です'],
+ verFile:['ファイルから ひらいて いるので、あたらしい ファイルを 上書き してください','ファイルから開いているため、新しいファイルを上書きしてください'],
+ helpBtn:['使い方を 見る','使い方を見る'],
+ helpTitle:['使い方','使い方'],
+ saveVidAsk:['この 動画を 携帯に 保存しますか？','この動画を携帯電話に保存しますか？'],
+ saveVidBtn:['動画を 携帯に 保存','動画を携帯に保存'],
+ saveVidGo:['保存の まどが ひらきます。「ビデオを保存」を えらんで ください','保存の画面が開きます。「ビデオを保存」を選んでください'],
  noVidBadge:['動画なし','動画なし'],
  msgNoLocalVid:['この端末に 動画が ありません。同期では 数字だけ 共有される ので、動画は とった 端末に あります','この端末に動画がありません。同期では数字だけ共有されるため、動画は撮影した端末にあります'],
  msgDbNG:['この端末では きろくを ほぞん できません。ふつうの タブで ひらくか、Webページとして ひらいて ください','この端末では記録を保存できません。プライベートモードを解除するか、Webページとして開いてください'],
@@ -2508,7 +2555,7 @@ function show(id){
 /* ================================================================
    分析の 画面
    ================================================================ */
-var aBlob=null, aURL=null, aId=null;      // いま分析している 動画
+var aBlob=null, aURL=null, aId=null, aFromCam=false;      // いま分析している 動画
 var aT0=null;                              // スタートの ところ（動画の中の 秒）
 var aSplits=[];                            // [{d:きょり, t:スタートからの 秒}]
 var aStrokes=[];                           // かきを おした 動画の中の 秒
@@ -2670,10 +2717,68 @@ function tempoStats(intervals){
   var st=sum/keep.length;
   return { st:st, sr:60/st, turns:turns };
 }
+/* ================================================================
+   使い方（保護者の かたにも わかる ように、順番で 説明します）
+   ================================================================ */
+var HELP=[
+ ['動画を とる・えらぶ',[
+   '<b>カメラで撮る</b>を おすと、その場で 動画を とれます。とり終わると そのまま 分析の 画面に なります。',
+   'すでに とってある 動画を つかう ときは、<b>他の記録方法を見る</b> →<b>動画をえらぶ</b>を おします。',
+   '動画は ヨコ向きで、スタート台から ゴールまでが 入るように とると 分析しやすく なります。'
+ ]],
+ ['タイムを 記録する',[
+   '画面の 右に <b>一覧</b>（足離れ・15m・25m…）が あります。いま 記録する ところが 出ています。',
+   '動画を 見ながら、その 場面に なったら <b>記録</b>を おします。',
+   'おすと つぎの ところへ ひとりでに 進みます。順番に おして いくだけです。',
+   'まちがえた ときは、一覧から その ところを えらび直して もう一度 <b>記録</b>を おせば 上書きされます。'
+ ]],
+ ['ストロークを 数える',[
+   '右の <b>ストロークを計る</b>を おします。ボタンが 黄色く なったら 数えはじめです。',
+   'あとは <b>動画の どこでも いいので、1かきごとに 画面を 指で たたく</b>だけです。右手が 水に 入るたび、など 決めて 数えます。',
+   'たたくたびに、おした ところに 大きな 数字（何かき目か）と、そのかきに かかった 秒数が 出て すぐ 消えます。',
+   'まちがえた ときは <b>1つ戻す</b>を おします。',
+   '数え終わったら もう一度 <b>ストロークを計る</b>を おして やめます。すると 平均STと SRが 出ます。'
+ ]],
+ ['保存して 見る',[
+   '右上の <b>保存</b>を おすと、試合名を きかれます。入れて OKを おすと きろくが のこります。',
+   'ホームの <b>最近の記録</b>から その きろくを おすと、動画と 数字を 見られます。',
+   '<b>記録を見る（比較、修正）</b>からは、動画が なくても 数字だけ 見られます。',
+   'メニューの <b>PDFで表示</b>で 1枚の レポートに なります。'
+ ]],
+ ['動画を 携帯に 保存する',[
+   'アプリで とった 動画は、<b>動画を携帯に保存</b>を おすと 携帯の 写真（カメラロール）に 入ります。',
+   '再生の 画面の <b>メニュー</b>の 中にも <b>動画を保存</b>が あります。',
+   'アプリの 中だけに おいて おくと、ブラウザの データを 消した ときに 消えて しまいます。大事な 動画は 携帯にも 保存して ください。'
+ ]]
+];
+function helpOpen(){
+  var b=$('hpBody'); if(!b) return;
+  var h='', i, k;
+  for(i=0;i<HELP.length;i++){
+    h+='<div class="hpSec"><h4>'+(i+1)+'. '+HELP[i][0]+'</h4>';
+    for(k=0;k<HELP[i][1].length;k++){
+      h+='<div class="hpStep"><span class="no">'+(k+1)+'</span><span class="tx">'+HELP[i][1][k]+'</span></div>';
+    }
+    h+='</div>';
+  }
+  h+='<div class="hpTip">こまった ときは、ホームの「いまのバージョン」の 右に ある〈更新をたしかめる〉を おして、いちばん 新しい 状態に して ください。</div>';
+  b.innerHTML=h;
+  $('helpBox').classList.remove('hide');
+}
+$('openHelp').onclick=helpOpen;
+$('hpClose').onclick=function(){ $('helpBox').classList.add('hide'); };
+
 /* かきを 数える たびに、いまの 本数と テンポを 0.4秒だけ 大きく 出します */
 var stHudTimer=null, stHudOff=null;
-function stHudShow(n, st){
+function stHudShow(n, st, x, y){
   var box=$('stHud'); if(!box) return;
+  /* おした ところの 近くに 出します（まん中では ないので 泳ぎが 見やすい） */
+  if(x!=null && y!=null){
+    var w=Math.min(window.innerWidth*0.42, 240), h=Math.min(window.innerHeight*0.5, 240);
+    var lx=Math.max(w/2+10, Math.min(window.innerWidth-w/2-10, x));
+    var ly=Math.max(h/2+10, Math.min(window.innerHeight-h/2-10, y));
+    box.style.left=lx+'px'; box.style.top=ly+'px';
+  }
   $('stHudN').textContent = n;
   $('stHudT').textContent = (st!=null && st>0) ? (st.toFixed(2)+'秒') : '';
   box.classList.remove('hide');
@@ -2857,7 +2962,7 @@ bindVidError('v'); bindVidError('dv');
 function openAna(blob, opt){
   opt = opt || {};
   freeVideo('dv');
-  aBlob=blob; aId=opt.id||null;
+  aBlob=blob; aId=opt.id||null; aFromCam=false;
   aSplits = opt.splits ? opt.splits.slice() : [];
   aStrokes = opt.strokes ? opt.strokes.slice() : [];
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
@@ -3351,6 +3456,15 @@ $('fixX').onclick=function(){ $('fixBox').classList.add('hide'); toast(T('fixOK'
   $('anaSum').onclick=function(){ fixOpen('t'); };
 })();
 
+/* いま 分析している 動画を 携帯に 保存します（写真アプリへ） */
+function saveVidToPhone(blob, id){
+  if(!blob){ toast(T('msgNoVid')); return; }
+  var ty=(blob.type||'video/mp4');
+  var ext=(ty.indexOf('webm')>=0)?'.webm':((ty.indexOf('quicktime')>=0)?'.mov':'.mp4');
+  toast(T('saveVidGo'));
+  shareFile(blob, 'swimiq_'+(id||Date.now())+ext, ty, T('shVid'));
+}
+
 $('bClear').onclick=function(){
   if(!confirm(T('askClear'))) return;
   aSplits=[]; aStrokes=[]; aT0=null; aSigT=null; aRT=null; selManual=false; paintTbl(); paintSR(); anaP.paint();
@@ -3503,11 +3617,11 @@ $('bStroke').onclick=function(){
    それいがい       … 再生と ていしの きりかえ */
 var pdCounted=false;
 var aStrokeAt=0;
-function addStroke(){
+function addStroke(x,y){
   aStrokes.push($('v').currentTime); aStrokeAt=Date.now(); paintSR();
   var n=aStrokes.length;
   var st=(n>=2) ? (aStrokes[n-1]-aStrokes[n-2]) : null;
-  stHudShow(n, st);
+  stHudShow(n, st, x, y);
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
 }
 /* 2本目の 指が ついた ときは「ひろげる」操作なので、
@@ -3524,7 +3638,7 @@ $('tapZone').addEventListener('pointerdown', function(e){
   if(e && e.isPrimary===false) return;
   aDownAt=Date.now();
   if(!$('ana').classList.contains('stroke')) return;
-  addStroke();
+  addStroke(e.clientX, e.clientY);
 });
 /* pointerdown が 来ない 機種の ための ひかえ */
 $('tapZone').addEventListener('touchstart', function(e){
@@ -3532,7 +3646,8 @@ $('tapZone').addEventListener('touchstart', function(e){
   if(Date.now()-aDownAt < 500) return;       // もう 数えました
   aDownAt=Date.now();
   if(!$('ana').classList.contains('stroke')) return;
-  addStroke();
+  var t=e.touches&&e.touches[0];
+  addStroke(t?t.clientX:null, t?t.clientY:null);
 }, {passive:true});
 $('tapZone').onclick=function(e){
   if($('ana').classList.contains('stroke')){
@@ -3570,11 +3685,11 @@ function dPaintSR(){
     ((dRec && dRec.rt!=null) ? ('<div><span>'+T('rtOutLbl')+'</span><b>'+Number(dRec.rt).toFixed(2)+'</b></div>') : '');
 }
 var dStrokeAt=0;
-function dAddStroke(){
+function dAddStroke(x,y){
   dStrokes.push($('dv').currentTime); dStrokeAt=Date.now(); dPaintSR();
   var dn=dStrokes.length;
   var dst=(dn>=2) ? (dStrokes[dn-1]-dStrokes[dn-2]) : null;
-  stHudShow(dn, dst);
+  stHudShow(dn, dst, x, y);
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
 }
 function dAddStrokeUndo(){
@@ -3585,14 +3700,15 @@ $('dTap').addEventListener('pointerdown', function(e){
   if(e && e.isPrimary===false) return;
   dDownAt=Date.now();
   if(!$('detail').classList.contains('stroke')) return;
-  dAddStroke();
+  dAddStroke(e.clientX, e.clientY);
 });
 $('dTap').addEventListener('touchstart', function(e){
   if(e.touches && e.touches.length>1) return;
   if(Date.now()-dDownAt < 500) return;
   dDownAt=Date.now();
   if(!$('detail').classList.contains('stroke')) return;
-  dAddStroke();
+  var dt=e.touches&&e.touches[0];
+  dAddStroke(dt?dt.clientX:null, dt?dt.clientY:null);
 }, {passive:true});
 $('dTap').onclick=function(e){
   if($('detail').classList.contains('stroke')){
@@ -3756,9 +3872,16 @@ $('anaSave').onclick=function(){
   }).then(function(rec){
     if(rec) pushOne(rec);
     toast(T('msgSavedDev'));
+    var savedBlob=aBlob, savedId=(rec?rec.id:null), wasCam=aFromCam;
     aId=null;
     $('v').pause(); show('home'); paintList();
     setTimeout(uploadPending, 600);
+    /* 大事な 動画は 携帯にも のこせる ように たずねます（カメラで とった ときは もう きいて います） */
+    if(!wasCam && savedBlob){
+      setTimeout(function(){
+        if(confirm(T('saveVidAsk'))) saveVidToPhone(savedBlob, savedId);
+      }, 900);
+    }
   }).catch(function(){ toast(T('msgSaveNG')); });
 };
 
@@ -4353,7 +4476,12 @@ function cToAna(){
   /* 音まちの あいだも 録画は すすんでいるので、その 秒数を いっしょに わたす */
   var raceT0 = (laps.length && cT0>cRecP0) ? (cT0-cRecP0)/1000 : 0;
   openAna(cBlob, { laps:laps, raceT0:raceT0 });
+  aFromCam=true;
   toast(T('msgToAna'));
+  /* とった 動画は 携帯にも のこせる ように、すぐ たずねます */
+  setTimeout(function(){
+    if(confirm(T('saveVidAsk'))) saveVidToPhone(cBlob, 'cam'+Date.now());
+  }, 1400);
 }
 $('openCam').onclick=function(){
   $('cam').classList.remove('hide','armed','run','anyway');
@@ -4490,6 +4618,28 @@ function checkUpdate(){
     })
     .catch(function(){});
 }
+/* ホームの バージョン表示 */
+(function(){
+  var vv=$('verNowV'); if(vv) vv.textContent=APP_VER;
+  var vb=$('verChk'); if(!vb) return;
+  vb.onclick=function(){
+    if(location.protocol==='file:'){ toast(T('verFile')); return; }
+    var base=location.href.split('#')[0].split('?')[0];
+    toast(T('syncDoing'));
+    fetch(base+'?vchk='+Date.now(), { cache:'no-store' })
+      .then(function(r){ return r.text(); })
+      .then(function(t){
+        var m=t.match(/name="app-ver" content="([0-9.]+)"/);
+        if(m && verNum(m[1])>verNum(APP_VER)){
+          newVer=m[1]; $('upVer').textContent=newVer; $('upBar').classList.remove('hide');
+          $('upOpen').click();
+        }else{
+          toast(T('verLatest'));
+        }
+      })
+      .catch(function(){ toast(T('verFile')); });
+  };
+})();
 $('upOpen').onclick=function(){
   $('upNow2').textContent = APP_VER + ' → ' + newVer;
   $('upBox').classList.remove('hide');

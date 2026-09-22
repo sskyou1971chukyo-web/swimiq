@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.5">
+<meta name="app-ver" content="2026.09.22.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1031,8 +1031,9 @@ body, button, select, input, textarea{
 .card2 .c2sub{ font-size:12px; font-weight:700; color:var(--dim);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:-2px; }
 .card2 .c2sr{ display:flex; flex-wrap:wrap; gap:14px; font-size:11.5px; font-weight:700; color:var(--dim); }
-.card2.manual .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
+.card2 .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
   background:rgba(255,196,0,.14); color:var(--am); font-size:10.5px; font-weight:900; vertical-align:middle; }
+.card2 .c2badge.nv{ background:rgba(255,255,255,.10); color:var(--dim); }
 
 /* ===== 選手プロフィール 一覧 ===== */
 .swmCard{ display:flex; align-items:center; gap:12px; cursor:pointer;
@@ -1969,6 +1970,8 @@ var W={
  msgCopied:['コピーしました','コピーしました'],
  msgCopyNG:['コピーできませんでした','コピーできませんでした'],
  msgCopyNo:['この端末では コピーできません','この端末ではコピーできません'],
+ noVidBadge:['動画なし','動画なし'],
+ msgNoLocalVid:['この端末に 動画が ありません。同期では 数字だけ 共有される ので、動画は とった 端末に あります','この端末に動画がありません。同期では数字だけ共有されるため、動画は撮影した端末にあります'],
  msgVidNG:['動画を ひらけませんでした。もう一度 ためして ください','動画を開けませんでした。もう一度お試しください'],
  msgNotFound:['見つかりません','見つかりません'],
  msgDeleted:['消しました','削除しました'],
@@ -2308,6 +2311,33 @@ function dbPut(rec){
       t.onerror=function(){ rej(t.error); };
     });
   });
+}
+/* この端末に 動画が のこって いるか
+   ・同期で 来た きろくは 数字だけ なので video が ありません
+   ・iPhoneの 保存が 消えると、入れ物だけ のこって 中身が 無い ことも あります */
+function hasVid(r){
+  return !!(r && r.video && typeof r.video.size==='number' && r.video.size>0);
+}
+/* さいしょの 1バイトだけ 読んで、ほんとうに 読めるかを たしかめます */
+function checkVid(r){
+  if(!hasVid(r)) return Promise.resolve(false);
+  try{
+    var part=r.video.slice(0,1);
+    if(part.arrayBuffer) return part.arrayBuffer().then(function(){ return true; })
+                                    .catch(function(){ return false; });
+    return new Promise(function(res){
+      var fr=new FileReader();
+      fr.onload=function(){ res(true); };
+      fr.onerror=function(){ res(false); };
+      try{ fr.readAsArrayBuffer(part); }catch(e){ res(false); }
+    });
+  }catch(e){ return Promise.resolve(false); }
+}
+/* 動画が 無い ときの ゆきさき（リンクが あれば リンク、なければ 修正画面） */
+function noVidGo(r){
+  toast(T('msgNoLocalVid'));
+  if(r && r.videoUrl) setTimeout(function(){ openVid(r.videoUrl); }, 900);
+  else setTimeout(function(){ if(!r.manual) vfOpen(r); }, 900);
 }
 /* 通過タイムは いつも きょりの 順に そろえて つかいます */
 function normRec(r){
@@ -3659,6 +3689,8 @@ function recCard(r){
   var ss = raceStroke(r);
   var c=document.createElement('div'); c.className='card2'+(r.manual?' manual':'');
   var badge = r.manual ? '<span class="c2badge">'+T('mBadge')+'</span>' : '';
+  /* この端末に 動画が ない きろくは、ひと目で わかるように します */
+  if(!r.manual && !hasVid(r)) badge += '<span class="c2badge nv">'+T('noVidBadge')+'</span>';
   var nm = r.swimmerName ? (r.swimmerName+'　') : '';
   var mt = meetName(r);
   var info = nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
@@ -3677,7 +3709,7 @@ function recCard(r){
     '<div class="c2sr">'+srLine+'</div>';
   c.onclick=function(){
     if(r.manual){ manualOpen(r); return; }
-    if(!r.video){                     /* 同期で来た記録：この端末に動画が無い */
+    if(!hasVid(r)){                   /* 同期で来た記録：この端末に動画が無い */
       if(r.videoUrl) openVid(r.videoUrl);
       else vfOpen(r);
       return;
@@ -3728,16 +3760,23 @@ var dRec=null, dURL=null;
 function openDetail(id){
   dbGet(id).then(function(r){
     if(!r){ toast(T('msgNotFound')); return; }
+    return checkVid(r).then(function(ok){
+      if(!ok){ noVidGo(r); return null; }
+      return r;
+    });
+  }).then(function(r){
+    if(!r) return;
     dRec=r;
     freeVideo('v');
     if(dURL){ try{ URL.revokeObjectURL(dURL); }catch(e){} }
     dURL=URL.createObjectURL(r.video);
-    var dv=$('dv');
-    dv.dataset.retry='';
-    dv.src=dURL;
-    dv.addEventListener('loadedmetadata', function once(){
-      dv.removeEventListener('loadedmetadata', once);
-      try{ dv.playbackRate=1; }catch(e){}
+    /* この 関数の 下の ほうに var dv（数）が あるので、別の 名前に します */
+    var dvEl=$('dv');
+    dvEl.dataset.retry='';
+    dvEl.src=dURL;
+    dvEl.addEventListener('loadedmetadata', function once(){
+      dvEl.removeEventListener('loadedmetadata', once);
+      try{ dvEl.playbackRate=1; }catch(e){}
     });
     spdMark($('dspd'),1);
     if(typeof detZoom!=='undefined' && detZoom) detZoom.reset();
@@ -3805,6 +3844,7 @@ $('dDel').onclick=function(){
 $('dAna').onclick=function(){ $('dAgain').click(); };
 $('dAgain').onclick=function(){
   if(!dRec) return;
+  if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
   openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
@@ -3812,6 +3852,7 @@ $('dAgain').onclick=function(){
 };
 $('dVid').onclick=function(){
   if(!dRec) return;
+  if(!hasVid(dRec)){ noVidGo(dRec); return; }
   var ty=(dRec.video.type||'video/mp4');
   var ext=(ty.indexOf('mp4')>=0)?'.mp4':'.webm';
   shareFile(dRec.video, 'swimiq_'+dRec.id+ext, ty, T('shVid'));

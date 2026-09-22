@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.4">
+<meta name="app-ver" content="2026.09.22.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -153,7 +153,7 @@ button, select, input{ font-family:inherit; }
 .ov.det #dUndo{ display:none; }
 #detail.stroke .ov.det #dUndo{ display:block; }
 @media (orientation:portrait){ .ov.det.on .oAct{ width:auto; } }
-#detail.stroke .strokeTag{ display:block; }
+#detail.stroke .strokeTag{ display:none; }
 
 .ov{ position:absolute; inset:0; z-index:2; pointer-events:none; display:grid; gap:8px;
   padding:calc(env(safe-area-inset-top) + 8px) calc(env(safe-area-inset-right) + 10px)
@@ -302,7 +302,9 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .guide.hide{ display:none; }
 .strokeTag{ display:none; padding:6px 16px; border-radius:4px; background:var(--am);
   color:#000; font-size:15px; font-weight:900; text-align:center; }
-#ana.stroke .strokeTag{ display:block; }
+#ana.stroke .strokeTag{ display:none; }
+/* おしらせの 帯は 1秒だけ 出して 消します */
+#ana.stroke .strokeTag.on, #detail.stroke .strokeTag.on{ display:block; }
 
 /* 画面の下：再生・コマ・はやさ・スライダーを 1れつに ならべる */
 .oBar{ grid-area:bar; align-self:end; display:flex; align-items:center; gap:7px; min-width:0;
@@ -2550,6 +2552,16 @@ function tempoStats(intervals){
   var st=sum/keep.length;
   return { st:st, sr:60/st, turns:turns };
 }
+/* かきを 数える ときの おしらせを 1秒だけ 出します */
+var tagTimer=null;
+function flashTag(scrId, text){
+  var tg=$(scrId).querySelector('.strokeTag');
+  if(!tg) return;
+  if(text) tg.textContent=text;
+  tg.classList.add('on');
+  if(tagTimer) clearTimeout(tagTimer);
+  tagTimer=setTimeout(function(){ tg.classList.remove('on'); }, 1000);
+}
 /* かきの あいだの 秒を ならべる */
 function stInts(arr){
   var out=[], i;
@@ -2641,9 +2653,7 @@ function anaText(){
 function paintSR(){
   var sts=strokeStats();
   $('oN').textContent = aStrokes.length;
-  /* かきを 数える あいだは、いま 何かき かを 帯に 出します */
-  var tg=$('ana').querySelector('.strokeTag');
-  if(tg) tg.textContent = T('strokeTag')+'　'+T('scAbbr')+' '+aStrokes.length;
+
   paintGuide();
   if(!sts.length){ $('oSR').textContent='--'; $('oST').textContent='--'; paintAnaSum(); paintSheet(); return; }
   var med=tempoMedian(sts);
@@ -2675,17 +2685,32 @@ function paintAnaSum(){
 function freeVideo(id){
   var v=$(id); if(!v) return;
   try{ v.pause(); }catch(e){}
-  try{ v.removeAttribute('src'); v.load(); }catch(e){}
+  /* src を すぐ 消すと、もう ひとつの 動画の 読みこみまで
+     止まって しまう ことが あるので、あとで そっと 手ばなします */
+  setTimeout(function(){
+    var sc=v.parentNode;
+    if(!sc || !sc.classList || !sc.classList.contains('hide')) return;   /* まだ 見えて いる */
+    try{ v.removeAttribute('src'); v.load(); }catch(e){}
+  }, 900);
 }
-/* 読みこめなかった ときに 知らせる */
+/* 読みこめなかった ときは 1回だけ 読みこみ直し、それでも だめなら 知らせる */
 function bindVidError(id){
   var v=$(id); if(!v) return;
+  v.addEventListener('loadeddata', function(){ v.dataset.retry=''; });
   v.addEventListener('error', function(){
     var src=v.getAttribute('src');
     if(!src) return;                        /* わざと からに した ときは 何も しない */
-    setTimeout(function(){                  /* 切りかえの とちゅうの エラーは 見のがす */
-      if(v.getAttribute('src')===src && v.readyState===0 && v.error) toast(T('msgVidNG'));
-    }, 500);
+    if(v.dataset.retry!=='1'){
+      v.dataset.retry='1';
+      setTimeout(function(){
+        if(v.getAttribute('src')!==src) return;
+        try{ v.load(); }catch(e){}
+      }, 150);
+      return;
+    }
+    setTimeout(function(){
+      if(v.getAttribute('src')===src && v.error) toast(T('msgVidNG'));
+    }, 400);
   });
 }
 bindVidError('v'); bindVidError('dv');
@@ -2703,14 +2728,15 @@ function openAna(blob, opt){
   if(aURL){ try{ URL.revokeObjectURL(aURL); }catch(e){} }
   aURL=URL.createObjectURL(blob);
   var v=$('v');
+  /* src を 入れた だけで 読みこみは はじまります。
+     ここで load() を よぶと 読みこみを 二重に はじめて しっぱいする ことが あります */
+  v.dataset.retry='';
   v.src=aURL;
-  try{ v.load(); }catch(e){}               /* iPhoneは 指で おした その場で 読みこませる */
-  try{ v.currentTime=0; }catch(e){}        /* まだ よみこみ前だと しっぱいする ことが ある */
   v.addEventListener('loadedmetadata', function once(){
     v.removeEventListener('loadedmetadata', once);
     try{ v.currentTime=0; }catch(e){}
+    try{ v.playbackRate=1; }catch(e){}
   });
-  try{ v.playbackRate=1; }catch(e){}
   if(typeof anaZoom!=='undefined' && anaZoom) anaZoom.reset();
   $('anaTitle').textContent = opt.title || T('anaNew');
   $('anaTitle').dataset.neu = opt.title ? '0' : '1';
@@ -3323,7 +3349,7 @@ $('bStroke').onclick=function(){
   $('ana').classList.toggle('stroke', on);
   hideQ();
   if(on){
-    toast(T('msgTapStroke'));
+    flashTag('ana', T('strokeTag'));
     /* はじめる まえに、いままでの かきを けすか きく */
     if(aStrokes.length){
       setTimeout(function(){
@@ -3383,8 +3409,7 @@ $('dMenu').onclick=function(){
 var dStrokes=[];
 function dPaintSR(){
   var sts=[], i;
-  var dtg=$('detail').querySelector('.strokeTag');
-  if(dtg) dtg.textContent = T('strokeTag')+'　'+T('scAbbr')+' '+dStrokes.length;
+
   for(i=1;i<dStrokes.length;i++){ var st=dStrokes[i]-dStrokes[i-1]; if(st>0.05) sts.push(st); }
   var dmed=tempoMedian(sts);
   var use=sts.slice(-6).filter(function(d){ return !isTurn(d, dmed); });
@@ -3511,7 +3536,7 @@ $('dStroke').onclick=function(){
   this.setAttribute('aria-pressed', on?'true':'false');
   if(on){
     if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').innerHTML=T('pauseI'); }
-    toast(T('msgTapStroke'));
+    flashTag('detail', T('strokeTag'));
     if(dStrokes.length){
       setTimeout(function(){
         if(confirm(T('askClearStroke'))){ dStrokes=[]; dPaintSR(); }
@@ -3708,9 +3733,12 @@ function openDetail(id){
     if(dURL){ try{ URL.revokeObjectURL(dURL); }catch(e){} }
     dURL=URL.createObjectURL(r.video);
     var dv=$('dv');
+    dv.dataset.retry='';
     dv.src=dURL;
-    try{ dv.load(); }catch(e){}
-    try{ dv.playbackRate=1; }catch(e){}
+    dv.addEventListener('loadedmetadata', function once(){
+      dv.removeEventListener('loadedmetadata', once);
+      try{ dv.playbackRate=1; }catch(e){}
+    });
     spdMark($('dspd'),1);
     if(typeof detZoom!=='undefined' && detZoom) detZoom.reset();
     $('dTitle').textContent=(r.title||T('dTitle'))+'　'+evLabel(r.event);

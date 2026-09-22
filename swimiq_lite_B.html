@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.7">
+<meta name="app-ver" content="2026.09.22.8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -226,6 +226,11 @@ button, select, input{ font-family:inherit; }
   transition:transform .12s ease; }
 .hudT:active .hudMk{ transform:scale(.9); }
 .oInfo .box{ flex:1 1 auto; min-width:0; }
+/* 中身が 多くても 下の バーに かぶらない ように、
+   けっかの 箱の 高さを 画面の 大きさで きめて、中だけ スクロールさせます */
+.oInfo .box{ max-height:calc(100vh - 152px); display:flex; flex-direction:column; }
+.oInfo .box .boxB{ flex:1 1 auto; min-height:0; overflow-y:auto;
+  -webkit-overflow-scrolling:touch; touch-action:pan-y; overscroll-behavior:contain; }
 .oInfo .box.shut{ display:none; }
 body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .hudT{ align-self:flex-start; padding:0 9px 0 12px; border-radius:6px; color:var(--am);
@@ -1289,6 +1294,8 @@ body, button, select, input, textarea{
         <div class="boxB">
           <div class="sr3 sr4" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
+          <p class="lead" style="margin-top:10px" data-t="vwTempoGl"></p>
+          <div class="tbl" id="dLapTbl"></div>
           <p class="lead" id="dSegTitle" style="margin-top:10px" data-t="dSegTitle"></p>
           <div class="tbl" id="dSegTbl"></div>
         </div>
@@ -1313,6 +1320,7 @@ body, button, select, input, textarea{
       <button class="ob g" id="dImg" type="button" data-t="saveImg"></button>
       <button class="ob" id="dVid" type="button" data-t="saveVid"></button>
       <button class="ob" id="dCopy" type="button" data-t="copyTx"></button>
+      <button class="ob y" id="dView" type="button" data-t="vwNumBtn"></button>
       <button class="ob b" id="dPdf" type="button" data-t="pdfBtn"></button>
       <button class="ob g" id="dShare" type="button" data-t="shareBtn"></button>
       <button class="ob y" id="dCompare" type="button" data-t="dCompareBtn"></button>
@@ -2208,6 +2216,7 @@ var W={
  vfSTHint:['入れると SR も 自動で 計算します。わからなければ 空欄で かまいません。','入れるとSRも自動で計算します。わからなければ空欄で構いません。'],
  editBtn:['修正','修正'],
  vwBtn:['見る','見る'],
+ vwNumBtn:['数字を くわしく','数字をくわしく'],
  manualTitle:['きろくの 手入力','記録の手入力'],
  manualLead:['動画が ない レースの きろくも、数字だけ のこせます。','動画がないレースの記録も、数字だけで残せます。'],
  mDateLbl:['日づけ','日付'],
@@ -3852,6 +3861,22 @@ function openDetail(id){
         b.appendChild(tr);
       }
     }
+    // ターンで 区切った 区間ごとの 平均ST（ストロークタイム）
+    var lb2=$('dLapTbl'), LT2=lapTempos(r);
+    if(lb2){
+      lb2.innerHTML='';
+      if(!LT2.length){ lb2.innerHTML='<div class="none">'+T('vwNoSeg')+'</div>'; }
+      else{
+        var lh='<div class="tr hd"><span class="c1">'+T('vwLapCol')+'</span><span class="c2">'+T('avgST')+
+               '</span><span class="c3">'+T('avgSR')+'</span></div>';
+        for(i=0;i<LT2.length;i++){
+          lh+='<div class="tr"><span class="c1">'+(LT2[i].hasD? (LT2[i].from+'-'+LT2[i].to+'m') : (LT2[i].lap+'本目'))+'</span>'+
+              '<span class="c2">'+LT2[i].st.toFixed(2)+'</span>'+
+              '<span class="c3">'+LT2[i].sr.toFixed(1)+'</span></div>';
+        }
+        lb2.innerHTML=lh;
+      }
+    }
     // 50mごとの ストローク
     var sb=$('dSegTbl'), segs=raceStrokeSegs(r);
     if(sb){
@@ -3890,6 +3915,7 @@ $('dDel').onclick=function(){
   dbDel(id).then(function(){ cloudTomb(id); toast(T('msgDeleted')); $('dv').pause(); show('home'); paintList(); });
 };
 $('dAna').onclick=function(){ $('dAgain').click(); };
+$('dView').onclick=function(){ if(dRec) viewOpen(dRec); };
 $('dAgain').onclick=function(){
   if(!dRec) return;
   if(!hasVid(dRec)){ noVidGo(dRec); return; }

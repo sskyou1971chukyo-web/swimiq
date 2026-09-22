@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.8">
+<meta name="app-ver" content="2026.09.22.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -616,6 +616,20 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15; }
 .spdItem + .spdItem{ border-top:1px solid rgba(0,0,0,.10); }
 .spdItem.on{ background:rgba(255,196,0,.60); color:#000; font-weight:900; }
+/* かきを 数える たびに 出る 大きな すきとおった 数字 */
+#stHud{ position:fixed; left:50%; top:46%; transform:translate(-50%,-50%);
+  z-index:93; pointer-events:none; text-align:center; line-height:1;
+  opacity:0; transition:opacity .18s ease-out; }
+#stHud.on{ opacity:1; }
+#stHud.hide{ display:none !important; }
+#stHud b{ display:block; font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
+  font-size:min(26vw,34vh,240px); color:rgba(255,255,255,.55);
+  font-variant-numeric:tabular-nums; letter-spacing:-.02em;
+  text-shadow:0 6px 26px rgba(0,0,0,.75), 0 0 8px rgba(0,0,0,.6); }
+#stHud span{ display:block; margin-top:-6px; font-weight:900;
+  font-size:min(8vw,10vh,60px); color:rgba(255,196,0,.66);
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 4px 18px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.7); }
 /* きろくした 数字が 大きく 出て、けっかの 箱に すいこまれます */
 .flyNum{ position:fixed; z-index:96; left:50%; top:42%; pointer-events:none;
   padding:10px 26px; border-radius:16px; background:rgba(0,0,0,.55);
@@ -1609,6 +1623,9 @@ body, button, select, input, textarea{
 <!-- きろくした あとに 1秒だけ 出る きょりの 一覧 -->
 <div id="qList" class="hide" aria-hidden="true"></div>
 
+<!-- かきを 数える たびに 大きく 出る 数（0.4秒で 消えます） -->
+<div id="stHud" class="hide" aria-hidden="true"><b id="stHudN">0</b><span id="stHudT"></span></div>
+
 <!-- はやさを えらぶ ちいさな まど -->
 <div id="spdPop" class="hide" role="menu" aria-label="再生速度"></div>
 
@@ -2028,6 +2045,7 @@ var W={
  vwNoSeg:['ストロークが ないので 出せません','ストロークが記録されていません'],
  noVidBadge:['動画なし','動画なし'],
  msgNoLocalVid:['この端末に 動画が ありません。同期では 数字だけ 共有される ので、動画は とった 端末に あります','この端末に動画がありません。同期では数字だけ共有されるため、動画は撮影した端末にあります'],
+ msgDbNG:['この端末では きろくを ほぞん できません。ふつうの タブで ひらくか、Webページとして ひらいて ください','この端末では記録を保存できません。プライベートモードを解除するか、Webページとして開いてください'],
  msgVidNG:['動画を ひらけませんでした。もう一度 ためして ください','動画を開けませんでした。もう一度お試しください'],
  msgNotFound:['見つかりません','見つかりません'],
  msgDeleted:['消しました','削除しました'],
@@ -2348,16 +2366,28 @@ function fmt(s){
    写真アプリとは べつに、このアプリ専用の たなを 作って、
    動画そのものと 分析の数字を いっしょに しまいます。 */
 var DBN='swimiq_lite', ST='rec', db=null;
+/* この端末で「ほぞん」が つかえない ことが あります
+   （Androidで ファイルから ひらいた とき、プライベート表示の とき など）。
+   その ときは だまって 失敗せず、はっきり 知らせます。 */
+var dbNG=false;
+function dbWarn(){
+  if(dbNG) return;
+  dbNG=true;
+  setTimeout(function(){ toast(T('msgDbNG')); }, 600);
+}
 function dbOpen(){
   return new Promise(function(res,rej){
     if(db){ res(db); return; }
-    var q=indexedDB.open(DBN,1);
+    var q;
+    try{ q=indexedDB.open(DBN,1); }catch(e){ dbWarn(); rej(e); return; }
+    if(!q){ dbWarn(); rej(new Error('idb')); return; }
     q.onupgradeneeded=function(e){
       var d=e.target.result;
       if(!d.objectStoreNames.contains(ST)) d.createObjectStore(ST,{keyPath:'id'});
     };
     q.onsuccess=function(e){ db=e.target.result; res(db); };
-    q.onerror=function(){ rej(q.error); };
+    q.onerror=function(){ dbWarn(); rej(q.error); };
+    q.onblocked=function(){ dbWarn(); };
   });
 }
 function dbPut(rec){
@@ -2639,6 +2669,28 @@ function tempoStats(intervals){
   var sum=0; for(var j=0;j<keep.length;j++) sum+=keep[j];
   var st=sum/keep.length;
   return { st:st, sr:60/st, turns:turns };
+}
+/* かきを 数える たびに、いまの 本数と テンポを 0.4秒だけ 大きく 出します */
+var stHudTimer=null, stHudOff=null;
+function stHudShow(n, st){
+  var box=$('stHud'); if(!box) return;
+  $('stHudN').textContent = n;
+  $('stHudT').textContent = (st!=null && st>0) ? (st.toFixed(2)+'秒') : '';
+  box.classList.remove('hide');
+  /* いったん 消してから 出し直すと、つぎの かきでも きちんと 光ります */
+  if(stHudOff){ clearTimeout(stHudOff); stHudOff=null; }
+  box.classList.add('on');
+  if(stHudTimer) clearTimeout(stHudTimer);
+  stHudTimer=setTimeout(function(){
+    box.classList.remove('on');
+    stHudOff=setTimeout(function(){ box.classList.add('hide'); }, 200);
+  }, 400);
+}
+function stHudHide(){
+  var box=$('stHud'); if(!box) return;
+  if(stHudTimer){ clearTimeout(stHudTimer); stHudTimer=null; }
+  if(stHudOff){ clearTimeout(stHudOff); stHudOff=null; }
+  box.classList.remove('on'); box.classList.add('hide');
 }
 /* かきを 数える ときの おしらせを 1秒だけ 出します */
 var tagTimer=null;
@@ -3435,7 +3487,7 @@ $('bStroke').onclick=function(){
   }
   this.setAttribute('aria-pressed', on?'true':'false');
   $('ana').classList.toggle('stroke', on);
-  hideQ();
+  hideQ(); stHudHide();
   if(on){
     flashTag('ana', T('strokeTag'));
     /* はじめる まえに、いままでの かきを けすか きく */
@@ -3453,12 +3505,15 @@ var pdCounted=false;
 var aStrokeAt=0;
 function addStroke(){
   aStrokes.push($('v').currentTime); aStrokeAt=Date.now(); paintSR();
+  var n=aStrokes.length;
+  var st=(n>=2) ? (aStrokes[n-1]-aStrokes[n-2]) : null;
+  stHudShow(n, st);
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
 }
 /* 2本目の 指が ついた ときは「ひろげる」操作なので、
    すぐ前に 入った かきを 1つ 取り消します */
 function addStrokeUndo(){
-  if(aStrokes.length && Date.now()-aStrokeAt < 600){ aStrokes.pop(); paintSR(); }
+  if(aStrokes.length && Date.now()-aStrokeAt < 600){ aStrokes.pop(); paintSR(); stHudHide(); }
 }
 /* 指で さわった ときは touchstart で 数えます。
    機種に よって pointerdown しか 来ない ことも あるので、
@@ -3517,10 +3572,13 @@ function dPaintSR(){
 var dStrokeAt=0;
 function dAddStroke(){
   dStrokes.push($('dv').currentTime); dStrokeAt=Date.now(); dPaintSR();
+  var dn=dStrokes.length;
+  var dst=(dn>=2) ? (dStrokes[dn-1]-dStrokes[dn-2]) : null;
+  stHudShow(dn, dst);
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
 }
 function dAddStrokeUndo(){
-  if(dStrokes.length && Date.now()-dStrokeAt < 600){ dStrokes.pop(); dPaintSR(); }
+  if(dStrokes.length && Date.now()-dStrokeAt < 600){ dStrokes.pop(); dPaintSR(); stHudHide(); }
 }
 var dDownAt=0;
 $('dTap').addEventListener('pointerdown', function(e){
@@ -3622,6 +3680,7 @@ var detZoom = makeZoomable($('dv'), $('dTap'), dAddStrokeUndo);
 $('dStroke').onclick=function(){
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
+  stHudHide();
   if(on){
     if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').innerHTML=T('pauseI'); }
     flashTag('detail', T('strokeTag'));

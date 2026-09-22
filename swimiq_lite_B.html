@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.3">
+<meta name="app-ver" content="2026.09.22.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1608,6 +1608,8 @@ body, button, select, input, textarea{
     <div class="sq">
       <p class="q" data-t="swmSelLbl"></p>
       <select id="mSwim"></select>
+      <p class="lead" data-t="nameFreeLbl" style="margin-top:8px;"></p>
+      <input type="text" id="mName" autocomplete="name" placeholder="例）山田 ゆり">
     </div>
     <div class="sq">
       <p class="q" data-t="mDateLbl"></p>
@@ -1669,6 +1671,8 @@ body, button, select, input, textarea{
     <div class="sq">
       <p class="q" data-t="swmSelLbl"></p>
       <select id="vfSwim"></select>
+      <p class="lead" data-t="nameFreeLbl" style="margin-top:8px;"></p>
+      <input type="text" id="vfName" autocomplete="name" placeholder="例）山田 ゆり">
     </div>
     <div class="sq">
       <p class="q" data-t="mDateLbl"></p>
@@ -2191,6 +2195,7 @@ var W={
  syncDoing:['同期しています…','同期中…'],
  syncDone:['同期しました','同期が完了しました'],
  syncNG:['同期できませんでした。アドレスと つうしんを たしかめてください','同期できませんでした。アドレスと通信を確認してください'],
+ nameFreeLbl:['一覧に ない ときは、ここに 名前を 書いて ください','一覧にないときは、ここに名前を直接入力できます'],
  vfSplLbl:['通過タイムを 直す','通過タイムを直す'],
  vfSplHint:['左が きょり、右が 経過タイムです。きょりが ちがう ときは 左で えらび直して ください。いらない 行は ✕ で けせます。','左が距離、右が経過タイムです。距離が違うときは左で選び直してください。いらない行は✕で消せます。'],
  vfSplAdd:['＋ 行を ふやす','＋ 行を増やす'],
@@ -2627,6 +2632,8 @@ function anaText(){
       L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  '+(isT ? ('（'+T('turnLbl')+'）') : ('SR'+(60/sts[k]).toFixed(1))));
     }
     L.push('平均ST '+(tp.st!=null?tp.st.toFixed(2)+'秒':'--')+'　平均SR '+(tp.sr!=null?tp.sr.toFixed(1):'--'));
+    var LTx=lapTempoText(r);
+    if(LTx.length>1) L.push('区間ごとの平均ST  '+LTx.join(' / '));
     if(tp.turns.length) L.push('※ '+turnNote(tp.turns));
   }
   return L.join('\n');
@@ -3801,6 +3808,8 @@ function recText(r){
       L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  '+(isT ? ('（'+T('turnLbl')+'）') : ('SR'+(60/sts[m]).toFixed(1))));
     }
     L.push('平均ST '+(tp.st!=null?tp.st.toFixed(2)+'秒':'--')+'　平均SR '+(tp.sr!=null?tp.sr.toFixed(1):'--'));
+    var LTx=lapTempoText(r);
+    if(LTx.length>1) L.push('区間ごとの平均ST  '+LTx.join(' / '));
     if(tp.turns.length) L.push('※ '+turnNote(tp.turns));
   }
   if(r.videoUrl){ L.push('', '['+T('dOpenLink')+']', r.videoUrl); }
@@ -4528,6 +4537,7 @@ function manualOpen(rec){
   renderMSegs(dist, (rec && rec.manualSegs) ? rec.manualSegs : null);
   $('mVid').value = (rec && rec.videoUrl) ? rec.videoUrl : '';
   fillSwimSelect($('mSwim'), rec ? rec.swimmerId : '');
+  $('mName').value = (rec && !rec.swimmerId && rec.swimmerName) ? rec.swimmerName : '';
   $('mDel').classList.toggle('hide', !rec);
   $('mPdf').classList.toggle('hide', !rec);
   $('manualBox').classList.remove('hide');
@@ -4658,6 +4668,50 @@ function rpSVGsplits(r){
   s+='<text x="'+pad.l+'" y="13" font-size="9.5" fill="#9aa0ab" font-weight="700">秒</text></svg>';
   return s;
 }
+/* ターンで 区切った ラップ ごとの 平均テンポ（ST）を 出します。
+   ターンの 間隔そのものは 平均に 入れません。
+   れい： 0-25m 1.10 / 25-50m 1.20 / 50-75m 1.30 / 75-100m 1.35 */
+function lapTempos(r){
+  var arr=(r&&r.strokes)||[], iv=[], i;
+  for(i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) iv.push(d); }
+  if(iv.length<2) return [];
+  var med=tempoMedian(iv), groups=[], cur=[], idx=[], curIdx=[];
+  for(i=0;i<iv.length;i++){
+    if(isTurn(iv[i], med)){
+      if(cur.length){ groups.push(cur); idx.push(curIdx); }
+      cur=[]; curIdx=[];
+    }else{ cur.push(iv[i]); curIdx.push(i+1); }
+  }
+  if(cur.length){ groups.push(cur); idx.push(curIdx); }
+  var n=groups.length; if(!n) return [];
+  var dist = (r.dist) || (r.splits && r.splits.length ? r.splits[r.splits.length-1].d : 0);
+  var pool = r.pool || 0;
+  /* ラップの 数と プールの 長さが 合えば プール どおり、合わなければ 等分に します */
+  var seg = (dist && pool && Math.round(dist/pool)===n) ? pool : (dist ? dist/n : 0);
+  var out=[];
+  for(i=0;i<n;i++){
+    var sum=0, k; for(k=0;k<groups[i].length;k++) sum+=groups[i][k];
+    var st=sum/groups[i].length;
+    out.push({
+      from: seg ? Math.round(seg*i) : 0,
+      to:   seg ? Math.round(seg*(i+1)) : 0,
+      hasD: !!seg,
+      lap:  i+1,
+      st:   st,
+      sr:   60/st,
+      n:    groups[i].length,
+      idx:  idx[i]
+    });
+  }
+  return out;
+}
+function lapTempoText(r){
+  var L=lapTempos(r), out=[], i;
+  for(i=0;i<L.length;i++){
+    out.push((L[i].hasD ? (L[i].from+'-'+L[i].to+'m') : (L[i].lap+'本目'))+' '+L[i].st.toFixed(2));
+  }
+  return out;
+}
 function rpSVGsr(r){
   var arr=r.strokes||[], st=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) st.push(d); }
   if(st.length<2) return '';
@@ -4666,7 +4720,7 @@ function rpSVGsr(r){
   var swim=pts.filter(function(p){return !p.turn;});
   var srMax=Math.max.apply(null,swim.map(function(p){return p.sr;})), srMin=Math.min.apply(null,swim.map(function(p){return p.sr;}));
   var yLo=Math.floor((srMin-2)/5)*5, yHi=Math.ceil((srMax+2)/5)*5, n=pts.length;
-  var W=900,H=250,pad={l:38,r:16,t:16,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  var W=900,H=250,pad={l:38,r:16,t:42,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
   function X(i){ return pad.l+(i-1)/(n-1)*iw; } function Y(v){ return pad.t+ih-(v-yLo)/(yHi-yLo)*ih; }
   var s='<svg viewBox="0 0 '+W+' '+H+'">';
   for(var g=yLo; g<=yHi; g+=5){ var yy=Y(g);
@@ -4684,6 +4738,20 @@ function rpSVGsr(r){
     s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty-4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty+4)+'" stroke="#d64545" stroke-width="2.2"/>';
     s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty+4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty-4)+'" stroke="#d64545" stroke-width="2.2"/>';
     s+='<text x="'+X(p.i)+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#d64545">'+T('turnLbl')+'</text>'; });
+  /* ラップ ごとの 平均テンポを グラフの 上に 出します */
+  var LT=lapTempos(r);
+  if(LT.length>1){
+    LT.forEach(function(L){
+      if(!L.idx.length) return;
+      var x1=X(L.idx[0]), x2=X(L.idx[L.idx.length-1]);
+      var cx=(x1+x2)/2, by=pad.t+9;
+      s+='<line x1="'+x1+'" y1="'+by+'" x2="'+x2+'" y2="'+by+'" stroke="#1e6fe0" stroke-width="1.6" opacity=".45"/>';
+      s+='<line x1="'+x1+'" y1="'+(by-4)+'" x2="'+x1+'" y2="'+(by+4)+'" stroke="#1e6fe0" stroke-width="1.6" opacity=".45"/>';
+      s+='<line x1="'+x2+'" y1="'+(by-4)+'" x2="'+x2+'" y2="'+(by+4)+'" stroke="#1e6fe0" stroke-width="1.6" opacity=".45"/>';
+      s+='<text x="'+cx+'" y="'+(by-8)+'" text-anchor="middle" font-size="10.5" font-weight="900" fill="#16181d">'+
+         esc((L.hasD ? (L.from+'-'+L.to+'m') : (L.lap+'本目'))+'　'+L.st.toFixed(2))+'</text>';
+    });
+  }
   var f=swim[0], la=swim[swim.length-1];
   s+='<text x="'+X(f.i)+'" y="'+(Y(f.sr)-8)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="#1e6fe0">'+f.sr.toFixed(1)+'</text>';
   s+='<text x="'+X(la.i)+'" y="'+(Y(la.sr)-8)+'" text-anchor="middle" font-size="9.5" font-weight="800" fill="#1e6fe0">'+la.sr.toFixed(1)+'</text>';
@@ -4731,7 +4799,9 @@ function buildReport(r){
     (srSvg ?
       ('<div class="rsec full"><h3>ストロークレート（SR）の推移</h3>'+
        '<div class="rlegend"><span><i style="background:#1e6fe0"></i>泳ぎのSR</span><span><i style="background:#d64545"></i>ターン（除外）</span><span><i style="background:#c98a00"></i>平均SR</span></div>'+
-       srSvg+'<div class="rcap">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</div></div>') : '')+
+       srSvg+
+       ((lapTempoText(r).length>1) ? ('<div class="rcap"><b>区間ごとの平均ST（秒／かき）</b>　'+esc(lapTempoText(r).join('　／　'))+'</div>') : '')+
+       '<div class="rcap">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</div></div>') : '')+
     (tp.turns.length ? '<div class="rnote">※ '+turnNote(tp.turns)+'</div>' : '')+
     '<div class="rft"><span>SwimIQ LITE B — レース分析レポート</span><span>作成 '+dt+'</span></div>'+
   '</div>';
@@ -4812,7 +4882,13 @@ function reportSVG(r, W, H){
     lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(ly-9)+'" width="11" height="11" rx="3" fill="'+g[0]+'"/>'; s+='<text x="'+(lx+16)+'" y="'+ly+'" font-size="10.5" font-weight="800" fill="#5b6270">'+g[1]+'</text>'; lx+=g[1].length*11+40; });
     s+=place(srSvg, mx, srY+30, cw, cw*250/900);
     var srBottom=srY+30+cw*250/900;
-    s+='<text x="'+mx+'" y="'+(srBottom+16)+'" font-size="10" font-weight="700" fill="#5b6270">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</text>';
+    var LTt=lapTempoText(r);
+    if(LTt.length>1){
+      s+='<text x="'+mx+'" y="'+(srBottom+16)+'" font-size="11" font-weight="900" fill="#16181d">区間ごとの平均ST（秒／かき）　'+esc(LTt.join('　／　'))+'</text>';
+      s+='<text x="'+mx+'" y="'+(srBottom+32)+'" font-size="10" font-weight="700" fill="#5b6270">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</text>';
+    }else{
+      s+='<text x="'+mx+'" y="'+(srBottom+16)+'" font-size="10" font-weight="700" fill="#5b6270">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</text>';
+    }
   }
   // note
   if(tp.turns.length){
@@ -5066,7 +5142,8 @@ $('mSave').onclick=function(){
     manualST: cntST ? (sumST/cntST) : null,
     videoUrl: ($('mVid').value||'').trim(),
     swimmerId: $('mSwim').value || '',
-    swimmerName: (swById($('mSwim').value)||{}).name || '',
+    swimmerName: ($('mSwim').value ? ((swById($('mSwim').value)||{}).name || '')
+                                   : (($('mName').value||'').trim())),
     updatedAt: Date.now(),
     thumb: ''
   };
@@ -5147,6 +5224,8 @@ function vfOpen(rec){
   $('vfVid').value = rec.videoUrl || '';
   vfSplPaint(rec.splits || []);
   fillSwimSelect($('vfSwim'), rec.swimmerId || '');
+  /* 一覧に ない 名前は 文字で のこして あるので、そのまま 出します */
+  $('vfName').value = (!rec.swimmerId && rec.swimmerName) ? rec.swimmerName : '';
   $('vfDel').classList.remove('hide');
   $('vFix').classList.remove('hide');
 }
@@ -5192,7 +5271,9 @@ $('vfSave').onclick=function(){
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
     rec.videoUrl = ($('vfVid').value||'').trim();
     rec.swimmerId = $('vfSwim').value || '';
-    rec.swimmerName = (swById($('vfSwim').value)||{}).name || '';
+    var vfTyped=($('vfName').value||'').trim();
+    /* 一覧から えらんで いない ときは、書いた 名前を つかいます */
+    rec.swimmerName = rec.swimmerId ? ((swById(rec.swimmerId)||{}).name || '') : vfTyped;
     rec.updatedAt = Date.now();
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){

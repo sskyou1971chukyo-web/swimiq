@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.6">
+<meta name="app-ver" content="2026.09.22.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -649,10 +649,33 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox, #vFix, #swmBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix, #swmBox, #viewBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide{ display:none !important; }
+/* きろくの ないようを 見る まど */
+#viewBox .vwHd{ display:flex; align-items:center; gap:10px; }
+#viewBox .vwHd h3{ flex:1; min-width:0; }
+.vwSub{ margin:4px 0 12px; font-size:13px; font-weight:700; color:var(--dim); line-height:1.6; }
+.vwKpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:8px; margin-bottom:14px; }
+.vwKpi > div{ display:flex; flex-direction:column; align-items:center; gap:2px;
+  background:var(--pane); border:2px solid var(--line2); border-radius:10px; padding:7px 4px; }
+.vwKpi span{ order:1; font-size:11px; font-weight:800; color:var(--am); letter-spacing:.04em; }
+.vwKpi b{ order:2; font-size:23px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+.vwGl{ margin:14px 0 6px; padding-left:9px; border-left:5px solid var(--am);
+  font-size:15px; font-weight:900; color:#fff; }
+.vwTbl{ border:2px solid var(--line2); border-radius:10px; overflow:hidden; }
+.vwTbl .vr{ display:flex; align-items:center; gap:8px; padding:9px 11px; font-size:15px; font-weight:800; }
+.vwTbl .vr + .vr{ border-top:1px solid var(--line2); }
+.vwTbl .vr.hd{ background:var(--am); color:#000; font-size:12px; }
+.vwTbl .c1{ flex:0 0 72px; color:var(--am); }
+.vwTbl .vr.hd .c1, .vwTbl .vr.hd .c2, .vwTbl .vr.hd .c3{ color:#000; }
+.vwTbl .c2{ flex:1; font-variant-numeric:tabular-nums; }
+.vwTbl .c3{ flex:0 0 86px; text-align:right; color:var(--dim); font-variant-numeric:tabular-nums; }
+.vwNote{ margin-top:10px; padding:9px 11px; border-radius:10px; font-size:13px; font-weight:800;
+  color:var(--am); background:rgba(255,196,0,.08); border:1px solid var(--line2); line-height:1.6; }
+.vwBtns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
+.vwBtns .btn{ width:100%; }
 .svWrap{ width:100%; max-width:620px; background:var(--bk); border:3px solid var(--am);
   border-radius:8px; padding:14px; }
 .svWrap h3{ margin:0; font-size:21px; font-weight:900; }
@@ -735,6 +758,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   padding:10px; margin:10px 0 4px; }
 #cmpCanvas{ width:100%; display:block; }
 .cmpNote{ margin:0 0 12px; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
+/* くらべる画面の「見る」ボタンは「修正」と 同じ 見た目 */
 .cmpItem{ display:flex; flex-direction:column; gap:4px; cursor:pointer;
   background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
   border-radius:6px; padding:10px 12px; margin:0 0 8px; }
@@ -745,10 +769,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .cmpItem .r1 .diff{ margin-left:auto; font-size:13px; font-weight:800; color:var(--am);
   font-variant-numeric:tabular-nums; }
 .cmpItem .r1 .diff.best{ color:var(--go); }
-.cmpItem .r1 .cmpEdit{ flex:0 0 auto; margin-left:8px; min-height:36px; padding:3px 16px;
+.cmpItem .r1 .cmpEdit, .cmpItem .r1 .cmpView{ flex:0 0 auto; margin-left:8px; min-height:36px; padding:3px 14px;
   border-radius:var(--rM); border:2px solid var(--am); background:rgba(255,196,0,.14);
   color:var(--am); font-size:14px; font-weight:900; cursor:pointer; }
-.cmpItem .r1 .cmpEdit:active{ background:rgba(255,196,0,.30); }
+.cmpItem .r1 .cmpEdit:active, .cmpItem .r1 .cmpView:active{ background:rgba(255,196,0,.30); }
+.cmpItem .r1 .cmpView{ background:var(--am); color:#000; }
 .cmpItem .r2{ font-size:12.5px; font-weight:700; color:var(--dim); }
 .cmpPair{ background:var(--pane); border:3px solid var(--am); border-radius:8px;
   padding:12px; margin:14px 0; }
@@ -1579,6 +1604,26 @@ body, button, select, input, textarea{
 <!-- はやさを えらぶ ちいさな まど -->
 <div id="spdPop" class="hide" role="menu" aria-label="再生速度"></div>
 
+<!-- きろくの ないようを 見る まど（動画が なくても 見られます） -->
+<div id="viewBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="vwH">
+  <div class="svWrap">
+    <div class="vwHd"><h3 id="vwH"></h3><button class="btn" type="button" id="vwClose" data-t="dMenuX"></button></div>
+    <p class="vwSub" id="vwSub"></p>
+    <div class="vwKpi" id="vwKpi"></div>
+    <div class="vwGl" data-t="glSplit"></div>
+    <div class="vwTbl" id="vwSpl"></div>
+    <div class="vwGl" data-t="vwTempoGl"></div>
+    <div class="vwTbl" id="vwSeg"></div>
+    <p class="vwNote hide" id="vwNote"></p>
+    <div class="vwBtns">
+      <button class="btn g" type="button" id="vwPdf" data-t="pdfBtn"></button>
+      <button class="btn b" type="button" id="vwCopy" data-t="copyTx"></button>
+      <button class="btn b" type="button" id="vwEdit" data-t="editBtn"></button>
+      <button class="btn b hide" type="button" id="vwVid" data-t="vidOpen"></button>
+    </div>
+  </div>
+</div>
+
 <div id="fixBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="fixH">
   <div class="fxWrap">
     <div class="fxH"><b id="fixH"></b><button type="button" id="fixX" data-t="sensDone"></button></div>
@@ -1970,6 +2015,9 @@ var W={
  msgCopied:['コピーしました','コピーしました'],
  msgCopyNG:['コピーできませんでした','コピーできませんでした'],
  msgCopyNo:['この端末では コピーできません','この端末ではコピーできません'],
+ vwTempoGl:['区間ごとの 平均ST','区間ごとの平均ST'],
+ vwLapCol:['区間','区間'],
+ vwNoSeg:['ストロークが ないので 出せません','ストロークが記録されていません'],
  noVidBadge:['動画なし','動画なし'],
  msgNoLocalVid:['この端末に 動画が ありません。同期では 数字だけ 共有される ので、動画は とった 端末に あります','この端末に動画がありません。同期では数字だけ共有されるため、動画は撮影した端末にあります'],
  msgVidNG:['動画を ひらけませんでした。もう一度 ためして ください','動画を開けませんでした。もう一度お試しください'],
@@ -2159,6 +2207,7 @@ var W={
  vfSTLbl:['テンポ ST（1かきの秒数）','テンポ ST（1かきの秒数）'],
  vfSTHint:['入れると SR も 自動で 計算します。わからなければ 空欄で かまいません。','入れるとSRも自動で計算します。わからなければ空欄で構いません。'],
  editBtn:['修正','修正'],
+ vwBtn:['見る','見る'],
  manualTitle:['きろくの 手入力','記録の手入力'],
  manualLead:['動画が ない レースの きろくも、数字だけ のこせます。','動画がないレースの記録も、数字だけで残せます。'],
  mDateLbl:['日づけ','日付'],
@@ -2336,8 +2385,8 @@ function checkVid(r){
 /* 動画が 無い ときの ゆきさき（リンクが あれば リンク、なければ 修正画面） */
 function noVidGo(r){
   toast(T('msgNoLocalVid'));
-  if(r && r.videoUrl) setTimeout(function(){ openVid(r.videoUrl); }, 900);
-  else setTimeout(function(){ if(!r.manual) vfOpen(r); }, 900);
+  /* 動画は なくても、きろくの ないようは 見られます */
+  setTimeout(function(){ viewOpen(r); }, 700);
 }
 /* 通過タイムは いつも きょりの 順に そろえて つかいます */
 function normRec(r){
@@ -3708,10 +3757,9 @@ function recCard(r){
     subHtml+
     '<div class="c2sr">'+srLine+'</div>';
   c.onclick=function(){
-    if(r.manual){ manualOpen(r); return; }
+    if(r.manual){ viewOpen(r); return; }
     if(!hasVid(r)){                   /* 同期で来た記録：この端末に動画が無い */
-      if(r.videoUrl) openVid(r.videoUrl);
-      else vfOpen(r);
+      viewOpen(r);                    /* 動画は なくても ないようは 見られます */
       return;
     }
     openDetail(r.id);
@@ -5352,6 +5400,92 @@ $('vfSave').onclick=function(){
     vfRefresh();
   });
 };
+/* ================================================================
+   きろくの ないようを 見る まど
+   動画が なくても、通過タイム・ST・SR・ストローク数・RT・
+   区間ごとの 平均テンポを アプリの 中で 見られます。
+   ================================================================ */
+var vwRec=null;
+function viewOpen(r){
+  if(!r) return;
+  vwRec=r;
+  var last=(r.splits&&r.splits.length)? r.splits[r.splits.length-1] : null;
+  var ss=raceStroke(r);
+  $('vwH').textContent = r.title || T('dTitle');
+  var bits=[];
+  bits.push(new Date(r.at).toLocaleDateString('ja-JP'));
+  if(r.swimmerName) bits.push(r.swimmerName);
+  bits.push(evLabel(r.event));
+  bits.push((r.dist||(last?last.d:''))+'m');
+  bits.push((r.pool||50)+'mプール');
+  if(r.manual) bits.push(T('mBadge'));
+  if(!r.manual && !hasVid(r)) bits.push(T('noVidBadge'));
+  $('vwSub').textContent = bits.join('　');
+
+  /* 数字の ならび */
+  var kp=[
+    [ (last? last.d+'m' : T('timeLbl')), (last? fmt(last.t) : '--') ],
+    [ T('avgST'), (ss.st!=null? ss.st.toFixed(2):'--') ],
+    [ T('avgSR'), (ss.sr!=null? ss.sr.toFixed(1):'--') ],
+    [ T('scAbbr'), (ss.n!=null? ss.n : '--') ]
+  ];
+  if(r.rt!=null) kp.push([ T('rtOutLbl'), Number(r.rt).toFixed(2) ]);
+  var h='', i;
+  for(i=0;i<kp.length;i++) h+='<div><span>'+esc(kp[i][0])+'</span><b>'+esc(String(kp[i][1]))+'</b></div>';
+  $('vwKpi').innerHTML=h;
+
+  /* 通過タイム */
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  if(!sp.length){
+    $('vwSpl').innerHTML='<div class="vr"><span class="c2">'+T('splitNone')+'</span></div>';
+  }else{
+    h='<div class="vr hd"><span class="c1">'+T('hDist')+'</span><span class="c2">'+T('hTime')+
+      '</span><span class="c3">'+T('hSplit')+'</span></div>';
+    for(i=0;i<sp.length;i++){
+      var pv = i>0 ? sp[i-1].t : 0;
+      h+='<div class="vr"><span class="c1">'+sp[i].d+'m</span>'+
+         '<span class="c2">'+fmt(sp[i].t)+'</span>'+
+         '<span class="c3">+'+fmt(sp[i].t-pv)+'</span></div>';
+    }
+    $('vwSpl').innerHTML=h;
+  }
+
+  /* 区間ごとの 平均ST */
+  var LT=lapTempos(r);
+  if(!LT.length){
+    $('vwSeg').innerHTML='<div class="vr"><span class="c2">'+T('vwNoSeg')+'</span></div>';
+  }else{
+    h='<div class="vr hd"><span class="c1">'+T('vwLapCol')+'</span><span class="c2">'+T('avgST')+
+      '</span><span class="c3">'+T('avgSR')+'</span></div>';
+    for(i=0;i<LT.length;i++){
+      h+='<div class="vr"><span class="c1">'+(LT[i].hasD? (LT[i].from+'-'+LT[i].to+'m') : (LT[i].lap+'本目'))+'</span>'+
+         '<span class="c2">'+LT[i].st.toFixed(2)+'</span>'+
+         '<span class="c3">'+LT[i].sr.toFixed(1)+'</span></div>';
+    }
+    $('vwSeg').innerHTML=h;
+  }
+
+  /* ターンを のぞいた しらせ */
+  var ints=stInts(r.strokes||[]), tp=tempoStats(ints);
+  if(tp.turns && tp.turns.length){
+    $('vwNote').textContent='※ '+turnNote(tp.turns);
+    $('vwNote').classList.remove('hide');
+  }else{
+    $('vwNote').classList.add('hide');
+  }
+  $('vwVid').classList.toggle('hide', !r.videoUrl);
+  $('viewBox').classList.remove('hide');
+}
+$('vwClose').onclick=function(){ $('viewBox').classList.add('hide'); };
+$('vwPdf').onclick=function(){ if(vwRec) downloadPDF(vwRec); };
+$('vwCopy').onclick=function(){ if(vwRec) shareText(recText(vwRec), vwRec.title||'SwimIQ'); };
+$('vwEdit').onclick=function(){
+  if(!vwRec) return;
+  $('viewBox').classList.add('hide');
+  openEditRace(vwRec);
+};
+$('vwVid').onclick=function(){ if(vwRec && vwRec.videoUrl) openVid(vwRec.videoUrl); };
+
 /* レース一覧から「修正」を おしたとき、記録の種類に合わせて 編集画面を ひらく
    手入力の記録 … 手入力の画面（区間ごとの本数まで直せる）
    動画の記録   … 修正画面（種目・日付・距離・タイム・ストローク数・テンポ）*/
@@ -5742,7 +5876,8 @@ function paintCompare(){
       '<div class="r1"><span class="t">'+fmt(t)+'</span>'+
         '<span class="tag">'+r.dist+'m　'+evLabel(r.event)+'</span>'+
         '<span class="diff'+(diff===0?' best':'')+'">'+(diff===0?T('cmpBestTag'):(diff!=null?'+'+diff.toFixed(2):''))+'</span>'+
-        '<button class="cmpEdit" type="button">'+T('editBtn')+'</button></div>'+
+        '<button class="cmpEdit" type="button">'+T('editBtn')+'</button>'+
+        '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>'+
       '<div class="r2">'+new Date(r.at).toLocaleDateString('ja-JP')+'　'+r.title+
         '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
         '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+'</div>';
@@ -5750,6 +5885,8 @@ function paintCompare(){
       d.onclick=function(){ cmpToggleSel(rec.id); };
       var eb=d.querySelector('.cmpEdit');
       if(eb) eb.onclick=function(e){ e.stopPropagation(); openEditRace(rec); };
+      var vb=d.querySelector('.cmpView');
+      if(vb) vb.onclick=function(e){ e.stopPropagation(); viewOpen(rec); };
     })(r);
     lb.appendChild(d);
   }

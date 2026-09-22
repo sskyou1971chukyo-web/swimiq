@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.2">
+<meta name="app-ver" content="2026.09.22.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -598,6 +598,17 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
   font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.2; }
 .qItem + .qItem{ border-top:1px solid rgba(0,0,0,.10); }
 .qItem.on{ background:rgba(255,196,0,.55); color:#000; font-weight:900; }
+/* はやさを えらぶ まど（1倍の ボタンから ポップアップ） */
+#spdPop{ position:fixed; z-index:94; padding:6px; border-radius:18px;
+  background:rgba(238,238,240,.86);
+  -webkit-backdrop-filter:blur(22px) saturate(180%); backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:0 12px 40px rgba(0,0,0,.45); animation:qIn .14s ease-out; }
+#spdPop.hide{ display:none !important; }
+.spdItem{ display:block; width:100%; min-width:126px; margin:0; padding:11px 16px; border:0;
+  background:transparent; border-radius:12px; cursor:pointer; color:#111; text-align:center;
+  font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15; }
+.spdItem + .spdItem{ border-top:1px solid rgba(0,0,0,.10); }
+.spdItem.on{ background:rgba(255,196,0,.60); color:#000; font-weight:900; }
 /* きろくした 数字が 大きく 出て、けっかの 箱に すいこまれます */
 .flyNum{ position:fixed; z-index:96; left:50%; top:42%; pointer-events:none;
   padding:10px 26px; border-radius:16px; background:rgba(0,0,0,.55);
@@ -1561,6 +1572,9 @@ body, button, select, input, textarea{
 
 <!-- きろくした あとに 1秒だけ 出る きょりの 一覧 -->
 <div id="qList" class="hide" aria-hidden="true"></div>
+
+<!-- はやさを えらぶ ちいさな まど -->
+<div id="spdPop" class="hide" role="menu" aria-label="再生速度"></div>
 
 <div id="fixBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="fixH">
   <div class="fxWrap">
@@ -2852,6 +2866,46 @@ function spdMark(btn,r){            /* はやさの ボタンの 見た目を �
   btn.setAttribute('aria-label', T('spdLbl')+' '+T(rateWord(r)));
   btn.setAttribute('aria-pressed', Number(r)===1?'false':'true');
 }
+/* はやさを えらぶ まど（おそい じゅんに ならべます） */
+var SPD_LIST=[0.25,0.5,1,1.5,2];
+var spdPopOn=false;
+function spdPopClose(){
+  var pop=$('spdPop'); if(!pop) return;
+  pop.classList.add('hide'); spdPopOn=false;
+}
+function spdPopOpen(btn, v){
+  var pop=$('spdPop'); if(!pop) return;
+  if(spdPopOn){ spdPopClose(); return; }
+  pop.innerHTML='';
+  var cur=Number(btn.dataset.r||1), i;
+  for(i=0;i<SPD_LIST.length;i++){
+    (function(r){
+      var b=document.createElement('button');
+      b.type='button'; b.className='spdItem'+(r===cur?' on':'');
+      b.textContent=T(rateWord(r));
+      b.onclick=function(){
+        try{ v.playbackRate=r; }catch(e){}
+        spdMark(btn,r); spdPopClose();
+      };
+      pop.appendChild(b);
+    })(SPD_LIST[i]);
+  }
+  pop.classList.remove('hide'); spdPopOn=true;
+  var rb=btn.getBoundingClientRect();
+  var w=pop.offsetWidth, h=pop.offsetHeight;
+  var left=rb.left+rb.width/2-w/2;
+  left=Math.max(8, Math.min(window.innerWidth-w-8, left));
+  var top=rb.top-h-10;
+  if(top<8) top=Math.min(window.innerHeight-h-8, rb.bottom+10);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
+}
+document.addEventListener('click', function(e){
+  if(!spdPopOn) return;
+  var pop=$('spdPop');
+  if(pop.contains(e.target)) return;
+  if(e.target.closest && e.target.closest('.spdB')) return;
+  spdPopClose();
+}, true);
 function bindPlayer(o){
   var v=$(o.v), sk=$(o.sk), pl=$(o.play), drag=false;
   function lab(){
@@ -2876,14 +2930,46 @@ function bindPlayer(o){
   });
   sk.addEventListener('change', function(){ drag=false; });
   pl.onclick=function(){ if(v.paused) v.play().catch(function(){}); else v.pause(); };
-  $(o.back).onclick=function(){ v.pause(); v.currentTime=Math.max(0,v.currentTime-1/30); };
-  $(o.fwd).onclick=function(){ v.pause(); v.currentTime=Math.min(v.duration||0,v.currentTime+1/30); };
-  /* おすたびに 2倍 → 1.5倍 → 1倍 → 0.5倍 → 0.25倍 → 2倍 と 変わります */
-  $(o.spd).onclick=function(){
-    var now=Number(this.dataset.r||1), i=RATES.indexOf(now);
-    var r=RATES[(i+1)%RATES.length];
-    v.playbackRate=r; spdMark(this,r);
-  };
+  function step(dir){
+    v.pause();
+    var t=v.currentTime + dir*(1/30);
+    v.currentTime = Math.max(0, Math.min(v.duration||0, t));
+  }
+  /* ながおし すると、おして いる あいだ 1秒に 1秒ずつ すすみます
+     （1秒 おせば 1秒、2秒 おせば 2秒、3秒 おせば 3秒） */
+  function bindStep(id, dir){
+    var btn=$(id), timer=null, rep=null, held=false;
+    function stop(){
+      if(timer){ clearTimeout(timer); timer=null; }
+      if(rep){ clearInterval(rep); rep=null; }
+    }
+    function start(){
+      held=false; stop();
+      timer=setTimeout(function(){
+        held=true;
+        v.pause();
+        rep=setInterval(function(){
+          var t=v.currentTime + dir*0.1;      /* 0.1秒 ごとに 0.1秒 ぶん */
+          v.currentTime = Math.max(0, Math.min(v.duration||0, t));
+        }, 100);
+      }, 420);
+    }
+    btn.addEventListener('pointerdown', function(e){
+      if(e && e.isPrimary===false) return;
+      start();
+    });
+    ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+      btn.addEventListener(ev, function(){ stop(); });
+    });
+    btn.onclick=function(){
+      if(held){ held=false; return; }        /* ながおしの あとは 1コマ 足さない */
+      step(dir);
+    };
+  }
+  bindStep(o.back, -1);
+  bindStep(o.fwd,  1);
+  /* はやさの ボタンを おすと、えらぶ まどが 出ます */
+  $(o.spd).onclick=function(){ spdPopOpen(this, v); };
   spdMark($(o.spd),1);
   return { paint:paint, toggle:function(){ pl.onclick(); } };
 }

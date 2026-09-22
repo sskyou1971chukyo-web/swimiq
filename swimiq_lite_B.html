@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.13">
+<meta name="app-ver" content="2026.09.22.14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -540,6 +540,20 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 .cnStop.hide, .cnMain.hide{ display:none !important; }
 
 /* ホームに いつも 出す「同意ずみ」の しるし */
+/* 同意済みと いまの バージョンを よこ1れつに ならべます。
+   せまい 画面では ふたつ 目が 下に まわります。 */
+#topRow{ display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:0 0 16px; }
+#topRow > *{ margin:0 !important; }
+#topRow #cnMark{ flex:0 0 auto; padding:7px 10px; gap:6px; }
+#topRow #cnMark .tick{ flex:0 0 22px; height:22px; font-size:14px; line-height:22px; }
+#topRow #cnMark b{ font-size:14px; }
+#topRow #cnDate{ display:none; }
+#topRow #verBar{ flex:1 1 auto; min-width:0; padding:7px 10px; gap:7px; }
+#topRow #verBar b{ font-size:13px; }
+#topRow #verBar span{ font-size:14px; }
+#topRow #verBar button{ min-height:38px; padding:4px 12px; font-size:13px; }
+/* とても せまい ときだけ 2れつに なります */
+@media (max-width:359px){ #topRow{ display:block; } #topRow > *{ margin-bottom:8px !important; } }
 #cnMark{ display:flex; align-items:center; gap:8px; margin:0 0 18px;
   padding:7px 12px; border-radius:6px; background:var(--pane);
   border:2px solid var(--am); }
@@ -547,8 +561,11 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 #cnMark .tick{ flex:0 0 26px; height:26px; border-radius:50%; background:var(--am); color:#000;
   font-size:16px; font-weight:900; text-align:center; line-height:26px; }
 #cnMark b{ font-size:15px; font-weight:900; color:var(--am); }
-#cnMark span#cnDate{ margin-left:auto; font-size:13px; font-weight:800; color:var(--dim);
-  font-variant-numeric:tabular-nums; }
+#cnMark span#cnDate{ margin-left:8px; font-size:12px; font-weight:800; color:var(--dim);
+  font-variant-numeric:tabular-nums; white-space:nowrap; }
+#topRow #cnMark b{ white-space:nowrap; }
+#topRow #verBar b{ white-space:nowrap; }
+#topRow #verBar span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 /* ===== ひらいたときの 1秒の うごき ===== */
 #splash{ position:fixed; inset:0; z-index:200; background:#000;
@@ -1210,11 +1227,12 @@ body, button, select, input, textarea{
     <span class="vtop hide" id="vtop"></span>
   </div>
 
-  <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
-
-  <div id="verBar">
-    <b data-t="verNowLbl"></b><span id="verNowV">-</span>
-    <button type="button" id="verChk" data-t="verChkBtn"></button>
+  <div id="topRow">
+    <div id="cnMark" class="hide"><span class="tick">✓</span><b data-t="cnOK"></b><span id="cnDate"></span></div>
+    <div id="verBar">
+      <b data-t="verNowLbl"></b><span id="verNowV">-</span>
+      <button type="button" id="verChk" data-t="verChkBtn" data-ta="verChkA"></button>
+    </div>
   </div>
 
   <div id="upBar" class="hide">
@@ -2112,8 +2130,9 @@ var W={
  vwTempoGl:['区間ごとの 平均ST','区間ごとの平均ST'],
  vwLapCol:['区間','区間'],
  vwNoSeg:['ストロークが ないので 出せません','ストロークが記録されていません'],
- verNowLbl:['いまの バージョン','いまのバージョン'],
- verChkBtn:['更新を たしかめる','更新をたしかめる'],
+ verNowLbl:['ver','ver'],
+ verChkBtn:['更新','更新'],
+ verChkA:['更新を たしかめる','更新をたしかめる'],
  verLatest:['いまが いちばん 新しい です','最新の状態です'],
  verFile:['ファイルから ひらいて いるので、あたらしい ファイルを 上書き してください','ファイルから開いているため、新しいファイルを上書きしてください'],
  stModeLbl:['ストローク分析中','ストローク分析中'],

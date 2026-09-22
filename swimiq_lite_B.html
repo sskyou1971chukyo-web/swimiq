@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.12">
+<meta name="app-ver" content="2026.09.22.13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -163,6 +163,11 @@ button, select, input{ font-family:inherit; }
   grid-template-areas:"top top top" "info mid act" "bar bar bar"; }
 .ov > *{ pointer-events:auto; }
 .ov > .mid{ pointer-events:none; }
+/* 上の帯・右の列は、ボタンや えらび口の ところだけ 反応させます。
+   すきまが 反応を 取って しまうと、動画を おしても かきが 数えられません。 */
+.oTop, .oAct{ pointer-events:none; }
+.oTop > *, .oAct > *{ pointer-events:auto; }
+.oTop .tt{ pointer-events:none; }
 
 /* 動画の上にのせる板。すりガラスではなく、黒い板にふちどり */
 .glass{ background:rgba(0,0,0,.86); border:2px solid var(--line); }
@@ -301,6 +306,16 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
    場所は そのまま のこして 見えなく するだけに します。 */
 #ana.stroke #bStart, #ana.stroke #nextSel, #ana.stroke #bPass, #ana.stroke #bRt{
   visibility:hidden !important; pointer-events:none !important; }
+/* 数えて いる あいだは、上の えらび口と 保存も 出しません。
+   まちがって おす ことが なくなり、画面ぜんぶで かきを 数えられます。 */
+#ana.stroke #event, #ana.stroke #pool, #ana.stroke #dist, #ana.stroke #anaSave{
+  visibility:hidden !important; pointer-events:none !important; }
+/* 再生の 画面でも、数えて いる あいだは
+   〈ストロークを計る〉と〈1つ戻す〉だけ のこして、ほかは 出しません */
+#detail.stroke .oAct > *{ visibility:hidden !important; pointer-events:none !important; }
+#detail.stroke #dStroke, #detail.stroke #dUndo{
+  visibility:visible !important; pointer-events:auto !important; }
+#detail.stroke #dMenu{ visibility:hidden !important; pointer-events:none !important; }
 #ana.stroke #hud, #ana.stroke .box,
 #detail.stroke #dhud, #detail.stroke .box{ display:none !important; }
 #ana.stroke .oInfo, #detail.stroke .oInfo{ pointer-events:none !important; }

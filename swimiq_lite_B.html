@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.23.5">
+<meta name="app-ver" content="2026.09.23.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1244,6 +1244,35 @@ body.grid .gridL{ display:block; }
 .gridL i.mid{ background:rgba(255,255,255,.40); }
 /* ガイド線は 動画を とる ときだけ 出します */
 #ana .gridL, #detail .gridL{ display:none !important; }
+/* ===== さつえいの あとに えらぶ まど ===== */
+#camDone{ position:absolute; inset:0; z-index:30; background:rgba(4,6,10,.94);
+  display:flex; align-items:center; justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px); }
+#camDone.hide{ display:none !important; }
+#camDone .cdW{ width:min(860px,96%); max-height:100%; overflow-y:auto;
+  display:flex; flex-direction:column; gap:10px; }
+#camDone h3{ margin:0; font-size:24px; font-weight:900; color:#fff; }
+#camDone .cdSum{ margin:0; font-size:17px; font-weight:800; color:var(--am);
+  font-variant-numeric:tabular-nums; }
+#camDone .cdSel{ display:flex; flex-wrap:wrap; gap:8px; }
+#camDone .cdSel select{ flex:1 1 150px; min-height:50px; padding:4px 26px 4px 12px;
+  -webkit-appearance:none; appearance:none; cursor:pointer;
+  border:2px solid var(--line); border-radius:10px; background:#0b0d10; color:#fff;
+  font-family:inherit; font-size:17px; font-weight:800;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center; }
+#camDone .cdRow{ display:flex; flex-wrap:wrap; gap:10px; }
+#camDone .cdGo, #camDone .cdGo2{ flex:1 1 260px; min-height:86px; border-radius:14px;
+  cursor:pointer; font-family:inherit; text-align:center; padding:8px 12px; }
+#camDone .cdGo{ border:0; background:var(--am); color:#000; box-shadow:0 5px 0 #a37d00; }
+#camDone .cdGo2{ border:3px solid var(--line); background:#14171c; color:#fff; }
+#camDone .cdGo b, #camDone .cdGo2 b{ display:block; font-size:23px; font-weight:900; line-height:1.2; }
+#camDone .cdGo small{ display:block; font-size:13px; font-weight:800; color:#4a3a00; margin-top:3px; }
+#camDone .cdGo2 small{ display:block; font-size:13px; font-weight:800; color:#a9b4c0; margin-top:3px; }
+#camDone .cdX{ align-self:center; min-height:48px; padding:0 20px; border-radius:10px;
+  border:2px solid var(--line); background:transparent; color:#c9c9c9;
+  font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; }
+
 /* 手ぶれ ほせいの 画（動画の かわりに うつします） */
 #cStabCv{ position:absolute; inset:0; width:100%; height:100%;
   object-fit:contain; background:#000; z-index:0; display:none; }
@@ -1476,7 +1505,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.23.5</p>
+  <p class="ver" id="verBottom">ver 2026.09.23.6</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1818,6 +1847,31 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <input class="sk" id="sensSk" type="range" min="0" max="100" step="5" value="50">
     <div class="sbE"><span data-t="sensL"></span><span data-t="sensH"></span></div>
     <p class="sbP" data-t="sensLead"></p>
+  </div>
+
+  <div id="camDone" class="hide" role="dialog" aria-modal="true" aria-labelledby="cdH">
+    <div class="cdW">
+      <h3 id="cdH" data-t="cdH"></h3>
+      <p class="cdSum" id="cdSum"></p>
+      <div class="cdSel">
+        <select id="cdEvent" data-ta="eventLbl">
+          <option value="free">自由形</option><option value="back">背泳ぎ</option>
+          <option value="breast">平泳ぎ</option><option value="fly">バタフライ</option>
+          <option value="im">個人メドレー</option><option value="relay">リレー</option>
+          <option value="other">その他</option>
+        </select>
+        <select id="cdPool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50">50mプール</option></select>
+        <select id="cdDist" data-ta="distLbl">
+          <option value="50">50m</option><option value="100">100m</option><option value="200">200m</option>
+          <option value="400">400m</option><option value="800">800m</option><option value="1500">1500m</option>
+        </select>
+      </div>
+      <div class="cdRow">
+        <button type="button" class="cdGo" id="cdSave"><b data-t="cdSaveB"></b><small data-t="cdSaveS"></small></button>
+        <button type="button" class="cdGo2" id="cdAna"><b data-t="cdAnaB"></b><small data-t="cdAnaS"></small></button>
+      </div>
+      <button type="button" class="cdX" id="cdRetake" data-t="cdRetake"></button>
+    </div>
   </div>
 
   <div id="camRot">
@@ -2433,6 +2487,17 @@ var W={
  msgDeleted:['消しました','削除しました'],
  msgImgNG:['画像に できませんでした','画像を作成できませんでした'],
  msgToAna:['そのまま 分析に すすみます','そのまま分析に進みます'],
+ cdH:['さつえい おわり','撮影おわり'],
+ cdSaveB:['そのまま 保存','そのまま保存'],
+ cdSaveS:['とった ラップを そのまま 記録に します。あとから 直せます','撮ったラップをそのまま記録にします。あとから直せます'],
+ cdAnaB:['いま すぐ 分析する','今すぐ分析する'],
+ cdAnaS:['動画を 見ながら 通過タイムを 取ります','動画を見ながら通過タイムを取ります'],
+ cdRetake:['とりなおす','撮り直す'],
+ cdLap:['ラップ','ラップ'],
+ cdNoLap:['ラップは ありません','ラップなし'],
+ cdSig:['合図で スタート','合図でスタート'],
+ cdHand:['手で スタート','手でスタート'],
+ cdSaved:['保存しました。ホームの きろくから 直せます','保存しました。ホームの記録から修正できます'],
  msgNoRecVid:['動画が とれませんでした','動画を取得できませんでした'],
  msgLapIn:['ラップを 入れました。ずれていたら 直せます','ラップを取り込みました。ずれている場合は修正できます'],
  shVid:['「ビデオを保存」を えらぶと カメラロールに 入ります','「ビデオを保存」を選ぶとカメラロールに保存されます'],
@@ -3461,12 +3526,7 @@ function openAna(blob, opt){
   /* さつえい中の ラップは、まず そのまま 通過タイムに 入れて 見せます。
      ちがっていたら「ラップを直す」で えらび直せます。 */
   if(aPreLaps && aPreLaps.length && !aSplits.length){
-    var wl=lapWalls(Number($('pool').value), Number($('dist').value));
-    var ad=lapDists(Number($('dist').value)), w=[];
-    for(var q=0;q<wl.length;q++) if(ad.indexOf(wl[q])>=0) w.push(wl[q]);
-    if(!w.length) w=ad.slice();
-    aSplits=[];
-    for(var i=0;i<aPreLaps.length && i<w.length;i++) aSplits.push({ d:w[i], t:aPreLaps[i]/1000 });
+    aSplits=lapsToSplits(aPreLaps, $('pool').value, $('dist').value);
     aT0=aPreT0;
     paintTbl(); anaP.paint();
     setTimeout(function(){ toast(T('msgLapAuto1')+aSplits.length+T('msgLapAuto2')); }, 500);
@@ -3493,6 +3553,15 @@ function lapDists(dist){
   }
   if(out.indexOf(dist)<0) out.push(dist);
   out.sort(function(a,b){ return a-b; });
+  return out;
+}
+/* さつえい中の ラップ（ミリ秒）を、かべの きょりに わりあてます */
+function lapsToSplits(laps, pool, dist){
+  var wl=lapWalls(Number(pool), Number(dist));
+  var ad=lapDists(Number(dist)), w=[], q, out=[], i;
+  for(q=0;q<wl.length;q++) if(ad.indexOf(wl[q])>=0) w.push(wl[q]);
+  if(!w.length) w=ad.slice();
+  for(i=0;i<(laps||[]).length && i<w.length;i++) out.push({ d:w[i], t:laps[i]/1000 });
   return out;
 }
 function lapWalls(pool,dist){            /* さいしょに わりあてる ＝ かべの ところ */
@@ -4990,7 +5059,7 @@ function cLightLv(){
   }catch(e){ return null; }
 }
 
-var cVoiceSaid=0;
+var cVoiceSaid=0, cWentBySig=false;
 function cWatch(){
   cancelAnimationFrame(cLvRaf);
   (function step(){
@@ -5023,7 +5092,7 @@ function cWatch(){
         if(hitM||hitB) cLHold++;
         else{ cLHold=0; cLBase=cLBase*0.97+lv.m*0.03; cLBaseB=cLBaseB*0.97+lv.b*0.03; }
         if(cLHold>=2){
-          cLHold=0; cArm=false; cGo(now);
+          cLHold=0; cArm=false; cWentBySig=true; cGo(now);
           try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
           cSay(T('cWent'));
           setTimeout(function(){ if(cRun) cSay(''); },1600);
@@ -5063,7 +5132,7 @@ function cWatch(){
     }
     if(ok) cHold++; else cHold=0;
     if(cHold>=P[4]){
-      cHold=0; cArm=false; cGo(now);
+      cHold=0; cArm=false; cWentBySig=true; cGo(now);
       try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
       cSay(T('cWent'));
       setTimeout(function(){ if(cRun) cSay(''); },1600);
@@ -5300,7 +5369,7 @@ function cGo(t0){
 $('cStart').onclick=function(){
   if(cRun) return;
   if(cAC && cAC.state==='suspended'){ try{ cAC.resume(); }catch(e){} }
-  cLaps=[]; cPaintLaps(); cEl=0;
+  cLaps=[]; cPaintLaps(); cEl=0; cWentBySig=false;
   cRecStart();
   if(cArm){ cArm=false; cGo(); cSay(''); return; }
   if(cTrig==='light'){
@@ -5405,18 +5474,85 @@ function cClose(){
   cStopCam(); $('cv').srcObject=null;
   $('cam').classList.add('hide');
 }
+/* さつえいが 終わったら、そのまま 保存するか、いま 分析するかを えらびます */
+var cdBlob=null, cdLaps=null, cdT0=0, cdSecs=0, cdBySig=false, cdThumb='';
 function cToAna(){
-  var laps=cLaps.slice();
-  cClose();
-  if(!cBlob || !cBlob.size){ toast(T('msgNoRecVid')); return; }
-  /* 音まちの あいだも 録画は すすんでいるので、その 秒数を いっしょに わたす */
-  var raceT0 = (laps.length && cT0>cRecP0) ? (cT0-cRecP0)/1000 : 0;
-  openAna(cBlob, { laps:laps, raceT0:raceT0 });
+  cdLaps=cLaps.slice();
+  cdBySig=cWentBySig;
+  /* 音まちの あいだも 録画は すすんでいるので、その 秒数を おぼえて おきます */
+  cdT0 = (cT0>cRecP0) ? (cT0-cRecP0)/1000 : 0;
+  cdSecs = cEl/1000;
+  /* カメラを 閉じる まえに、いちばん 後ろの コマを 小さな 絵に しておきます */
+  cdThumb='';
+  try{
+    var vv=$('cv');
+    if(vv && vv.videoWidth){
+      var W=240, H=Math.round(240*vv.videoHeight/vv.videoWidth);
+      var cc=document.createElement('canvas'); cc.width=W; cc.height=H;
+      cc.getContext('2d').drawImage(vv,0,0,W,H);
+      cdThumb=cc.toDataURL('image/jpeg',0.7);
+    }
+  }catch(e){}
+  if(!cBlob || !cBlob.size){ cClose(); toast(T('msgNoRecVid')); return; }
+  cdBlob=cBlob;
+  camDoneOpen();
+}
+function camDoneOpen(){
+  var mm=Math.floor(cdSecs/60), ss=cdSecs-mm*60;
+  var tx=(mm? (mm+':'+String(Math.floor(ss)).padStart(2,'0')) : ss.toFixed(1)+'秒');
+  $('cdSum').textContent = tx+'　'+
+    (cdLaps.length ? (T('cdLap')+' '+cdLaps.length) : T('cdNoLap'))+'　'+
+    T(cdBySig ? 'cdSig' : 'cdHand');
+  $('cdEvent').value=$('event').value;
+  $('cdPool').value=$('pool').value;
+  $('cdDist').value=$('dist').value;
+  $('camDone').classList.remove('hide');
+}
+function camDoneClose(){ $('camDone').classList.add('hide'); }
+/* そのまま 保存：ラップを かべの きょりに わりあてて、すぐ きろくに します */
+$('cdSave').onclick=function(){
+  var ev=$('cdEvent').value, pool=$('cdPool').value, dist=$('cdDist').value;
+  var d=new Date();
+  var rec={
+    id:'r'+Date.now(), at:Date.now(), updatedAt:Date.now(),
+    title:(d.getMonth()+1)+'/'+d.getDate()+' '+dist+'m',
+    pool:Number(pool), dist:Number(dist), event:ev,
+    t0:cdT0, sigT:null, rt:null, rtMode:null,
+    splits:lapsToSplits(cdLaps, pool, dist),
+    strokes:[], video:cdBlob, videoUrl:'', thumb:cdThumb
+  };
+  var blob=cdBlob, id=rec.id;
+  camDoneClose(); cClose();
+  $('event').value=ev; $('pool').value=pool; $('dist').value=dist;
+  dbPut(rec).then(function(){
+    pushOne(rec);
+    show('home'); paintList();
+    toast(T('cdSaved'));
+    setTimeout(uploadPending, 600);
+    if(vidAutoSave()) setTimeout(function(){ saveBarShow(blob, id); }, 700);
+  }).catch(function(){ toast(T('msgSaveNG')); });
+  cdBlob=null;
+};
+/* いま すぐ 分析する：これまで どおり 分析の 画面へ */
+$('cdAna').onclick=function(){
+  var blob=cdBlob, laps=cdLaps.slice(), t0=cdT0;
+  $('event').value=$('cdEvent').value;
+  $('pool').value=$('cdPool').value;
+  $('dist').value=$('cdDist').value;
+  camDoneClose(); cClose();
+  openAna(blob, { laps:laps, raceT0:t0 });
   aFromCam=true;
   toast(T('msgToAna'));
-  /* とった 動画は 携帯にも のこせる ように、すぐ たずねます */
-  if(vidAutoSave()) setTimeout(function(){ saveBarShow(cBlob, 'cam'+Date.now()); }, 900);
-}
+  if(vidAutoSave()) setTimeout(function(){ saveBarShow(blob, 'cam'+Date.now()); }, 900);
+  cdBlob=null;
+};
+/* とりなおす：この 動画は すてて、カメラに もどります */
+$('cdRetake').onclick=function(){
+  cdBlob=null; cBlob=null; cLaps=[]; cEl=0;
+  camDoneClose();
+  cPaintT(); cPaintLaps(); cBtns(); cSay('');
+  $('camRecT').textContent='0:00';
+};
 $('cZin').onclick =function(){ cZoomSet(cZoom+0.5); };
 $('cZout').onclick=function(){ cZoomSet(cZoom-0.5); };
 $('cZrst').onclick=function(){ cZoomSet(1); };
@@ -5439,7 +5575,8 @@ $('cZrst').onclick=function(){ cZoomSet(1); };
 })();
 $('openCam').onclick=function(){
   $('cam').classList.remove('hide','armed','run','anyway');
-  cBlob=null; cLaps=[]; cEl=0; cRun=false; cArm=false;
+  cBlob=null; cLaps=[]; cEl=0; cRun=false; cArm=false; cWentBySig=false;
+  camDoneClose();
   cLightInit(); cTrigPaint(); cStabPaint(); cStabReset();
   cPaintT(); cPaintLaps(); cBtns(); cSay(''); $('camRecT').textContent='0:00';
   cOpen();

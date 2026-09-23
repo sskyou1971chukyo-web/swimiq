@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.22.18">
+<meta name="app-ver" content="2026.09.23.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -258,6 +258,9 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 /* ターン区間（平均から のぞく）の しるし */
 .tr.turnRow{ opacity:.7; }
 .turnTag{ font-size:10px; font-weight:900; color:var(--am); }
+/* おしまちがいと みなした かきの 行 */
+.tr.outRow{ opacity:.68; }
+.outTag{ font-size:10px; font-weight:900; color:#ff8e78; }
 .turnNote{ padding:8px 11px; font-size:12px; font-weight:800; color:var(--am);
   line-height:1.55; border-top:1px solid var(--line2); background:rgba(255,196,0,.06); }
 .boxH .sum{ min-width:0; font-size:14px; font-weight:900; color:#fff; text-align:left;
@@ -888,7 +891,7 @@ body.vs #toast{ top:calc(env(safe-area-inset-top) + 104px); bottom:auto; }
 #toast.on{ opacity:1; }
 
 /* ===== 練習用カメラ ===== */
-#cam{ position:fixed; inset:0; z-index:60; background:#000; }
+#cam{ position:fixed; inset:0; z-index:60; background:#000; overflow:hidden; }
 #cam.hide{ display:none !important; }
 #cv{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#000; }
 #camTop{ position:absolute; left:0; right:0; top:0; z-index:7; display:flex; align-items:center; gap:8px;
@@ -1333,7 +1336,7 @@ body, button, select, input, textarea{
 .box .tr .c3{ font-size:14px; }
 .box .tr.hd span{ font-size:13px; }
 .box .none{ font-size:14px; }
-.turnTag{ font-size:12px; }
+.turnTag, .outTag{ font-size:12px; }
 .turnNote{ font-size:14px; }
 .boxH button{ font-size:14px; }
 
@@ -1342,6 +1345,55 @@ body, button, select, input, textarea{
 .hudT{ color:#fff; }
 .oBar .spdB{ border-color:rgba(255,255,255,.40); color:#fff; }
 .box.glass .sr3 span{ color:#ffd867; }
+/* ===== ラップを おしたとき、画面の うえの ほうに 大きく 2秒 出します ===== */
+#bigLap{ position:fixed; left:0; right:0; top:14%; z-index:2147482000;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; pointer-events:none; opacity:0; transition:opacity .18s ease; }
+#bigLap.on{ opacity:1; }
+#bigLap .bl1{ font-size:clamp(20px,4.2vh,34px); font-weight:900; letter-spacing:.06em;
+  color:#ffdb63; text-shadow:0 3px 12px #000, 0 0 4px #000; line-height:1.1; }
+#bigLap .bl2{ font-size:clamp(56px,17vh,148px); font-weight:900; color:#fff;
+  font-variant-numeric:tabular-nums; line-height:1.02;
+  text-shadow:0 5px 22px #000, 0 0 8px #000; }
+#bigLap .bl3{ font-size:clamp(16px,3.2vh,26px); font-weight:800; color:#e6ecf3;
+  text-shadow:0 3px 10px #000; line-height:1.2; }
+
+/* ===== 動画を 携帯に 保存する 帯（1回 おすだけ） ===== */
+#saveBar{ position:fixed; z-index:2147482100;
+  left:calc(env(safe-area-inset-left) + 12px); right:calc(env(safe-area-inset-right) + 12px);
+  bottom:calc(env(safe-area-inset-bottom) + 12px);
+  display:flex; align-items:center; gap:10px;
+  background:#0d0f13; border:3px solid var(--am); border-radius:14px; padding:10px 12px; }
+#saveBar.hide{ display:none !important; }
+#saveBar .sbGo{ flex:1 1 auto; min-height:56px; border-radius:10px; cursor:pointer;
+  border:0; background:var(--am); color:#000; font-family:inherit;
+  font-size:19px; font-weight:900; line-height:1.25; }
+#saveBar .sbGo small{ display:block; font-size:13px; font-weight:800; color:#4a3a00; margin-top:2px; }
+#saveBar .sbNo{ flex:0 0 auto; min-height:56px; padding:0 14px; border-radius:10px; cursor:pointer;
+  border:2px solid var(--line); background:transparent; color:#c9c9c9;
+  font-family:inherit; font-size:15px; font-weight:800; }
+/* 分析・再生の 画面では、下の そうさバーの 上に ずらします */
+body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
+/* よこ向きの 分析画面では、右の そうさ板にも かぶらない ように します */
+@media (orientation:landscape){
+  body.vs #saveBar{ right:calc(var(--sideW) + 14px); }
+}
+
+/* ===== カメラの ズーム ===== */
+/* そうさボタン（右はし 132px）の となりに おきます */
+#camZoom{ position:absolute; z-index:8;
+  right:calc(env(safe-area-inset-right) + 156px); top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:8px; }
+#camZoom button{ width:62px; min-height:62px; border-radius:50%; cursor:pointer;
+  border:2px solid rgba(255,255,255,.55); background:rgba(0,0,0,.72); color:#fff;
+  font-family:inherit; font-size:28px; font-weight:900; line-height:1; }
+#camZoom button:active{ background:var(--am); color:#000; }
+#camZoom .zv{ min-width:62px; padding:4px 0; border-radius:99px; text-align:center;
+  background:rgba(0,0,0,.72); border:2px solid rgba(255,255,255,.4);
+  color:#fff; font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; }
+#camZoom .zr{ width:62px; min-height:44px; border-radius:10px; font-size:14px; }
+#cv{ transform-origin:center center; }
+@media (orientation:portrait){ #camZoom{ display:none; } }
 </style>
 </head>
 <body>
@@ -1393,7 +1445,7 @@ body, button, select, input, textarea{
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.22.18</p>
+  <p class="ver" id="verBottom">ver 2026.09.23.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1473,6 +1525,7 @@ body, button, select, input, textarea{
         <button class="ob" id="anaMoreX" type="button" data-t="moreShut"></button></div>
       <button class="ob g" id="bStart" type="button" data-t="bStart"></button>
       <button class="ob y" id="bRt" type="button" data-t="rtBtn"></button>
+      <button class="ob" id="anaVid" type="button" data-t="saveVidBtn"></button>
     </div>
   </div>
 
@@ -1610,6 +1663,13 @@ body, button, select, input, textarea{
     </button>
   </div>
 
+  <div class="gl" data-t="glVid"></div>
+  <div class="seg" id="vidSaveSeg">
+    <button type="button" data-vs="1" data-t="vsOn"></button>
+    <button type="button" data-vs="0" data-t="vsOff"></button>
+  </div>
+  <p class="hint" data-t="vsHint" style="margin:6px 2px 2px;"></p>
+
   <div class="gl" data-t="glWord"></div>
   <div class="seg" id="wordSeg">
     <button type="button" data-w="k" data-t="wKid"></button>
@@ -1704,6 +1764,12 @@ body, button, select, input, textarea{
     <button id="cStop" type="button" disabled data-t="cStop"></button>
     <button id="cLap" type="button" disabled data-t="cLap"></button>
     <button id="cReset" type="button" data-t="cReset"></button>
+  </div>
+  <div id="camZoom">
+    <button type="button" id="cZin" aria-label="ズームを 大きく">＋</button>
+    <span class="zv" id="cZval">1.0x</span>
+    <button type="button" id="cZout" aria-label="ズームを 小さく">−</button>
+    <button type="button" id="cZrst" class="zr">1x</button>
   </div>
   <div id="camOpt">
     <button id="cSound" type="button" aria-pressed="true" data-t="sndOn"></button>
@@ -1837,6 +1903,15 @@ body, button, select, input, textarea{
 
 <!-- きろくした あとに 1秒だけ 出る きょりの 一覧 -->
 <div id="qList" class="hide" aria-hidden="true"></div>
+
+<!-- ラップを おしたとき、大きく 2秒 出します -->
+<div id="bigLap" aria-hidden="true"><span class="bl1"></span><span class="bl2"></span><span class="bl3"></span></div>
+
+<!-- 動画を 携帯に 保存する 帯（1回 おすだけ） -->
+<div id="saveBar" class="hide">
+  <button type="button" class="sbGo" id="sbGo"><span data-t="saveBarB"></span><small data-t="saveBarS"></small></button>
+  <button type="button" class="sbNo" id="sbNo" data-t="saveBarX"></button>
+</div>
 
 <!-- 使い方 -->
 <div id="helpBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="hpH">
@@ -2283,6 +2358,18 @@ var W={
  helpTitle:['使い方','使い方'],
  saveVidAsk:['この 動画を 携帯に 保存しますか？','この動画を携帯電話に保存しますか？'],
  saveVidBtn:['動画を 携帯に 保存','動画を携帯に保存'],
+ saveBarB:['この動画を 携帯に 保存','この動画を携帯に保存'],
+ saveBarS:['1回 おすだけ。つぎに「ビデオを保存」を えらびます','1回押すだけ。次に「ビデオを保存」を選びます'],
+ saveBarX:['あとで','あとで'],
+ saveAuto:['とった 動画は 携帯にも 保存する','撮った動画は携帯にも保存する'],
+ glVid:['とった動画の ほぞん','撮った動画の保存'],
+ vsOn:['保存する','保存する'],
+ vsOff:['保存しない','保存しない'],
+ vsHint:['「保存する」に して おくと、とりおわった あと 画面の 下に ボタンが 出ます。1回 おすだけで 携帯に のこせます',
+         '「保存する」にしておくと、撮り終わった後に画面下へボタンが出ます。1回押すだけで携帯に残せます'],
+ zoomLbl:['ズーム','ズーム'],
+ zoomHint:['ズームは 録画を はじめる まえに 合わせて ください','ズームは録画を始める前に合わせてください'],
+ zoomNo:['この 端末は ズームに 対応して いません','この端末はズームに対応していません'],
  saveVidGo:['保存の まどが ひらきます。「ビデオを保存」を えらんで ください','保存の画面が開きます。「ビデオを保存」を選んでください'],
  noVidBadge:['動画なし','動画なし'],
  msgNoLocalVid:['この端末に 動画が ありません。同期では 数字だけ 共有される ので、動画は とった 端末に あります','この端末に動画がありません。同期では数字だけ共有されるため、動画は撮影した端末にあります'],
@@ -2320,6 +2407,8 @@ var W={
  dragBox:['つまんで うごかす（動画が 見えるように）','つまんで動かす（動画が見えるように）'],
  turnLbl:['ターン','ターン'],
  turnExHint:['は ターン局面のため 平均から のぞいています','はターン局面のため平均から除外しています'],
+ outLbl:['おしまちがい','押し間違い'],
+ outExHint:['は おしまちがいの うたがいが あるため 平均から のぞいています','は押し間違いの疑いがあるため平均から除外しています'],
 
  pdfBtn:['PDFで 表示','PDFで表示'],
  pdfHint:['印刷の まどが 出たら「PDFで保存」や「ファイルに保存」を えらんでください','印刷ウィンドウが出たら「PDFで保存」や「ファイルに保存」を選んでください'],
@@ -2931,19 +3020,82 @@ function tempoMedian(intervals){
   return (m%2) ? s[(m-1)/2] : (s[m/2-1]+s[m/2])/2;
 }
 function isTurn(d, med){ return med>0 && d>=med*2 && d>med; }
-function tempoStats(intervals){
+/* かき間隔を 三つに わけます。
+   ふつう       … 平均に つかいます
+   ターン       … 中央値の2倍いじょう。ターン局面か おしわすれ
+   おしまちがい … みじかすぎる（二度おし）か、ほかから 大きく はずれた もの
+   のぞくのは 平均ST・平均SR だけで、ストローク数や 一覧の 表示は そのままです。 */
+function tempoKinds(intervals, wantTurns){
+  var n=(intervals||[]).length, kinds=new Array(n), i, d;
+  if(!n) return { kinds:kinds, med:0 };
+  var med=tempoMedian(intervals), cand=[];
+  for(i=0;i<n;i++){
+    d=intervals[i];
+    if(d<0.35 || (med>0 && d<med*0.45)) kinds[i]='short';
+    else if(isTurn(d, med)) kinds[i]='turn';
+    else { kinds[i]='ok'; cand.push(d); }
+  }
+  /* ターンの 数が レースより 多い ときは、長い ものから じゅんに ターンと みなし、
+     あまりは「おしわすれ」として 平均から のぞきます。
+     こうすると、とちゅうで 押しわすれても 区間が よけいに 切れません。 */
+  if(typeof wantTurns==='number' && wantTurns>=0){
+    var ti=[];
+    for(i=0;i<n;i++) if(kinds[i]==='turn') ti.push(i);
+    if(ti.length>wantTurns){
+      ti.sort(function(a,b){ return intervals[b]-intervals[a]; });
+      for(i=wantTurns;i<ti.length;i++) kinds[ti[i]]='out';
+    }
+  }
+  /* のこった ものの 中で、大きく はずれた ものを さがします。
+     中央値からの ずれの 中央値（MAD）を ものさしに します。
+     ばらつきが 小さい ときに のぞきすぎない よう、下限も おいて います。 */
+  if(cand.length>=4){
+    var med2=tempoMedian(cand), devs=[];
+    for(i=0;i<cand.length;i++) devs.push(Math.abs(cand[i]-med2));
+    var mad=tempoMedian(devs);
+    var lim=Math.max(3*1.4826*mad, med2*0.20, 0.12);
+    for(i=0;i<n;i++){
+      if(kinds[i]==='ok' && Math.abs(intervals[i]-med2)>lim) kinds[i]='out';
+    }
+  }
+  /* のぞきすぎて 平均が 出せなく なった ときは、ターンだけ のぞいた ものに もどします */
+  var ok=0; for(i=0;i<n;i++) if(kinds[i]==='ok') ok++;
+  if(ok<2){
+    ok=0;
+    for(i=0;i<n;i++){ kinds[i]= isTurn(intervals[i], med) ? 'turn' : 'ok'; if(kinds[i]==='ok') ok++; }
+    if(!ok) for(i=0;i<n;i++) kinds[i]='ok';
+  }
+  return { kinds:kinds, med:med };
+}
+/* かき間隔の 一覧（その かきの 時こく・秒・しゅるい）を 1回だけ つくります。
+   区間ごとの 平均も、グラフも、この 同じ しんだん結果を つかいます。 */
+function tempoTable(strokes, wantTurns){
+  var arr=strokes||[], iv=[], ds=[], i, d;
+  for(i=1;i<arr.length;i++){ d=arr[i]-arr[i-1]; if(d>0.05){ iv.push({ t:arr[i], d:d }); ds.push(d); } }
+  var K=tempoKinds(ds, wantTurns);
+  for(i=0;i<iv.length;i++){ iv[i].kind=K.kinds[i]; iv[i].no=i+1; }
+  return iv;
+}
+/* レースの きょりと プールの 長さから、ターンの 数を もとめます */
+function wantTurnsOf(dist, pool){
+  dist=Number(dist)||0; pool=Number(pool)||0;
+  if(!dist || !pool) return null;
+  var laps=Math.round(dist/pool);
+  return laps>0 ? laps-1 : null;
+}
+function tempoStats(intervals, wantTurns){
   intervals = intervals || [];
   var n=intervals.length;
-  if(!n) return { st:null, sr:null, turns:[] };
-  var med=tempoMedian(intervals), keep=[], turns=[];
-  for(var i=0;i<n;i++){
-    if(isTurn(intervals[i], med)) turns.push(i+1);
-    else keep.push(intervals[i]);
+  if(!n) return { st:null, sr:null, turns:[], outs:[], kinds:[] };
+  var K=tempoKinds(intervals, wantTurns), keep=[], turns=[], outs=[], i;
+  for(i=0;i<n;i++){
+    if(K.kinds[i]==='turn') turns.push(i+1);
+    else if(K.kinds[i]==='ok') keep.push(intervals[i]);
+    else outs.push(i+1);
   }
-  if(!keep.length){ keep=intervals.slice(); turns=[]; }
-  var sum=0; for(var j=0;j<keep.length;j++) sum+=keep[j];
+  var sum=0; for(i=0;i<keep.length;i++) sum+=keep[i];
   var st=sum/keep.length;
-  return { st:st, sr:60/st, turns:turns };
+  return { st:st, sr:60/st, turns:turns, outs:outs, kinds:K.kinds };
 }
 /* ================================================================
    使い方（保護者の かたにも わかる ように、順番で 説明します）
@@ -3061,14 +3213,16 @@ function sumLine(last, ss, rt){
   if(rt!=null) p.push(Number(rt).toFixed(2)+'RT');
   return p.join('　');
 }
-function turnNote(turns){
-  if(!turns || !turns.length) return '';
-  return turns.join('・')+T('turnExHint');
+function turnNote(turns, outs){
+  var L=[];
+  if(turns && turns.length) L.push(turns.join('・')+T('turnExHint'));
+  if(outs  && outs.length)  L.push(outs.join('・')+T('outExHint'));
+  return L.join('　');
 }
 /* たて向きの けっか一覧を かきなおす */
 function paintSheet(){
   var sts=strokeStats(), i;
-  var tp=tempoStats(sts), avg = tp.st || 0;
+  var tp=tempoStats(sts, wantTurnsOf($('dist').value, $('pool').value)), avg = tp.st || 0;
   var last = aSplits.length ? aSplits[aSplits.length-1] : null;
   $('asStat').innerHTML =
     '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
@@ -3095,15 +3249,19 @@ function paintSheet(){
                 '<span class="c2">ST 秒</span><span class="c3">SR</span></div>';
     for(i=0;i<sts.length;i++){
       var isT = tp.turns.indexOf(i+1)>=0;
-      var r2=document.createElement('div'); r2.className='tr'+(isT?' turnRow':'');
+      var isO = tp.outs.indexOf(i+1)>=0;
+      var r2=document.createElement('div');
+      r2.className='tr'+(isT?' turnRow':'')+(isO?' outRow':'');
+      var tag = isT ? '　<b class="turnTag">'+T('turnLbl')+'</b>'
+              : isO ? '　<b class="outTag">'+T('outLbl')+'</b>' : '';
       r2.innerHTML='<span class="c1">'+(i+1)+'</span>'+
-                   '<span class="c2">'+sts[i].toFixed(2)+(isT?'　<b class="turnTag">'+T('turnLbl')+'</b>':'')+'</span>'+
-                   '<span class="c3">'+(isT?'—':(60/sts[i]).toFixed(1))+'</span>';
+                   '<span class="c2">'+sts[i].toFixed(2)+tag+'</span>'+
+                   '<span class="c3">'+((isT||isO)?'—':(60/sts[i]).toFixed(1))+'</span>';
       t.appendChild(r2);
     }
-    if(tp.turns.length){
+    if(tp.turns.length || tp.outs.length){
       var nt=document.createElement('div'); nt.className='turnNote';
-      nt.textContent=turnNote(tp.turns);
+      nt.textContent=turnNote(tp.turns, tp.outs);
       t.appendChild(nt);
     }
   }
@@ -3119,17 +3277,18 @@ function anaText(){
     }
   }
   if(aRT!=null) L.push('', T('rtOutLbl')+'  '+aRT.toFixed(2)+'秒（'+T('rtFootLbl')+'までの時間）');
-  var sts=strokeStats(), tp=tempoStats(sts);
+  var sts=strokeStats(), tp=tempoStats(sts, wantTurnsOf($('dist').value, $('pool').value));
   if(sts.length){
     L.push('', '['+T('glStroke')+']');
     for(var k=0;k<sts.length;k++){
-      var isT = tp.turns.indexOf(k+1)>=0;
-      L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  '+(isT ? ('（'+T('turnLbl')+'）') : ('SR'+(60/sts[k]).toFixed(1))));
+      var isT = tp.turns.indexOf(k+1)>=0, isO = tp.outs.indexOf(k+1)>=0;
+      L.push((k+1)+'  '+sts[k].toFixed(2)+'秒  '+
+        (isT ? ('（'+T('turnLbl')+'）') : isO ? ('（'+T('outLbl')+'）') : ('SR'+(60/sts[k]).toFixed(1))));
     }
     L.push('平均ST '+(tp.st!=null?tp.st.toFixed(2)+'秒':'--')+'　平均SR '+(tp.sr!=null?tp.sr.toFixed(1):'--'));
     var LTx=lapTempoText(r);
     if(LTx.length>1) L.push('区間ごとの平均ST  '+LTx.join(' / '));
-    if(tp.turns.length) L.push('※ '+turnNote(tp.turns));
+    if(tp.turns.length||tp.outs.length) L.push('※ '+turnNote(tp.turns, tp.outs));
   }
   return L.join('\n');
 }
@@ -3152,7 +3311,7 @@ function paintSR(){
 /* けっかの 見出しの かんたん表記を 出しなおす */
 function paintAnaSum(){
   var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
-  $('anaSum').textContent = sumLine(lastS, tempoStats(stInts(aStrokes)), aRT);
+  $('anaSum').textContent = sumLine(lastS, tempoStats(stInts(aStrokes), wantTurnsOf($('dist').value, $('pool').value)), aRT);
   /* タイムと RT の タイル（ちいさい 見出し＋大きい 数字） */
   $('oT').textContent  = lastS ? fmt(lastS.t) : '--';
   $('oTL').textContent = lastS ? (lastS.d+'m') : T('timeLbl');
@@ -3547,6 +3706,7 @@ function setSig(t){
 $('bStart').onclick=function(){ setFoot($('v').currentTime); anaMoreOpen(false); };
 $('anaMore').onclick=function(){ anaMoreOpen($('anaMoreBox').classList.contains('hide')); };
 $('anaMoreX').onclick=function(){ anaMoreOpen(false); };
+$('anaVid').onclick=function(){ anaMoreOpen(false); saveVidToPhone(aBlob, aId||('v'+Date.now())); };
 $('nextSel').onchange=function(){ selManual=true; paintNext(); };
 /* ① きろくの あと、1秒だけ きょりの 一覧を 出します */
 var qTimer=null;
@@ -3605,9 +3765,9 @@ $('bPass').onclick=function(){
   if(k==='') return;
   try{ if(navigator.vibrate) navigator.vibrate(16); }catch(e){}
   if(k==='sig'){ selManual=false; $('nextSel').value=''; setSig(t);
-    flyNum(T('rtSigLbl'),'anaBox','hud'); showQ(); return; }
+    bigLap('', T('rtSigLbl'), ''); return; }
   if(k==='t0'){  selManual=false; $('nextSel').value=''; setFoot(t);
-    flyNum(T('rtFootLbl'),'anaBox','hud'); showQ(); return; }
+    bigLap('', T('rtFootLbl'), ''); return; }
   var n=nextD();
   if(n===null) return;
   if(aT0===null){ toast(T('needFoot')); return; }
@@ -3623,8 +3783,9 @@ $('bPass').onclick=function(){
   aSplits.sort(function(x,y){ return x.d-y.d; });   /* きょりの 順に ならべます */
   selManual=false; $('nextSel').value='';
   paintTbl();
-  flyNum(n+'m　'+fmt(tt), 'anaBox', 'hud');
-  showQ();
+  var pvT = 0, q;
+  for(q=0;q<aSplits.length;q++){ if(aSplits[q].d===n) break; pvT=aSplits[q].t; }
+  bigLap(n+'m', fmt(tt), (pvT>0 ? ('+'+fmt(tt-pvT)) : ''));
 };
 $('bUndo').onclick=function(){
   if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
@@ -3702,6 +3863,42 @@ $('fixX').onclick=function(){ $('fixBox').classList.add('hide'); toast(T('fixOK'
 })();
 
 /* いま 分析している 動画を 携帯に 保存します（写真アプリへ） */
+/* ===== ラップを おしたとき、画面の 上から 4ぶんの1 くらいの ところに
+   大きく 2秒 出して、すっと 消します ===== */
+var bigLapTm=null;
+function bigLap(head, main, sub){
+  var b=$('bigLap'); if(!b) return;
+  b.querySelector('.bl1').textContent = head || '';
+  b.querySelector('.bl2').textContent = main || '';
+  b.querySelector('.bl3').textContent = sub  || '';
+  b.classList.add('on');
+  if(bigLapTm) clearTimeout(bigLapTm);
+  bigLapTm=setTimeout(function(){ b.classList.remove('on'); bigLapTm=null; }, 2000);
+}
+
+/* ===== 動画を 携帯に 保存する 帯 =====
+   たずねる まどを 出さずに、1回 おすだけで 保存の 画面を ひらきます。 */
+var saveBarBlob=null, saveBarId='';
+var saveBarTm=null;
+function saveBarShow(blob, id){
+  if(!blob || !blob.size) return;
+  saveBarBlob=blob; saveBarId=id||('v'+Date.now());
+  $('saveBar').classList.remove('hide');
+  /* ほうっておくと じゃまに なるので、30秒で ひっこめます */
+  if(saveBarTm) clearTimeout(saveBarTm);
+  saveBarTm=setTimeout(saveBarHide, 30000);
+}
+function saveBarHide(){
+  saveBarBlob=null; $('saveBar').classList.add('hide');
+  if(saveBarTm){ clearTimeout(saveBarTm); saveBarTm=null; }
+}
+/* 「とった動画は携帯にも保存する」の 設定（はじめは オン） */
+function vidAutoSave(){
+  try{ return localStorage.getItem('swimiq_vidsave')!=='0'; }catch(e){ return true; }
+}
+function vidAutoSaveSet(on){
+  try{ localStorage.setItem('swimiq_vidsave', on?'1':'0'); }catch(e){}
+}
 function saveVidToPhone(blob, id){
   if(!blob){ toast(T('msgNoVid')); return; }
   var ty=(blob.type||'video/mp4');
@@ -3709,6 +3906,25 @@ function saveVidToPhone(blob, id){
   toast(T('saveVidGo'));
   shareFile(blob, 'swimiq_'+(id||Date.now())+ext, ty, T('shVid'));
 }
+
+$('sbGo').onclick=function(){
+  if(!saveBarBlob){ saveBarHide(); return; }
+  var b=saveBarBlob, i=saveBarId;
+  saveBarHide();
+  saveVidToPhone(b, i);
+};
+$('sbNo').onclick=saveBarHide;
+(function(){
+  var bs=$('vidSaveSeg').querySelectorAll('button');
+  function paint(){
+    var on=vidAutoSave();
+    for(var i=0;i<bs.length;i++)
+      bs[i].setAttribute('aria-pressed', (bs[i].dataset.vs==='1')===on ? 'true':'false');
+  }
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ vidAutoSaveSet(this.dataset.vs==='1'); paint(); };
+  paint();
+  window.vidSavePaint=paint;
+})();
 
 $('bClear').onclick=function(){
   if(!confirm(T('askClear'))) return;
@@ -4126,7 +4342,7 @@ $('anaSave').onclick=function(){
     /* 大事な 動画は 携帯にも のこせる ように たずねます（カメラで とった ときは もう きいて います） */
     if(!wasCam && savedBlob){
       setTimeout(function(){
-        if(confirm(T('saveVidAsk'))) saveVidToPhone(savedBlob, savedId);
+        if(vidAutoSave()) saveBarShow(savedBlob, savedId||('v'+Date.now()));
       }, 900);
     }
   }).catch(function(){ toast(T('msgSaveNG')); });
@@ -4325,10 +4541,10 @@ function openDetail(id){
         if(!r.manual){
           var dint=[]; var da=r.strokes||[];
           for(var z=1;z<da.length;z++){ var dv=da[z]-da[z-1]; if(dv>0.05) dint.push(dv); }
-          var dtp=tempoStats(dint);
-          if(dtp.turns.length){
+          var dtp=tempoStats(dint, wantTurnsOf(r.dist, r.pool));
+          if(dtp.turns.length || dtp.outs.length){
             var dnote=document.createElement('div'); dnote.className='turnNote';
-            dnote.textContent=turnNote(dtp.turns);
+            dnote.textContent=turnNote(dtp.turns, dtp.outs);
             sb.appendChild(dnote);
           }
         }
@@ -4378,16 +4594,17 @@ function recText(r){
   var sts=[];
   for(var k=1;k<(r.strokes||[]).length;k++){ var st=r.strokes[k]-r.strokes[k-1]; if(st>0.05) sts.push(st); }
   if(sts.length){
-    var tp=tempoStats(sts);
+    var tp=tempoStats(sts, wantTurnsOf(r.dist, r.pool));
     L.push('', '['+T('glStroke')+']');
     for(var m=0;m<sts.length;m++){
-      var isT = tp.turns.indexOf(m+1)>=0;
-      L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  '+(isT ? ('（'+T('turnLbl')+'）') : ('SR'+(60/sts[m]).toFixed(1))));
+      var isT = tp.turns.indexOf(m+1)>=0, isO = tp.outs.indexOf(m+1)>=0;
+      L.push((m+1)+'  '+sts[m].toFixed(2)+'秒  '+
+        (isT ? ('（'+T('turnLbl')+'）') : isO ? ('（'+T('outLbl')+'）') : ('SR'+(60/sts[m]).toFixed(1))));
     }
     L.push('平均ST '+(tp.st!=null?tp.st.toFixed(2)+'秒':'--')+'　平均SR '+(tp.sr!=null?tp.sr.toFixed(1):'--'));
     var LTx=lapTempoText(r);
     if(LTx.length>1) L.push('区間ごとの平均ST  '+LTx.join(' / '));
-    if(tp.turns.length) L.push('※ '+turnNote(tp.turns));
+    if(tp.turns.length||tp.outs.length) L.push('※ '+turnNote(tp.turns, tp.outs));
   }
   if(r.videoUrl){ L.push('', '['+T('dOpenLink')+']', r.videoUrl); }
   return L.join('\n');
@@ -4588,7 +4805,7 @@ function cOpen(){
     audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
   }).then(function(st){
     cStream=st; var v=$('cv'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
-    cAudio();
+    cAudio(); cZoomInit();
     cSay(T('cReady'));
     setTimeout(function(){ if(!cRun&&!cArm) cSay(''); },4000);
   }).catch(function(err){
@@ -4596,11 +4813,84 @@ function cOpen(){
   });
 }
 function cStopCam(){
+  cCanStop();
+  $('cv').style.transform=''; cZoom=1; cZoomPaint();
   if(cStream) cStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} });
   cStream=null; cancelAnimationFrame(cLvRaf);
   if(cSrc){ try{ cSrc.disconnect(); }catch(e){} cSrc=null; }
   if(cAC){ try{ cAC.close(); }catch(e){} cAC=null; }
   cAn=null;
+}
+/* ================= カメラの ズーム =================
+   端末が ズームに 対応して いる ときは、その しくみを つかいます（画は きれいなまま）。
+   対応して いない ときは、まん中を 切りとって 大きく うつします。
+   そのばあい、録画にも 同じ 大きさで のこす ため、キャンバスを 通して 録ります。
+   ズームは 録画を はじめる まえに 合わせて ください。          */
+var cZoom=1, cZoomCap=null, cCanvas=null, cCtx2=null, cDrawRaf=null, cCanStream=null, cZoomSaid=false;
+var C_ZMAX=6;
+function cZoomInit(){
+  cZoom=1; cZoomCap=null; cZoomSaid=false;
+  try{
+    var tr=cStream && cStream.getVideoTracks()[0];
+    if(tr && tr.getCapabilities){
+      var cap=tr.getCapabilities();
+      if(cap && cap.zoom && cap.zoom.max > cap.zoom.min) cZoomCap=cap.zoom;
+    }
+  }catch(e){}
+  $('cv').style.transform='';
+  cZoomPaint();
+}
+function cZoomPaint(){
+  var z=$('cZval'); if(z) z.textContent=cZoom.toFixed(1)+'x';
+  var a=$('cZin'), b=$('cZout');
+  if(a) a.disabled = cZoom>=C_ZMAX-0.001;
+  if(b) b.disabled = cZoom<=1.001;
+}
+function cZoomSet(z){
+  z=Math.max(1, Math.min(C_ZMAX, z));
+  if(Math.abs(z-cZoom)<0.001) return;
+  cZoom=z;
+  if(cZoomCap){
+    try{
+      var tr=cStream.getVideoTracks()[0];
+      var zz=cZoomCap.min + (cZoomCap.max-cZoomCap.min)*((z-1)/(C_ZMAX-1));
+      tr.applyConstraints({ advanced:[{ zoom: zz }] });
+    }catch(e){}
+    $('cv').style.transform='';
+  }else{
+    $('cv').style.transform = (z>1.001) ? ('scale('+z.toFixed(3)+')') : '';
+    if(!cZoomSaid && z>1.001 && cRun){ cZoomSaid=true; toast(T('zoomHint')); }
+  }
+  cZoomPaint();
+}
+/* 録画に つかう 映像を えらびます */
+function cRecSource(){
+  if(cZoomCap || cZoom<=1.001) return cStream;
+  try{
+    var v=$('cv'), W=v.videoWidth||0, H=v.videoHeight||0;
+    if(!W || !H) return cStream;
+    cCanvas=document.createElement('canvas'); cCanvas.width=W; cCanvas.height=H;
+    cCtx2=cCanvas.getContext('2d');
+    if(!cCtx2 || !cCanvas.captureStream) return cStream;
+    if(cDrawRaf) cancelAnimationFrame(cDrawRaf);
+    (function draw(){
+      cDrawRaf=requestAnimationFrame(draw);
+      var z=Math.max(1,cZoom), sw=W/z, sh=H/z, sx=(W-sw)/2, sy=(H-sh)/2;
+      try{ cCtx2.drawImage(v, sx, sy, sw, sh, 0, 0, W, H); }catch(e){}
+    })();
+    var cs=cCanvas.captureStream(60), at=cStream.getAudioTracks();
+    if(at.length) cs.addTrack(at[0]);
+    cCanStream=cs;
+    return cs;
+  }catch(e){ return cStream; }
+}
+function cCanStop(){
+  if(cDrawRaf){ cancelAnimationFrame(cDrawRaf); cDrawRaf=null; }
+  if(cCanStream){
+    try{ cCanStream.getVideoTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+    cCanStream=null;
+  }
+  cCanvas=null; cCtx2=null;
 }
 function pickMime(){
   var c=['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9,opus','video/webm'];
@@ -4612,8 +4902,8 @@ function pickMime(){
 function cRecStart(){
   if(!cStream || (cRec&&cRec.state==='recording')) return;
   cChunks=[];
-  var m=pickMime();
-  try{ cRec = m ? new MediaRecorder(cStream,{mimeType:m}) : new MediaRecorder(cStream); }
+  var m=pickMime(), src=cRecSource();
+  try{ cRec = m ? new MediaRecorder(src,{mimeType:m}) : new MediaRecorder(src); }
   catch(e){ cRec=null; cSay(T('cNoRec')); return; }
   cRec.ondataavailable=function(e){ if(e.data&&e.data.size) cChunks.push(e.data); };
   cRec.onstop=function(){
@@ -4649,8 +4939,11 @@ $('cStart').onclick=function(){
 };
 $('cLap').onclick=function(){
   if(!cRun) return;
-  cLaps.push(performance.now()-cT0); cPaintLaps();
+  var ms=performance.now()-cT0;
+  var pv=cLaps.length ? cLaps[cLaps.length-1] : 0;
+  cLaps.push(ms); cPaintLaps();
   try{ if(navigator.vibrate) navigator.vibrate(18); }catch(e){}
+  bigLap(T('cLap')+' '+cLaps.length, cFmt(ms), '+'+cFmt(ms-pv));
 };
 $('cStop').onclick=function(){
   if(!cRun&&!cArm) return;
@@ -4731,10 +5024,28 @@ function cToAna(){
   aFromCam=true;
   toast(T('msgToAna'));
   /* とった 動画は 携帯にも のこせる ように、すぐ たずねます */
-  setTimeout(function(){
-    if(confirm(T('saveVidAsk'))) saveVidToPhone(cBlob, 'cam'+Date.now());
-  }, 1400);
+  if(vidAutoSave()) setTimeout(function(){ saveBarShow(cBlob, 'cam'+Date.now()); }, 900);
 }
+$('cZin').onclick =function(){ cZoomSet(cZoom+0.5); };
+$('cZout').onclick=function(){ cZoomSet(cZoom-0.5); };
+$('cZrst').onclick=function(){ cZoomSet(1); };
+/* 2本の指で ひろげても ズームできます */
+(function(){
+  var el=$('cam'), base=1, d0=0;
+  function dist(t){ var a=t[0], b=t[1];
+    return Math.sqrt(Math.pow(a.clientX-b.clientX,2)+Math.pow(a.clientY-b.clientY,2)); }
+  el.addEventListener('touchstart', function(e){
+    if(e.touches.length===2){ d0=dist(e.touches); base=cZoom; }
+  }, {passive:true});
+  el.addEventListener('touchmove', function(e){
+    if(e.touches.length===2 && d0>0){
+      try{ e.preventDefault(); }catch(err){}
+      cZoomSet(base * (dist(e.touches)/d0));
+    }
+  }, {passive:false});
+  el.addEventListener('touchend', function(){ d0=0; }, {passive:true});
+  el.addEventListener('touchcancel', function(){ d0=0; }, {passive:true});
+})();
 $('openCam').onclick=function(){
   $('cam').classList.remove('hide','armed','run','anyway');
   cBlob=null; cLaps=[]; cEl=0; cRun=false; cArm=false;
@@ -5047,7 +5358,7 @@ function raceStroke(r){
     if((st1==null || n1==null) && !r.manual){   /* 上書きされていない側は 動画のtapから 計算 */
       var a=r.strokes||[], s2=[];
       for(j=1;j<a.length;j++){ var dd=a[j]-a[j-1]; if(dd>0.05) s2.push(dd); }
-      var ts2=tempoStats(s2);
+      var ts2=tempoStats(s2, wantTurnsOf(r.dist, r.pool));
       if(st1==null && ts2.st!=null) st1=ts2.st;
       if(n1==null && a.length) n1=a.length;
     }
@@ -5056,8 +5367,8 @@ function raceStroke(r){
   if(r.manual) return { st:null, sr:null, n:null, turns:[] };
   var arr=r.strokes||[], sts=[], i;
   for(i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) sts.push(d); }
-  var tp=tempoStats(sts);
-  return { st: tp.st, sr: tp.sr, n: arr.length || null, turns: tp.turns };
+  var tp=tempoStats(sts, wantTurnsOf(r.dist, r.pool));
+  return { st: tp.st, sr: tp.sr, n: arr.length || null, turns: tp.turns, outs: tp.outs };
 }
 /* ストローク数の かぞえかた：50mごとに 1くぎり
    （100m＝2くぎり、200m＝4くぎり、400m＝8くぎり、1500m＝30くぎり） */
@@ -5067,20 +5378,19 @@ function segCount(dist){
 }
 /* 動画の たたいた時刻（strokes）と ラップ（splits）から、
    50mごとの 本数・平均テンポを 計算する */
-function segsFromStrokes(splits, strokes){
+function segsFromStrokes(splits, strokes, wantTurns){
   var arr=strokes||[], out=[];
-  if(!splits || !splits.length || !arr.length) return out;
-  /* 全体の かき間隔から しきい値を 決め、ターンは 各区間の平均から のぞく */
-  var allInt=[]; for(var m=1;m<arr.length;m++){ var dg=arr[m]-arr[m-1]; if(dg>0.05) allInt.push(dg); }
-  var med=tempoMedian(allInt);
-  var prevT=0;
-  for(var i=0;i<splits.length;i++){
-    var segEndT=splits[i].t;
-    var within=[]; for(var k=0;k<arr.length;k++){ if(arr[k]>prevT && arr[k]<=segEndT) within.push(arr[k]); }
-    var sts=[]; for(k=1;k<within.length;k++){ var d=within[k]-within[k-1]; if(d>0.05 && !isTurn(d, med)) sts.push(d); }
-    var sum=0; for(k=0;k<sts.length;k++) sum+=sts[k];
-    var st = sts.length ? sum/sts.length : null;
-    out.push({ n:(within.length||null), st:st });
+  splits = splits || [];
+  if(!splits.length || !arr.length) return out;
+  /* レース ぜんたいで 一度 しんだんし、ターンと おしまちがいを 平均から のぞきます */
+  var iv=tempoTable(arr, wantTurns), prevT=0, i, k;
+  for(i=0;i<splits.length;i++){
+    var segEndT=splits[i].t, cnt=0, sum=0, num=0;
+    for(k=0;k<arr.length;k++){ if(arr[k]>prevT && arr[k]<=segEndT) cnt++; }
+    for(k=0;k<iv.length;k++){
+      if(iv[k].t>prevT && iv[k].t<=segEndT && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+    }
+    out.push({ n:(cnt||null), st: num ? sum/num : null });
     prevT=segEndT;
   }
   return out;
@@ -5088,7 +5398,7 @@ function segsFromStrokes(splits, strokes){
 function raceStrokeSegs(r){
   var segs, splits=r.splits||[], out=[], i;
   if(r.manual) segs = r.manualSegs || [];
-  else segs = segsFromStrokes(splits, r.strokes);
+  else segs = segsFromStrokes(splits, r.strokes, wantTurnsOf(r.dist, r.pool));
   if(!segs.length) return [];
   for(i=0;i<segs.length;i++){
     var s=segs[i]||{};
@@ -5276,15 +5586,16 @@ function rpSVGsplits(r){
    ターンの 間隔そのものは 平均に 入れません。
    れい： 0-25m 1.10 / 25-50m 1.20 / 50-75m 1.30 / 75-100m 1.35 */
 function lapTempos(r){
-  var arr=(r&&r.strokes)||[], iv=[], i;
-  for(i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) iv.push(d); }
+  var iv=tempoTable((r&&r.strokes)||[], wantTurnsOf(r&&r.dist, r&&r.pool)), i;
   if(iv.length<2) return [];
-  var med=tempoMedian(iv), groups=[], cur=[], idx=[], curIdx=[];
+  var groups=[], cur=[], idx=[], curIdx=[];
   for(i=0;i<iv.length;i++){
-    if(isTurn(iv[i], med)){
+    if(iv[i].kind==='turn'){            /* ターンで 区間を 切ります */
       if(cur.length){ groups.push(cur); idx.push(curIdx); }
       cur=[]; curIdx=[];
-    }else{ cur.push(iv[i]); curIdx.push(i+1); }
+    }else if(iv[i].kind==='ok'){        /* おしまちがいは 平均に 入れず、区間も 切りません */
+      cur.push(iv[i].d); curIdx.push(iv[i].no);
+    }
   }
   if(cur.length){ groups.push(cur); idx.push(curIdx); }
   var n=groups.length; if(!n) return [];
@@ -5319,9 +5630,11 @@ function lapTempoText(r){
 function rpSVGsr(r){
   var arr=r.strokes||[], st=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) st.push(d); }
   if(st.length<2) return '';
-  var med=tempoMedian(st), tp=tempoStats(st);
-  var pts=st.map(function(v,i){ return { i:i+1, sr:60/v, turn:tp.turns.indexOf(i+1)>=0 }; });
-  var swim=pts.filter(function(p){return !p.turn;});
+  var tp=tempoStats(st, wantTurnsOf(r.dist, r.pool));
+  var pts=st.map(function(v,i){ return { i:i+1, sr:60/v,
+    turn:tp.turns.indexOf(i+1)>=0, out:tp.outs.indexOf(i+1)>=0 }; });
+  var swim=pts.filter(function(p){ return !p.turn && !p.out; });
+  if(!swim.length) return '';
   var srMax=Math.max.apply(null,swim.map(function(p){return p.sr;})), srMin=Math.min.apply(null,swim.map(function(p){return p.sr;}));
   var yLo=Math.floor((srMin-2)/5)*5, yHi=Math.ceil((srMax+2)/5)*5, n=pts.length;
   var W=900,H=250,pad={l:38,r:16,t:42,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
@@ -5342,6 +5655,10 @@ function rpSVGsr(r){
     s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty-4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty+4)+'" stroke="#d64545" stroke-width="2.2"/>';
     s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty+4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty-4)+'" stroke="#d64545" stroke-width="2.2"/>';
     s+='<text x="'+X(p.i)+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#d64545">'+T('turnLbl')+'</text>'; });
+  /* おしまちがいと みなした ところ（平均には 入れて いません） */
+  pts.filter(function(p){return p.out;}).forEach(function(p){
+    s+='<circle cx="'+X(p.i)+'" cy="'+ty+'" r="4.2" fill="none" stroke="#b07000" stroke-width="2"/>';
+    s+='<text x="'+X(p.i)+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#b07000">'+T('outLbl')+'</text>'; });
   /* ラップ ごとの 平均テンポを グラフの 上に 出します */
   var LT=lapTempos(r);
   if(LT.length>1){
@@ -5367,7 +5684,7 @@ function buildReport(r){
   var last = (r.splits&&r.splits.length) ? r.splits[r.splits.length-1] : null;
   var ss = raceStroke(r);
   var arr=r.strokes||[], st=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) st.push(d); }
-  var tp = tempoStats(st);
+  var tp = tempoStats(st, wantTurnsOf(r.dist, r.pool));
   var sw = r.swimmerId ? swById(r.swimmerId) : null;
   var swName = (sw && sw.name) || r.swimmerName || '';
   var ag = sw ? ageAt(sw.birth, r.at) : null;
@@ -5406,7 +5723,7 @@ function buildReport(r){
        srSvg+
        ((lapTempoText(r).length>1) ? ('<div class="rcap"><b>区間ごとの平均ST（秒／かき）</b>　'+esc(lapTempoText(r).join('　／　'))+'</div>') : '')+
        '<div class="rcap">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</div></div>') : '')+
-    (tp.turns.length ? '<div class="rnote">※ '+turnNote(tp.turns)+'</div>' : '')+
+    ((tp.turns.length||tp.outs.length) ? '<div class="rnote">※ '+turnNote(tp.turns, tp.outs)+'</div>' : '')+
     '<div class="rft"><span>SwimIQ LITE B — レース分析レポート</span><span>作成 '+dt+'</span></div>'+
   '</div>';
   $('report').innerHTML=html;
@@ -5421,7 +5738,7 @@ function reportSVG(r, W, H){
   var last=(r.splits&&r.splits.length)?r.splits[r.splits.length-1]:null;
   var ss=raceStroke(r);
   var arr=r.strokes||[], stv=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) stv.push(d); }
-  var tp=tempoStats(stv);
+  var tp=tempoStats(stv, wantTurnsOf(r.dist, r.pool));
   var sw=r.swimmerId?swById(r.swimmerId):null;
   var swName=(sw&&sw.name)||r.swimmerName||'';
   var ag=sw?ageAt(sw.birth,r.at):null;
@@ -5495,10 +5812,10 @@ function reportSVG(r, W, H){
     }
   }
   // note
-  if(tp.turns.length){
+  if(tp.turns.length || tp.outs.length){
     var ny=srSvg?800:560;
     s+='<rect x="'+mx+'" y="'+ny+'" width="'+cw+'" height="30" rx="9" fill="#fff8ea" stroke="#f2dfb0" stroke-width="1"/>';
-    s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(turnNote(tp.turns))+'</text>';
+    s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(turnNote(tp.turns, tp.outs))+'</text>';
   }
   // footer
   s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>';
@@ -5953,9 +6270,9 @@ function viewOpen(r){
   }
 
   /* ターンを のぞいた しらせ */
-  var ints=stInts(r.strokes||[]), tp=tempoStats(ints);
-  if(tp.turns && tp.turns.length){
-    $('vwNote').textContent='※ '+turnNote(tp.turns);
+  var ints=stInts(r.strokes||[]), tp=tempoStats(ints, wantTurnsOf(r.dist, r.pool));
+  if((tp.turns && tp.turns.length) || (tp.outs && tp.outs.length)){
+    $('vwNote').textContent='※ '+turnNote(tp.turns, tp.outs);
     $('vwNote').classList.remove('hide');
   }else{
     $('vwNote').classList.add('hide');
@@ -6228,7 +6545,7 @@ $('fImport').onchange=function(){
         splits: src.splits || [], strokes: src.strokes || [],
         manualN: (src.manualN!=null ? src.manualN : (src.manual ? null : null)),
         manualST: (src.manualST!=null ? src.manualST : null),
-        manualSegs: (src.manualSegs && src.manualSegs.length) ? src.manualSegs : segsFromStrokes(src.splits, src.strokes),
+        manualSegs: (src.manualSegs && src.manualSegs.length) ? src.manualSegs : segsFromStrokes(src.splits, src.strokes, wantTurnsOf(src.dist, src.pool)),
         videoUrl: (src.videoUrl||''),
         swimmerId: (src.swimmerId||''), swimmerName: (src.swimmerName||''),
         sigT: (src.sigT!=null?src.sigT:null), rt: (src.rt!=null?src.rt:null), rtMode: (src.rtMode||null),

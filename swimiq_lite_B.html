@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.24.2">
+<meta name="app-ver" content="2026.09.24.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -233,7 +233,7 @@ button, select, input{ font-family:inherit; }
 .fxT i{ display:inline-block; font-style:normal; text-align:center; }
 .fxT i.d{ width:.60em; }
 .fxT i.p{ width:.28em; }
-.fxT i.o{ width:.46em; }
+.fxT i.o{ min-width:.46em; }
 .hudMk{ flex:0 0 auto; width:26px; height:26px; display:flex; align-items:center; justify-content:center;
   border-radius:999px; background:var(--am); color:#000; font-size:17px; line-height:1;
   text-shadow:none; box-shadow:0 1px 5px rgba(0,0,0,.55);
@@ -1437,6 +1437,9 @@ body.grid .gridL{ display:block; }
   text-shadow:0 5px 22px #000, 0 0 8px #000; }
 #bigLap .bl3{ font-size:clamp(16px,3.2vh,26px); font-weight:800; color:#e6ecf3;
   text-shadow:0 3px 10px #000; line-height:1.2; }
+/* 日本語の ことば の とき（合図・足離れ など）は、少し 小さく して 1行に おさめます */
+#bigLap.word .bl2{ font-size:clamp(40px,12vh,96px); letter-spacing:.04em;
+  white-space:nowrap; line-height:1.25; padding:0 8px; }
 
 /* ===== 動画を 携帯に 保存する 帯（1回 おすだけ） ===== */
 #saveBar{ position:fixed; z-index:2147482100;
@@ -1525,7 +1528,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.24.2</p>
+  <p class="ver" id="verBottom">ver 2026.09.24.3</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -3904,6 +3907,13 @@ function setTime(el, str){
   str = String(str==null ? '' : str);
   if(el.dataset && el.dataset.tv===str) return;
   if(el.dataset) el.dataset.tv=str;
+  /* 数字の 時計 だけ 1文字ずつ 同じ はばに します。
+     日本語などの 文字は はばが ちがうので、ふつうに 出します（かさなり どめ） */
+  if(!/^[0-9:.+\-− ]*$/.test(str)){
+    el.classList.remove('fxT');
+    el.textContent=str;
+    return;
+  }
   if(!el.classList.contains('fxT')) el.classList.add('fxT');
   var h='', i, c;
   for(i=0;i<str.length;i++){
@@ -4070,7 +4080,10 @@ var bigLapTm=null;
 function bigLap(head, main, sub){
   var b=$('bigLap'); if(!b) return;
   b.querySelector('.bl1').textContent = head || '';
-  setTime(b.querySelector('.bl2'), main || '');
+  var m2=b.querySelector('.bl2'), s2=String(main==null?'':main);
+  /* 日本語の ことば の ときは、少し 小さめにして 1行に おさめます */
+  b.classList.toggle('word', !/^[0-9:.+\-− ]*$/.test(s2));
+  setTime(m2, s2);
   b.querySelector('.bl3').textContent = sub  || '';
   b.classList.add('on');
   if(bigLapTm) clearTimeout(bigLapTm);

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.24.1">
+<meta name="app-ver" content="2026.09.24.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1525,7 +1525,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.24.1</p>
+  <p class="ver" id="verBottom">ver 2026.09.24.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2431,16 +2431,16 @@ var W={
  cClose:['とじる','閉じる'],
  cGrip:['ラップ<small>おして うごかせます</small>','ラップ<small>ドラッグで移動できます</small>'],
  cStart:['スタート','スタート'],
- cRecB:['① 録画を はじめる','① 録画をはじめる'],
- cTimerB:['② タイマーを はじめる','② タイマーをはじめる'],
+ cRecB:['録画を はじめる','録画を始める'],
+ cTimerB:['タイマーを はじめる','タイマーを始める'],
  cRunB:['タイマー うごいて います','タイマー動作中'],
  cStRecOff:['録画 していません','録画していません'],
  cStRecOn:['録画中','録画中'],
  cStTmOff:['タイマー とまって います','タイマー停止中'],
  cStTmArm:['タイマー 合図まち','タイマー 合図待ち'],
  cStTmOn:['タイマー うごいて います','タイマー動作中'],
- cRecOnly:['録画を はじめました。つぎに「タイマーを はじめる」を おします',
-           '録画を開始しました。次に「タイマーをはじめる」を押します'],
+ cRecOnly:['録画を はじめました。タイマーは まだ 動いて いません',
+           '録画を開始しました。タイマーはまだ動いていません'],
  cWait:['合図まち（おすと すぐ）','合図待ち（押すとすぐ開始）'],
  cStop:['ストップ','ストップ'],
  cLap:['ラップ','ラップ'],
@@ -5419,26 +5419,28 @@ $('cStart').onclick=function(){
   if(cRun) return;
   if(cAC && cAC.state==='suspended'){ try{ cAC.resume(); }catch(e){} }
 
-  /* ① まだ 録画して いない ときは、録画だけ はじめます。
-        ここでは タイマーは まだ 動きません。 */
+  /* ① まだ 録画して いない ときは、録画を はじめます。
+        合図で はじめる ときは、そのまま 合図まちに 入ります。
+        タイマーは まだ 動いて いません。 */
   if(!cRecOn){
     cLaps=[]; cPaintLaps(); cEl=0; cWentBySig=false;
     cRecStart();
     cRecOn=true;
-    cBtns(); cSay(T('cRecOnly'));
+    if(cTrig==='light'){
+      cLightInit();
+      cArm=true; cArmAt=performance.now(); cBtns(); cSay(T('cLightArm'));
+    }else if(cWantSound && cAn){
+      cArm=true; cArmAt=performance.now(); cBtns(); cSay(T('cArmed'));
+    }else{
+      cBtns(); cSay(T('cRecOnly'));
+    }
     return;
   }
 
-  /* ② 録画中に もう一度 おすと、タイマーです */
-  if(cArm){ cArm=false; cGo(); cSay(''); return; }   /* 合図まちを やめて すぐ はじめる */
-  if(cTrig==='light'){
-    cLightInit();
-    cArm=true; cArmAt=performance.now(); cBtns();
-    cSay(T('cLightArm'));
-  }else if(cWantSound && cAn){
-    cArm=true; cArmAt=performance.now(); cBtns();
-    cSay(T('cArmed'));
-  }else{ cGo(); cSay(''); }
+  /* ② 合図まちの あいだに おすと、またずに すぐ はじめます */
+  if(cArm){ cArm=false; cGo(); cSay(''); return; }
+  /* 手で はじめる ときは、ここで タイマーが 動きます */
+  cGo(); cSay('');
 };
 $('cLap').onclick=function(){
   if(!cRun) return;

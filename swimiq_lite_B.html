@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.24.4">
+<meta name="app-ver" content="2026.09.24.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1550,7 +1550,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.24.4</p>
+  <p class="ver" id="verBottom">ver 2026.09.24.6</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2540,6 +2540,10 @@ var W={
  vsOff:['保存しない','保存しない'],
  vsHint:['「保存する」に して おくと、とりおわった あと 画面の 下に ボタンが 出ます。1回 おすだけで 携帯に のこせます',
          '「保存する」にしておくと、撮り終わった後に画面下へボタンが出ます。1回押すだけで携帯に残せます'],
+ askTrim1:['きょりを ','距離を '],
+ askTrim2:['m に かえます。この きょりには ない ','m に変更します。この距離には存在しない '],
+ askTrim3:[' の きろくは けされます。よろしいですか？',' の記録は削除されます。よろしいですか？'],
+ msgTrimmed:[' の きろくを けしました',' の記録を削除しました'],
  zoomLbl:['ズーム','ズーム'],
  zBtn:['ズーム','ズーム'],
  optBtn:['せってい','設定'],
@@ -2882,6 +2886,11 @@ function fmt(s){
   var m=Math.floor(s/60);
   return m+':'+String(Math.floor(s%60)).padStart(2,'0')+'.'+String(Math.round((s*100)%100)).padStart(2,'0');
 }
+/* 区間タイムの 書き方。マイナスの ときに「＋−」に ならない ように します */
+function segT(v){
+  if(v==null || isNaN(v)) return '--';
+  return (v<0 ? '−' : '+') + fmt(Math.abs(v));
+}
 
 /* ===== 携帯の中の たなに しまう（IndexedDB） =====
    写真アプリとは べつに、このアプリ専用の たなを 作って、
@@ -3064,6 +3073,9 @@ function autoD(){
 function rtIsOn(){ return (typeof rtOn!=='undefined') && !!rtOn; }
 /* 自分で 一覧を えらんだ ときだけ、その えらびを のこします */
 var selManual=false;
+/* さいごに きろくした ところ（'sig' / 't0' / '15' など）。
+   つぎは かならず この さきへ すすめる ための めじるしです */
+var aLastSel='';
 function paintNextSel(){
   /* 一覧は いつも ぜんぶ 出します。
      すでに 入れた ところには ✓ を つけ、えらび直せば 上書きできます。 */
@@ -3082,11 +3094,25 @@ function paintNextSel(){
     o.value=String(all[i]); o.textContent=all[i]+'m'+(used[all[i]]?' ✓':''); sel.appendChild(o);
   }
   sel.disabled=false;
-  /* つぎに やる ところを じどうで えらびます */
-  var want='';
-  if(rtIsOn() && aSigT==null) want='sig';
-  else if(aT0==null) want='t0';
-  else { var a=autoD(); want = (a!==null) ? String(a) : String(all[all.length-1]); }
+  /* つぎに やる ところを じどうで えらびます。
+     きろくした つぎからは、一覧の 順に かならず 前へ すすみます。
+     （足離れ の つぎは 15m、その つぎは 25m というように） */
+  var order=[], j;
+  for(j=0;j<sel.options.length;j++) order.push(sel.options[j].value);
+  function isDone(v){
+    if(v==='sig') return aSigT!=null;
+    if(v==='t0')  return aT0!=null;
+    return !!used[Number(v)];
+  }
+  var want='', from=0;
+  if(aLastSel){
+    var at=order.indexOf(aLastSel);
+    if(at>=0) from=at+1;
+  }
+  for(j=from;j<order.length;j++) if(!isDone(order[j])){ want=order[j]; break; }
+  /* さきに 空きが なければ、はじめに もどって 空いている ところを さがします */
+  if(!want) for(j=0;j<order.length;j++) if(!isDone(order[j])){ want=order[j]; break; }
+  if(!want) want = order.length ? order[order.length-1] : '';
   /* 自分で えらんだ ものが まだ 一覧に あれば そのまま のこします */
   var has=false;
   for(i=0;i<sel.options.length;i++) if(sel.options[i].value===keep) has=true;
@@ -3171,7 +3197,7 @@ function paintTbl(){
     for(k=0;k<f.length;k++) opt+='<option value="'+f[k]+'"'+(f[k]===aSplits[i].d?' selected':'')+'>'+f[k]+'m</option>';
     r.innerHTML='<span class="c1 cSel"><select class="dSel" data-i="'+i+'" aria-label="'+T('hDist')+'">'+opt+'</select></span>'+
                 '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
-                '<span class="c3">+'+fmt(aSplits[i].t-prev)+'</span>'+
+                '<span class="c3">'+segT(aSplits[i].t-prev)+'</span>'+
                 '<button class="xBtn" type="button" data-x="'+i+'" aria-label="'+T('del')+'"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>';
     b.appendChild(r);
   }
@@ -3427,7 +3453,7 @@ function paintSheet(){
       var r=document.createElement('div'); r.className='tr';
       r.innerHTML='<span class="c1">'+aSplits[i].d+'m</span>'+
                   '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
-                  '<span class="c3">+'+fmt(aSplits[i].t-pv)+'</span>';
+                  '<span class="c3">'+segT(aSplits[i].t-pv)+'</span>';
       b.appendChild(r);
     }
   }
@@ -3577,6 +3603,14 @@ function openAna(blob, opt){
   if(opt.pool) $('pool').value=String(opt.pool);
   if(opt.dist) $('dist').value=String(opt.dist);
   $('event').value = opt.event || 'free';
+  distWas=$('dist').value; selManual=false; aLastSel='';
+  /* ひらいた ときに すでに ちぐはぐな きろくが あれば、ここで そろえます */
+  (function(){
+    var all=lapDists(Number($('dist').value)), ok={}, keep=[], i;
+    for(i=0;i<all.length;i++) ok[all[i]]=1;
+    for(i=0;i<aSplits.length;i++) if(ok[aSplits[i].d]) keep.push(aSplits[i]);
+    aSplits=keep;
+  })();
   $('ana').classList.remove('stroke','anyway');
   anaMoreOpen(false);
   if(window.innerWidth > window.innerHeight) $('anaBox').classList.add('shut');
@@ -3899,7 +3933,7 @@ function setSig(t){
   toast(T('msgSigSet'));
   paintTbl(); anaP.paint();
 }
-$('bStart').onclick=function(){ setFoot($('v').currentTime); anaMoreOpen(false); };
+$('bStart').onclick=function(){ selManual=false; aLastSel='t0'; setFoot($('v').currentTime); anaMoreOpen(false); };
 $('anaMore').onclick=function(){ anaMoreOpen($('anaMoreBox').classList.contains('hide')); };
 $('anaMoreX').onclick=function(){ anaMoreOpen(false); };
 $('anaVid').onclick=function(){ anaMoreOpen(false); saveVidToPhone(aBlob, aId||('v'+Date.now())); };
@@ -3995,9 +4029,9 @@ $('bPass').onclick=function(){
   var k=selKind(), t=$('v').currentTime;
   if(k==='') return;
   try{ if(navigator.vibrate) navigator.vibrate(16); }catch(e){}
-  if(k==='sig'){ selManual=false; $('nextSel').value=''; setSig(t);
+  if(k==='sig'){ selManual=false; aLastSel='sig'; $('nextSel').value=''; setSig(t);
     bigLap('', T('rtSigLbl'), ''); return; }
-  if(k==='t0'){  selManual=false; $('nextSel').value=''; setFoot(t);
+  if(k==='t0'){  selManual=false; aLastSel='t0';  $('nextSel').value=''; setFoot(t);
     bigLap('', T('rtFootLbl'), ''); return; }
   var n=nextD();
   if(n===null) return;
@@ -4022,15 +4056,16 @@ $('bPass').onclick=function(){
   if(hit>=0){ aSplits[hit].t=tt; toast(T('msgOver')+n+'m'); }
   else aSplits.push({ d:n, t:tt });
   aSplits.sort(function(x,y){ return x.d-y.d; });   /* きょりの 順に ならべます */
-  selManual=false; $('nextSel').value='';
+  selManual=false; aLastSel=String(n); $('nextSel').value='';
   paintTbl();
   var pvT = 0, q;
   for(q=0;q<aSplits.length;q++){ if(aSplits[q].d===n) break; pvT=aSplits[q].t; }
-  bigLap(n+'m', fmt(tt), (pvT>0 ? ('+'+fmt(tt-pvT)) : ''));
+  bigLap(n+'m', fmt(tt), (pvT>0 ? segT(tt-pvT) : ''));
 };
 $('bUndo').onclick=function(){
   if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
-  if(aSplits.length){ aSplits.pop(); paintTbl(); }
+  /* 1つ もどしたら、あいた ところから やり直せる ように めじるしを けします */
+  if(aSplits.length){ aSplits.pop(); selManual=false; aLastSel=''; paintTbl(); }
 };
 /* ===== 数字を あとから 直す =====
    ストローク数 … ふやすと 平均の 間かくで うしろに たし、へらすと うしろから 消します
@@ -4246,7 +4281,7 @@ gridPaint();
 
 $('bClear').onclick=function(){
   if(!confirm(T('askClear'))) return;
-  aSplits=[]; aStrokes=[]; aT0=null; aSigT=null; aRT=null; selManual=false; paintTbl(); paintSR(); anaP.paint();
+  aSplits=[]; aStrokes=[]; aT0=null; aSigT=null; aRT=null; selManual=false; aLastSel=''; paintTbl(); paintSR(); anaP.paint();
 };
 
 /* ================================================================
@@ -4363,7 +4398,7 @@ $('rtX').onclick=function(){ if(rtScanning) rtStop(false); $('rtBox').classList.
     rtOn = (this.dataset.ro==='on');
     try{ localStorage.setItem('swimiq_rton', rtOn?'1':'0'); }catch(e){}
     if(!rtOn){ aSigT=null; aRT=null; $('rtVal').value=''; }
-    selManual=false;
+    selManual=false; aLastSel='';
     $('rtStatus').textContent=''; rtPaint(); paintSheet(); paintNext();
   };
 })();
@@ -4380,7 +4415,7 @@ $('rtVal').oninput=function(){
 };
 $('rtClear').onclick=function(){
   aSigT=null; aRT=null; $('rtVal').value=''; $('rtStatus').textContent='';
-  selManual=false; rtPaint(); paintSheet(); paintNext();
+  selManual=false; aLastSel=''; rtPaint(); paintSheet(); paintNext();
 };
 $('bStroke').onclick=function(){
   var on=this.getAttribute('aria-pressed')!=='true';
@@ -4613,8 +4648,39 @@ $('dUndo').onclick=function(){
   dStrokes.pop(); dPaintSR();
   if(dRec){ dRec.strokes=dStrokes.slice(); dbPut(dRec); }
 };
-$('pool').onchange=function(){ paintTbl(); };
-$('dist').onchange=function(){ paintTbl(); };
+/* ===== きょりを かえた ときの つじつま合わせ =====
+   たとえば 100m で 計った あとに 50m へ かえると、
+   65m〜100m の きろくは その きょりには ありえません。
+   そのままだと「せっていは 50m なのに ラップが 100m まで ある」
+   という ちぐはぐな 画面に なるので、ここで そろえます。 */
+function outOfRange(){
+  var all=lapDists(Number($('dist').value)), ok={}, i, out=[];
+  for(i=0;i<all.length;i++) ok[all[i]]=1;
+  for(i=0;i<aSplits.length;i++) if(!ok[aSplits[i].d]) out.push(aSplits[i].d);
+  return out;
+}
+var distWas=null;
+function distApply(){
+  var bad=outOfRange();
+  if(bad.length){
+    var list=bad.join('m・')+'m';
+    if(!confirm(T('askTrim1')+$('dist').value+T('askTrim2')+list+T('askTrim3'))){
+      /* けしたくない ときは、きょりを もとに もどします */
+      if(distWas!=null) $('dist').value=distWas;
+      paintTbl(); return;
+    }
+    var keep=[], all=lapDists(Number($('dist').value)), ok={}, i;
+    for(i=0;i<all.length;i++) ok[all[i]]=1;
+    for(i=0;i<aSplits.length;i++) if(ok[aSplits[i].d]) keep.push(aSplits[i]);
+    aSplits=keep;
+    toast(list+T('msgTrimmed'));
+  }
+  distWas=$('dist').value;
+  selManual=false; aLastSel='';
+  paintTbl();
+}
+$('pool').onchange=function(){ selManual=false; aLastSel=''; paintTbl(); };
+$('dist').onchange=function(){ distApply(); };
 $('anaBack').onclick=function(){
   if(aSplits.length || aStrokes.length){
     if(!confirm(T('askLeave'))) return;
@@ -4640,6 +4706,8 @@ function thumb(){
 /* --- ほぞん --- */
 $('anaSave').onclick=function(){
   if(!aBlob){ toast(T('msgNoVid')); return; }
+  /* ほぞんの まえに、きょりに あわない きろくが のこって いないか たしかめます */
+  if(outOfRange().length){ distApply(); if(outOfRange().length) return; }
   var d=new Date();
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
   var name=prompt(T('askName'), $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent);
@@ -4838,7 +4906,7 @@ function openDetail(id){
         var tr=document.createElement('div'); tr.className='tr';
         tr.innerHTML='<span class="c1">'+r.splits[i].d+'m</span>'+
                      '<span class="c2">'+fmt(r.splits[i].t)+'</span>'+
-                     '<span class="c3">+'+fmt(r.splits[i].t-pv)+'</span>';
+                     '<span class="c3">'+segT(r.splits[i].t-pv)+'</span>';
         b.appendChild(tr);
       }
     }
@@ -5018,7 +5086,7 @@ function sheetImage(r){
   var lr=[];
   for(i=0;i<(r.splits||[]).length;i++){
     var pv=i>0?r.splits[i-1].t:0;
-    lr.push([r.splits[i].d+'m', fmt(r.splits[i].t), '+'+fmt(r.splits[i].t-pv)]);
+    lr.push([r.splits[i].d+'m', fmt(r.splits[i].t), segT(r.splits[i].t-pv)]);
   }
   if(!lr.length) lr=[['-',T('nothing'),'']];
   table(T('glSplit'),[T('hDist'),T('hTime'),T('hSplit')],lr);
@@ -6929,7 +6997,7 @@ function viewOpen(r){
       var pv = i>0 ? sp[i-1].t : 0;
       h+='<div class="vr"><span class="c1">'+sp[i].d+'m</span>'+
          '<span class="c2">'+fmt(sp[i].t)+'</span>'+
-         '<span class="c3">+'+fmt(sp[i].t-pv)+'</span></div>';
+         '<span class="c3">'+segT(sp[i].t-pv)+'</span></div>';
     }
     $('vwSpl').innerHTML=h;
   }

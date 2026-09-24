@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.24.3">
+<meta name="app-ver" content="2026.09.24.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1021,11 +1021,24 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
   border-color:var(--line) !important; box-shadow:none; opacity:1; }
 #cLap:active:not(:disabled){ transform:scale(.94); }
 #cReset{ min-height:38px !important; font-size:13px !important; }
-#camOpt{ position:absolute; left:calc(env(safe-area-inset-left) + 12px); z-index:7;
-  bottom:calc(env(safe-area-inset-bottom) + 10px); width:calc(100% - 168px); display:flex; gap:7px; }
-#camOpt button{ flex:1; min-height:40px; border-radius:6px; cursor:pointer;
+/* 下の せっていは ふだん しまって おいて、「せってい」を おすと
+   よこに 4つ 出てきます（画面を ひろく つかう ため） */
+#camOptBar{ position:absolute; z-index:7;
+  left:calc(env(safe-area-inset-left) + 12px);
+  right:calc(env(safe-area-inset-right) + 156px);
+  bottom:calc(env(safe-area-inset-bottom) + 10px);
+  display:flex; align-items:stretch; gap:7px; pointer-events:none; }
+#camOptBar > *{ pointer-events:auto; }
+#cOptBtn{ flex:0 0 auto; min-height:40px; padding:0 14px; cursor:pointer;
   border:2px solid var(--line); background:rgba(0,0,0,.86); color:#fff;
-  font-size:12px; font-weight:800; }
+  font-family:inherit; font-size:13px; font-weight:800; white-space:nowrap; }
+#cOptBtn[aria-expanded="true"]{ background:var(--am); color:#000; border-color:var(--am); }
+#camOpt{ flex:1; min-width:0; display:none; gap:7px; }
+#camOptBar.on #camOpt{ display:flex; }
+#camOpt button{ flex:1; min-width:0; min-height:40px; border-radius:6px; cursor:pointer;
+  border:2px solid var(--line); background:rgba(0,0,0,.86); color:#fff;
+  font-size:12px; font-weight:800; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; padding:0 4px; }
 #camOpt button[aria-pressed="true"]{ background:var(--am); color:#000; border-color:var(--am); }
 #camRot{ display:none; position:absolute; inset:0; z-index:20; background:#000;
   flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; padding:28px; }
@@ -1475,8 +1488,17 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   background:rgba(0,0,0,.72); border:2px solid rgba(255,255,255,.4);
   color:#fff; font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; }
 #camZoom .zr{ width:62px; min-height:44px; border-radius:10px; font-size:14px; }
+/* ズームも ふだんは しまって おいて、「ズーム」を おすと 出てきます */
+#cZbtn{ position:absolute; z-index:8;
+  right:calc(env(safe-area-inset-right) + 156px); top:50%; transform:translateY(-50%);
+  min-width:64px; min-height:54px; padding:5px 10px; border-radius:99px; cursor:pointer;
+  border:2px solid rgba(255,255,255,.55); background:rgba(0,0,0,.72); color:#fff;
+  font-family:inherit; font-size:12px; font-weight:900; line-height:1.2;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; }
+#cZbtn b{ font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; }
+#cZbtn:active{ background:var(--am); color:#000; }
 #cv{ transform-origin:center center; }
-@media (orientation:portrait){ #camZoom{ display:none; } }
+@media (orientation:portrait){ #camZoom, #cZbtn{ display:none; } }
 </style>
 </head>
 <body>
@@ -1528,7 +1550,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.24.3</p>
+  <p class="ver" id="verBottom">ver 2026.09.24.4</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1856,17 +1878,23 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <button id="cLap" type="button" disabled data-t="cLap"></button>
     <button id="cReset" type="button" data-t="cReset"></button>
   </div>
-  <div id="camZoom">
+  <button type="button" id="cZbtn" aria-expanded="false"
+          aria-controls="camZoom"><span data-t="zBtn"></span><b id="cZnow">1.0x</b></button>
+  <div id="camZoom" class="hide">
     <button type="button" id="cZin" aria-label="ズームを 大きく">＋</button>
     <span class="zv" id="cZval">1.0x</span>
     <button type="button" id="cZout" aria-label="ズームを 小さく">−</button>
     <button type="button" id="cZrst" class="zr">1x</button>
   </div>
-  <div id="camOpt">
-    <button id="cSound" type="button" aria-pressed="true" data-t="sndOn"></button>
-    <button id="cSens" type="button" aria-expanded="false"></button>
-    <button id="cGrid" type="button" aria-pressed="false"></button>
-    <button id="cStab" type="button" aria-pressed="false"></button>
+  <div id="camOptBar">
+    <button id="cOptBtn" type="button" aria-expanded="false"
+            aria-controls="camOpt" data-t="optBtn"></button>
+    <div id="camOpt">
+      <button id="cSound" type="button" aria-pressed="true" data-t="sndOn"></button>
+      <button id="cSens" type="button" aria-expanded="false"></button>
+      <button id="cGrid" type="button" aria-pressed="false"></button>
+      <button id="cStab" type="button" aria-pressed="false"></button>
+    </div>
   </div>
   <div id="sensBox" class="hide">
     <div class="sbH"><b data-t="sensT"></b><span id="sensNow"></span>
@@ -2513,6 +2541,8 @@ var W={
  vsHint:['「保存する」に して おくと、とりおわった あと 画面の 下に ボタンが 出ます。1回 おすだけで 携帯に のこせます',
          '「保存する」にしておくと、撮り終わった後に画面下へボタンが出ます。1回押すだけで携帯に残せます'],
  zoomLbl:['ズーム','ズーム'],
+ zBtn:['ズーム','ズーム'],
+ optBtn:['せってい','設定'],
  zoomHint:['ズームは 録画を はじめる まえに 合わせて ください','ズームは録画を始める前に合わせてください'],
  zoomNo:['この 端末は ズームに 対応して いません','この端末はズームに対応していません'],
  saveVidGo:['保存の まどが ひらきます。「ビデオを保存」を えらんで ください','保存の画面が開きます。「ビデオを保存」を選んでください'],
@@ -5246,6 +5276,7 @@ function cZoomInit(){
 }
 function cZoomPaint(){
   var z=$('cZval'); if(z) z.textContent=cZoom.toFixed(1)+'x';
+  var n=$('cZnow'); if(n) n.textContent=cZoom.toFixed(1)+'x';
   var a=$('cZin'), b=$('cZout');
   if(a) a.disabled = cZoom>=C_ZMAX-0.001;
   if(b) b.disabled = cZoom<=1.001;
@@ -5628,9 +5659,53 @@ $('cdRetake').onclick=function(){
   cPaintT(); cPaintLaps(); cBtns(); cSay('');
   $('camRecT').textContent='0:00';
 };
-$('cZin').onclick =function(){ cZoomSet(cZoom+0.5); };
-$('cZout').onclick=function(){ cZoomSet(cZoom-0.5); };
-$('cZrst').onclick=function(){ cZoomSet(1); };
+/* ===== ズームの 出し入れ =====
+   ふだんは 小さな「ズーム」ボタンだけ。おすと ＋ − の れつが 出て、
+   しばらく さわらなければ また しまいます（画面を ひろく つかう ため） */
+var cZoomTm=null;
+function cZoomShow(){
+  var z=$('camZoom'), b=$('cZbtn'); if(!z||!b) return;
+  z.classList.remove('hide'); b.classList.add('hide');
+  b.setAttribute('aria-expanded','true');
+  cZoomKeep();
+}
+function cZoomHide(){
+  var z=$('camZoom'), b=$('cZbtn'); if(!z||!b) return;
+  z.classList.add('hide'); b.classList.remove('hide');
+  b.setAttribute('aria-expanded','false');
+  if(cZoomTm){ clearTimeout(cZoomTm); cZoomTm=null; }
+}
+function cZoomKeep(){
+  if(cZoomTm) clearTimeout(cZoomTm);
+  cZoomTm=setTimeout(cZoomHide, 6000);
+}
+$('cZbtn').onclick=function(){
+  if($('camZoom').classList.contains('hide')) cZoomShow(); else cZoomHide();
+};
+$('cZin').onclick =function(){ cZoomSet(cZoom+0.5); cZoomKeep(); };
+$('cZout').onclick=function(){ cZoomSet(cZoom-0.5); cZoomKeep(); };
+$('cZrst').onclick=function(){ cZoomSet(1); cZoomKeep(); };
+/* ===== 下の せっての 出し入れ ===== */
+function cOptSet(on){
+  var bar=$('camOptBar'), b=$('cOptBtn'); if(!bar||!b) return;
+  bar.classList.toggle('on', !!on);
+  b.setAttribute('aria-expanded', on?'true':'false');
+  /* 名前は いつも「設定」のまま。ひらいて いる ことは、色と
+     aria-expanded（読み上げ）で わかる ように します */
+  b.textContent = T('optBtn');
+  /* しまう ときは、音の 感度の まども いっしょに とじます */
+  if(!on){
+    var sb=$('sensBox');
+    if(sb && !sb.classList.contains('hide')){
+      sb.classList.add('hide');
+      $('cam').classList.remove('sens');
+      $('cSens').setAttribute('aria-expanded','false');
+    }
+  }
+}
+$('cOptBtn').onclick=function(){
+  cOptSet(!$('camOptBar').classList.contains('on'));
+};
 /* 2本の指で ひろげても ズームできます */
 (function(){
   var el=$('cam'), base=1, d0=0;
@@ -5653,6 +5728,7 @@ $('openCam').onclick=function(){
   cBlob=null; cLaps=[]; cEl=0; cRun=false; cArm=false; cWentBySig=false; cRecOn=false;
   camDoneClose();
   cLightInit(); cTrigPaint(); cStabPaint(); cStabReset();
+  cOptSet(false); cZoomHide();
   cPaintT(); cPaintLaps(); cBtns(); cSay(''); $('camRecT').textContent='0:00';
   cOpen();
 };

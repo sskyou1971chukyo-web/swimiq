@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.25.1">
+<meta name="app-ver" content="2026.09.25.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1569,7 +1569,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.25.1</p>
+  <p class="ver" id="verBottom">ver 2026.09.25.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1814,7 +1814,13 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <input type="text" id="syncUrl" inputmode="url" autocomplete="off" spellcheck="false"
       style="width:100%;box-sizing:border-box;min-height:46px;padding:8px 12px;border-radius:var(--rM);border:2px solid var(--line);background:var(--pane);color:#fff;font-size:14px;">
     <button class="btn b" id="syncSaveUrl" type="button" data-t="syncSaveUrl"></button>
+    <button class="btn b" id="syncCopy" type="button" data-t="syncCopyBtn"></button>
     <button class="btn g" id="syncNow" type="button" data-t="syncNowBtn"></button>
+    <p class="hint" id="syncState" style="margin:6px 2px 0;" aria-live="polite"></p>
+    <button class="btn b" id="syncHelp" type="button" data-t="syncHelpBtn"></button>
+  </div>
+  <div id="syncSteps" class="take hide">
+    <p class="hint" id="syncStepsBody" style="margin:0 2px;white-space:pre-line;"></p>
   </div>
 
   <div class="gl" data-t="exGl"></div>
@@ -2833,6 +2839,30 @@ var W={
  syncDoing:['同期しています…','同期中…'],
  syncDone:['同期しました','同期が完了しました'],
  syncNG:['同期できませんでした。アドレスと つうしんを たしかめてください','同期できませんでした。アドレスと通信を確認してください'],
+ syncCopyBtn:['アドレスを コピー','アドレスをコピー'],
+ syncCopied:['アドレスを コピーしました。パソコンに はりつけて ください','アドレスをコピーしました。パソコンに貼り付けてください'],
+ syncOff:['同期は まだ 入って いません。上に アドレスを 入れて ください','同期はまだ設定されていません。上にアドレスを入れてください'],
+ syncOn:['同期は 入って います。ひらいた ときと 1分ごとに 自動で 合わせます','同期は有効です。開いたときと1分ごとに自動で合わせます'],
+ syncLast:['さいごに 同期したのは ','最後に同期したのは '],
+ syncToday:['きょう','今日'],
+ syncHelpBtn:['パソコンと つなぐ 手じゅん','パソコンとつなぐ手順'],
+ syncSteps:[
+  '1　この 同期の アドレスを コピーして、自分あてに メールします\n'+
+  '2　パソコンで その メールを ひらき、アドレスを コピーします\n'+
+  '3　スイムIQの ファイルを パソコンにも おいて、ダブルクリックで ひらきます\n'+
+  '4　設定の この らんに アドレスを はりつけて「アドレスを ほぞん」を おします\n'+
+  '5　「いま すぐ 同期する」を おすと、けいたいの きろくが パソコンに 出ます\n'+
+  '6　パソコンで 直した ことは、けいたいを ひらいた ときに 自動で 入ります\n'+
+  '※ 動画は おもいので 同期しません。数字と 名前と 通過タイムだけです。\n'+
+  '　　動画も 見たい ときは、記録を ひらいて 動画を Googleドライブに 上げて ください',
+  '1　この同期のアドレスをコピーして、自分あてにメールします\n'+
+  '2　パソコンでそのメールを開き、アドレスをコピーします\n'+
+  '3　スイムIQのファイルをパソコンにも置いて、ダブルクリックで開きます\n'+
+  '4　設定のこの欄にアドレスを貼り付けて「アドレスを保存」を押します\n'+
+  '5　「今すぐ同期する」を押すと、携帯の記録がパソコンに出ます\n'+
+  '6　パソコンで直したことは、携帯を開いたときに自動で入ります\n'+
+  '※ 動画は重いので同期しません。数字と名前と通過タイムだけです。\n'+
+  '　　動画も見たいときは、記録を開いて動画をGoogleドライブに上げてください'],
  nameFreeLbl:['一覧に ない ときは、ここに 名前を 書いて ください','一覧にないときは、ここに名前を直接入力できます'],
  vfSplLbl:['通過タイムを 直す','通過タイムを直す'],
  vfSplHint:['左が きょり、右が 経過タイムです。きょりが ちがう ときは 左で えらび直して ください。いらない 行は ✕ で けせます。','左が距離、右が経過タイムです。距離が違うときは左で選び直してください。いらない行は✕で消せます。'],
@@ -4683,7 +4713,10 @@ $('dStroke').onclick=function(){
 $('dUndo').onclick=function(){
   if(!dStrokes.length) return;
   dStrokes.pop(); dPaintSR();
-  if(dRec){ dRec.strokes=dStrokes.slice(); dbPut(dRec); }
+  if(dRec){
+    dRec.strokes=dStrokes.slice(); dRec.updatedAt=Date.now();
+    dbPut(dRec).then(function(){ pushOne(dRec); });
+  }
 };
 /* ===== きょりを かえた ときの つじつま合わせ =====
    たとえば 100m で 計った あとに 50m へ かえると、
@@ -7364,15 +7397,56 @@ function syncNow(opts){
     return chain.then(function(){ return cloudPush(toPush); });
   }).then(function(){
     syncing=false;
+    syncAt=Date.now();
+    try{ localStorage.setItem('swimiq_sync_at', String(syncAt)); }catch(e){}
+    syncStatePaint();
     paintList();
     if(!$('compare').classList.contains('hide')) cmpReload();
     if(opts.toast) toast(T('syncDone'));
     setTimeout(uploadPending, 600);
   }).catch(function(){
     syncing=false;
+    syncStatePaint();
     if(opts.toast) toast(T('syncNG'));
   });
 }
+/* ===== 同期の ようす と 自動で 合わせる しくみ =====
+   パソコンで 直した ことが、けいたいを 見た ときに
+   ひとりでに 入る ように します。 */
+var syncAt=0, syncTm=null;
+try{ syncAt = Number(localStorage.getItem('swimiq_sync_at')||0) || 0; }catch(e){}
+function syncWhen(ms){
+  var d=new Date(ms), n=new Date();
+  var hm=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  return (d.toDateString()===n.toDateString() ? T('syncToday') : ((d.getMonth()+1)+'/'+d.getDate()))+' '+hm;
+}
+function syncStatePaint(){
+  var el=$('syncState'); if(!el) return;
+  if(!SYNC_URL){ el.textContent=T('syncOff'); return; }
+  if(syncing){ el.textContent=T('syncDoing'); return; }
+  el.textContent = syncAt ? (T('syncLast')+syncWhen(syncAt)) : T('syncOn');
+}
+/* 作業の じゃまを しない ように、ひらいて いる 画面を たしかめます */
+function syncBusy(){
+  var i, k, ids=['ana','detail','cam','sw','swimmers'],
+      dlg=['vFix','manualBox','viewBox','lapPick','camDone','pdfView'];
+  for(i=0;i<ids.length;i++){ var e=$(ids[i]); if(e && !e.classList.contains('hide')) return true; }
+  for(k=0;k<dlg.length;k++){ var d=$(dlg[k]); if(d && !d.classList.contains('hide')) return true; }
+  return false;
+}
+function syncAuto(){
+  if(!SYNC_URL || syncing) return;
+  if(document.hidden) return;
+  if(syncBusy()) return;
+  syncNow();
+}
+function syncTimer(){
+  if(syncTm){ clearInterval(syncTm); syncTm=null; }
+  if(SYNC_URL) syncTm=setInterval(syncAuto, 60000);
+}
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) syncAuto(); });
+window.addEventListener('focus', function(){ syncAuto(); });
+syncTimer();
 /* 保存した記録を すぐ クラウドへ（うまくいかなくても 画面は そのまま） */
 function pushOne(rec){ if(SYNC_URL && rec) cloudPush([rec]); }
 
@@ -7383,8 +7457,27 @@ $('syncSaveUrl').onclick=function(){
   SYNC_URL = ($('syncUrl').value||'').trim();
   try{ localStorage.setItem('swimiq_sync_url', SYNC_URL); }catch(e){}
   toast(T('syncUrlSaved'));
+  syncTimer(); syncStatePaint();
 };
 $('syncNow').onclick=function(){ syncNow({ toast:true }); };
+/* アドレスを コピーして、メールなどで パソコンに わたせる ように します */
+$('syncCopy').onclick=function(){
+  var u=($('syncUrl').value||'').trim();
+  if(!u){ toast(T('syncNoUrl')); return; }
+  var done=function(){ toast(T('syncCopied')); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(u).then(done, function(){ $('syncUrl').select(); });
+  }else{
+    try{ $('syncUrl').select(); document.execCommand('copy'); done(); }catch(e){ $('syncUrl').select(); }
+  }
+};
+$('syncHelp').onclick=function(){
+  var b=$('syncSteps'), on=b.classList.contains('hide');
+  $('syncStepsBody').textContent=T('syncSteps');
+  b.classList.toggle('hide', !on);
+  this.setAttribute('aria-expanded', on?'true':'false');
+};
+syncStatePaint();
 /* 動画リンクを 開く */
 function openVid(url){
   url=(url||'').trim();

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.25.2">
+<meta name="app-ver" content="2026.09.25.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -839,7 +839,7 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .cmpHd{ display:flex; align-items:center; gap:10px; margin:0 0 6px; }
 .cmpHd h2{ margin:0; flex:1; font-size:22px; font-weight:900; color:#fff; }
 .cmpFRow{ display:flex; gap:8px; margin:10px 0; }
-.cmpFRow > *{ flex:1; min-height:46px; }
+.cmpFRow > *{ flex:1; min-width:0; min-height:46px; }
 .cmpFRow select{ -webkit-appearance:none; appearance:none; border-radius:6px; cursor:pointer;
   color:#fff; font-size:15px; font-weight:800; padding:6px 26px 6px 10px;
   background:var(--pane) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1.4 1.8 6 6.2l4.6-4.4' fill='none' stroke='%23ffc400' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
@@ -849,6 +849,9 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .cmpFRow button{ flex:0 0 auto; min-height:46px; padding:0 14px; border-radius:6px; cursor:pointer;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:13px; font-weight:800; }
 .cmpCount{ margin:0 0 14px; font-size:13px; font-weight:800; color:var(--dim); }
+.cmpPick{ background:rgba(255,196,0,.10); border-left:4px solid var(--am);
+  border-radius:var(--rM); padding:10px 12px; margin:0 0 14px !important;
+  color:var(--am2) !important; font-size:13.5px !important; }
 .cmpStats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 14px; }
 .cmpStat{ background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
   border-radius:6px; padding:10px 12px; }
@@ -1194,6 +1197,9 @@ body, button, select, input, textarea{
 .card2 .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
   background:rgba(255,196,0,.14); color:var(--am); font-size:10.5px; font-weight:900; vertical-align:middle; }
 .card2 .c2badge.nv{ background:rgba(255,255,255,.10); color:var(--dim); }
+.card2 .c2badge.bst{ background:var(--go); color:#000; }
+.card2 .c2memo{ font-size:12px; font-weight:700; color:var(--am2); line-height:1.4;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* ===== きろくカードの 小さな絵（サムネイル） =====
    泳ぎの 一場面を 左に 出して、どの レースか ひと目で わかる ように します */
 .card2{ flex-direction:row; align-items:stretch; gap:12px; }
@@ -1207,12 +1213,64 @@ body, button, select, input, textarea{
 .card2 .c2body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
 @media (max-width:360px){ .card2 .c2thumb{ flex-basis:76px; width:76px; } }
 
+/* ===== くらべる画面の 4つの みかた ===== */
+.cmpTabs{ margin:2px 0 12px; }
+.cmpTabs button{ font-size:13px; }
+/* ベスト表・大会ごと の 行 */
+.bstRow{ display:grid; grid-template-columns:1fr auto auto; gap:2px 10px;
+  align-items:center; cursor:pointer;
+  background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
+  border-radius:var(--rL); padding:10px 12px; margin-bottom:8px; }
+.bstRow .e{ grid-column:1; font-size:14px; font-weight:800; color:#fff; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; }
+.bstRow .t{ grid-column:2; font-family:"Zen Maru Gothic",sans-serif; font-size:19px;
+  font-weight:900; color:var(--am); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.bstRow .d{ grid-column:1; grid-row:2; font-size:11.5px; font-weight:700; color:var(--dim); }
+.bstRow .bTag{ display:inline-block; font-style:normal; margin-left:6px; padding:1px 7px;
+  border-radius:999px; background:var(--go); color:#000; font-size:10.5px; font-weight:900;
+  vertical-align:middle; }
+.bstRow .cmpView{ grid-column:3; grid-row:1 / span 2; min-height:40px; padding:0 12px;
+  border-radius:var(--rM); border:2px solid var(--line); background:var(--pane2);
+  color:#fff; font-family:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+/* のびた順 の 行 */
+.grRow{ display:flex; align-items:center; gap:12px; cursor:pointer;
+  background:var(--pane); border:2px solid var(--line2); border-radius:var(--rL);
+  padding:10px 12px; margin-bottom:8px; }
+.grRow .g{ flex:0 0 84px; text-align:center; font-family:"Zen Maru Gothic",sans-serif;
+  font-size:19px; font-weight:900; font-variant-numeric:tabular-nums;
+  border-radius:var(--rM); padding:6px 2px; }
+.grRow .g.up{ background:rgba(53,224,106,.16); color:var(--go); }
+.grRow .g.dn{ background:rgba(255,75,43,.14);  color:var(--red); }
+.grRow .g.nw{ background:rgba(255,196,0,.14);  color:var(--am); font-size:13px; }
+.grRow .e{ flex:1; min-width:0; font-size:14px; font-weight:800; color:#fff; line-height:1.35; }
+.grRow .e small{ font-size:11.5px; font-weight:700; color:var(--dim); }
+.grRow .t{ flex:0 0 auto; text-align:right; font-family:"Zen Maru Gothic",sans-serif;
+  font-size:18px; font-weight:900; color:var(--am); font-variant-numeric:tabular-nums; line-height:1.3; }
+.grRow .t small{ font-size:11px; font-weight:700; color:var(--dim); }
+
 /* ===== レース分析の グラフ ===== */
-#vwChart .vwCh{ margin:14px 0 2px; }
-#vwChart .vwCh h4{ margin:0 0 2px; font-size:15px; font-weight:900; color:#fff; }
-#vwChart .vwCh p{ margin:0 0 6px; font-size:12px; font-weight:700; color:var(--dim); line-height:1.4; }
-#vwChart .vwCh svg{ display:block; width:100%; height:auto;
+#vwChart .vwCh, .vwChartBox .vwCh{ margin:14px 0 2px; }
+#vwChart .vwCh h4, .vwChartBox .vwCh h4{ margin:0 0 2px; font-size:15px; font-weight:900; color:#fff; }
+#vwChart .vwCh p, .vwChartBox .vwCh p{ margin:0 0 6px; font-size:12px; font-weight:700; color:var(--dim); line-height:1.4; }
+#vwChart .vwCh svg, .vwChartBox .vwCh svg{ display:block; width:100%; height:auto;
   background:var(--pane2); border:1px solid var(--line2); border-radius:var(--rM); }
+.vwMemo{ margin:4px 0 10px; padding:8px 12px; border-radius:var(--rM);
+  background:rgba(255,196,0,.10); border-left:4px solid var(--am);
+  font-size:14px; font-weight:800; color:var(--am2); line-height:1.5; }
+.pairLg{ margin:6px 0 0; font-size:12px; font-weight:800; color:var(--dim); line-height:1.6; }
+.pairLg i{ display:inline-block; width:14px; height:14px; border-radius:4px;
+  margin-right:5px; vertical-align:-2px; }
+/* ===== 目標タイムから 逆算 ===== */
+#tgtBox{ margin:14px 0 2px; }
+#tgtBox .row{ display:flex; gap:8px; align-items:stretch; margin:6px 0; }
+#tgtBox input{ flex:1; min-width:0; min-height:48px; padding:8px 12px;
+  border-radius:var(--rM); border:2px solid var(--line); background:var(--pane);
+  color:#fff; font-family:inherit; font-size:17px; font-weight:800;
+  font-variant-numeric:tabular-nums; }
+#tgtBox .go{ flex:0 0 auto; min-height:48px; padding:0 18px; border-radius:var(--rM);
+  border:2px solid var(--am); background:var(--am); color:#000;
+  font-family:inherit; font-size:15px; font-weight:900; cursor:pointer; }
+#tgtOut .vr .c1{ color:var(--am); }
 
 /* ===== 選手プロフィール 一覧 ===== */
 .swmCard{ display:flex; align-items:center; gap:12px; cursor:pointer;
@@ -1469,6 +1527,16 @@ body.grid .gridL{ display:block; }
   text-shadow:0 5px 22px #000, 0 0 8px #000; }
 #bigLap .bl3{ font-size:clamp(16px,3.2vh,26px); font-weight:800; color:#e6ecf3;
   text-shadow:0 3px 10px #000; line-height:1.2; }
+/* たて向き（ホームなど）で 出す ときは、はみ出さない ように
+   小さめにして、うしろに 黒い おびを しいて 読みやすく します */
+@media (orientation:portrait){
+  #bigLap{ top:18%; padding:16px 16px 18px;
+    background:rgba(0,0,0,.82); border-top:2px solid var(--line2); border-bottom:2px solid var(--line2); }
+  #bigLap .bl1{ font-size:clamp(17px,5.4vw,28px); text-align:center; }
+  #bigLap .bl2{ font-size:clamp(44px,15vw,96px); }
+  #bigLap .bl3{ font-size:clamp(13px,3.8vw,20px); text-align:center; max-width:100%; }
+  #bigLap.word .bl2{ font-size:clamp(34px,11vw,72px); }
+}
 /* 日本語の ことば の とき（合図・足離れ など）は、少し 小さく して 1行に おさめます */
 #bigLap.word .bl2{ font-size:clamp(40px,12vh,96px); letter-spacing:.04em;
   white-space:nowrap; line-height:1.25; padding:0 8px; }
@@ -1569,7 +1637,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.25.2</p>
+  <p class="ver" id="verBottom">ver 2026.09.25.4</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1760,10 +1828,20 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <select id="cmpDist" data-ta="cmpDistLbl"><option value="all">すべて</option></select>
   </div>
   <div class="cmpFRow">
+    <select id="cmpSwim" data-ta="cmpSwimLbl"><option value="all">すべて</option></select>
+  </div>
+  <div class="cmpFRow">
     <input type="text" id="cmpQ" data-ta="cmpSearchPh">
     <button type="button" id="cmpQClear" data-t="cmpClearQ"></button>
   </div>
   <p class="cmpCount" id="cmpCount"></p>
+
+  <div class="seg cmpTabs" id="cmpSegView">
+    <button type="button" data-v="cmp"  data-t="tabCmp"></button>
+    <button type="button" data-v="best" data-t="tabBest"></button>
+    <button type="button" data-v="meet" data-t="tabMeet"></button>
+    <button type="button" data-v="grow" data-t="tabGrow"></button>
+  </div>
 
   <div id="cmpBody"></div>
 </div>
@@ -2106,6 +2184,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <div class="svWrap">
     <div class="vwHd"><h3 id="vwH"></h3><button class="btn" type="button" id="vwClose" data-t="dMenuX"></button></div>
     <p class="vwSub" id="vwSub"></p>
+    <p class="vwMemo hide" id="vwMemo"></p>
     <div class="vwKpi" id="vwKpi"></div>
     <div id="vwChart" class="hide"></div>
     <div class="vwGl" data-t="glSplit"></div>
@@ -2113,6 +2192,16 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="vwGl" data-t="vwTempoGl"></div>
     <div class="vwTbl" id="vwSeg"></div>
     <p class="vwNote hide" id="vwNote"></p>
+    <div class="vwGl" data-t="tgtGl"></div>
+    <div id="tgtBox">
+      <p class="vwNote" data-t="tgtNote" style="margin:0 0 4px;"></p>
+      <p class="vwNote" data-t="tgtLbl" style="margin:0;"></p>
+      <div class="row">
+        <input type="text" id="tgtIn" inputmode="decimal" placeholder="2:04.83">
+        <button type="button" class="go" id="tgtGo" data-t="tgtBtn"></button>
+      </div>
+      <div class="vwTbl" id="tgtOut"></div>
+    </div>
     <div class="vwBtns">
       <button class="btn g" type="button" id="vwPdf" data-t="pdfBtn"></button>
       <button class="btn b" type="button" id="vwCopy" data-t="copyTx"></button>
@@ -2270,6 +2359,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <p class="q" data-t="vfVidLbl"></p>
       <input type="text" id="vfVid" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://drive.google.com/…">
       <button class="btn b" type="button" id="vfVidOpen" data-t="vidOpen" style="margin-top:6px;"></button>
+    </div>
+    <div class="sq">
+      <p class="q" data-t="memoLbl"></p>
+      <p class="lead" data-t="memoHint"></p>
+      <input type="text" id="vfMemo" maxlength="120">
     </div>
     <div class="svBtns">
       <button class="btn" type="button" id="vfCancel" data-t="dMenuX"></button>
@@ -2566,6 +2660,49 @@ var W={
  vsOff:['保存しない','保存しない'],
  vsHint:['「保存する」に して おくと、とりおわった あと 画面の 下に ボタンが 出ます。1回 おすだけで 携帯に のこせます',
          '「保存する」にしておくと、撮り終わった後に画面下へボタンが出ます。1回押すだけで携帯に残せます'],
+ tabCmp:['くらべる','くらべる'],
+ tabBest:['ベスト表','ベスト表'],
+ tabMeet:['大会ごと','大会ごと'],
+ tabGrow:['のびた順','のびた順'],
+ cmpSwimLbl:['選手で しぼる','選手でしぼる'],
+ cmpPickDist:['上で 種目と きょりを えらぶと、ベスト・平均・グラフが 出ます','上で種目と距離をえらぶと、ベスト・平均・グラフが出ます'],
+ swimAll:['選手 すべて','選手すべて'],
+ swimNone:['名前 なし','名前なし'],
+ bstTag:['ベスト','ベスト'],
+ bstTblNote:['選手ごと・種目ごと・きょりごとの いちばん はやい きろくです。おすと 中身が 見られます','選手ごと・種目ごと・距離ごとの自己ベストです。押すと中身が見られます'],
+ bstHead:['じこ ベスト こうしん！','自己ベスト更新！'],
+ bstNew:['じこ ベスト こうしん！','自己ベスト更新！'],
+ bstFirst:['この 種目・きょりの はじめての きろくです','この種目・距離ではじめての記録です'],
+ bstFirstSub:['はじめての きろく','はじめての記録'],
+ bstGain:['これまでより ','これまでより '],
+ bstSec:['秒 はやい','秒速い'],
+ bstWas:['まえは ','前は '],
+ meetNone:['大会名 なし','大会名なし'],
+ mtNote:['同じ 大会名の きろくを まとめて ならべて います','同じ大会名の記録をまとめて並べています'],
+ mtShare:['この 大会を まとめて 共有','この大会をまとめて共有'],
+ grow30:['1か月 いない','1か月以内'],
+ grow90:['3か月 いない','3か月以内'],
+ grow365:['1年 いない','1年以内'],
+ grNote:['いちばん 新しい レースを、それまでの ベストと くらべて、ちぢんだ 順に ならべます','いちばん新しいレースを、それまでのベストと比べて、縮んだ順に並べます'],
+ grWas:['それまで ','それまで '],
+ grNew:['1本目','1本目'],
+ memoLbl:['ひとこと メモ','ひとことメモ'],
+ memoHint:['あとで 見て 思い出せる ように、気づいた ことを 1行 書いて おけます。キーワードで さがせます','あとで見て思い出せるよう、気づいたことを1行書いておけます。キーワード検索で探せます'],
+ memoPh:['例）後半おちた、ターンが浅い','例）後半おちた、ターンが浅い'],
+ tgtGl:['目標タイムから 逆算','目標タイムから逆算'],
+ tgtLbl:['目標タイム（例 2:04.83 または 24.50）','目標タイム（例 2:04.83 または 24.50）'],
+ tgtBtn:['逆算する','逆算する'],
+ tgtNote:['この レースの ペース配分の まま、目標タイムで 泳ぐと どうなるかを 出します','このレースのペース配分のまま、目標タイムで泳ぐとどうなるかを出します'],
+ tgtNG:['目標タイムを 読み取れませんでした','目標タイムを読み取れませんでした'],
+ tgtFast:['目標が いまの きろくより おそいです','目標が今の記録より遅いです'],
+ tgtHd:['きょり','距離'],
+ tgtNow:['いまの タイム','今のタイム'],
+ tgtAim:['目標の タイム','目標のタイム'],
+ tgtDiff:['ちぢめる 秒数','縮める秒数'],
+ tgtST:['そのときの テンポ','そのときのテンポ'],
+ pairGl:['2本を 重ねた グラフ','2本を重ねたグラフ'],
+ pairA:['A','A'],
+ pairB:['B','B'],
  glChart:['グラフで 見る','グラフで見る'],
  chLap:['区間タイム（秒）','区間タイム（秒）'],
  chLapN:['1本ごとに かかった 秒数。下がって いれば うしろが はやい','1本ごとにかかった秒数。線が下がっていれば後半が速い'],
@@ -4803,6 +4940,7 @@ $('anaSave').onclick=function(){
   }).then(function(rec){
     if(rec) pushOne(rec);
     toast(T('msgSavedDev'));
+    if(rec) setTimeout(function(){ bestCheer(rec); }, 500);
     var savedBlob=aBlob, savedId=(rec?rec.id:null), wasCam=aFromCam;
     aId=null;
     $('v').pause(); show('home'); paintList();
@@ -4862,6 +5000,9 @@ function recCard(r){
   var badge = r.manual ? '<span class="c2badge">'+T('mBadge')+'</span>' : '';
   /* この端末に 動画が ない きろくは、ひと目で わかるように します */
   if(!r.manual && !hasVid(r)) badge += '<span class="c2badge nv">'+T('noVidBadge')+'</span>';
+  /* その 選手・種目・きょりの いちばん はやい きろくには 印を つけます */
+  if(typeof bestIdx==='object' && bestIdx && bestIdx[r.id])
+    badge = '<span class="c2badge bst">'+T('bstTag')+'</span>' + badge;
   var nm = r.swimmerName ? (r.swimmerName+'　') : '';
   var mt = meetName(r);
   var info = nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
@@ -4874,6 +5015,7 @@ function recCard(r){
   var srLine = 'ST '+(ss.st!=null?ss.st.toFixed(2)+'秒':'--')+
                '　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
                '　'+T('scAbbr')+' '+(ss.n!=null?ss.n:'--');
+  var memoHtml = (r.memo||'').trim() ? '<div class="c2memo">'+esc(r.memo.trim())+'</div>' : '';
   /* 左の 小さな絵。絵が ない きろくは、きょりを 出して 目じるしに します */
   var dLbl = (r.dist || (last?last.d:'') || '') + 'm';
   var thumbHtml = '<div class="c2thumb">' +
@@ -4884,6 +5026,7 @@ function recCard(r){
     '<div class="c2top"><span class="c2head">'+head+'</span>'+timeHtml+'</div>'+
     subHtml+
     '<div class="c2sr">'+srLine+'</div>'+
+    memoHtml+
     '</div>';
   c.onclick=function(){
     if(r.manual){ viewOpen(r); return; }
@@ -4902,6 +5045,7 @@ function recCard(r){
 function paintList(){
   var box=$('list');
   dbAll().then(function(all){
+    try{ bestIdxBuild(all); }catch(e){}
     box.innerHTML='';
     if(!all.length){ box.innerHTML='<div class="empty">'+T('noRec')+'</div>'; return; }
     var recent=all.slice(0,5), rest=all.slice(5), i;
@@ -6844,6 +6988,7 @@ $('swSave').onclick=function(){
     pushOne(rec);
     toast(T('swSaved'));
     swReset(); swClose(); paintList();
+    bestCheer(rec);
   });
 };
 
@@ -6899,6 +7044,7 @@ $('mSave').onclick=function(){
     toast(T('mSaved'));
     paintList();
     cmpReload();
+    bestCheer(rec);
   });
 };
 $('mDel').onclick=function(){
@@ -6968,6 +7114,8 @@ function vfOpen(rec){
   $('vfN').value = (ss.n!=null) ? String(ss.n) : '';
   $('vfST').value = (ss.st!=null) ? ss.st.toFixed(2) : '';
   $('vfVid').value = rec.videoUrl || '';
+  $('vfMemo').value = rec.memo || '';
+  $('vfMemo').placeholder = T('memoPh');
   vfSplPaint(rec.splits || []);
   fillSwimSelect($('vfSwim'), rec.swimmerId || '');
   /* 一覧に ない 名前は 文字で のこして あるので、そのまま 出します */
@@ -7016,6 +7164,7 @@ $('vfSave').onclick=function(){
     rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
     rec.videoUrl = ($('vfVid').value||'').trim();
+    rec.memo = ($('vfMemo').value||'').trim();
     rec.swimmerId = $('vfSwim').value || '';
     var vfTyped=($('vfName').value||'').trim();
     /* 一覧から えらんで いない ときは、書いた 名前を つかいます */
@@ -7027,6 +7176,7 @@ $('vfSave').onclick=function(){
     $('vFix').classList.add('hide');
     toast(T('mSaved'));
     vfRefresh();
+    if(rec) bestCheer(rec);
   });
 };
 /* ================================================================
@@ -7166,6 +7316,85 @@ function gBar(labels, vals, dec){
   s+='</svg>';
   return s;
 }
+/* 2本を 重ねた おれ線（A=黄、B=青） */
+var G_A='#ffc400', G_B='#2f8fff';
+function gLine2(labels, va, vb, dec){
+  var all=va.concat(vb), rg=gRange(all); if(!rg) return '';
+  var H=250, iw=GW-GPAD.l-GPAD.r, ih=H-GPAD.t-GPAD.b-16, n=labels.length;
+  function X(i){ return n===1 ? GW/2 : GPAD.l + iw*i/(n-1); }
+  function Y(v){ return GPAD.t + ih - (v-rg[0])/(rg[1]-rg[0])*ih; }
+  var s='<svg viewBox="0 0 '+GW+' '+H+'" role="img">';
+  var j, y;
+  for(j=0;j<=3;j++){ y=GPAD.t + ih*j/3;
+    s+='<line x1="'+GPAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(GW-GPAD.r)+'" y2="'+y.toFixed(1)+'" stroke="#3a3b3d" stroke-width="1"/>'; }
+  function path(v, col){
+    var dp='', first=true, i, o='';
+    for(i=0;i<v.length;i++){ if(v[i]==null||isNaN(v[i])) continue;
+      dp+=(first?'M':'L')+X(i).toFixed(1)+' '+Y(v[i]).toFixed(1)+' '; first=false; }
+    o='<path d="'+dp+'" fill="none" stroke="'+col+'" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>';
+    for(i=0;i<v.length;i++){ if(v[i]==null||isNaN(v[i])) continue;
+      o+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v[i]).toFixed(1)+'" r="5" fill="'+col+'"/>';
+    }
+    return o;
+  }
+  /* 数字は、点の 上下で ぶつからない ように、
+     その ばしょで 上に ある ほうを 上、下に ある ほうを 下に 書きます */
+  function putLabels(){
+    var o='', i;
+    for(i=0;i<n;i++){
+      var A=va[i], B=vb[i];
+      var okA=(A!=null&&!isNaN(A)), okB=(B!=null&&!isNaN(B));
+      var put=function(v,col,up){
+        var x=X(i), yy=Y(v);
+        var ty = up ? (yy-12) : (yy+22);
+        if(ty < GPAD.t+13) ty = yy+22;
+        if(ty > GPAD.t+ih+2) ty = yy-12;
+        var ta=(i===0)?'start':(i===n-1?'end':'middle');
+        var tx=(i===0)?(x-3):(i===n-1?(x+3):x);
+        o+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+ta+'" font-size="16" font-weight="900" fill="'+col+'">'+v.toFixed(dec)+'</text>';
+      };
+      if(okA && okB){
+        if(Y(A) <= Y(B)){ put(A,G_A,true); put(B,G_B,false); }
+        else            { put(B,G_B,true); put(A,G_A,false); }
+      }else if(okA){ put(A,G_A,true); }
+      else if(okB){ put(B,G_B,true); }
+    }
+    return o;
+  }
+  s+=path(va, G_A)+path(vb, G_B)+putLabels();
+  var i2, iw2=GW-GPAD.l-GPAD.r;
+  for(i2=0;i2<n;i2++){
+    var x2 = n===1 ? GW/2 : GPAD.l + iw2*i2/(n-1), a2='middle';
+    if(n>1 && i2===0){ a2='start'; x2=GPAD.l; }
+    if(n>1 && i2===n-1){ a2='end'; x2=GW-GPAD.r; }
+    s+='<text x="'+x2.toFixed(1)+'" y="'+(GPAD.t+ih+20)+'" text-anchor="'+a2+'" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i2]+'</text>';
+  }
+  s+='</svg>';
+  return s;
+}
+/* 2本を ならべた たて棒 */
+function gBar2(labels, va, vb, dec){
+  var all=va.concat(vb).filter(function(v){ return v!=null && !isNaN(v); });
+  if(!all.length) return '';
+  var mx=Math.max.apply(null, all)*1.20;
+  var H=250, iw=GW-GPAD.l-GPAD.r, ih=H-GPAD.t-GPAD.b-16, n=labels.length;
+  var step=iw/n, bw=Math.min(40, step*0.28);
+  var s='<svg viewBox="0 0 '+GW+' '+H+'" role="img">', j, y, i;
+  for(j=0;j<=3;j++){ y=GPAD.t + ih*j/3;
+    s+='<line x1="'+GPAD.l+'" y1="'+y.toFixed(1)+'" x2="'+(GW-GPAD.r)+'" y2="'+y.toFixed(1)+'" stroke="#3a3b3d" stroke-width="1"/>'; }
+  for(i=0;i<n;i++){
+    var cx=GPAD.l+step*(i+0.5);
+    [[va[i],G_A,-1],[vb[i],G_B,1]].forEach(function(p){
+      if(p[0]==null||isNaN(p[0])) return;
+      var h2=ih*p[0]/mx, yy=GPAD.t+ih-h2, bx=cx+p[2]*(bw/2+2)-bw/2;
+      s+='<rect x="'+bx.toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h2.toFixed(1)+'" rx="4" fill="'+p[1]+'"/>';
+      s+='<text x="'+(bx+bw/2).toFixed(1)+'" y="'+(yy-7).toFixed(1)+'" text-anchor="middle" font-size="15" font-weight="900" fill="'+p[1]+'">'+p[0].toFixed(dec)+'</text>';
+    });
+  }
+  for(i=0;i<n;i++) s+='<text x="'+(GPAD.l+step*(i+0.5)).toFixed(1)+'" y="'+(GPAD.t+ih+20)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i]+'</text>';
+  s+='</svg>';
+  return s;
+}
 /* よこ棒の グラフ（レースの 内わけ） */
 function gHBar(rows){
   var mx=0, i;
@@ -7215,6 +7444,48 @@ function paintCharts(r){
   box.innerHTML='<div class="vwGl">'+esc(T('glChart'))+'</div>'+h;
   box.classList.remove('hide');
 }
+
+/* ================================================================
+   目標タイムから 逆算する
+   いまの レースの ペース配分は そのままに、
+   ぜんたいを 目標タイムに ちぢめたら 各ポイントが 何秒に なるかを 出します。
+   ================================================================ */
+function tgtPaint(r){
+  var out=$('tgtOut'); if(!out) return;
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  var total = sp.length ? sp[sp.length-1].t : null;
+  if(total==null || total<=0){ out.innerHTML=''; return; }
+  var v=parseTimeStr($('tgtIn').value);
+  if(v==null || v<=0){ out.innerHTML='<div class="vr"><span class="c2">'+T('tgtNG')+'</span></div>'; return; }
+  if(v>=total){ out.innerHTML='<div class="vr"><span class="c2">'+T('tgtFast')+'</span></div>'; return; }
+  var k=v/total, ss=raceStroke(r), i;
+  var h='<div class="vr hd"><span class="c1">'+T('tgtHd')+'</span><span class="c2">'+T('tgtAim')+
+        '</span><span class="c3">'+T('tgtDiff')+'</span></div>';
+  for(i=0;i<sp.length;i++){
+    var aim=sp[i].t*k;
+    h+='<div class="vr"><span class="c1">'+sp[i].d+'m</span>'+
+       '<span class="c2">'+fmt(aim)+'</span>'+
+       '<span class="c3">−'+(sp[i].t-aim).toFixed(2)+'</span></div>';
+  }
+  /* いまの テンポの まま きょりを のばさない と すると、テンポは k ばい に なります */
+  if(ss.st!=null){
+    h+='<div class="vr"><span class="c1">'+T('tgtST')+'</span>'+
+       '<span class="c2">'+(ss.st*k).toFixed(2)+'</span>'+
+       '<span class="c3">'+T('tgtNow')+' '+ss.st.toFixed(2)+'</span></div>';
+  }
+  out.innerHTML=h;
+}
+function tgtReset(r){
+  var b=$('tgtBox'); if(!b) return;
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  var ok = sp.length>0 && sp[sp.length-1].t>0;
+  b.classList.toggle('hide', !ok);
+  var gl=b.previousElementSibling;
+  if(gl && gl.classList.contains('vwGl')) gl.classList.toggle('hide', !ok);
+  $('tgtIn').value=''; $('tgtOut').innerHTML='';
+}
+$('tgtGo').onclick=function(){ if(vwRec) tgtPaint(vwRec); };
+$('tgtIn').onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); if(vwRec) tgtPaint(vwRec); } };
 
 function viewOpen(r){
   if(!r) return;
@@ -7285,6 +7556,15 @@ function viewOpen(r){
   }
   /* グラフ */
   try{ paintCharts(r); }catch(e){ var cb=$('vwChart'); if(cb){ cb.innerHTML=''; cb.classList.add('hide'); } }
+  /* 目標タイム */
+  try{ tgtReset(r); }catch(e){}
+  /* ひとこと メモ */
+  var mo=$('vwMemo');
+  if(mo){
+    var mm=(r.memo||'').trim();
+    mo.textContent = mm;
+    mo.classList.toggle('hide', !mm);
+  }
   $('vwVid').classList.toggle('hide', !r.videoUrl);
   $('viewBox').classList.remove('hide');
 }
@@ -7629,6 +7909,59 @@ $('fImport').onchange=function(){
 };
 
 var cmpAll=[], cmpSel=[], cmpN=5, cmpTab='time';
+/* ================================================================
+   くらべる画面の 道具
+   選手・自己ベスト・大会・のびた順を ここで まとめて あつかいます。
+   ================================================================ */
+/* だれの きろくか（名前）。名前が なければ 空 */
+function whoOf(r){ return ((r && r.swimmerName) ? String(r.swimmerName) : '').trim(); }
+/* 同じ「選手・種目・きょり」の まとまりを あらわす かぎ */
+function bestKey(r){ return whoOf(r)+'\u001f'+(r.event||'other')+'\u001f'+(r.dist||0); }
+/* ぜんぶの きろくから、まとまりごとの いちばん はやい きろくを さがします */
+function bestMap(all){
+  var m={}, i, r, t;
+  for(i=0;i<all.length;i++){
+    r=all[i]; if(!r || r.deleted) continue;
+    t=raceBest(r); if(t==null) continue;
+    var k=bestKey(r);
+    if(!m[k] || t < m[k].t) m[k]={ t:t, id:r.id, at:r.at, rec:r };
+  }
+  return m;
+}
+var bestIdx={};                       /* id → true（その きろくが ベスト） */
+function bestIdxBuild(all){
+  var m=bestMap(all||[]), k; bestIdx={};
+  for(k in m) bestIdx[m[k].id]=true;
+}
+/* いま 保存しようと している きろくが 自己ベストを こえたか しらべます */
+function bestCheck(rec){
+  return dbAll().then(function(all){
+    var k=bestKey(rec), t=raceBest(rec), i, prev=null;
+    if(t==null) return null;
+    for(i=0;i<all.length;i++){
+      var r=all[i];
+      if(!r || r.deleted || r.id===rec.id) continue;
+      if(bestKey(r)!==k) continue;
+      var v=raceBest(r); if(v==null) continue;
+      if(prev==null || v<prev) prev=v;
+    }
+    bestIdxBuild(all);
+    if(prev==null) return { first:true, t:t, prev:null, gain:null };
+    if(t < prev)   return { first:false, t:t, prev:prev, gain:prev-t };
+    return null;
+  }).catch(function(){ return null; });
+}
+/* ベスト更新を 大きく 知らせます */
+function bestCheer(rec){
+  bestCheck(rec).then(function(b){
+    if(!b) return;
+    var sub = b.first ? T('bstFirstSub')
+            : (T('bstGain')+b.gain.toFixed(2)+T('bstSec')+'（'+T('bstWas')+fmt(b.prev)+'）');
+    bigLap(T('bstHead'), fmt(b.t), sub);
+    toast(b.first ? T('bstFirst') : (T('bstNew')+' '+fmt(b.t)));
+    paintList();
+  });
+}
 
 function cmpOpen(prefill){
   cmpSel = (prefill && prefill.id) ? [prefill.id] : [];
@@ -7656,8 +7989,33 @@ $('dCompare').onclick=function(){
 };
 $('cmpEvent').onchange=function(){ cmpBuildDistOptions(); paintCompare(); };
 $('cmpDist').onchange=function(){ paintCompare(); };
+$('cmpSwim').onchange=function(){ paintCompare(); };
 $('cmpQ').oninput=function(){ paintCompare(); };
 $('cmpQClear').onclick=function(){ $('cmpQ').value=''; paintCompare(); };
+/* ===== 4つの みかたを 切りかえます ===== */
+var cmpView='cmp';
+function cmpViewSet(v){ cmpView=v; cmpSel=[]; paintCompare(); }
+(function(){
+  var b=$('cmpSegView').querySelectorAll('button'), i;
+  for(i=0;i<b.length;i++) b[i].onclick=function(){ cmpViewSet(this.dataset.v); };
+})();
+function cmpTabsPaint(){
+  var b=$('cmpSegView').querySelectorAll('button'), i;
+  for(i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', (b[i].dataset.v===cmpView)?'true':'false');
+}
+/* 選手の 一覧を きろくから つくります */
+function cmpBuildSwimOptions(){
+  var sel=$('cmpSwim'); if(!sel) return;
+  var names={}, i, n;
+  for(i=0;i<cmpAll.length;i++){ n=whoOf(cmpAll[i]); if(n) names[n]=1; }
+  var arr=Object.keys(names).sort();
+  var keep=sel.value||'all';
+  var h='<option value="all">'+T('swimAll')+'</option>';
+  for(i=0;i<arr.length;i++) h+='<option value="'+esc(arr[i])+'">'+esc(arr[i])+'</option>';
+  h+='<option value="__none">'+T('swimNone')+'</option>';
+  sel.innerHTML=h;
+  sel.value = (arr.indexOf(keep)>=0 || keep==='__none') ? keep : 'all';
+}
 
 function cmpBuildDistOptions(){
   var ev=$('cmpEvent').value, ds={}, i;
@@ -7674,11 +8032,19 @@ function cmpBuildDistOptions(){
 }
 
 function cmpFiltered(){
-  var ev=$('cmpEvent').value, ds=$('cmpDist').value, q=($('cmpQ').value||'').trim().toLowerCase();
+  var ev=$('cmpEvent').value, ds=$('cmpDist').value,
+      sw=($('cmpSwim')||{}).value||'all',
+      q=($('cmpQ').value||'').trim().toLowerCase();
   return cmpAll.filter(function(r){
     if(ev!=='all' && (r.event||'other')!==ev) return false;
     if(ds!=='all' && String(r.dist)!==ds) return false;
-    if(q && (r.title||'').toLowerCase().indexOf(q)<0) return false;
+    if(sw==='__none'){ if(whoOf(r)) return false; }
+    else if(sw!=='all' && whoOf(r)!==sw) return false;
+    /* しらべる ことば は、大会名・選手名・メモ の どれに あっても ひっかかります */
+    if(q){
+      var hay=((r.title||'')+' '+(r.swimmerName||'')+' '+(r.memo||'')).toLowerCase();
+      if(hay.indexOf(q)<0) return false;
+    }
     return raceBest(r)!==null;
   });
 }
@@ -7686,6 +8052,9 @@ function cmpSetN(n){ cmpN=n; paintCompare(); }
 function cmpSetTab(t){ cmpTab=t; paintCompare(); }
 
 function paintCompare(){
+  cmpBuildSwimOptions();
+  cmpTabsPaint();
+  bestIdxBuild(cmpAll);
   var filtered = cmpFiltered();                 /* 新しい じゅん（dbAll のまま） */
   var body = $('cmpBody');
   $('cmpCount').textContent = filtered.length + T('lstCnt');
@@ -7693,6 +8062,9 @@ function paintCompare(){
     body.innerHTML = '<div class="empty">'+T('cmpNoMatch')+'</div>';
     return;
   }
+  if(cmpView==='best'){ paintBestTable(filtered); return; }
+  if(cmpView==='meet'){ paintMeetView(filtered);  return; }
+  if(cmpView==='grow'){ paintGrowView(filtered);  return; }
   var list = cmpN ? filtered.slice(0,cmpN) : filtered.slice();   /* 直近 N 本（新しい じゅん） */
   var times = filtered.map(raceBest).filter(function(v){ return v!==null; });
   var bestT = Math.min.apply(null, times);
@@ -7700,13 +8072,22 @@ function paintCompare(){
   var listTimes = list.map(raceBest).filter(function(v){ return v!==null; });
   var avgT = listTimes.length ? (listTimes.reduce(function(a,b){ return a+b; },0)/listTimes.length) : null;
 
+  /* きょりが まざって いると、ベストも グラフも くらべ ものに なりません。
+     その ときは 数字を 出さずに、えらび方を 1行で 知らせます。 */
+  var dsSet={}, dq; for(dq=0;dq<filtered.length;dq++) dsSet[filtered[dq].dist]=1;
+  var mixed = Object.keys(dsSet).length > 1;
+
   var h='';
-  h+='<div class="cmpStats">'+
+  if(mixed){
+    h+='<p class="cmpNote cmpPick">'+T('cmpPickDist')+'</p>';
+  }else{
+    h+='<div class="cmpStats">'+
        '<div class="cmpStat"><b>'+T('cmpBest')+'</b><div class="v">'+fmt(bestT)+'</div>'+
          '<div class="d">'+(bestRec ? (new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+bestRec.title) : '')+'</div></div>'+
        '<div class="cmpStat"><b>'+T('cmpAvg')+'</b><div class="v">'+(avgT!=null?fmt(avgT):'--')+'</div>'+
          '<div class="d">'+list.length+T('cmpUnit')+'</div></div>'+
      '</div>';
+  }
 
   h+='<button class="btn y" id="cmpShare" type="button" style="width:100%;margin:0 0 14px;">'+T('cmpShareBtn')+'</button>';
 
@@ -7723,8 +8104,10 @@ function paintCompare(){
       }).join('')+
      '</div>';
 
-  h+='<div class="cmpGraphWrap"><canvas id="cmpCanvas" height="220"></canvas></div>';
-  h+='<p class="cmpNote">'+(cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast'))+'</p>';
+  if(!mixed){
+    h+='<div class="cmpGraphWrap"><canvas id="cmpCanvas" height="220"></canvas></div>';
+    h+='<p class="cmpNote">'+(cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast'))+'</p>';
+  }
 
   h+='<div class="gl">'+T('cmpListGl')+'</div>';
   h+='<p class="cmpNote">'+T('cmpPickHint')+'</p>';
@@ -7747,7 +8130,7 @@ function paintCompare(){
     d.innerHTML =
       '<div class="r1"><span class="t">'+fmt(t)+'</span>'+
         '<span class="tag">'+r.dist+'m　'+evLabel(r.event)+'</span>'+
-        '<span class="diff'+(diff===0?' best':'')+'">'+(diff===0?T('cmpBestTag'):(diff!=null?'+'+diff.toFixed(2):''))+'</span>'+
+        '<span class="diff'+(diff===0?' best':'')+'">'+(mixed?'':(diff===0?T('cmpBestTag'):(diff!=null?'+'+diff.toFixed(2):'')))+'</span>'+
         '<button class="cmpEdit" type="button">'+T('editBtn')+'</button>'+
         '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>'+
       '<div class="r2">'+new Date(r.at).toLocaleDateString('ja-JP')+'　'+r.title+
@@ -7764,7 +8147,183 @@ function paintCompare(){
   }
 
   cmpPaintPair();
-  drawCmpChart(list.slice().reverse(), cmpTab);      /* 古い→新しい じゅんに */
+  if(!mixed) drawCmpChart(list.slice().reverse(), cmpTab);   /* 古い→新しい じゅんに */
+}
+
+/* ================================================================
+   ② ベスト表　選手ごと・種目ごと・きょりごとの いちばん はやい きろく
+   ================================================================ */
+function bestRowsOf(list){
+  var m=bestMap(list), k, out=[];
+  for(k in m){
+    var p=k.split('\u001f'), b=m[k];
+    out.push({ who:p[0], ev:p[1], dist:Number(p[2]), t:b.t, at:b.at, rec:b.rec });
+  }
+  out.sort(function(a,b){
+    if(a.who!==b.who) return a.who<b.who ? -1 : 1;
+    if(a.ev!==b.ev)   return a.ev<b.ev ? -1 : 1;
+    return a.dist-b.dist;
+  });
+  return out;
+}
+function paintBestTable(list){
+  var rows=bestRowsOf(list), body=$('cmpBody'), h='', i, cur=null;
+  if(!rows.length){ body.innerHTML='<div class="empty">'+T('cmpNoMatch')+'</div>'; return; }
+  h+='<p class="cmpNote">'+T('bstTblNote')+'</p>';
+  for(i=0;i<rows.length;i++){
+    var r=rows[i], who=r.who||T('swimNone');
+    if(who!==cur){ cur=who; h+='<div class="gl">'+esc(who)+'</div>'; }
+    h+='<div class="bstRow" data-id="'+r.rec.id+'">'+
+        '<span class="e">'+esc(evLabel(r.ev))+'　'+r.dist+'m</span>'+
+        '<span class="t">'+fmt(r.t)+'</span>'+
+        '<span class="d">'+new Date(r.at).toLocaleDateString('ja-JP')+'</span>'+
+        '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>';
+  }
+  h+='<button class="btn y" id="bstShare" type="button" style="width:100%;margin-top:14px;">'+T('cmpShareBtn')+'</button>';
+  body.innerHTML=h;
+  var el=body.querySelectorAll('.bstRow');
+  for(i=0;i<el.length;i++){
+    (function(node){
+      var id=node.dataset.id;
+      var go=function(){ var rec=cmpAll.filter(function(x){ return x.id===id; })[0]; if(rec) viewOpen(rec); };
+      node.onclick=go;
+      var vb=node.querySelector('.cmpView'); if(vb) vb.onclick=function(e){ e.stopPropagation(); go(); };
+    })(el[i]);
+  }
+  $('bstShare').onclick=function(){
+    var L=['SwimIQ　'+T('tabBest'),''], c=null, k;
+    for(k=0;k<rows.length;k++){
+      var q=rows[k], w=q.who||T('swimNone');
+      if(w!==c){ c=w; L.push(''); L.push('【'+w+'】'); }
+      L.push(evLabel(q.ev)+' '+q.dist+'m　'+fmt(q.t)+'　'+new Date(q.at).toLocaleDateString('ja-JP'));
+    }
+    shareText(L.join('\n'), T('tabBest'));
+  };
+}
+/* ================================================================
+   ③ 大会ごと　同じ 大会名の きろくを まとめて ならべます
+   ================================================================ */
+function paintMeetView(list){
+  var body=$('cmpBody'), g={}, order=[], i;
+  for(i=0;i<list.length;i++){
+    var r=list[i], m=meetName(r) || T('meetNone');
+    if(!g[m]){ g[m]=[]; order.push(m); }
+    g[m].push(r);
+  }
+  /* 新しい 大会が 上に くる ように します */
+  order.sort(function(a,b){
+    var ta=Math.max.apply(null, g[a].map(function(x){ return x.at; }));
+    var tb=Math.max.apply(null, g[b].map(function(x){ return x.at; }));
+    return tb-ta;
+  });
+  var h='<p class="cmpNote">'+T('mtNote')+'</p>', k;
+  for(k=0;k<order.length;k++){
+    var name=order[k], arr=g[name].slice();
+    arr.sort(function(a,b){
+      var wa=whoOf(a), wb=whoOf(b);
+      if(wa!==wb) return wa<wb ? -1 : 1;
+      return (a.dist||0)-(b.dist||0);
+    });
+    var day=new Date(Math.max.apply(null, arr.map(function(x){ return x.at; })));
+    h+='<div class="gl">'+esc(name)+'</div>';
+    h+='<p class="cmpNote" style="margin-top:-4px;">'+day.toLocaleDateString('ja-JP')+'　'+arr.length+T('cmpUnit')+'</p>';
+    for(i=0;i<arr.length;i++){
+      var q=arr[i], t=raceBest(q), ss=raceStroke(q);
+      h+='<div class="bstRow" data-id="'+q.id+'">'+
+         '<span class="e">'+esc(whoOf(q)||T('swimNone'))+'　'+esc(evLabel(q.event))+' '+(q.dist||'')+'m</span>'+
+         '<span class="t">'+fmt(t)+(bestIdx[q.id]?' <i class="bTag">'+T('bstTag')+'</i>':'')+'</span>'+
+         '<span class="d">ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+'</span>'+
+         '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>';
+    }
+    h+='<button class="btn b mtShare" type="button" data-m="'+esc(name)+'" style="width:100%;margin:6px 0 16px;">'+T('mtShare')+'</button>';
+  }
+  body.innerHTML=h;
+  var el=body.querySelectorAll('.bstRow');
+  for(i=0;i<el.length;i++){
+    (function(node){
+      var id=node.dataset.id;
+      var go=function(){ var rec=cmpAll.filter(function(x){ return x.id===id; })[0]; if(rec) viewOpen(rec); };
+      node.onclick=go;
+      var vb=node.querySelector('.cmpView'); if(vb) vb.onclick=function(e){ e.stopPropagation(); go(); };
+    })(el[i]);
+  }
+  var sb=body.querySelectorAll('.mtShare');
+  for(i=0;i<sb.length;i++){
+    (function(btn){
+      btn.onclick=function(){
+        var name=btn.dataset.m, arr=g[name]||[], L=['SwimIQ　'+name,''], j;
+        for(j=0;j<arr.length;j++){
+          var q=arr[j], ss=raceStroke(q);
+          L.push((whoOf(q)||'')+'　'+evLabel(q.event)+' '+(q.dist||'')+'m　'+fmt(raceBest(q))+
+                 '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　'+T('nStr')+' '+(ss.n!=null?ss.n:'--'));
+        }
+        shareText(L.join('\n'), name);
+      };
+    })(sb[i]);
+  }
+}
+/* ================================================================
+   ④ のびた順　えらんだ 期間の ベストと、それより 前の ベストを くらべます
+   ================================================================ */
+var growDays=90;
+function paintGrowView(list){
+  var body=$('cmpBody'), cut=Date.now()-growDays*86400000;
+  /* まとまりごとに、いちばん 新しい レースと、その 前までの ベストを くらべます。
+     こうすると 2本目からは かならず 数字が 出て、
+     「この前の レースで ちぢんだか」が すぐ 分かります。 */
+  var g={}, i, k;
+  for(i=0;i<list.length;i++){
+    var r=list[i], t=raceBest(r); if(t==null) continue;
+    var key=bestKey(r);
+    if(!g[key]) g[key]=[];
+    g[key].push({ t:t, rec:r, at:r.at });
+  }
+  var rows=[];
+  for(k in g){
+    var arr=g[k].slice().sort(function(a,b){ return a.at-b.at; });
+    var last=arr[arr.length-1];
+    if(last.at < cut) continue;                 /* この 期間に レースが ない まとまりは 出しません */
+    var pre=null, j;
+    for(j=0;j<arr.length-1;j++) if(pre==null || arr[j].t<pre.t) pre=arr[j];
+    var p=k.split('\u001f');
+    rows.push({ who:p[0], ev:p[1], dist:Number(p[2]),
+                now:last, old:pre,
+                gain: pre ? (pre.t-last.t) : null });
+  }
+  rows.sort(function(a,b){
+    var ga=(a.gain==null)?-1e9:a.gain, gb=(b.gain==null)?-1e9:b.gain;
+    return gb-ga;
+  });
+  var h='';
+  h+='<div class="seg" id="growSeg">'+
+      [[30,T('grow30')],[90,T('grow90')],[365,T('grow365')]].map(function(p){
+        return '<button type="button" data-d="'+p[0]+'" aria-pressed="'+(growDays===p[0]?'true':'false')+'">'+p[1]+'</button>';
+      }).join('')+'</div>';
+  h+='<p class="cmpNote">'+T('grNote')+'</p>';
+  if(!rows.length){ h+='<div class="empty">'+T('cmpNoMatch')+'</div>'; }
+  for(i=0;i<rows.length;i++){
+    var q=rows[i];
+    var gTxt = (q.gain==null) ? T('grNew')
+             : (q.gain>0 ? ('−'+q.gain.toFixed(2)) : ('+'+Math.abs(q.gain).toFixed(2)));
+    var cls  = (q.gain==null) ? 'nw' : (q.gain>0 ? 'up' : 'dn');
+    h+='<div class="grRow" data-id="'+q.now.rec.id+'">'+
+       '<span class="g '+cls+'">'+gTxt+'</span>'+
+       '<span class="e">'+esc(q.who||T('swimNone'))+'<br><small>'+esc(evLabel(q.ev))+' '+q.dist+'m</small></span>'+
+       '<span class="t">'+fmt(q.now.t)+(q.old?('<br><small>'+T('grWas')+fmt(q.old.t)+'</small>'):'')+'</span>'+
+       '</div>';
+  }
+  body.innerHTML=h;
+  var gs=$('growSeg').querySelectorAll('button');
+  for(i=0;i<gs.length;i++) gs[i].onclick=function(){ growDays=Number(this.dataset.d); paintCompare(); };
+  var el=body.querySelectorAll('.grRow');
+  for(i=0;i<el.length;i++){
+    (function(node){
+      node.onclick=function(){
+        var rec=cmpAll.filter(function(x){ return x.id===node.dataset.id; })[0];
+        if(rec) viewOpen(rec);
+      };
+    })(el[i]);
+  }
 }
 
 function cmpToggleSel(id){
@@ -7832,11 +8391,40 @@ function cmpPaintPair(){
     '<div class="cmpPairRow"><span class="lb"></span><span class="a">A：'+a.title+'</span><span class="b">B：'+b.title+'</span><span class="df"></span></div>'+
     rows +
     (splitRows ? ('<div class="gl sub2" style="margin-top:10px;">'+T('cmpSplitDiffGl')+'</div>'+splitRows) : '') +
+    '<div id="pairChart"></div>'+
     '<button class="btn y" id="cmpPairShare" type="button" style="width:100%;margin-top:10px;">'+T('cmpShareBtn')+'</button>'+
     '<button class="btn" id="cmpClearPair" type="button" style="width:100%;margin-top:8px;">'+T('cmpPairClear')+'</button>';
   $('cmpBody').appendChild(box);
+  try{ paintPairCharts(a,b); }catch(e){}
   $('cmpClearPair').onclick=function(){ cmpSel=[]; paintCompare(); };
   $('cmpPairShare').onclick=function(){ shareText(cmpPairText(a,b,ta,tb,sa,sb), T('cmpShareTitle')); };
+}
+
+/* ===== 2本を 重ねた 区間グラフ =====
+   どこで 差が ついたかを、区間ごとに 赤青のように 重ねて 見せます。 */
+function paintPairCharts(a,b){
+  var box=$('pairChart'); if(!box) return;
+  var LA=raceLapData(a), LB=raceLapData(b);
+  var n=Math.min(LA.length, LB.length);
+  if(n<1){ box.innerHTML=''; return; }
+  var labels=[], ta=[], tb=[], va=[], vb=[], na=[], nb=[], sa=[], sb=[], i;
+  for(i=0;i<n;i++){
+    labels.push(LA[i].from+'-'+LA[i].to);
+    ta.push(LA[i].t);  tb.push(LB[i].t);
+    va.push(LA[i].v);  vb.push(LB[i].v);
+    na.push(LA[i].n);  nb.push(LB[i].n);
+    sa.push(LA[i].st); sb.push(LB[i].st);
+  }
+  function some(x){ var k; for(k=0;k<x.length;k++) if(x[k]!=null && !isNaN(x[k])) return true; return false; }
+  var lg = '<p class="pairLg"><i style="background:'+G_A+'"></i>A　'+esc(a.title||'')+
+           '<i style="background:'+G_B+';margin-left:14px;"></i>B　'+esc(b.title||'')+'</p>';
+  var h='<div class="vwGl" style="margin-top:14px;">'+esc(T('pairGl'))+'</div>'+lg;
+  h+=chartBlock(T('chLap'), '', gLine2(labels, ta, tb, 2));
+  h+=chartBlock(T('chSpd'), '', gLine2(labels, va, vb, 2));
+  if(some(na)||some(nb)) h+=chartBlock(T('chSC'), '', gBar2(labels, na, nb, 0));
+  if(some(sa)||some(sb)) h+=chartBlock(T('chST'), '', gLine2(labels, sa, sb, 2));
+  box.className='vwChartBox';
+  box.innerHTML=h;
 }
 
 /* ===== グラフを かく（キャンバス） ===== */

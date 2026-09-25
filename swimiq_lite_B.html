@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.25.6">
+<meta name="app-ver" content="2026.09.25.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1637,7 +1637,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.25.6</p>
+  <p class="ver" id="verBottom">ver 2026.09.25.7</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -5177,7 +5177,7 @@ function openDetail(id){
       }
     }
     // ターンで 区切った 区間ごとの 平均ST（ストロークタイム）
-    var lb2=$('dLapTbl'), LT2=lapTempos(r);
+    var lb2=$('dLapTbl'), LT2=segRows(r);
     if(lb2){
       lb2.innerHTML='';
       if(!LT2.length){ lb2.innerHTML='<div class="none">'+T('vwNoSeg')+'</div>'; }
@@ -5185,9 +5185,9 @@ function openDetail(id){
         var lh='<div class="tr hd"><span class="c1">'+T('vwLapCol')+'</span><span class="c2">'+T('avgST')+
                '</span><span class="c3">'+T('avgSR')+'</span></div>';
         for(i=0;i<LT2.length;i++){
-          lh+='<div class="tr"><span class="c1">'+(LT2[i].hasD? (LT2[i].from+'-'+LT2[i].to+'m') : (LT2[i].lap+'本目'))+'</span>'+
-              '<span class="c2">'+LT2[i].st.toFixed(2)+'</span>'+
-              '<span class="c3">'+LT2[i].sr.toFixed(1)+'</span></div>';
+          lh+='<div class="tr"><span class="c1">'+esc(LT2[i].lbl)+'</span>'+
+              '<span class="c2">'+(LT2[i].st!=null?LT2[i].st.toFixed(2):'--')+'</span>'+
+              '<span class="c3">'+(LT2[i].sr!=null?LT2[i].sr.toFixed(1):'--')+'</span></div>';
         }
         lb2.innerHTML=lh;
       }
@@ -6743,10 +6743,23 @@ function lapTempos(r){
   }
   return out;
 }
+/* 画面と PDF で 同じ くぎりを つかう ための まとめ役。
+   25mごとが 出せれば それを、だめなら かべ（ターン）ごとに します。 */
+function segRows(r){
+  var S=secTempos(r), out=[], i;
+  if(S.length>1){
+    for(i=0;i<S.length;i++) out.push({ lbl:S[i].from+'-'+S[i].to+'m', st:S[i].st, sr:S[i].sr });
+    return out.filter(function(x){ return x.st!=null; });
+  }
+  var L=lapTempos(r);
+  for(i=0;i<L.length;i++) out.push({ lbl:(L[i].hasD? (L[i].from+'-'+L[i].to+'m') : (L[i].lap+'本目')), st:L[i].st, sr:L[i].sr });
+  return out;
+}
 function lapTempoText(r){
-  var L=lapTempos(r), out=[], i;
+  var L=segRows(r), out=[], i;
   for(i=0;i<L.length;i++){
-    out.push((L[i].hasD ? (L[i].from+'-'+L[i].to+'m') : (L[i].lap+'本目'))+' '+L[i].st.toFixed(2));
+    if(L[i].st==null) continue;
+    out.push(L[i].lbl+' '+L[i].st.toFixed(2));
   }
   return out;
 }
@@ -6934,9 +6947,46 @@ function reportSVG(r, W, H){
       s+='<text x="'+mx+'" y="'+(srBottom+16)+'" font-size="10" font-weight="700" fill="#5b6270">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</text>';
     }
   }
+  // 25mごとの 平均テンポ（長水路でも 前半・後半が 見える ように）
+  var SEC=secTempos(r), secBottom=0;
+  if(SEC.length>1){
+    var sy = srSvg ? 800 : 560;
+    s+='<rect x="'+mx+'" y="'+(sy-13)+'" width="4" height="15" fill="#f2b01e"/>';
+    s+='<text x="'+(mx+10)+'" y="'+sy+'" font-size="13" font-weight="900" fill="#16181d">25mごとの平均テンポ</text>';
+    var rows=SEC.slice(0,10), more=SEC.length-rows.length;
+    var colX=[mx, mx+cw*0.30, mx+cw*0.50, mx+cw*0.72, mx+cw];
+    var hy=sy+22;
+    var heads=['区間','区間タイム','かき数','平均ST（秒）','平均SR'];
+    heads.forEach(function(t,ix){
+      var anc=(ix===0)?'start':'end';
+      s+='<text x="'+colX[ix]+'" y="'+hy+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="'+anc+'">'+t+'</text>';
+    });
+    s+='<line x1="'+mx+'" y1="'+(hy+6)+'" x2="'+(mx+cw)+'" y2="'+(hy+6)+'" stroke="#e4e6ea" stroke-width="1.5"/>';
+    rows.forEach(function(L,ix){
+      var ry=hy+28+ix*24;
+      var vals=[L.from+'-'+L.to+'m',
+                (L.t!=null?fmt(L.t):'--'),
+                (L.n!=null?String(L.n):'--'),
+                (L.st!=null?L.st.toFixed(2):'--'),
+                (L.sr!=null?L.sr.toFixed(1):'--')];
+      vals.forEach(function(t,jx){
+        var anc=(jx===0)?'start':'end';
+        var col=(jx===0)?'#5b6270':'#16181d';
+        s+='<text x="'+colX[jx]+'" y="'+ry+'" font-size="12" font-weight="'+(jx===0?'700':'800')+'" fill="'+col+'" text-anchor="'+anc+'">'+esc(t)+'</text>';
+      });
+      s+='<line x1="'+mx+'" y1="'+(ry+7)+'" x2="'+(mx+cw)+'" y2="'+(ry+7)+'" stroke="#eef0f2" stroke-width="1"/>';
+      secBottom=ry+7;
+    });
+    if(more>0){
+      secBottom+=18;
+      s+='<text x="'+mx+'" y="'+secBottom+'" font-size="10" font-weight="700" fill="#5b6270">ほか '+more+' 区間</text>';
+    }
+    secBottom+=18;
+    s+='<text x="'+mx+'" y="'+secBottom+'" font-size="10" font-weight="700" fill="#5b6270">ターンの1かきと、押しまちがいとみなしたかきは平均から除いています。</text>';
+  }
   // note
   if(tp.turns.length || tp.outs.length){
-    var ny=srSvg?800:560;
+    var ny=(SEC.length>1 && secBottom) ? (secBottom+14) : (srSvg?800:560);
     s+='<rect x="'+mx+'" y="'+ny+'" width="'+cw+'" height="30" rx="9" fill="#fff8ea" stroke="#f2dfb0" stroke-width="1"/>';
     s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(turnNote(tp.turns, tp.outs))+'</text>';
   }
@@ -7350,9 +7400,9 @@ var vwRec=null;
    タイム・速さ・ストローク数・テンポ・1かきの きょり を 絵に します。
    ================================================================ */
 /* ① かべごとの まとめ */
-function raceLapData(r){
+function raceLapData(r, step){
   if(!r) return [];
-  var pool=Number(r.pool)||50;
+  var pool=Number(step)||Number(r.pool)||50;
   var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
   if(!sp.length) return [];
   var dist=Number(r.dist) || sp[sp.length-1].d;
@@ -7379,6 +7429,23 @@ function raceLapData(r){
 /* ② スタート・ターン・フィニッシュ・クリーンスイムの 内わけ。
    15m と 45m（かべの 5m手前）の きろくが そろって いる
    50mプールの レースだけ 出します。 */
+/* ===== 25mごとの くぎり =====
+   長水路（50mプール）だと、かべで 区切ると 50mずつに なって しまい、
+   前半と 後半の ちがいが 見えません。
+   25mの 通過を 計って あれば、25mごとの 平均テンポを 出します。
+   50mなら 0-25・25-50 の 2つ、100mなら 4つに 分かれます。 */
+function secTempos(r){
+  if(!r) return [];
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  if(!sp.length) return [];
+  var dist=Number(r.dist) || sp[sp.length-1].d;
+  if(dist<50) return [];                       /* 25m だけの レースは 分けません */
+  var by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  /* 25mごとの 通過が そろって いるか たしかめます */
+  for(i=25;i<=dist+0.001;i+=25) if(by[i]==null) return [];
+  return raceLapData(r, 25);
+}
+
 function raceParts(r){
   if(!r || Number(r.pool)!==50) return null;
   var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
@@ -7697,16 +7764,16 @@ function viewOpen(r){
   }
 
   /* 区間ごとの 平均ST */
-  var LT=lapTempos(r);
+  var LT=segRows(r);
   if(!LT.length){
     $('vwSeg').innerHTML='<div class="vr"><span class="c2">'+T('vwNoSeg')+'</span></div>';
   }else{
     h='<div class="vr hd"><span class="c1">'+T('vwLapCol')+'</span><span class="c2">'+T('avgST')+
       '</span><span class="c3">'+T('avgSR')+'</span></div>';
     for(i=0;i<LT.length;i++){
-      h+='<div class="vr"><span class="c1">'+(LT[i].hasD? (LT[i].from+'-'+LT[i].to+'m') : (LT[i].lap+'本目'))+'</span>'+
-         '<span class="c2">'+LT[i].st.toFixed(2)+'</span>'+
-         '<span class="c3">'+LT[i].sr.toFixed(1)+'</span></div>';
+      h+='<div class="vr"><span class="c1">'+esc(LT[i].lbl)+'</span>'+
+         '<span class="c2">'+(LT[i].st!=null?LT[i].st.toFixed(2):'--')+'</span>'+
+         '<span class="c3">'+(LT[i].sr!=null?LT[i].sr.toFixed(1):'--')+'</span></div>';
     }
     $('vwSeg').innerHTML=h;
   }

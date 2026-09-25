@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.25.4">
+<meta name="app-ver" content="2026.09.25.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1637,7 +1637,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.25.4</p>
+  <p class="ver" id="verBottom">ver 2026.09.25.6</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1659,10 +1659,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
         <option value="other">その他</option>
       </select>
       <select class="osel" id="pool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50" selected>50mプール</option></select>
-      <select class="osel" id="dist" data-ta="distLbl">
-        <option value="50">50m</option><option value="100" selected>100m</option><option value="200">200m</option>
-        <option value="400">400m</option><option value="800">800m</option><option value="1500">1500m</option>
-      </select>
+      <select class="osel" id="dist" data-ta="distLbl"></select>
       <button class="ob g" id="anaSave" type="button" data-t="save"></button>
     </div>
 
@@ -1735,6 +1732,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sr3" id="asStat"></div>
     <div class="glRow">
       <div class="gl" data-t="glSplit"></div>
+      <p class="hint hide" id="anaRtNote" style="margin:2px 2px 6px;"></p>
       <button class="lapFix hide" id="asLapFix" type="button" data-t="lpFix"></button>
     </div>
     <div class="tbl" id="asTbl"></div>
@@ -2019,10 +2017,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
           <option value="other">その他</option>
         </select>
         <select id="cdPool" data-ta="poolLbl"><option value="25">25mプール</option><option value="50">50mプール</option></select>
-        <select id="cdDist" data-ta="distLbl">
-          <option value="50">50m</option><option value="100">100m</option><option value="200">200m</option>
-          <option value="400">400m</option><option value="800">800m</option><option value="1500">1500m</option>
-        </select>
+        <select id="cdDist" data-ta="distLbl"></select>
       </div>
       <div class="cdRow">
         <button type="button" class="cdGo" id="cdSave"><b data-t="cdSaveB"></b><small data-t="cdSaveS"></small></button>
@@ -2046,10 +2041,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <p class="lead" id="lpLead"></p>
     <div class="lpSel">
       <select id="lpPool" aria-label="プール"><option value="25">25mプール</option><option value="50">50mプール</option></select>
-      <select id="lpDist" aria-label="きょり">
-        <option value="50">50m</option><option value="100">100m</option><option value="200">200m</option>
-        <option value="400">400m</option><option value="800">800m</option><option value="1500">1500m</option>
-      </select>
+      <select id="lpDist" aria-label="きょり"></select>
     </div>
     <div class="lpHd"><span class="n" data-t="lpNo"></span><span class="t" data-t="lpTime"></span><span class="d" data-t="lpDist"></span></div>
     <div id="lpList"></div>
@@ -2188,6 +2180,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="vwKpi" id="vwKpi"></div>
     <div id="vwChart" class="hide"></div>
     <div class="vwGl" data-t="glSplit"></div>
+    <p class="vwNote hide" id="vwRtNote"></p>
     <div class="vwTbl" id="vwSpl"></div>
     <div class="vwGl" data-t="vwTempoGl"></div>
     <div class="vwTbl" id="vwSeg"></div>
@@ -2268,14 +2261,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="sq">
       <p class="q" data-t="distLbl"></p>
-      <select id="mDist">
-        <option value="50">50m</option>
-        <option value="100" selected>100m</option>
-        <option value="200">200m</option>
-        <option value="400">400m</option>
-        <option value="800">800m</option>
-        <option value="1500">1500m</option>
-      </select>
+      <select id="mDist"></select>
     </div>
     <div class="sq">
       <p class="q" data-t="mTimeLbl"></p>
@@ -2327,17 +2313,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="sq">
       <p class="q" data-t="distLbl"></p>
-      <select id="vfDist">
-        <option value="50">50m</option>
-        <option value="100" selected>100m</option>
-        <option value="200">200m</option>
-        <option value="400">400m</option>
-        <option value="800">800m</option>
-        <option value="1500">1500m</option>
-      </select>
+      <select id="vfDist"></select>
     </div>
     <div class="sq">
       <p class="q" data-t="mTimeLbl"></p>
+      <p class="lead hide" id="vfTimeNote"></p>
       <input type="text" id="vfTime" inputmode="decimal">
     </div>
     <div class="sq">
@@ -2660,6 +2640,14 @@ var W={
  vsOff:['保存しない','保存しない'],
  vsHint:['「保存する」に して おくと、とりおわった あと 画面の 下に ボタンが 出ます。1回 おすだけで 携帯に のこせます',
          '「保存する」にしておくと、撮り終わった後に画面下へボタンが出ます。1回押すだけで携帯に残せます'],
+ cStall:['カメラの 映像が 止まりました。画面を さわって ください','カメラの映像が止まりました。画面にふれてください'],
+ cRecEnded:['録画が とちゅうで 終わりました。ここまでを のこします','録画が途中で終わりました。ここまでを残します'],
+ distOther:['そのほか（数字を 入れる）','そのほか（数字を入力）'],
+ distAskMsg:['きょりを メートルで 入れて ください（例 75）','距離をメートルで入力してください（例 75）'],
+ distBad:['きょりは 1〜5000の 数字で 入れて ください','距離は1〜5000の数字で入力してください'],
+ hTime2:['合計（足離れから）','合計（足離れから）'],
+ rtNote:['合図から はかった 合計時間です。かっこの 中は 足離れからの 時間です','合図から測った合計時間です。かっこの中は足離れからの時間です'],
+ vfTimeNote:['合図を 計って ある ので、合図からの 合計時間で 入れて ください','合図を計ってあるので、合図からの合計時間で入力してください'],
  tabCmp:['くらべる','くらべる'],
  tabBest:['ベスト表','ベスト表'],
  tabMeet:['大会ごと','大会ごと'],
@@ -3248,9 +3236,10 @@ var aSplits=[];                            // [{d:きょり, t:スタートか�
 var aStrokes=[];                           // かきを おした 動画の中の 秒
 var aPreLaps=null, aPreT0=0;                         // さつえい中に とった ラップ（B版だけ）
 
-function headRow(){
+function hTimeLbl(rt){ return (rt!=null) ? T('hTime2') : T('hTime'); }
+function headRow(rt){
   return '<div class="tr hd"><span class="c1">'+T('hDist')+'</span>'+
-         '<span class="c2">'+T('hTime')+'</span><span class="c3">'+T('hSplit')+'</span></div>';
+         '<span class="c2">'+hTimeLbl(rt)+'</span><span class="c3">'+T('hSplit')+'</span></div>';
 }
 function pts(){                            // 通過ポイントの きょり一覧
   /* きょりに かかわらず 15m・25m・35m・45m・50m の くりかえしで すすみます */
@@ -3391,7 +3380,9 @@ function paintTbl(){
   var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
   paintAnaSum();
   if(!aSplits.length){ b.innerHTML='<div class="none">'+T('anaNone')+'</div>'; paintNext(); paintSheet(); return; }
-  b.innerHTML=headRow();
+  var _n=$('anaRtNote');
+  if(_n){ _n.textContent=T('rtNote'); _n.classList.toggle('hide', aRTsec()==null); }
+  b.innerHTML=headRow(aRTsec());
   for(var i=0;i<aSplits.length;i++){
     var prev = i>0 ? aSplits[i-1].t : 0;
     var r=document.createElement('div'); r.className='tr';
@@ -3400,7 +3391,7 @@ function paintTbl(){
     if(f.indexOf(aSplits[i].d)<0){ f.push(aSplits[i].d); f.sort(function(x,y){ return x-y; }); }
     for(k=0;k<f.length;k++) opt+='<option value="'+f[k]+'"'+(f[k]===aSplits[i].d?' selected':'')+'>'+f[k]+'m</option>';
     r.innerHTML='<span class="c1 cSel"><select class="dSel" data-i="'+i+'" aria-label="'+T('hDist')+'">'+opt+'</select></span>'+
-                '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
+                '<span class="c2">'+twoT(aSplits[i].t, aRTsec())+'</span>'+
                 '<span class="c3">'+segT(aSplits[i].t-prev)+'</span>'+
                 '<button class="xBtn" type="button" data-x="'+i+'" aria-label="'+T('del')+'"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>';
     b.appendChild(r);
@@ -3626,7 +3617,7 @@ function stInts(arr){
    れい： 1:00.62　1.29ST　46.5SR　0.53RT */
 function sumLine(last, ss, rt){
   var p=[];
-  if(last) p.push(fmt(last.t));
+  if(last) p.push(twoT(last.t, aRTsec()));
   if(ss && ss.st!=null && ss.st>0) p.push(ss.st.toFixed(2)+'ST');
   if(ss && ss.sr!=null && ss.sr>0) p.push(ss.sr.toFixed(1)+'SR');
   if(rt!=null) p.push(Number(rt).toFixed(2)+'RT');
@@ -3644,19 +3635,19 @@ function paintSheet(){
   var tp=tempoStats(sts, wantTurnsOf($('dist').value, $('pool').value)), avg = tp.st || 0;
   var last = aSplits.length ? aSplits[aSplits.length-1] : null;
   $('asStat').innerHTML =
-    '<div><b>'+(last? fmt(last.t):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
+    '<div><b>'+(last? twoT(last.t, aRTsec()):'--')+'</b><span>'+(last? last.d+'m '+T('timeLbl'):T('timeLbl'))+'</span></div>'+
     '<div><b>'+(avg? avg.toFixed(2):'--')+'</b><span>'+T('avgST')+'</span></div>'+
     '<div><b>'+(avg? (60/avg).toFixed(1):'--')+'</b><span>'+T('avgSR')+'</span></div>'+
     ((typeof aRT!=='undefined' && aRT!=null) ? ('<div><b>'+aRT.toFixed(2)+'</b><span>'+T('rtOutLbl')+'</span></div>') : '');
   var b=$('asTbl'); b.innerHTML='';
   if(!aSplits.length){ b.innerHTML='<div class="none">'+T('sheetNone')+'</div>'; }
   else{
-    b.innerHTML=headRow();
+    b.innerHTML=headRow(aRTsec());
     for(i=0;i<aSplits.length;i++){
       var pv=i>0?aSplits[i-1].t:0;
       var r=document.createElement('div'); r.className='tr';
       r.innerHTML='<span class="c1">'+aSplits[i].d+'m</span>'+
-                  '<span class="c2">'+fmt(aSplits[i].t)+'</span>'+
+                  '<span class="c2">'+twoT(aSplits[i].t, aRTsec())+'</span>'+
                   '<span class="c3">'+segT(aSplits[i].t-pv)+'</span>';
       b.appendChild(r);
     }
@@ -3692,7 +3683,7 @@ function anaText(){
     L.push('['+T('glSplit')+']');
     for(var i=0;i<aSplits.length;i++){
       var pv=i>0?aSplits[i-1].t:0;
-      L.push(aSplits[i].d+'m  '+fmt(aSplits[i].t)+'  (+'+fmt(aSplits[i].t-pv)+')');
+      L.push(aSplits[i].d+'m  '+twoT(aSplits[i].t, aRTsec())+'  (+'+fmt(aSplits[i].t-pv)+')');
     }
   }
   if(aRT!=null) L.push('', T('rtOutLbl')+'  '+aRT.toFixed(2)+'秒（'+T('rtFootLbl')+'までの時間）');
@@ -3732,7 +3723,7 @@ function paintAnaSum(){
   var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
   $('anaSum').textContent = sumLine(lastS, tempoStats(stInts(aStrokes), wantTurnsOf($('dist').value, $('pool').value)), aRT);
   /* タイムと RT の タイル（ちいさい 見出し＋大きい 数字） */
-  $('oT').textContent  = lastS ? fmt(lastS.t) : '--';
+  $('oT').textContent  = lastS ? twoT(lastS.t, aRTsec()) : '--';
   $('oTL').textContent = lastS ? (lastS.d+'m') : T('timeLbl');
   var rtT=$('oRTwrap');
   if(rtT){
@@ -3805,7 +3796,7 @@ function openAna(blob, opt){
   $('anaTitle').textContent = opt.title || T('anaNew');
   $('anaTitle').dataset.neu = opt.title ? '0' : '1';
   if(opt.pool) $('pool').value=String(opt.pool);
-  if(opt.dist) $('dist').value=String(opt.dist);
+  if(opt.dist) distFill($('dist'), opt.dist); else distFill($('dist'), $('dist').dataset.prev||100);
   $('event').value = opt.event || 'free';
   distWas=$('dist').value; selManual=false; aLastSel='';
   /* ひらいた ときに すでに ちぐはぐな きろくが あれば、ここで そろえます */
@@ -3848,8 +3839,59 @@ function openAna(blob, opt){
    25m …… 15, 25
    100m … 15, 25, 35, 45, 50, 65, 75, 85, 95, 100
    200m … そのあと 115, 125, 135, 145, 150 … と 1500mまで 同じ */
+/* ================================================================
+   きょりの えらび方
+   よく つかう きょりを ならべ、さいごに「そのほか」を おきます。
+   「そのほか」を えらぶと、すきな 数字を 打ちこめます。
+   打ちこんだ きょりは その場で 一覧に 加わります。
+   ================================================================ */
+var DIST_LIST=[25,50,75,100,200,400,800,1500];
+var DIST_IDS=['dist','cdDist','lpDist','mDist','vfDist'];
+function distFill(sel, cur){
+  if(!sel) return;
+  var n=Number(cur!=null ? cur : sel.value);
+  if(!(n>0)) n=Number(sel.dataset.prev)||100;
+  var list=DIST_LIST.slice(), i;
+  if(list.indexOf(n)<0) list.push(n);
+  list.sort(function(a,b){ return a-b; });
+  var h='';
+  for(i=0;i<list.length;i++) h+='<option value="'+list[i]+'">'+list[i]+'m</option>';
+  h+='<option value="other">'+T('distOther')+'</option>';
+  sel.innerHTML=h;
+  sel.value=String(n);
+  sel.dataset.prev=String(n);
+}
+/* 「そのほか」を えらんだ ときに 数字を きく。
+   入れて もらえたら true、やめた ときは もとに もどして false */
+function distAsk(sel){
+  var prev=Number(sel.dataset.prev)||100;
+  var s=prompt(T('distAskMsg'), '');
+  if(s==null){ distFill(sel, prev); return false; }
+  var n=Math.round(Number(String(s).replace(/[^0-9.]/g,'')));
+  if(!(n>0) || n>5000){ distFill(sel, prev); toast(T('distBad')); return false; }
+  distFill(sel, n);
+  return true;
+}
+/* select が かわった ときに かならず 通る 入口。
+   「そのほか」なら 数字を きき、ふつうの きょりなら そのまま 通します。 */
+function distPick(sel){
+  if(!sel) return false;
+  if(sel.value==='other') return distAsk(sel);
+  sel.dataset.prev=sel.value;
+  return true;
+}
+function distInitAll(){
+  var i, sel;
+  for(i=0;i<DIST_IDS.length;i++){
+    sel=$(DIST_IDS[i]); if(!sel) continue;
+    if(!sel.dataset.prev) sel.dataset.prev = (DIST_IDS[i]==='dist'||DIST_IDS[i]==='mDist'||DIST_IDS[i]==='vfDist') ? '100' : '100';
+    distFill(sel, sel.dataset.prev);
+  }
+}
 function lapDists(dist){
   var out=[], add=[15,25,35,45,50], base, i, d;
+  dist=Number(dist)||0;
+  if(!(dist>0)) return [];
   for(base=0; base<dist; base+=50){
     for(i=0;i<add.length;i++){
       d=base+add[i];
@@ -3908,14 +3950,15 @@ function lapRows(){
 }
 function lapPickOpen(){
   if(!aPreLaps || !aPreLaps.length) return;
-  $('lpPool').value=$('pool').value; $('lpDist').value=$('dist').value;
+  $('lpPool').value=$('pool').value; distFill($('lpDist'), $('dist').value);
   $('lpLead').textContent = T('lpCount1')+aPreLaps.length+T('lpCount2')+'。'+
     T(aSplits.length ? 'lpNowLead' : 'lpLead');
   lapRows();
   $('lapPick').classList.remove('hide');
 }
 function lapPickClose(){ $('lapPick').classList.add('hide'); }
-$('lpPool').onchange=lapRows; $('lpDist').onchange=lapRows;
+$('lpPool').onchange=lapRows;
+$('lpDist').onchange=function(){ if(!distPick(this)) return; lapRows(); };
 $('lpAll').onclick=function(){
   var c=$('lpList').querySelectorAll('input[type=checkbox]');
   for(var i=0;i<c.length;i++){ c[i].checked=true; c[i].parentNode.className='lpRow'; }
@@ -3937,7 +3980,7 @@ $('lpOk').onclick=function(){
   if(!out.length){ toast(T('lpNoCheck')); return; }
   out.sort(function(a,b){ return a.t-b.t; });
   for(i=1;i<out.length;i++) if(out[i].d<=out[i-1].d){ toast(T('lpOrder')); return; }
-  $('pool').value=$('lpPool').value; $('dist').value=$('lpDist').value;
+  $('pool').value=$('lpPool').value; distFill($('dist'), $('lpDist').value);
   aSplits=out; aT0=aPreT0;
   paintTbl(); anaP.paint(); lapPickClose();
   toast(T('msgLapIn'));
@@ -4264,7 +4307,9 @@ $('bPass').onclick=function(){
   paintTbl();
   var pvT = 0, q;
   for(q=0;q<aSplits.length;q++){ if(aSplits[q].d===n) break; pvT=aSplits[q].t; }
-  bigLap(n+'m', fmt(tt), (pvT>0 ? segT(tt-pvT) : ''));
+  var _rt=aRTsec();
+  bigLap(n+'m', fmt(totalT(tt,_rt)),
+         (_rt!=null ? ('\u8DB3\u96E2\u308C '+fmt(tt)) : (pvT>0 ? segT(tt-pvT) : '')));
 };
 $('bUndo').onclick=function(){
   if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
@@ -4873,7 +4918,7 @@ function distApply(){
     var list=bad.join('m・')+'m';
     if(!confirm(T('askTrim1')+$('dist').value+T('askTrim2')+list+T('askTrim3'))){
       /* けしたくない ときは、きょりを もとに もどします */
-      if(distWas!=null) $('dist').value=distWas;
+      if(distWas!=null) distFill($('dist'), distWas);
       paintTbl(); return;
     }
     var keep=[], all=lapDists(Number($('dist').value)), ok={}, i;
@@ -4887,7 +4932,7 @@ function distApply(){
   paintTbl();
 }
 $('pool').onchange=function(){ selManual=false; aLastSel=''; paintTbl(); };
-$('dist').onchange=function(){ distApply(); };
+$('dist').onchange=function(){ if(!distPick(this)) return; distApply(); };
 $('anaBack').onclick=function(){
   if(aSplits.length || aStrokes.length){
     if(!confirm(T('askLeave'))) return;
@@ -5010,7 +5055,7 @@ function recCard(r){
   var head = mt ? (badge + esc(mt)) : (badge + info);
   var subHtml = mt ? '<div class="c2sub">'+esc(info)+'</div>' : '';
   var timeHtml = last
-    ? '<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+fmt(last.t)+'</button>'
+    ? '<button type="button" class="cTimeBtn" data-id="'+r.id+'">'+oneT(last.t, rtSec(r))+'</button>'
     : '';
   var srLine = 'ST '+(ss.st!=null?ss.st.toFixed(2)+'秒':'--')+
                '　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
@@ -5121,12 +5166,12 @@ function openDetail(id){
     var b=$('dTbl'); b.innerHTML='';
     if(!r.splits || !r.splits.length){ b.innerHTML='<div class="none">'+T('splitNone')+'</div>'; }
     else{
-      b.innerHTML=headRow();
+      b.innerHTML=headRow(rtSec(r));
       for(i=0;i<r.splits.length;i++){
         var pv=i>0?r.splits[i-1].t:0;
         var tr=document.createElement('div'); tr.className='tr';
         tr.innerHTML='<span class="c1">'+r.splits[i].d+'m</span>'+
-                     '<span class="c2">'+fmt(r.splits[i].t)+'</span>'+
+                     '<span class="c2">'+twoT(r.splits[i].t, rtSec(r))+'</span>'+
                      '<span class="c3">'+segT(r.splits[i].t-pv)+'</span>';
         b.appendChild(tr);
       }
@@ -5210,7 +5255,7 @@ function recText(r){
     L.push('['+T('glSplit')+']');
     for(var i=0;i<r.splits.length;i++){
       var pv=i>0?r.splits[i-1].t:0;
-      L.push(r.splits[i].d+'m  '+fmt(r.splits[i].t)+'  (+'+fmt(r.splits[i].t-pv)+')');
+      L.push(r.splits[i].d+'m  '+twoT(r.splits[i].t, rtSec(r))+'  (+'+fmt(r.splits[i].t-pv)+')');
     }
   }
   if(r.rt!=null) L.push('', T('rtOutLbl')+'  '+Number(r.rt).toFixed(2)+'秒（'+T('rtFootLbl')+'までの時間）');
@@ -5270,7 +5315,7 @@ function sheetImage(r){
   g.fillStyle='#b5b5b5'; g.font='700 26px sans-serif';
   g.fillText(new Date(r.at).toLocaleString('ja-JP')+'　'+r.pool+'mプール　'+r.dist+'m', pad, y); y+=52;
   var cw=(W-pad*2-24)/3;
-  var vs=[[last?fmt(last.t):'--',(last?last.d+'m '+T('timeLbl'):T('timeLbl'))],
+  var vs=[[last?twoT(last.t, rtSec(dRec||{})):'--',(last?last.d+'m '+T('timeLbl'):T('timeLbl'))],
           [avg?avg.toFixed(2):'--',T('avgST')],
           [avg?(60/avg).toFixed(1):'--',T('avgSR')]];
   for(i=0;i<3;i++){
@@ -5307,10 +5352,10 @@ function sheetImage(r){
   var lr=[];
   for(i=0;i<(r.splits||[]).length;i++){
     var pv=i>0?r.splits[i-1].t:0;
-    lr.push([r.splits[i].d+'m', fmt(r.splits[i].t), segT(r.splits[i].t-pv)]);
+    lr.push([r.splits[i].d+'m', twoT(r.splits[i].t, rtSec(r)), segT(r.splits[i].t-pv)]);
   }
   if(!lr.length) lr=[['-',T('nothing'),'']];
-  table(T('glSplit'),[T('hDist'),T('hTime'),T('hSplit')],lr);
+  table(T('glSplit'),[T('hDist'),hTimeLbl(rtSec(r)),T('hSplit')],lr);
   var sr=[];
   for(i=0;i<sts.length;i++) sr.push([String(i+1), sts[i].toFixed(2), 'SR '+(60/sts[i]).toFixed(1)]);
   if(!sr.length) sr=[['-',T('notCount'),'']];
@@ -5651,14 +5696,25 @@ function cRecSource(){
     var v=$('cv'), W=v.videoWidth||0, H=v.videoHeight||0;
     if(!W || !H) return cStream;
     cCanvas = $('cStabCv');
-    cCanvas.width=W; cCanvas.height=H;
+    /* 大きすぎる 画は 1コマの しごとが 重く なり、
+       とちゅうで コマ落ちの 原因に なるので、よこ 1280 までに します */
+    var CW=W, CH=H;
+    if(CW>1280){ CH=Math.round(H*1280/W); CW=1280; }
+    cCanvas.width=CW; cCanvas.height=CH;
     cCtx2=cCanvas.getContext('2d');
     if(!cCtx2 || !cCanvas.captureStream) return cStream;
     cStabReset();
     $('cam').classList.toggle('stab', cStabOn);
     if(cDrawRaf) cancelAnimationFrame(cDrawRaf);
-    (function draw(){
+    cDrawAt=performance.now();
+    function draw(){
       cDrawRaf=requestAnimationFrame(draw);
+      cDrawOne();
+    }
+    /* 1コマ かく しごと。requestAnimationFrame からも、
+       見はりの タイマーからも 同じ ものを よびます。 */
+    cDrawOne=function(){
+      cDrawAt=performance.now();
       var z=Math.max(1,cZoom) * (cStabOn ? S_CROP : 1);
       var ox=0, oy=0;
       if(cStabOn){
@@ -5677,9 +5733,10 @@ function cRecSource(){
       var sw=W/z, sh=H/z, sx=(W-sw)/2 + ox, sy=(H-sh)/2 + oy;
       if(sx<0) sx=0; if(sy<0) sy=0;
       if(sx+sw>W) sx=W-sw; if(sy+sh>H) sy=H-sh;
-      try{ cCtx2.drawImage(v, sx, sy, sw, sh, 0, 0, W, H); }catch(e){}
-      /* おもすぎる ときは、手ぶれ ほせいを 自分で 切ります */
-      if(cStabOn && cRun){
+      try{ cCtx2.drawImage(v, sx, sy, sw, sh, 0, 0, CW, CH); }catch(e){}
+      /* おもすぎる ときは、手ぶれ ほせいを 自分で 切ります。
+         録画中も ずっと 見ています（とちゅうで 止まる のを ふせぐ ため） */
+      if(cStabOn && (cRun || cRecOn)){
         var t=performance.now();
         if(!sFpsT) sFpsT=t; else { sFpsN++;
           if(t-sFpsT>2000){
@@ -5692,15 +5749,69 @@ function cRecSource(){
           }
         }
       }
-    })();
-    var cs=cCanvas.captureStream(60), at=cStream.getAudioTracks();
+    };
+    draw();
+    /* 30コマ／秒で とれれば じゅうぶんです。
+       60を たのむと 追いつかない ことが あるので 30に します。 */
+    var cs=cCanvas.captureStream(30), at=cStream.getAudioTracks();
     if(at.length) cs.addTrack(at[0]);
     cCanStream=cs;
     return cs;
   }catch(e){ return cStream; }
 }
+/* ===== 録画の 見はり =====
+   とちゅうで 止まる 原因は だいたい この 3つです。
+   ① 画面を かく しくみ（requestAnimationFrame）が 止められる
+   ② カメラの 映像そのものが 止まる（通知・ホームに もどる など）
+   ③ MediaRecorder が 勝手に 終わる
+   0.25秒ごとに 見はって、①②は その場で 立て直し、
+   ③は 気づいた ところで きちんと 終わらせて、そこまでを のこします。 */
+var cWatchTm=null, cDrawAt=0, cDrawOne=null, cStallSaid=false;
+function cWatchStart(){
+  cWatchStop(); cStallSaid=false;
+  cWatchTm=setInterval(function(){
+    var v=$('cv');
+    /* ② 映像が 止まって いたら かけ直します */
+    if(v && v.srcObject){
+      if(v.paused || v.ended){ try{ v.play(); }catch(e){} }
+      var tr=null;
+      try{ tr=v.srcObject.getVideoTracks()[0]; }catch(e){}
+      if(tr && (tr.readyState==='ended' || tr.muted===true)){
+        if(!cStallSaid){ cStallSaid=true; try{ toast(T('cStall')); }catch(e){} }
+      }
+    }
+    /* ① かく しくみが 止まって いたら、こちらから かきます */
+    if(cDrawOne && cCanvas){
+      var now=performance.now();
+      if(now-cDrawAt > 200){
+        try{ cDrawOne(); }catch(e){}
+        if(cDrawRaf) cancelAnimationFrame(cDrawRaf);
+        cDrawRaf=requestAnimationFrame(function again(){
+          cDrawRaf=requestAnimationFrame(again); if(cDrawOne) cDrawOne();
+        });
+      }
+    }
+    /* ③ 録画が 勝手に 終わって いたら、そこまでを のこします */
+    if(cRecOn && cRec && cRec.state!=='recording'){
+      cWatchStop();
+      try{ toast(T('cRecEnded')); }catch(e){}
+      cRecOn=false; cRun=false; cArm=false;
+      try{ cBtns(); }catch(e){}
+    }
+  }, 250);
+}
+function cWatchStop(){ if(cWatchTm){ clearInterval(cWatchTm); cWatchTm=null; } }
+/* ほかの アプリから もどった ときも、すぐ 立て直します */
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden) return;
+  var v=$('cv');
+  if(v && v.srcObject && (v.paused||v.ended)){ try{ v.play(); }catch(e){} }
+  if(cDrawOne && cCanvas){ try{ cDrawOne(); }catch(e){} }
+});
+
 function cCanStop(){
   if(cDrawRaf){ cancelAnimationFrame(cDrawRaf); cDrawRaf=null; }
+  cDrawOne=null;
   if(cCanStream){
     try{ cCanStream.getVideoTracks().forEach(function(t){ t.stop(); }); }catch(e){}
     cCanStream=null;
@@ -5724,6 +5835,7 @@ function cRecStart(){
   cRec.ondataavailable=function(e){ if(e.data&&e.data.size) cChunks.push(e.data); };
   cRec.onerror=function(){ try{ toast(T('cRecNG')); }catch(e){} };
   cRec.onstop=function(){
+    cWatchStop();
     var ty=(cRec&&cRec.mimeType)?cRec.mimeType:'video/mp4';
     /* さいごの かけらが 少し おくれて 届く ことが あるので、すこし 待ちます */
     setTimeout(function(){
@@ -5734,6 +5846,7 @@ function cRecStart(){
   /* 1秒ごとに こまかく 受けとります。
      まとめて 1回だけ 受けとると、長い 録画で とちゅうが 欠ける ことが あります。 */
   try{ cRec.start(1000); }catch(e){ try{ cRec.start(); }catch(e2){} }
+  cWatchStart();
   cRecT0=Date.now(); cRecP0=performance.now(); $('camRecT').textContent='0:00';
   $('camDot').classList.remove('hide');
   clearInterval(cRecTm);
@@ -5864,7 +5977,7 @@ function cClose(){
   if(cRec && cRec.state==='recording'){
     try{ cRec.ondataavailable=null; cRec.onstop=null; cRec.stop(); }catch(e){}
   }
-  cRec=null; clearInterval(cRecTm); cRecTm=null;
+  cRec=null; cWatchStop(); clearInterval(cRecTm); cRecTm=null;
   cRun=false; cArm=false; cRecOn=false; cancelAnimationFrame(cRaf);
   cStopCam(); $('cv').srcObject=null;
   $('cam').classList.add('hide');
@@ -5900,7 +6013,7 @@ function camDoneOpen(){
     T(cdBySig ? 'cdSig' : 'cdHand');
   $('cdEvent').value=$('event').value;
   $('cdPool').value=$('pool').value;
-  $('cdDist').value=$('dist').value;
+  distFill($('cdDist'), $('dist').value);
   $('camDone').classList.remove('hide');
 }
 function camDoneClose(){ $('camDone').classList.add('hide'); }
@@ -5918,7 +6031,7 @@ $('cdSave').onclick=function(){
   };
   var blob=cdBlob, id=rec.id;
   camDoneClose(); cClose();
-  $('event').value=ev; $('pool').value=pool; $('dist').value=dist;
+  $('event').value=ev; $('pool').value=pool; distFill($('dist'), dist);
   dbPut(rec).then(function(){
     pushOne(rec);
     show('home'); paintList();
@@ -5933,7 +6046,7 @@ $('cdAna').onclick=function(){
   var blob=cdBlob, laps=cdLaps.slice(), t0=cdT0;
   $('event').value=$('cdEvent').value;
   $('pool').value=$('cdPool').value;
-  $('dist').value=$('cdDist').value;
+  distFill($('dist'), $('cdDist').value);
   camDoneClose(); cClose();
   openAna(blob, { laps:laps, raceT0:t0 });
   aFromCam=true;
@@ -6120,6 +6233,7 @@ $('fPick').addEventListener('change', function(){
     MODE=this.dataset.w;
     try{ localStorage.setItem('swimiq_word',MODE); }catch(e){}
     applyWords();
+    try{ distInitAll(); }catch(e){}
   };
 })();
 
@@ -6314,8 +6428,48 @@ function svOK(btn){
    一覧から 2つ タップすると、ならべて くらべられます。       */
 var EV_LABELS={ free:'自由形', back:'背泳ぎ', breast:'平泳ぎ', fly:'バタフライ', im:'個人メドレー', relay:'リレー', other:'その他' };
 function evLabel(k){ return EV_LABELS[k] || EV_LABELS.other; }
+/* ================================================================
+   時間の あらわし方
+   通過タイムは 「足離れ」から 数えて しまって あります。
+   けれど 大会の 記録は 「合図」から はかります。
+   そこで、合図を 計って ある ときは
+     合計時間（足離れからの 時間）
+   の 形で 2つ 出します。合図が ない ときは
+   足離れからの 時間 だけを 出します。
+   ================================================================ */
+/* 合図から 足離れまでの 秒数（リアクションタイム）。なければ null */
+function rtSec(r){
+  if(!r) return null;
+  var v=null;
+  if(r.rt!=null && Number(r.rt)>0) v=Number(r.rt);
+  else if(r.sigT!=null && r.t0!=null && (r.t0-r.sigT)>0) v=r.t0-r.sigT;
+  return (v!=null && v>0 && v<10) ? v : null;
+}
+/* 分析中の 画面ようの リアクションタイム */
+function aRTsec(){
+  if(typeof aRT!=='undefined' && aRT!=null && Number(aRT)>0) return Number(aRT);
+  if(typeof aSigT!=='undefined' && aSigT!=null &&
+     typeof aT0!=='undefined'   && aT0!=null && (aT0-aSigT)>0) return aT0-aSigT;
+  return null;
+}
+/* 合計時間（合図から）。合図が なければ そのまま */
+function totalT(t, rt){ return (t==null) ? null : ((rt!=null) ? t+rt : t); }
+/* 画面に 出す 文字。合図が あれば「合計（足離れから）」 */
+function twoT(t, rt){
+  if(t==null) return '--';
+  return (rt!=null) ? (fmt(t+rt)+'（'+fmt(t)+'）') : fmt(t);
+}
+/* せまい ところ用。合計だけ */
+function oneT(t, rt){ return (t==null) ? '--' : fmt(totalT(t,rt)); }
+
 function raceBest(r){
-  return (r.splits && r.splits.length) ? r.splits[r.splits.length-1].t : null;
+  /* 大会の 記録に そろえて、合図が あれば 合図からの 合計時間 */
+  if(!(r && r.splits && r.splits.length)) return null;
+  return totalT(r.splits[r.splits.length-1].t, rtSec(r));
+}
+/* 足離れから だけの タイム（中身の 計算に つかいます） */
+function raceFoot(r){
+  return (r && r.splits && r.splits.length) ? r.splits[r.splits.length-1].t : null;
 }
 function raceStroke(r){
   /* 修正で入れた ストローク数・テンポ(manualN/manualST)が あれば 優先する
@@ -6407,14 +6561,14 @@ function renderMSegs(dist, segs){
     wrap.appendChild(row);
   }
 }
-$('mDist').onchange=function(){ renderMSegs(Number(this.value), null); };
+$('mDist').onchange=function(){ if(!distPick(this)) return; renderMSegs(Number(this.value), null); };
 function manualOpen(rec){
   manualEditId = rec ? rec.id : null;
   $('mDate').value = rec ? new Date(rec.at).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
   $('mTitle').value = rec ? (rec.title||'') : '';
   $('mEvent').value = rec ? (rec.event||'free') : 'free';
   var dist = rec ? (rec.dist||100) : 100;
-  $('mDist').value = String(dist);
+  distFill($('mDist'), dist);
   var last = (rec && rec.splits && rec.splits.length) ? rec.splits[rec.splits.length-1].t : null;
   $('mTime').value = last!=null ? fmt(last) : '';
   renderMSegs(dist, (rec && rec.manualSegs) ? rec.manualSegs : null);
@@ -6663,7 +6817,7 @@ function buildReport(r){
   if(sw && sw.team) swBits.push(sw.team);
 
   var kp=[
-    {k:'記録タイム', v:(last?fmt(last.t):'--'), u:'', hl:true},
+    {k:'記録タイム', v:(last?twoT(last.t, rtSec(r)):'--'), u:'', hl:true},
     {k:'平均ST', v:(ss.st!=null?ss.st.toFixed(2):'--'), u:'秒'},
     {k:'平均SR', v:(ss.sr!=null?ss.sr.toFixed(1):'--'), u:''},
     {k:T('nStr'), v:(ss.n!=null?ss.n:'--'), u:''}
@@ -6731,7 +6885,7 @@ function reportSVG(r, W, H){
     s+='<text x="'+(cx+wpx/2)+'" y="'+(cyT+15)+'" font-size="12.5" font-weight="800" fill="#16181d" text-anchor="middle">'+esc(t)+'</text>';
     cx+=wpx+8; });
   // KPI row
-  var kp=[{k:'記録タイム',v:(last?fmt(last.t):'--'),u:'',hl:true},
+  var kp=[{k:'記録タイム',v:(last?twoT(last.t, rtSec(r)):'--'),u:'',hl:true},
           {k:'平均ST',v:(ss.st!=null?ss.st.toFixed(2):'--'),u:'秒'},
           {k:'平均SR',v:(ss.sr!=null?ss.sr.toFixed(1):'--'),u:''},
           {k:T('nStr'),v:(ss.n!=null?ss.n:'--'),u:''}];
@@ -7063,7 +7217,7 @@ $('mDel').onclick=function(){
 /* ===== 動画の きろくを どこからでも すぐ なおせる =====
    タイムを おすと、日づけ・種目・きょり・タイムだけを
    さっと なおせる ちいさな 画面が 出ます。動画そのものは のこります。 */
-var vfEditId=null;
+var vfEditId=null, vfRT=null;
 /* 通過タイムを 1行ずつ 直せる らん */
 function vfSplRow(d, t, dist){
   var all=lapDists(dist), opt='', i;
@@ -7083,7 +7237,8 @@ function vfSplPaint(sp){
   w.innerHTML='';
   var dist=Number($('vfDist').value)||100, i;
   var list=(sp||[]).slice().sort(function(a,b){ return a.d-b.d; });
-  for(i=0;i<list.length;i++) w.appendChild(vfSplRow(list[i].d, list[i].t, dist));
+  /* 画面では 合図からの 合計時間で 出し入れします */
+  for(i=0;i<list.length;i++) w.appendChild(vfSplRow(list[i].d, totalT(list[i].t, vfRT), dist));
 }
 function vfSplRead(){
   var rows=$('vfSplWrap').querySelectorAll('.vfSplRow'), out=[], seen={}, i;
@@ -7092,7 +7247,7 @@ function vfSplRead(){
     var tt=parseTimeStr(rows[i].querySelector('.vfSplT').value);
     if(!dd || tt==null || tt<=0) continue;
     if(seen[dd]) continue;
-    seen[dd]=1; out.push({ d:dd, t:tt });
+    seen[dd]=1; out.push({ d:dd, t:(vfRT!=null ? (tt-vfRT) : tt) });
   }
   out.sort(function(a,b){ return a.d-b.d; });
   return out;
@@ -7101,16 +7256,19 @@ $('vfSplAdd').onclick=function(){
   $('vfSplWrap').appendChild(vfSplRow(null, null, Number($('vfDist').value)||100));
 };
 /* きょりを 変えたら 一覧も 作り直します（入れた タイムは のこします） */
-$('vfDist').onchange=function(){ vfSplPaint(vfSplRead()); };
+$('vfDist').onchange=function(){ if(!distPick(this)) return; vfSplPaint(vfSplRead()); };
 function vfOpen(rec){
   if(!rec || rec.manual) return;
   vfEditId = rec.id;
+  vfRT = rtSec(rec);
   var last = (rec.splits && rec.splits.length) ? rec.splits[rec.splits.length-1] : null;
   var ss = raceStroke(rec);
   $('vfDate').value = new Date(rec.at).toISOString().slice(0,10);
   $('vfEvent').value = rec.event || 'free';
-  $('vfDist').value = String(last ? last.d : (rec.dist||100));
-  $('vfTime').value = last ? fmt(last.t) : '';
+  distFill($('vfDist'), last ? last.d : (rec.dist||100));
+  $('vfTime').value = last ? fmt(totalT(last.t, vfRT)) : '';
+  var _tn=$('vfTimeNote');
+  if(_tn){ _tn.textContent=T('vfTimeNote'); _tn.classList.toggle('hide', vfRT==null); }
   $('vfN').value = (ss.n!=null) ? String(ss.n) : '';
   $('vfST').value = (ss.st!=null) ? ss.st.toFixed(2) : '';
   $('vfVid').value = rec.videoUrl || '';
@@ -7158,7 +7316,8 @@ $('vfSave').onclick=function(){
     /* 通過タイムの らんを そのまま つかい、さいごの きょり・タイムは 上の らんを ゆうせん */
     var sp=vfSplRead(), k=-1, i2;
     for(i2=0;i2<sp.length;i2++) if(sp[i2].d===dist) k=i2;
-    if(k>=0) sp[k].t=t; else sp.push({ d:dist, t:t });
+    var tIn = (vfRT!=null) ? (t-vfRT) : t;
+    if(k>=0) sp[k].t=tIn; else sp.push({ d:dist, t:tIn });
     sp.sort(function(x,y){ return x.d-y.d; });
     rec.splits=sp;
     rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
@@ -7226,9 +7385,10 @@ function raceParts(r){
   if(!sp.length) return null;
   var dist=Number(r.dist) || sp[sp.length-1].d;
   var by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
-  var total=by[dist];
+  var rt=rtSec(r)||0;
+  var total=(by[dist]!=null)? by[dist]+rt : null;
   if(total==null || by[15]==null) return null;
-  var start=by[15], turn=0, tn=0, w;
+  var start=by[15]+rt, turn=0, tn=0, w;
   for(w=50; w<dist-0.001; w+=50){
     var a=by[w-5], b=by[w+15];
     if(a==null || b==null) return null;
@@ -7453,19 +7613,22 @@ function paintCharts(r){
 function tgtPaint(r){
   var out=$('tgtOut'); if(!out) return;
   var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
-  var total = sp.length ? sp[sp.length-1].t : null;
-  if(total==null || total<=0){ out.innerHTML=''; return; }
+  var swim = sp.length ? sp[sp.length-1].t : null;
+  if(swim==null || swim<=0){ out.innerHTML=''; return; }
+  var rt=rtSec(r)||0, total=swim+rt;
   var v=parseTimeStr($('tgtIn').value);
   if(v==null || v<=0){ out.innerHTML='<div class="vr"><span class="c2">'+T('tgtNG')+'</span></div>'; return; }
   if(v>=total){ out.innerHTML='<div class="vr"><span class="c2">'+T('tgtFast')+'</span></div>'; return; }
-  var k=v/total, ss=raceStroke(r), i;
+  if(v<=rt){ out.innerHTML='<div class="vr"><span class="c2">'+T('tgtNG')+'</span></div>'; return; }
+  /* 合図から 足が はなれるまでの 時間は ちぢまないので、泳ぎの ぶんだけ ちぢめます */
+  var k=(v-rt)/swim, ss=raceStroke(r), i;
   var h='<div class="vr hd"><span class="c1">'+T('tgtHd')+'</span><span class="c2">'+T('tgtAim')+
         '</span><span class="c3">'+T('tgtDiff')+'</span></div>';
   for(i=0;i<sp.length;i++){
-    var aim=sp[i].t*k;
+    var aim=sp[i].t*k+rt, now=sp[i].t+rt;
     h+='<div class="vr"><span class="c1">'+sp[i].d+'m</span>'+
        '<span class="c2">'+fmt(aim)+'</span>'+
-       '<span class="c3">−'+(sp[i].t-aim).toFixed(2)+'</span></div>';
+       '<span class="c3">−'+(now-aim).toFixed(2)+'</span></div>';
   }
   /* いまの テンポの まま きょりを のばさない と すると、テンポは k ばい に なります */
   if(ss.st!=null){
@@ -7505,7 +7668,7 @@ function viewOpen(r){
 
   /* 数字の ならび */
   var kp=[
-    [ (last? last.d+'m' : T('timeLbl')), (last? fmt(last.t) : '--') ],
+    [ (last? last.d+'m' : T('timeLbl')), (last? twoT(last.t, rtSec(r)) : '--') ],
     [ T('avgST'), (ss.st!=null? ss.st.toFixed(2):'--') ],
     [ T('avgSR'), (ss.sr!=null? ss.sr.toFixed(1):'--') ],
     [ T('scAbbr'), (ss.n!=null? ss.n : '--') ]
@@ -7516,16 +7679,18 @@ function viewOpen(r){
   $('vwKpi').innerHTML=h;
 
   /* 通過タイム */
+  var _vn=$('vwRtNote');
+  if(_vn){ _vn.textContent=T('rtNote'); _vn.classList.toggle('hide', rtSec(r)==null); }
   var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
   if(!sp.length){
     $('vwSpl').innerHTML='<div class="vr"><span class="c2">'+T('splitNone')+'</span></div>';
   }else{
-    h='<div class="vr hd"><span class="c1">'+T('hDist')+'</span><span class="c2">'+T('hTime')+
+    h='<div class="vr hd"><span class="c1">'+T('hDist')+'</span><span class="c2">'+hTimeLbl(rtSec(r))+
       '</span><span class="c3">'+T('hSplit')+'</span></div>';
     for(i=0;i<sp.length;i++){
       var pv = i>0 ? sp[i-1].t : 0;
       h+='<div class="vr"><span class="c1">'+sp[i].d+'m</span>'+
-         '<span class="c2">'+fmt(sp[i].t)+'</span>'+
+         '<span class="c2">'+twoT(sp[i].t, rtSec(r))+'</span>'+
          '<span class="c3">'+segT(sp[i].t-pv)+'</span></div>';
     }
     $('vwSpl').innerHTML=h;
@@ -8529,6 +8694,8 @@ window.addEventListener('resize', function(){
 
 cPaintLaps(); cBtns(); sensPaint();
 applyWords();
+distInitAll();
+$('cdDist').onchange=function(){ distPick(this); };
 /* ===== 同意の かくにん =====
    はじめて ひらいた ときだけ 出します。同意すると、この 携帯に おぼえます。 */
 var CONSENT='';

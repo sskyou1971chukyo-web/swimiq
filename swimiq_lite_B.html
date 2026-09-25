@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.24.6">
+<meta name="app-ver" content="2026.09.25.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1194,6 +1194,25 @@ body, button, select, input, textarea{
 .card2 .c2badge{ display:inline-block; margin-right:8px; padding:1px 8px; border-radius:999px;
   background:rgba(255,196,0,.14); color:var(--am); font-size:10.5px; font-weight:900; vertical-align:middle; }
 .card2 .c2badge.nv{ background:rgba(255,255,255,.10); color:var(--dim); }
+/* ===== きろくカードの 小さな絵（サムネイル） =====
+   泳ぎの 一場面を 左に 出して、どの レースか ひと目で わかる ように します */
+.card2{ flex-direction:row; align-items:stretch; gap:12px; }
+.card2 .c2thumb{ flex:0 0 96px; width:96px; align-self:flex-start;
+  aspect-ratio:16/10; border-radius:var(--rS); overflow:hidden;
+  background:var(--pane2); border:1px solid var(--line2);
+  display:flex; align-items:center; justify-content:center; }
+.card2 .c2thumb img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:0; }
+.card2 .c2thumb b{ font-family:"Zen Maru Gothic",sans-serif;
+  font-size:15px; font-weight:900; color:var(--am); opacity:.75; }
+.card2 .c2body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
+@media (max-width:360px){ .card2 .c2thumb{ flex-basis:76px; width:76px; } }
+
+/* ===== レース分析の グラフ ===== */
+#vwChart .vwCh{ margin:14px 0 2px; }
+#vwChart .vwCh h4{ margin:0 0 2px; font-size:15px; font-weight:900; color:#fff; }
+#vwChart .vwCh p{ margin:0 0 6px; font-size:12px; font-weight:700; color:var(--dim); line-height:1.4; }
+#vwChart .vwCh svg{ display:block; width:100%; height:auto;
+  background:var(--pane2); border:1px solid var(--line2); border-radius:var(--rM); }
 
 /* ===== 選手プロフィール 一覧 ===== */
 .swmCard{ display:flex; align-items:center; gap:12px; cursor:pointer;
@@ -1550,7 +1569,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.24.6</p>
+  <p class="ver" id="verBottom">ver 2026.09.25.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2082,6 +2101,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="vwHd"><h3 id="vwH"></h3><button class="btn" type="button" id="vwClose" data-t="dMenuX"></button></div>
     <p class="vwSub" id="vwSub"></p>
     <div class="vwKpi" id="vwKpi"></div>
+    <div id="vwChart" class="hide"></div>
     <div class="vwGl" data-t="glSplit"></div>
     <div class="vwTbl" id="vwSpl"></div>
     <div class="vwGl" data-t="vwTempoGl"></div>
@@ -2540,6 +2560,23 @@ var W={
  vsOff:['保存しない','保存しない'],
  vsHint:['「保存する」に して おくと、とりおわった あと 画面の 下に ボタンが 出ます。1回 おすだけで 携帯に のこせます',
          '「保存する」にしておくと、撮り終わった後に画面下へボタンが出ます。1回押すだけで携帯に残せます'],
+ glChart:['グラフで 見る','グラフで見る'],
+ chLap:['区間タイム（秒）','区間タイム（秒）'],
+ chLapN:['1本ごとに かかった 秒数。下がって いれば うしろが はやい','1本ごとにかかった秒数。線が下がっていれば後半が速い'],
+ chSpd:['およぐ はやさ（m/秒）','泳ぐ速さ（m/秒）'],
+ chSpdN:['1秒に すすんだ きょり。ねて いるほど ペースが そろって います','1秒に進んだ距離。線が平らなほどペースがそろっています'],
+ chSC:['ストローク数（かき）','ストローク数（かき）'],
+ chSCN:['1本ごとの かいた 回数。ふえるほど つかれて います','1本ごとのかいた回数。増えるほど疲れが出ています'],
+ chST:['ストロークテンポ（秒）','ストロークテンポ（秒）'],
+ chSTN:['1かきに かかった 秒数。みじかいほど テンポが はやい','1かきにかかった秒数。短いほどテンポが速い'],
+ chDPS:['1かきで すすむ きょり（m）','1かきで進む距離（m）'],
+ chDPSN:['1かきで どれだけ すすんだか。ながいほど よく のびて います','1かきでどれだけ進んだか。長いほどよく伸びています'],
+ chPart:['レースの 内わけ（秒）','レースの内わけ（秒）'],
+ chPartN:['スタートは 0-15m、ターンは かべの 前5m＋後15m、フィニッシュは さいごの 5mです','スタートは0-15m、ターンは壁の前5m＋後15m、フィニッシュは最後の5mです'],
+ pStart:['スタート','スタート'],
+ pTurn:['ターン','ターン'],
+ pClean:['およぎ','泳ぎ'],
+ pFin:['フィニッシュ','フィニッシュ'],
  askTrim1:['きょりを ','距離を '],
  askTrim2:['m に かえます。この きょりには ない ','m に変更します。この距離には存在しない '],
  askTrim3:[' の きろくは けされます。よろしいですか？',' の記録は削除されます。よろしいですか？'],
@@ -4804,10 +4841,17 @@ function recCard(r){
   var srLine = 'ST '+(ss.st!=null?ss.st.toFixed(2)+'秒':'--')+
                '　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
                '　'+T('scAbbr')+' '+(ss.n!=null?ss.n:'--');
+  /* 左の 小さな絵。絵が ない きろくは、きょりを 出して 目じるしに します */
+  var dLbl = (r.dist || (last?last.d:'') || '') + 'm';
+  var thumbHtml = '<div class="c2thumb">' +
+    (r.thumb ? '<img src="'+r.thumb+'" alt="">' : '<b>'+esc(dLbl)+'</b>') + '</div>';
   c.innerHTML=
+    thumbHtml+
+    '<div class="c2body">'+
     '<div class="c2top"><span class="c2head">'+head+'</span>'+timeHtml+'</div>'+
     subHtml+
-    '<div class="c2sr">'+srLine+'</div>';
+    '<div class="c2sr">'+srLine+'</div>'+
+    '</div>';
   c.onclick=function(){
     if(r.manual){ viewOpen(r); return; }
     if(!hasVid(r)){                   /* 同期で来た記録：この端末に動画が無い */
@@ -6958,6 +7002,187 @@ $('vfSave').onclick=function(){
    区間ごとの 平均テンポを アプリの 中で 見られます。
    ================================================================ */
 var vwRec=null;
+/* ================================================================
+   レース分析の グラフ
+   かべ（プールの 長さ）ごとに 区切って、
+   タイム・速さ・ストローク数・テンポ・1かきの きょり を 絵に します。
+   ================================================================ */
+/* ① かべごとの まとめ */
+function raceLapData(r){
+  if(!r) return [];
+  var pool=Number(r.pool)||50;
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  if(!sp.length) return [];
+  var dist=Number(r.dist) || sp[sp.length-1].d;
+  var by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  var arr=(r.strokes||[]).slice().sort(function(a,b){ return a-b; });
+  var iv=tempoTable(arr, wantTurnsOf(dist,pool));
+  var out=[], d;
+  for(d=pool; d<=dist+0.001; d+=pool){
+    var d0=d-pool;
+    var t0=(d0===0)?0:by[d0], t1=by[d];
+    if(t0==null || t1==null) continue;
+    var n=0, k, sum=0, num=0;
+    for(k=0;k<arr.length;k++) if(arr[k]>t0 && arr[k]<=t1) n++;
+    for(k=0;k<iv.length;k++) if(iv[k].t>t0 && iv[k].t<=t1 && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+    var st = num ? sum/num : null;
+    var lt = t1-t0;
+    out.push({ from:d0, to:d, lap:out.length+1, t:lt, cum:t1,
+               n:(n||null), st:st, sr:(st?60/st:null),
+               v:(lt>0 ? pool/lt : null),
+               dps:(n ? pool/n : null) });
+  }
+  return out;
+}
+/* ② スタート・ターン・フィニッシュ・クリーンスイムの 内わけ。
+   15m と 45m（かべの 5m手前）の きろくが そろって いる
+   50mプールの レースだけ 出します。 */
+function raceParts(r){
+  if(!r || Number(r.pool)!==50) return null;
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  if(!sp.length) return null;
+  var dist=Number(r.dist) || sp[sp.length-1].d;
+  var by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  var total=by[dist];
+  if(total==null || by[15]==null) return null;
+  var start=by[15], turn=0, tn=0, w;
+  for(w=50; w<dist-0.001; w+=50){
+    var a=by[w-5], b=by[w+15];
+    if(a==null || b==null) return null;
+    turn += (b-a); tn++;
+  }
+  var fin = (by[dist-5]!=null) ? (total-by[dist-5]) : null;
+  if(fin==null) return null;
+  var clean = total - start - turn - fin;
+  if(clean<0) return null;
+  return { total:total, start:start, turn:turn, turnN:tn, fin:fin, clean:clean, dist:dist };
+}
+/* ③ 絵を かく 道具。数字は 点の そばに 書くので、たての めもりは 出しません */
+var GW=680, GPAD={l:14,r:14,t:30,b:26};
+function gRange(vals){
+  var v=[], i;
+  for(i=0;i<vals.length;i++) if(vals[i]!=null && !isNaN(vals[i])) v.push(vals[i]);
+  if(!v.length) return null;
+  var mn=Math.min.apply(null,v), mx=Math.max.apply(null,v);
+  if(mx-mn < 1e-9){ mn=mn-1; mx=mx+1; }
+  var pad=(mx-mn)*0.45;
+  return [mn-pad, mx+pad];
+}
+function gGrid(H){
+  var s='', j, y;
+  for(j=0;j<=3;j++){
+    y=GPAD.t + (H-GPAD.t-GPAD.b)*j/3;
+    s+='<line x1="'+GPAD.l+'" y1="'+y+'" x2="'+(GW-GPAD.r)+'" y2="'+y+'" stroke="#3a3b3d" stroke-width="1"/>';
+  }
+  return s;
+}
+function gXlab(labels, H){
+  var s='', n=labels.length, i, iw=GW-GPAD.l-GPAD.r;
+  for(i=0;i<n;i++){
+    var x = n===1 ? GW/2 : GPAD.l + iw*i/(n-1);
+    /* はしの 字が 画面から はみ出さない ように よせます */
+    var a='middle';
+    if(n>1 && i===0){   a='start'; x=GPAD.l; }
+    if(n>1 && i===n-1){ a='end';   x=GW-GPAD.r; }
+    s+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+a+'" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i]+'</text>';
+  }
+  return s;
+}
+/* おれ線の グラフ */
+function gLine(labels, vals, dec){
+  var rg=gRange(vals); if(!rg) return '';
+  var H=230, iw=GW-GPAD.l-GPAD.r, ih=H-GPAD.t-GPAD.b, n=vals.length;
+  function X(i){ return n===1 ? GW/2 : GPAD.l + iw*i/(n-1); }
+  function Y(v){ return GPAD.t + ih - (v-rg[0])/(rg[1]-rg[0])*ih; }
+  var s='<svg viewBox="0 0 '+GW+' '+H+'" role="img">'+gGrid(H);
+  var dp='', i, first=true;
+  for(i=0;i<n;i++){
+    if(vals[i]==null || isNaN(vals[i])) continue;
+    dp += (first?'M':'L')+X(i).toFixed(1)+' '+Y(vals[i]).toFixed(1)+' '; first=false;
+  }
+  s+='<path d="'+dp+'" fill="none" stroke="#ffc400" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>';
+  for(i=0;i<n;i++){
+    if(vals[i]==null || isNaN(vals[i])) continue;
+    var x=X(i), y=Y(vals[i]);
+    s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5.5" fill="#ffc400"/>';
+    var ty = (y-14 < GPAD.t) ? (y+22) : (y-14);
+    var ta = (i===0) ? 'start' : (i===n-1 ? 'end' : 'middle');
+    var tx = (i===0) ? (x-4) : (i===n-1 ? (x+4) : x);
+    s+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+ta+'" font-size="18" font-weight="900" fill="#ffffff">'+vals[i].toFixed(dec)+'</text>';
+  }
+  s+=gXlab(labels,H)+'</svg>';
+  return s;
+}
+/* たて棒の グラフ（0から はじまる もの だけ に つかいます） */
+function gBar(labels, vals, dec){
+  var v=[], i; for(i=0;i<vals.length;i++) if(vals[i]!=null && !isNaN(vals[i])) v.push(vals[i]);
+  if(!v.length) return '';
+  var mx=Math.max.apply(null,v)*1.18;
+  var H=230, iw=GW-GPAD.l-GPAD.r, ih=H-GPAD.t-GPAD.b, n=vals.length;
+  var step=iw/n, bw=Math.min(78, step*0.56);
+  var s='<svg viewBox="0 0 '+GW+' '+H+'" role="img">'+gGrid(H);
+  for(i=0;i<n;i++){
+    if(vals[i]==null || isNaN(vals[i])) continue;
+    var cx=GPAD.l+step*(i+0.5), h=ih*vals[i]/mx, y=GPAD.t+ih-h;
+    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="4" fill="#ffc400"/>';
+    s+='<text x="'+cx.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle" font-size="18" font-weight="900" fill="#ffffff">'+vals[i].toFixed(dec)+'</text>';
+  }
+  for(i=0;i<n;i++){
+    s+='<text x="'+(GPAD.l+step*(i+0.5)).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i]+'</text>';
+  }
+  s+='</svg>';
+  return s;
+}
+/* よこ棒の グラフ（レースの 内わけ） */
+function gHBar(rows){
+  var mx=0, i;
+  for(i=0;i<rows.length;i++) if(rows[i][1]>mx) mx=rows[i][1];
+  if(!mx) return '';
+  var lw=150, rw=96, H=30+rows.length*52, bx=lw+8, bw=GW-lw-rw-16;
+  var s='<svg viewBox="0 0 '+GW+' '+H+'" role="img">';
+  for(i=0;i<rows.length;i++){
+    var y=18+i*52, w=bw*rows[i][1]/mx;
+    s+='<text x="'+(lw-4)+'" y="'+(y+26)+'" text-anchor="end" font-size="17" font-weight="800" fill="#c9c9c9">'+rows[i][0]+'</text>';
+    s+='<rect x="'+bx+'" y="'+(y+6)+'" width="'+Math.max(3,w).toFixed(1)+'" height="30" rx="5" fill="'+(rows[i][2]||'#ffc400')+'"/>';
+    s+='<text x="'+(bx+Math.max(3,w)+8).toFixed(1)+'" y="'+(y+28)+'" font-size="18" font-weight="900" fill="#ffffff">'+rows[i][1].toFixed(2)+'</text>';
+  }
+  s+='</svg>';
+  return s;
+}
+/* ④ グラフを ならべます */
+function chartBlock(title, note, svg){
+  if(!svg) return '';
+  return '<div class="vwCh"><h4>'+esc(title)+'</h4>'+
+         (note?'<p>'+esc(note)+'</p>':'')+svg+'</div>';
+}
+function paintCharts(r){
+  var box=$('vwChart'); if(!box) return;
+  var L=raceLapData(r), P=raceParts(r), h='', i;
+  var labels=[], tms=[], spd=[], sc=[], st=[], dps=[];
+  for(i=0;i<L.length;i++){
+    labels.push(L[i].from+'-'+L[i].to);
+    tms.push(L[i].t); spd.push(L[i].v); sc.push(L[i].n); st.push(L[i].st); dps.push(L[i].dps);
+  }
+  function some(a){ var k; for(k=0;k<a.length;k++) if(a[k]!=null && !isNaN(a[k])) return true; return false; }
+  if(L.length>=2){
+    h+=chartBlock(T('chLap'),  T('chLapN'),  gLine(labels, tms, 2));
+    h+=chartBlock(T('chSpd'),  T('chSpdN'),  gLine(labels, spd, 2));
+    if(some(sc)) h+=chartBlock(T('chSC'),  T('chSCN'),  gBar(labels, sc, 0));
+    if(some(st)) h+=chartBlock(T('chST'),  T('chSTN'),  gLine(labels, st, 2));
+    if(some(dps))h+=chartBlock(T('chDPS'), T('chDPSN'), gLine(labels, dps, 2));
+  }
+  if(P){
+    var rows=[[T('pStart'), P.start, '#35e06a']];
+    if(P.turnN) rows.push([T('pTurn')+' \u00d7'+P.turnN, P.turn, '#2f8fff']);
+    rows.push([T('pClean'), P.clean, '#ffc400']);
+    rows.push([T('pFin'),   P.fin,   '#ff8a3d']);
+    h+=chartBlock(T('chPart'), T('chPartN'), gHBar(rows));
+  }
+  if(!h){ box.innerHTML=''; box.classList.add('hide'); return; }
+  box.innerHTML='<div class="vwGl">'+esc(T('glChart'))+'</div>'+h;
+  box.classList.remove('hide');
+}
+
 function viewOpen(r){
   if(!r) return;
   vwRec=r;
@@ -7025,6 +7250,8 @@ function viewOpen(r){
   }else{
     $('vwNote').classList.add('hide');
   }
+  /* グラフ */
+  try{ paintCharts(r); }catch(e){ var cb=$('vwChart'); if(cb){ cb.innerHTML=''; cb.classList.add('hide'); } }
   $('vwVid').classList.toggle('hide', !r.videoUrl);
   $('viewBox').classList.remove('hide');
 }

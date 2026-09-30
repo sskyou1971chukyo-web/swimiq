@@ -389,6 +389,33 @@ details.more[open]>summary{background:#e3eefa}
   .dlg{padding:14px}
 }
 
+/* 携帯：1段目 日時、2段目 並べる数とその他の操作、3段目 メニュー作成 */
+@media (max-width:700px){
+  #mSummary{padding:6px 10px;font-size:15px;margin-bottom:6px;border-width:1.5px}
+  #mSummary .chg{font-size:13px}
+  #toolRow{flex-wrap:nowrap;align-items:center;gap:6px;margin-bottom:6px}
+  body.moreOpen #toolRow{flex-wrap:wrap}
+  #gOut{width:auto;flex:0 0 auto}
+  #gOut .tgbody{flex-wrap:nowrap;gap:6px}
+  #gOut .perSel{width:auto;flex-direction:row;align-items:center;gap:4px;font-size:12px;white-space:nowrap}
+  #gOut .perSel select{font-size:15px!important;padding:3px 6px!important;min-height:36px}
+  #printCount{font-size:11px;padding:2px 6px;white-space:nowrap}
+  #btnMore{width:auto;flex:1 1 auto;min-width:0;font-size:14px;padding:7px 6px;border-width:1.5px;white-space:nowrap}
+  body.moreOpen .tgroup.sec{order:5;width:100%}
+  #makeBand{display:flex;align-items:center;gap:6px;padding:6px;margin-bottom:8px}
+  #makeBand .bandTop{flex:0 0 auto;margin:0;gap:6px;flex-wrap:nowrap}
+  #makeBand .bandLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;padding:0;border:0;margin:0}
+  #makeBand #btnCalc{flex:0 0 auto;font-size:14px;padding:7px 8px;white-space:nowrap}
+  #symRow{flex:1 1 auto;min-width:0;gap:4px}
+  #symRow button{min-width:40px;min-height:40px;font-size:16px;padding:4px 8px}
+  body.moreOpen #makeBand{flex-wrap:wrap}
+  body.moreOpen #makeBand .bandTop{flex-wrap:wrap;width:100%}
+}
+@media (max-width:360px){
+  #printCount:not(.warn){display:none}
+  #btnMore{font-size:13px;padding:7px 4px}
+}
+
 @media print{
   @page{size:A4 landscape;margin:8mm}
   html,body{background:#fff}
@@ -2439,22 +2466,36 @@ async function doPrint(modeOverride, kind){
 
 /* ---------- LINE ---------- */
 function menuPlainText(){
+  /* LINE用の文章：「時間と距離」の行、その下に「練習内容」、区切りごとに1行あける */
   const tots = analyzeMenu(M);
   const out = [];
   out.push('【' + (S.settings.header || '') + ' 練習メニュー】');
-  out.push(jpDate(M.date) + '　開始' + fmtClock(M.start) + '　' + M.pool + (M.title ? '　' + M.title : ''));
+  out.push(jpDate(M.date) + '　' + fmtClock(M.start) + '開始　' + M.pool);
+  if(M.title) out.push(M.title);
   const plan = planInfoFor(M.date, M.panels[0] && M.panels[0].team); if(plan) out.push(plan.label);
   tots.forEach((t, i) => {
     if(!(M.panels[i].text || '').trim() || M.panels[i].print === false) return;
     out.push('');
-    out.push('■' + panelLabel(M.panels[i]) + '　合計' + fmtNum(t.dist) + 'm　終了' + secToHm(t.end));
-    const lines = t.lines.slice(); while(lines.length && lines[lines.length-1].type === 'blank') lines.pop();
-    lines.forEach(l => {
+    out.push('■' + panelLabel(M.panels[i]) + '　合計' + fmtNum(t.dist) + 'm');
+    out.push('（' + fmtClock(M.start) + '〜' + secToHm(t.end) + '）');
+    const lines = t.lines.filter(l => l.type !== 'blank');
+    const titles = lines.map((l, k) => l.type === 'title' ? k : -1).filter(k => k >= 0);
+    let block = null;
+    const flush = () => { if(block && block.length){ out.push(''); block.forEach(x => out.push(x)); } block = null; };
+    lines.forEach((l, k) => {
       const txt = displayLine(l);
-      if(l.type === 'title') out.push(secToHm(l.start) + ' ' + txt + (l.secDist ? '（計' + fmtNum(l.secDist) + 'm）' : ''));
-      else if(l.type === 'blank') out.push('');
-      else out.push((l.type === 'memo' ? '　' : '') + txt);
+      if(l.type === 'title'){
+        flush();
+        const nextT = titles.find(x => x > k);
+        const endSec = nextT !== undefined ? lines[nextT].start : t.end;
+        const hasEnd = endSec != null && endSec > l.start;
+        block = [secToHm(l.start) + '〜' + (hasEnd ? secToHm(endSec) : '') + (l.secDist ? '　' + fmtNum(l.secDist) + 'm' : ''), txt];
+      } else {
+        if(!block) block = [];
+        block.push((l.type === 'memo' ? '　' : '') + txt);
+      }
     });
+    flush();
   });
   return out.join('\n');
 }

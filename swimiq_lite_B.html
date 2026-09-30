@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.25.8">
+<meta name="app-ver" content="2026.09.30.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1637,7 +1637,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.25.8</p>
+  <p class="ver" id="verBottom">ver 2026.09.30.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2750,6 +2750,8 @@ var W={
  askLap2:['こ あります。\nそのまま 通過タイムに つかいますか。','件あります。\nそのまま通過タイムとして使いますか。'],
  cOpening:['カメラを ひらいています…','カメラを起動しています…'],
  cReady:['「スタート」を おすと 音まちに なります。','「スタート」を押すと音声待機になります。'],
+ cQual:['画質','画質'],
+ cFps:['コマ','fps'],
  cNG:['カメラを ひらけませんでした','カメラを起動できませんでした'],
  cNG2:['）。カメラと マイクを ゆるしてください。','）。カメラとマイクの使用を許可してください。'],
  cNoRec:['この端末では 動画を とれません','この端末では録画できません'],
@@ -5568,19 +5570,88 @@ function cWatch(){
   })();
 }
 /* --- カメラ --- */
+/* ================= カメラの 画質 =================
+   なにも 言わないと、スマホは 遠慮して ひくい 画質で うごきます。
+   そこで つぎの ことを お願いします。
+   ・フルHD（1920×1080）と 1秒60コマ（むりなら 自動で 下げます）
+   ・Android で レンズが いくつも ある ときは、いちばん 画質の よい メインの レンズ
+   ・ピント／明るさ／色あいを ずっと 自動で 合わせつづける
+   ・うごきの はやい 映像だと 伝えて、コマ落ちを へらす            */
+var C_VIDEO={ width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} };
+var C_AUDIO={ echoCancellation:false, noiseSuppression:false, autoGainControl:false };
+var cMainTried=false;
 function cOpen(){
   cSay(T('cOpening'));
-  navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:cFacing, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60} },
-    audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-  }).then(function(st){
-    cStream=st; var v=$('cv'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
-    cAudio(); cZoomInit();
-    cSay(T('cReady'));
-    setTimeout(function(){ if(!cRun&&!cArm) cSay(''); },4000);
+  cMainTried=false;
+  var vc={ facingMode:cFacing, width:C_VIDEO.width, height:C_VIDEO.height, frameRate:C_VIDEO.frameRate };
+  navigator.mediaDevices.getUserMedia({ video:vc, audio:C_AUDIO }).then(function(st){
+    cPickMain(st, function(st2){ cOpened(st2); });
   }).catch(function(err){
-    cSay(T('cNG')+'（'+(err&&err.name?err.name:'error')+T('cNG2'));
+    /* 高い 画質を ことわられた ときは、ふつうの 画質で もう一度 */
+    navigator.mediaDevices.getUserMedia({ video:{ facingMode:cFacing }, audio:C_AUDIO }).then(function(st){
+      cOpened(st);
+    }).catch(function(err2){
+      cSay(T('cNG')+'（'+(err2&&err2.name?err2.name:(err&&err.name?err.name:'error'))+T('cNG2'));
+    });
   });
+}
+function cOpened(st){
+  cStream=st; var v=$('cv'); v.srcObject=st; v.muted=true; v.play().catch(function(){});
+  cTune();
+  cAudio(); cZoomInit();
+  cSay(T('cReady')+cQualText());
+  setTimeout(function(){ if(!cRun&&!cArm) cSay(''); },5000);
+}
+/* Android の メインの レンズを えらびます。
+   Android では メインの レンズは ふつう「camera2 0」という 名前です。
+   iPhone は はじめから メインの レンズが えらばれるので、そのままです。 */
+function cPickMain(st, done){
+  try{
+    if(cFacing!=='environment' || cMainTried || !navigator.mediaDevices.enumerateDevices){ done(st); return; }
+    cMainTried=true;
+    var tr=st.getVideoTracks()[0];
+    var curId=(tr && tr.getSettings) ? (tr.getSettings().deviceId||'') : '';
+    navigator.mediaDevices.enumerateDevices().then(function(list){
+      var main=null;
+      list.forEach(function(d){
+        if(d.kind==='videoinput' && /camera2 0\b|camera 0\b/i.test(d.label||'') && /back|rear|environment|背面/i.test(d.label||'')) main=d;
+      });
+      if(!main || !main.deviceId || main.deviceId===curId){ done(st); return; }
+      st.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} });
+      var vc={ deviceId:{ exact:main.deviceId }, width:C_VIDEO.width, height:C_VIDEO.height, frameRate:C_VIDEO.frameRate };
+      navigator.mediaDevices.getUserMedia({ video:vc, audio:C_AUDIO }).then(done).catch(function(){
+        /* うまく いかなければ、はじめの やり方で 開きなおします */
+        navigator.mediaDevices.getUserMedia({ video:{ facingMode:cFacing, width:C_VIDEO.width, height:C_VIDEO.height, frameRate:C_VIDEO.frameRate }, audio:C_AUDIO })
+          .then(done).catch(function(e){ cSay(T('cNG')+'（'+(e&&e.name?e.name:'error')+T('cNG2')); });
+      });
+    }).catch(function(){ done(st); });
+  }catch(e){ done(st); }
+}
+/* ピント・明るさ・色あいを 自動で 合わせつづけます（対応している 端末だけ） */
+function cTune(){
+  try{
+    var tr=cStream && cStream.getVideoTracks()[0];
+    if(!tr) return;
+    try{ tr.contentHint='motion'; }catch(e){}
+    if(!tr.getCapabilities) return;
+    var cap=tr.getCapabilities()||{}, adv=[];
+    function has(k,val){ return cap[k] && cap[k].indexOf && cap[k].indexOf(val)>=0; }
+    if(has('focusMode','continuous')) adv.push({ focusMode:'continuous' });
+    if(has('exposureMode','continuous')) adv.push({ exposureMode:'continuous' });
+    if(has('whiteBalanceMode','continuous')) adv.push({ whiteBalanceMode:'continuous' });
+    adv.forEach(function(a){ try{ tr.applyConstraints({ advanced:[a] }).catch(function(){}); }catch(e){} });
+  }catch(e){}
+}
+/* いまの 画質を ことばで 伝えます（読み上げでも 分かるように） */
+function cQualText(){
+  try{
+    var tr=cStream && cStream.getVideoTracks()[0];
+    var st=tr && tr.getSettings ? tr.getSettings() : null;
+    if(!st || !st.width || !st.height) return '';
+    var w=Math.max(st.width,st.height), h=Math.min(st.width,st.height);
+    var f=st.frameRate ? Math.round(st.frameRate) : 0;
+    return ' '+T('cQual')+' '+w+'×'+h+(f ? '・'+f+T('cFps') : '');
+  }catch(e){ return ''; }
 }
 function cStopCam(){
   cCanStop();
@@ -5698,10 +5769,10 @@ function cRecSource(){
     var v=$('cv'), W=v.videoWidth||0, H=v.videoHeight||0;
     if(!W || !H) return cStream;
     cCanvas = $('cStabCv');
-    /* 大きすぎる 画は 1コマの しごとが 重く なり、
-       とちゅうで コマ落ちの 原因に なるので、よこ 1280 までに します */
+    /* フルHD（よこ 1920）までは そのままの 大きさで 録ります。
+       重すぎる 端末では、下の 見はりが 手ぶれ補正を 自動で 切ります。 */
     var CW=W, CH=H;
-    if(CW>1280){ CH=Math.round(H*1280/W); CW=1280; }
+    if(CW>1920){ CH=Math.round(H*1920/W); CW=1920; }
     cCanvas.width=CW; cCanvas.height=CH;
     cCtx2=cCanvas.getContext('2d');
     if(!cCtx2 || !cCanvas.captureStream) return cStream;
@@ -5832,8 +5903,23 @@ function cRecStart(){
   if(!cStream || (cRec&&cRec.state==='recording')) return;
   cChunks=[];
   var m=pickMime(), src=cRecSource();
-  try{ cRec = m ? new MediaRecorder(src,{mimeType:m}) : new MediaRecorder(src); }
-  catch(e){ cRec=null; cSay(T('cNoRec')); return; }
+  /* 録画の データ量を たっぷり とります。
+     ここが 少ないと、水しぶきや 泳ぎの 細かい 動きが にじんで しまいます。
+     フルHD は 1秒 12メガ、それより 小さい 画は 8メガ（スマホ純正カメラと 同じくらい）。 */
+  var opt={}, vb=8000000;
+  try{
+    var vt=src.getVideoTracks()[0], ss=vt&&vt.getSettings?vt.getSettings():{};
+    var px=(ss.width||0)*(ss.height||0);
+    if(!px && cCanvas) px=cCanvas.width*cCanvas.height;
+    if(px>=1920*1080*0.9) vb=12000000;
+  }catch(e){}
+  opt.videoBitsPerSecond=vb; opt.audioBitsPerSecond=128000;
+  if(m) opt.mimeType=m;
+  try{ cRec = new MediaRecorder(src,opt); }
+  catch(e){
+    try{ cRec = m ? new MediaRecorder(src,{mimeType:m}) : new MediaRecorder(src); }
+    catch(e2){ cRec=null; cSay(T('cNoRec')); return; }
+  }
   cRec.ondataavailable=function(e){ if(e.data&&e.data.size) cChunks.push(e.data); };
   cRec.onerror=function(){ try{ toast(T('cRecNG')); }catch(e){} };
   cRec.onstop=function(){

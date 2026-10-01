@@ -4,13 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>中京大学水泳部 練習メニュー作成</title>
-<link rel="manifest" href="menu_manifest.webmanifest">
-<meta name="theme-color" content="#0d2b4e">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="練習メニュー">
-<link rel="apple-touch-icon" href="menu-icon-180.png">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -74,6 +67,19 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #makeBand .btn.mk:hover{background:#e3eefa}
 #makeBand #btnCalc{background:#ffbf00;border-color:#ffbf00;color:#16202e}
 #symRow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.weekRow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.wkBtn{display:flex;flex-direction:column;align-items:center;min-width:74px;border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:3px 8px;font-size:14px;font-weight:700;line-height:1.25;position:relative}
+.wkBtn small{font-size:12px;font-weight:700;color:#cfe0f2}
+.wkBtn:hover{background:rgba(255,255,255,.25)}
+.wkBtn.scm small{color:#ffd166}
+.wkBtn.today{border-color:#ffbf00}
+.wkBtn.on{background:#fff;color:var(--navy);border-color:#fff}
+.wkBtn.on small{color:var(--navy)}
+.wkBtn.off{opacity:.45;border-style:dashed;cursor:default}
+.wkDot{position:absolute;top:3px;right:4px;width:8px;height:8px;border-radius:50%;background:#2ecc71}
+.wkEdit{background:transparent!important;color:#fff!important;border-color:rgba(255,255,255,.55)!important}
+.wsTbl th{width:4em;font-size:16px}
+.weekRow .symLabel{color:#fff;font-size:14px;font-weight:700;margin-right:2px}
 #makeBand .syncLbl{margin-left:auto;color:#fff;font-size:15px;gap:6px}
 #symRow .symLabel{color:#cfe0f2;font-size:14px;font-weight:700;margin-right:2px}
 #symRow button{min-width:46px;font-size:18px;font-weight:700;border:2px solid #fff;background:#fff;color:#16202e;border-radius:8px;padding:4px 10px}
@@ -222,6 +228,12 @@ table.raceSel tr.outRange small{color:#b81c22;font-weight:700}
 .sumP th,.sumP th:first-child{width:9em;background:#eee;white-space:nowrap}.sumP td,.sumP th{font-size:1.05em;padding:5px 8px}
 .pdfMacro{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.pdfMacro div{border:1px solid #888;border-radius:6px;padding:3px 8px;font-size:.9em}
 .pdfChart svg{width:100%;height:auto}
+.bioNow{border:3px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:#fff}
+.bioSeq{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.bioStep{border:2px solid var(--line);border-radius:14px;padding:3px 10px;font-size:13px;font-weight:700;color:var(--muted)}
+.bioStep.on{color:#fff}
+.bioArrow{color:var(--muted)}
+.bioForm label.fld{font-size:12px}
 .cycTabs{display:flex;gap:6px;flex-wrap:wrap}
 .cycTabs button{border:2px solid var(--blue);background:#fff;color:var(--blue);border-radius:20px;padding:8px 18px;font-size:16px;font-weight:700}
 .cycTabs button[aria-selected="true"]{background:var(--blue);color:#fff}
@@ -322,18 +334,6 @@ details.more[open]>summary{background:#e3eefa}
 
 /* ===== 携帯（幅700px以下）用のシンプル表示 ===== */
 .phoneOnly{display:none!important}
-/* 操作の枠を小さくして横一列に並べる（パソコン・タブレット） */
-@media (min-width:701px){
-  #toolRow{flex-wrap:nowrap;gap:6px;align-items:stretch}
-  #toolRow .tgroup{padding:3px 7px 5px;flex:0 1 auto;min-width:0}
-  #toolRow .tglabel{font-size:11px;margin-bottom:2px;letter-spacing:0}
-  #toolRow .tgbody{gap:5px;flex-wrap:wrap}
-  #toolRow .btn{font-size:13px;padding:4px 9px;border-radius:8px;border-width:1.5px;white-space:nowrap}
-  #toolRow .btn.big{font-size:14px;padding:5px 10px}
-  #toolRow .perSel{flex-direction:column;align-items:flex-start;font-size:11px;gap:0;white-space:nowrap}
-  #toolRow .perSel select{font-size:13px!important;padding:2px 4px!important;width:auto}
-  #toolRow .printCount{font-size:11px;padding:2px 6px;white-space:nowrap}
-}
 @media (max-width:700px){
   .phoneOnly{display:revert!important}
   .pcOnly{display:none!important}
@@ -368,6 +368,8 @@ details.more[open]>summary{background:#e3eefa}
   #makeBand #btnCalc{flex:1;font-size:16px;padding:8px}
   #makeBand .msec{flex:1 1 40%;font-size:14px;padding:8px 4px}
   #symRow{flex-wrap:nowrap;overflow-x:auto}
+  .weekRow{flex-wrap:nowrap;overflow-x:auto}
+  .wkBtn{flex-shrink:0}
   #symRow .symLabel{display:none}
   #symRow button{flex-shrink:0;min-width:44px;font-size:17px;padding:6px 10px}
   #symRow button[data-tip]:hover::after,#symRow button[data-tip]:hover::before{display:none}
@@ -387,33 +389,6 @@ details.more[open]>summary{background:#e3eefa}
   #advice{width:100%}
   #advText{height:40vh}
   .dlg{padding:14px}
-}
-
-/* 携帯：1段目 日時、2段目 並べる数とその他の操作、3段目 メニュー作成 */
-@media (max-width:700px){
-  #mSummary{padding:6px 10px;font-size:15px;margin-bottom:6px;border-width:1.5px}
-  #mSummary .chg{font-size:13px}
-  #toolRow{flex-wrap:nowrap;align-items:center;gap:6px;margin-bottom:6px}
-  body.moreOpen #toolRow{flex-wrap:wrap}
-  #gOut{width:auto;flex:0 0 auto}
-  #gOut .tgbody{flex-wrap:nowrap;gap:6px}
-  #gOut .perSel{width:auto;flex-direction:row;align-items:center;gap:4px;font-size:12px;white-space:nowrap}
-  #gOut .perSel select{font-size:15px!important;padding:3px 6px!important;min-height:36px}
-  #printCount{font-size:11px;padding:2px 6px;white-space:nowrap}
-  #btnMore{width:auto;flex:1 1 auto;min-width:0;font-size:14px;padding:7px 6px;border-width:1.5px;white-space:nowrap}
-  body.moreOpen .tgroup.sec{order:5;width:100%}
-  #makeBand{display:flex;align-items:center;gap:6px;padding:6px;margin-bottom:8px}
-  #makeBand .bandTop{flex:0 0 auto;margin:0;gap:6px;flex-wrap:nowrap}
-  #makeBand .bandLabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;padding:0;border:0;margin:0}
-  #makeBand #btnCalc{flex:0 0 auto;font-size:14px;padding:7px 8px;white-space:nowrap}
-  #symRow{flex:1 1 auto;min-width:0;gap:4px}
-  #symRow button{min-width:40px;min-height:40px;font-size:16px;padding:4px 8px}
-  body.moreOpen #makeBand{flex-wrap:wrap}
-  body.moreOpen #makeBand .bandTop{flex-wrap:wrap;width:100%}
-}
-@media (max-width:360px){
-  #printCount:not(.warn){display:none}
-  #btnMore{font-size:13px;padding:7px 4px}
 }
 
 @media print{
@@ -461,7 +436,7 @@ details.more[open]>summary{background:#e3eefa}
       <div class="tglabel" id="gOutL">印刷・共有</div>
       <div class="tgbody">
         <button class="btn red primary big" id="btnPrint">印刷とPDF保存</button>
-        <label class="fld perSel">1枚に並べる数<select id="printPer"><option value="1">1つ</option><option value="2">2つ</option><option value="3">3つ</option></select></label>
+        <label class="fld perSel">1枚に並べる数<select id="printPer"><option value="1">1つ（大きく）</option><option value="2">2つ</option><option value="3">3つ</option></select></label>
         <button class="btn big" id="btnLine">LINEで送る</button>
         <span id="printCount" class="printCount" aria-live="polite"></span>
       </div>
@@ -491,6 +466,7 @@ details.more[open]>summary{background:#e3eefa}
       <button class="btn mk msec" id="btnNew">新しいメニュー</button>
       <label class="row pcOnly syncLbl"><input type="checkbox" id="chkSync"> 列のスクロールをそろえる</label>
     </div>
+    <div id="weekRow" class="weekRow" role="group" aria-label="週間スケジュール。押すとその曜日のメニューに切りかわります"></div>
     <div id="symRow" aria-label="記号を入力するボタン。ボタンに合わせると説明が出ます">
       <span class="symLabel">記号</span>
       <button data-ins="m" data-tip="m ＝ メートル（距離）。例：100m">m</button>
@@ -702,6 +678,16 @@ details.more[open]>summary{background:#e3eefa}
   </div>
 </div>
 
+<!-- 週間スケジュール -->
+<div class="ov hidden" id="wsOv" role="dialog" aria-modal="true" aria-labelledby="wsTitle">
+  <div class="dlg" style="width:min(820px,100%)">
+    <h2 id="wsTitle">週間スケジュールを設定 <button class="btn ghost small" data-close="wsOv">閉じる</button></h2>
+    <p class="muted">曜日ごとに、練習の開始時刻（24時間）と水路を入れます。1日2回まで登録できます。時刻を空欄にすると、その回はなしになります。</p>
+    <div id="wsBody" style="margin-top:8px"></div>
+    <div class="foot"><button class="btn primary big" id="wsSave">保存する</button></div>
+  </div>
+</div>
+
 <!-- 項目の追加・削除 -->
 <div class="ov hidden" id="optOv" role="dialog" aria-modal="true" aria-labelledby="optTitle">
   <div class="dlg" style="width:min(560px,100%)">
@@ -789,7 +775,7 @@ details.more[open]>summary{background:#e3eefa}
     <h2 id="printTitle" class="no-print">印刷とPDF <button class="btn ghost small" data-close="printOv">閉じる</button></h2>
     <p id="printMsg" class="no-print" aria-live="polite" style="margin-bottom:8px"></p>
     <div class="row no-print" style="margin-bottom:10px">
-      <label class="fld">1枚の紙に並べる数<select id="prPer"><option value="1">1つ</option><option value="2">2つ</option><option value="3">3つ</option></select></label>
+      <label class="fld">1枚の紙に並べる数<select id="prPer"><option value="1">1つ（大きく）</option><option value="2">2つ</option><option value="3">3つ</option></select></label>
       <button class="btn primary" id="prAgain">もう一度印刷</button>
       <button class="btn" id="prPdf">PDFをもう一度保存</button>
       <button class="btn" id="prLine">LINEで送る</button>
@@ -1794,6 +1780,7 @@ function buildLineAdvice(info, team){
   if(info.stroke === 'IM') cau.push('個人メドレーでは、種目の切り替えのターンの技術も確認する。');
   L.push('【気をつける点】' + cau.map((x,i) => (i+1) + '．' + x).join(' '));
   if(info.hypoxic) L.push(HYPOXIC_NOTE);
+  const bw = bioLineWarn(info, team); if(bw) L.push(bw);
   L.push('');
   const co = S.settings.coaches;
   if(co.olb) L.push('【ヤン・オルブレヒト博士の考え方から】' + kb.olb);
@@ -1902,13 +1889,14 @@ function openMenu(date, session){
 }
 function commitMenu(){
   M.updated = Date.now();
+  clearTimeout(commitMenu._w); commitMenu._w = setTimeout(renderWeekRow, 400);
   if(menuHasContent(M)) S.menus[M.id] = M; else delete S.menus[M.id];
   scheduleSave();
 }
 function renderMenuView(){
   $('mDate').value = M.date; $('mStart').value = fmtClock(M.start); $('mPool').value = M.pool; $('mTitle').value = M.title || '';
   $('mDateJp').textContent = M.date.slice(0,4) + '年' + jpDate(M.date) + (M.date === todayYmd() ? '（今日）' : '');
-  renderPanels(); renderPlanStrip(); renderAdvice(true); updateSummary();
+  renderPanels(); renderPlanStrip(); renderAdvice(true); updateSummary(); renderWeekRow();
 }
 /* 携帯：上の入力欄を1行にたたんだ表示 */
 function updateSummary(){
@@ -2466,36 +2454,22 @@ async function doPrint(modeOverride, kind){
 
 /* ---------- LINE ---------- */
 function menuPlainText(){
-  /* LINE用の文章：「時間と距離」の行、その下に「練習内容」、区切りごとに1行あける */
   const tots = analyzeMenu(M);
   const out = [];
   out.push('【' + (S.settings.header || '') + ' 練習メニュー】');
-  out.push(jpDate(M.date) + '　' + fmtClock(M.start) + '開始　' + M.pool);
-  if(M.title) out.push(M.title);
+  out.push(jpDate(M.date) + '　開始' + fmtClock(M.start) + '　' + M.pool + (M.title ? '　' + M.title : ''));
   const plan = planInfoFor(M.date, M.panels[0] && M.panels[0].team); if(plan) out.push(plan.label);
   tots.forEach((t, i) => {
     if(!(M.panels[i].text || '').trim() || M.panels[i].print === false) return;
     out.push('');
-    out.push('■' + panelLabel(M.panels[i]) + '　合計' + fmtNum(t.dist) + 'm');
-    out.push('（' + fmtClock(M.start) + '〜' + secToHm(t.end) + '）');
-    const lines = t.lines.filter(l => l.type !== 'blank');
-    const titles = lines.map((l, k) => l.type === 'title' ? k : -1).filter(k => k >= 0);
-    let block = null;
-    const flush = () => { if(block && block.length){ out.push(''); block.forEach(x => out.push(x)); } block = null; };
-    lines.forEach((l, k) => {
+    out.push('■' + panelLabel(M.panels[i]) + '　合計' + fmtNum(t.dist) + 'm　終了' + secToHm(t.end));
+    const lines = t.lines.slice(); while(lines.length && lines[lines.length-1].type === 'blank') lines.pop();
+    lines.forEach(l => {
       const txt = displayLine(l);
-      if(l.type === 'title'){
-        flush();
-        const nextT = titles.find(x => x > k);
-        const endSec = nextT !== undefined ? lines[nextT].start : t.end;
-        const hasEnd = endSec != null && endSec > l.start;
-        block = [secToHm(l.start) + '〜' + (hasEnd ? secToHm(endSec) : '') + (l.secDist ? '　' + fmtNum(l.secDist) + 'm' : ''), txt];
-      } else {
-        if(!block) block = [];
-        block.push((l.type === 'memo' ? '　' : '') + txt);
-      }
+      if(l.type === 'title') out.push(secToHm(l.start) + ' ' + txt + (l.secDist ? '（計' + fmtNum(l.secDist) + 'm）' : ''));
+      else if(l.type === 'blank') out.push('');
+      else out.push((l.type === 'memo' ? '　' : '') + txt);
     });
-    flush();
   });
   return out.join('\n');
 }
@@ -2601,6 +2575,7 @@ function lerp(a, b, t){ return a + (b - a) * t; }
 function generateSegment(p){
   const start = mondayOf(p.start), raceMon = mondayOf(p.raceDate);
   const N = Math.floor(daysBetween(start, raceMon) / 7) + 1;
+  if(p.model === 'bioflex') return N < 2 ? [{phase:'race', f:0.4}] : bioSegment(p, N);
   if(N < 3) return N === 2 ? [{phase:'tap', f:0.6}, {phase:'race', f:0.4}] : [{phase:'race', f:0.4}];
   const T = Math.min(p.taper, N - 2);
   const preN = N - 1 - T;
@@ -2665,7 +2640,7 @@ function generatePlan(p){
   bigs.forEach((b, k) => {
     const gap = Math.floor(daysBetween(segStart, mondayOf(b.date)) / 7) + 1;
     if(k > 0 && gap >= 6){ raw.push({phase:'trans', f:0.55}); segStart = addDays(segStart, 7); }
-    generateSegment(Object.assign({}, p, {start:segStart, raceDate:b.date})).forEach(x => raw.push(x));
+    generateSegment(Object.assign({}, p, {start:segStart, raceDate:b.date, firstSeg:k === 0})).forEach(x => raw.push(x));
     segStart = addDays(mondayOf(b.date), 7);
   });
   // 終了日が最後のターゲット試合より後なら、回復と次の準備の週で埋める
@@ -2719,6 +2694,7 @@ function planInfoFor(date, team){
   const i = planWeekIndex(plan, date);
   let label = '', weekTxt = '';
   if(i >= 0){ const w = plan.weeks[i]; label = weekTxt = '第' + (i+1) + '週（全' + plan.weeks.length + '週）' + PH[w.phase].name + '　今週の目標 ' + w.km + 'km'; }
+  if(plan.model === 'bioflex' && plan.bio && date >= plan.bio.since){ label = '今のモメンタム：' + PH[plan.bio.current].name + '　' + label; weekTxt = label; }
   // 次の試合と、次のビッグテーパーの試合（同じなら1つ）
   const up = planRaces(plan).filter(r => r.date >= date && r.role !== 'none').sort((a, b) => a.date < b.date ? -1 : 1);
   const races = [];
@@ -2775,7 +2751,7 @@ function renderModels(){
     '<div class="good">強み</div><ul>' + m.good.map(x => '<li>' + x + '</li>').join('') + '</ul>' +
     '<div class="bad">弱み</div><ul>' + m.bad.map(x => '<li>' + x + '</li>').join('') + '</ul>' +
     '<p style="font-size:14px;margin-top:6px"><b>競泳での使いどころ：</b>' + m.swim + '</p>' +
-    '<div class="refs"><b>主な論文・文献</b><ul>' + m.refs.map(r => '<li>' + esc(REFS[r]) + '</li>').join('') + '</ul></div>' +
+    (m.refs.length ? '<div class="refs"><b>主な論文・文献</b><ul>' + m.refs.map(r => '<li>' + esc(REFS[r]) + '</li>').join('') + '</ul></div>' : '<div class="refs">いただいた資料『O Modelo de Periodização Bioflexível』の内容をもとにしています。</div>') +
     '</details></div>').join('');
   const tOpen = document.querySelector('#taperNote details[open]');
   $('taperNote').innerHTML = '<details class="more"' + (tOpen ? ' open' : '') + '><summary>どのモデルでも共通：テーパーの目安（タップで表示）</summary>' +
@@ -3082,6 +3058,8 @@ function viewBarHtml(plan){
 /* ---------- 計画の表示（マクロ・メゾ・ミクロ） ---------- */
 function renderPlanOut(plan){
   const tabs = [['macro','マクロ（全体）'],['meso','メゾ（中周期）'],['micro','ミクロ（1週間）']];
+  if(plan.model === 'bioflex') tabs.push(['bio','モニタリング（状態で移る）']);
+  else if(planTab === 'bio') planTab = 'macro';
   $('pOut').innerHTML = '<h2>計画：' + esc(plan.name) + '　<span style="font-size:15px;color:var(--muted)">' + esc(planTargetLabel(plan)) + '　' + EVG[plan.group || 'middle'].name + '</span></h2>' +
     '<div class="row" style="margin:6px 0"><button class="btn red primary" id="pPdf">計画書をPDFで保存</button><button class="btn" id="pShare">計画書のPDFを共有（LINEなど）</button></div>' +
     viewBarHtml(plan) +
@@ -3098,6 +3076,7 @@ function renderPlanOut(plan){
   const box = $('cycBody');
   if(planTab === 'macro'){ box.innerHTML = '<div id="macroSum"></div><div id="macroBox"></div>'; $('macroSum').innerHTML = macroSummaryHtml(plan); renderMacro(plan, $('macroBox')); }
   else if(planTab === 'meso') renderMeso(plan, box);
+  else if(planTab === 'bio') renderBio(plan, box);
   else renderMicro(plan, box);
 }
 /* マクロ：ビッグテーパーの試合ごとの大きな周期 */
@@ -3499,6 +3478,271 @@ function microWeights(plan, i){
 }
 
 /* =====================================================================
+   バイオフレキシブル期分けモデル（Periodização Bioflexível）
+   期間を固定せず、選手の状態（負荷と応答）を見てモメンタムを移る。
+   プレシーズン（評価）→ 筋力 → 持久力 → 移行 → パワー
+   ===================================================================== */
+const BIO_SEQ = ['pres','mfor','mres','mtra','mpot'];
+Object.assign(PH, {
+  pres:{name:'プレシーズン（評価）', color:'#7f8c9d', z:[15,40,30,8,3,1,1,2], focus:'状態と弱点の評価。筋力の左右差や可動域の制限を見つけて直してから筋力モメンタムへ'},
+  mfor:{name:'筋力モメンタム', color:'#1f6fb2', z:[15,36,28,8,3,1,1,8], focus:'神経系の適応と筋力。ATP-CP系を優先し、休息を十分にとって乳酸や代謝疲労をためない'},
+  mres:{name:'持久力モメンタム', color:'#e46f1a', z:[10,22,20,15,13,12,6,2], focus:'密度が鍵。休息を短くし、高い強度を保ったまま代謝的な疲労と酸性化への耐性をつける。筋力は維持'},
+  mtra:{name:'移行モメンタム', color:'#2e9e6a', z:[20,30,15,8,6,6,4,11], focus:'疲労を抜きながら（脱蓄積）スピードとパワーを上げる。量と負荷を下げ、実行の速さを上げる'},
+  mpot:{name:'パワーモメンタム', color:'#b81c22', z:[22,30,10,8,5,12,3,10], focus:'試合と同じ強度と動きのリハーサル。新たな疲労をためない。完全な状態でのみ行う'}
+});
+Object.assign(PHW, {pres:['core',2], mfor:['str',3], mres:['hyp',2], mtra:['pow',2], mpot:['act',1]});
+MODELS.push({k:'bioflex', name:'バイオフレキシブル（状態で移る）',
+  summary:'期間を先に固定せず、選手の負荷と応答（疲労、睡眠、筋の張り、心拍、記録や筋力の伸びなど）を見ながら、筋力、持久力、移行、パワーの4つのモメンタムを順に移っていく方法です。始める前にプレシーズンとして状態と弱点を評価します。',
+  good:['選手ごとの適応の速さの違いに合わせられる','疲労がたまった時点で次の段階へ移るので、やりすぎや停滞に気づきやすい','筋力→持久力→移行→パワーの順で、試合に向けて疲労を抜きながら仕上げる流れが明確','個人のピリオダイゼーションと相性がよい'],
+  bad:['日々のモニタリング（入力）が欠かせず、手間がかかる','移る時期が事前に決まらないため、チーム全体の予定と合わせにくい','判定の基準（どのくらいの疲労で移るか）はコーチの判断に左右される','競泳での検証は、ほかのモデルより少ない'],
+  swim:'個人の計画、特に主要な試合に向けて仕上げたい選手に向きます。モニタリングの入力を続けられることが前提です。',
+  refs:[]});
+MMAP.bioflex = MODELS[MODELS.length - 1];
+MODEL_SHORT.bioflex = '期間を固定せず、疲労と伸びを見て筋力→持久力→移行→パワーへ移る';
+
+/* 計画の目安（移る時期は状態で前後する） */
+function bioSegment(p, N){
+  const out = [];
+  let M = N - 1;
+  if(p.firstSeg && M >= 6){ out.push({phase:'pres', f:0.7}, {phase:'pres', f:0.75}); M -= 2; }
+  const fo = Math.max(1, Math.round(M * 0.35)), re = Math.max(1, Math.round(M * 0.35)), tr = Math.max(1, Math.round(M * 0.15));
+  const po = Math.max(1, M - fo - re - tr);
+  for(let k = 0; k < fo; k++) out.push({phase:'mfor', f:lerp(0.8, 0.9, fo > 1 ? k/(fo-1) : 1)});
+  for(let k = 0; k < re; k++) out.push({phase:'mres', f:lerp(0.95, 1.0, re > 1 ? k/(re-1) : 1)});
+  for(let k = 0; k < tr; k++) out.push({phase:'mtra', f:lerp(0.75, 0.65, tr > 1 ? k/(tr-1) : 1)});
+  for(let k = 0; k < po; k++) out.push({phase:'mpot', f:lerp(0.6, 0.5, po > 1 ? k/(po-1) : 1)});
+  while(out.length > N - 1) out.splice(out.findIndex(x => x.phase === 'mres'), 1);
+  out.push({phase:'race', f:0.4});
+  return out;
+}
+
+/* ---------- 状態（モメンタム）と日々の記録 ---------- */
+function bioState(plan){
+  if(!plan.bio) plan.bio = {current:'pres', since:todayYmd(), log:[], history:[], check:{}};
+  return plan.bio;
+}
+const BIO_MIN_DAYS = {pres:7, mfor:14, mres:14, mtra:5, mpot:3};
+const PERF_TXT = {up:'伸びている', flat:'止まっている', down:'落ちている'};
+/* 1回分の記録から疲労のサイン（0〜100） */
+function fatigueScore(e, base){
+  let s = 0, w = 0;
+  if(e.rpe != null){ s += e.rpe / 10 * 35; w += 35; }
+  if(e.sleep != null){ s += (5 - e.sleep) / 4 * 20; w += 20; }
+  if(e.sore != null){ s += (e.sore - 1) / 4 * 25; w += 25; }
+  if(e.hr != null && base.hr){ s += Math.max(0, Math.min(1, (e.hr - base.hr) / 10)) * 10; w += 10; }
+  if(e.hrv != null && base.hrv){ s += Math.max(0, Math.min(1, (base.hrv - e.hrv) / (base.hrv * 0.2))) * 10; w += 10; }
+  if(e.ck != null){ s += Math.max(0, Math.min(1, (e.ck - 200) / 600)) * 10; w += 10; }
+  return w ? Math.round(s / w * 100) : null;
+}
+function bioBaseline(log){
+  const avg = k => { const v = log.slice(0, 7).map(e => e[k]).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+  return {hr:avg('hr'), hrv:avg('hrv')};
+}
+/* 判定：継続・次へ移る・負荷を下げる */
+function bioJudge(plan){
+  const b = bioState(plan), cur = b.current;
+  const log = b.log.filter(e => e.date >= b.since).sort((x, y) => x.date < y.date ? -1 : 1);
+  const base = bioBaseline(b.log.slice().sort((x, y) => x.date < y.date ? -1 : 1));
+  const rec = log.slice(-3), scores = rec.map(e => fatigueScore(e, base)).filter(x => x != null);
+  const fAvg = scores.length ? Math.round(scores.reduce((a, c) => a + c, 0) / scores.length) : null;
+  const perfs = rec.map(e => e.perf).filter(Boolean);
+  const plateau = perfs.filter(p => p !== 'up').length >= 2;
+  const down = perfs.filter(p => p === 'down').length >= 2;
+  const days = daysBetween(b.since, todayYmd());
+  const nextBig = planRaces(plan).filter(r => r.role === 'big' && r.date >= todayYmd()).sort((x, y) => x.date < y.date ? -1 : 1)[0];
+  const toRace = nextBig ? daysBetween(todayYmd(), nextBig.date) : null;
+  const reasons = [];
+  let act = 'stay';
+  if(fAvg != null) reasons.push('直近' + scores.length + '回の疲労のサインの平均は ' + fAvg + '（0〜100、高いほど疲れている）');
+  if(perfs.length) reasons.push('記録・筋力の伸び：' + perfs.map(p => PERF_TXT[p]).join('、'));
+  reasons.push('このモメンタムに入って ' + days + '日');
+  if(toRace != null) reasons.push('次のターゲット「' + nextBig.name + '」まで ' + toRace + '日');
+  if(log.length < 2 && cur !== 'pres') reasons.push('記録が少ないため、まだ判断できません。毎日の入力を続けてください');
+  if(cur === 'pres'){
+    const c = b.check || {};
+    const done = ['balance','rom','weak'].every(k => c[k]);
+    if(done && days >= 3){ act = 'next'; reasons.push('評価の3項目が終わりました'); }
+    else reasons.push('評価の項目（筋力の左右差、可動域、弱点の修正）を終えてから筋力モメンタムへ進みます');
+  } else if(log.length >= 2){
+    if(fAvg != null && fAvg >= 70 && cur !== 'mres'){ act = 'reduce'; reasons.push('疲労のサインが高すぎます。このモメンタムのねらいに対して疲労がたまっています'); }
+    if(cur === 'mfor'){
+      if((plateau && fAvg != null && fAvg >= 45) || (plateau && days >= BIO_MIN_DAYS.mfor)){ act = 'next'; reasons.push('筋力の伸びが止まり、疲労の兆候も出てきました。持久力モメンタムへ移る目安です'); }
+    } else if(cur === 'mres'){
+      if((fAvg != null && fAvg >= 60) || down || (toRace != null && toRace <= 21)){ act = 'next'; reasons.push(toRace != null && toRace <= 21 ? '試合が近づきました。疲労を抜く移行モメンタムへ移る目安です' : '代謝的な疲労が十分にたまりました。移行モメンタムで疲労を抜く目安です'); }
+    } else if(cur === 'mtra'){
+      const last2 = scores.slice(-2);
+      if((last2.length === 2 && last2.every(x => x <= 35) && !down) || (toRace != null && toRace <= 10)){ act = 'next'; reasons.push('疲労が抜けて、動きの速さが出てきました。パワーモメンタムへ移る目安です'); }
+    } else if(cur === 'mpot'){
+      if(toRace == null || toRace < 0){ act = 'next'; reasons.push('ターゲットの試合が終わりました。次の試合に向けて筋力モメンタムから始め直す目安です'); }
+      else if(fAvg != null && fAvg >= 50){ act = 'reduce'; reasons.push('パワーモメンタムでは新たな疲労をためないことが大切です。練習量を減らしてください'); }
+    }
+  }
+  return {act, reasons, fAvg, days, toRace, nextBig};
+}
+function bioNext(cur){ return cur === 'mpot' ? 'mfor' : BIO_SEQ[Math.min(BIO_SEQ.indexOf(cur) + 1, BIO_SEQ.length - 1)]; }
+function bioMove(plan, to){
+  const b = bioState(plan);
+  b.history.push({m:b.current, from:b.since, to:todayYmd()});
+  b.current = to; b.since = todayYmd(); saveNow();
+}
+const BIO_RULES = {
+  pres:{goal:'状態と弱点の評価', swim:'有酸素と技術を中心に、無理のない量で。泳ぎの左右差やキックの弱点を確認', wt:'筋力の左右差、肩と股関節の可動域、体幹の評価と修正', avoid:'評価の前に高い負荷をかけること'},
+  mfor:{goal:'神経系の適応、筋力と動員力の向上', swim:'スプリント（10〜25m）を完全な休息で。乳酸がたまるセットや短い休息の反復は避ける', wt:'高重量・低回数、セット間の休息は2〜3分以上。筋肉痛が残るような追い込みはしない', avoid:'乳酸耐性・乳酸産生（LT・LP）のセット、休息の短いインターバル'},
+  mres:{goal:'代謝的な適応、疲労と酸性化への耐性', swim:'休息を短くした高強度の反復（VO2、乳酸耐性、ブロークン）。密度を上げる', wt:'筋力を維持しながら、休息を短くしたサーキットなどで代謝的な刺激', avoid:'筋力の刺激を完全にやめること（維持は続ける）'},
+  mtra:{goal:'疲労を抜きながらスピードとパワーを上げる', swim:'総量を減らし、短い距離を速く。休息は十分に', wt:'重さを段階的に下げ、動きの速さを上げる（ジャンプ、メディシンボール）', avoid:'新たな疲労をためる練習、量の多いセット'},
+  mpot:{goal:'ベストの動きの反復、競技に特有の動きの仕上げ', swim:'レースと同じ強度・動き・スタートとターンのリハーサル。完全な状態で', wt:'活性化程度。疲労を残さない', avoid:'疲労をためる余分なトレーニング'}
+};
+
+/* ---------- 画面：モニタリング ---------- */
+function renderBio(plan, box){
+  const b = bioState(plan), j = bioJudge(plan), cur = b.current, r = BIO_RULES[cur];
+  const actTxt = {stay:'このモメンタムを続ける', next:'「' + PH[bioNext(cur)].name + '」へ移ることを提案', reduce:'負荷を下げることを提案'};
+  let h = '<div class="bioNow" style="border-color:' + PH[cur].color + '"><div class="bioSeq">' + BIO_SEQ.map(k => '<span class="bioStep' + (k === cur ? ' on' : '') + '" style="' + (k === cur ? 'background:' + PH[k].color + ';border-color:' + PH[k].color : '') + '">' + PH[k].name + '</span>').join('<span class="bioArrow">→</span>') + '</div>' +
+    '<h3 style="margin:8px 0 4px">今のモメンタム：' + PH[cur].name + '　<span class="muted">' + ymdS(b.since) + 'から ' + j.days + '日</span></h3>' +
+    '<table class="list sumTbl"><tbody><tr><th>ねらい</th><td>' + r.goal + '</td></tr><tr><th>水泳</th><td>' + r.swim + '</td></tr><tr><th>ウエイト</th><td>' + r.wt + '</td></tr><tr><th>避けること</th><td>' + r.avoid + '</td></tr></tbody></table></div>';
+  h += '<div class="comment' + (j.act === 'stay' ? '' : ' warn') + '" style="font-size:16px"><b>判定：' + actTxt[j.act] + '</b><br>' + j.reasons.map(esc).join('<br>') + '</div>';
+  h += '<div class="row" style="margin:8px 0">' + (cur !== 'mpot' || j.act === 'next' ? '<button class="btn primary" id="bioNextBtn">次のモメンタム（' + PH[bioNext(cur)].name + '）へ移る</button>' : '') +
+    (BIO_SEQ.indexOf(cur) > 0 ? '<button class="btn" id="bioBackBtn">前のモメンタムに戻る</button>' : '') +
+    '<button class="btn" id="bioAsk">Claudeへの相談文をコピー</button></div>';
+  if(cur === 'pres'){
+    const c = b.check || {};
+    h += '<h3>プレシーズンの評価（終わったら押す）</h3><div class="seg">' + [['balance','筋力の左右差の確認と修正'],['rom','関節の可動域の確認と修正'],['weak','弱点の確認と修正']].map(([k, t]) => '<button type="button" class="segBtn' + (c[k] ? ' on minor' : '') + '" data-bchk="' + k + '" aria-pressed="' + !!c[k] + '">' + (c[k] ? '済み：' : '') + t + '</button>').join('') + '</div>';
+  }
+  h += '<h3>今日の状態を記録する</h3><div class="row bioForm">' +
+    '<label class="fld">日付<input type="date" id="bDate" value="' + todayYmd() + '"></label>' +
+    '<label class="fld">疲労度 RPE（0〜10）<input type="number" id="bRpe" min="0" max="10" step="0.5" style="width:90px"></label>' +
+    '<label class="fld">睡眠の質（1悪い〜5良い）<select id="bSleep"><option value="">−</option>' + [1,2,3,4,5].map(v => '<option>' + v + '</option>').join('') + '</select></label>' +
+    '<label class="fld">筋の張り（1なし〜5強い）<select id="bSore"><option value="">−</option>' + [1,2,3,4,5].map(v => '<option>' + v + '</option>').join('') + '</select></label>' +
+    '<label class="fld">朝の心拍数（任意）<input type="number" id="bHr" style="width:90px"></label>' +
+    '<label class="fld">HRV（任意）<input type="number" id="bHrv" style="width:90px"></label>' +
+    '<label class="fld">乳酸（任意）<input type="number" id="bLa" step="0.1" style="width:90px"></label>' +
+    '<label class="fld">CK（任意）<input type="number" id="bCk" style="width:90px"></label>' +
+    '<label class="fld">記録・筋力の伸び<select id="bPerf"><option value="">−</option><option value="up">伸びている</option><option value="flat">止まっている</option><option value="down">落ちている</option></select></label>' +
+    '<label class="fld" style="flex:1;min-width:200px">メモ<input type="text" id="bNote"></label>' +
+    '<button class="btn primary" id="bSave" style="align-self:flex-end">記録する</button></div>';
+  const logs = b.log.slice().sort((x, y) => x.date < y.date ? 1 : -1);
+  const base = bioBaseline(b.log.slice().sort((x, y) => x.date < y.date ? -1 : 1));
+  h += lbox('bioLog', 'これまでの記録', logs.length + '件', '', logs.length ? '<table class="list zebra"><thead><tr><th>日付</th><th>モメンタム</th><th class="num">RPE</th><th class="num">睡眠</th><th class="num">筋の張り</th><th class="num">心拍</th><th class="num">HRV</th><th class="num">乳酸</th><th class="num">CK</th><th>伸び</th><th class="num">疲労のサイン</th><th>メモ</th><th></th></tr></thead><tbody>' +
+    logs.map(e => { const v = x => x == null ? '' : x; const f = fatigueScore(e, base);
+      return '<tr><td>' + ymdS(e.date) + '</td><td>' + (PH[e.m] ? PH[e.m].name : '') + '</td><td class="num">' + v(e.rpe) + '</td><td class="num">' + v(e.sleep) + '</td><td class="num">' + v(e.sore) + '</td><td class="num">' + v(e.hr) + '</td><td class="num">' + v(e.hrv) + '</td><td class="num">' + v(e.la) + '</td><td class="num">' + v(e.ck) + '</td><td>' + (PERF_TXT[e.perf] || '') + '</td><td class="num"><b' + (f >= 60 ? ' style="color:#b81c22"' : '') + '>' + v(f) + '</b></td><td>' + esc(e.note || '') + '</td><td><button class="btn small red" data-blog="' + e.id + '" aria-label="' + ymdS(e.date) + 'の記録を削除">×</button></td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">まだ記録がありません。</p>', true);
+  if(b.history.length) h += '<p class="muted" style="margin-top:6px">これまでの移り変わり：' + b.history.map(x => PH[x.m].name + '（' + shortDate(x.from) + '〜' + shortDate(x.to) + '）').join(' → ') + ' → ' + PH[cur].name + '（' + shortDate(b.since) + '〜）</p>';
+  h += '<p class="muted">判定は、入力した値から計算した目安です。移るかどうかは、コーチが選手の様子を見て決めてください。このモデルの説明は、いただいた資料『O Modelo de Periodização Bioflexível』の内容をもとにしています。</p>';
+  box.innerHTML = h;
+  const num = id => { const v = $(id).value; return v === '' ? null : parseFloat(v); };
+  $('bSave').addEventListener('click', () => {
+    const e = {id:'b' + Date.now().toString(36), date:$('bDate').value || todayYmd(), m:cur, rpe:num('bRpe'), sleep:num('bSleep'), sore:num('bSore'), hr:num('bHr'), hrv:num('bHrv'), la:num('bLa'), ck:num('bCk'), perf:$('bPerf').value || null, note:$('bNote').value.trim()};
+    if([e.rpe, e.sleep, e.sore, e.hr, e.hrv, e.la, e.ck, e.perf].every(x => x == null)){ toast('どれか1つ以上入れてください'); return; }
+    b.log.push(e); saveNow(); renderPlanOut(plan); toast('記録しました');
+  });
+  box.querySelectorAll('[data-blog]').forEach(el => el.addEventListener('click', () => { if(!confirm('この記録を削除します。よろしいですか。')) return; b.log = b.log.filter(e => e.id !== el.dataset.blog); saveNow(); renderPlanOut(plan); }));
+  box.querySelectorAll('[data-bchk]').forEach(el => el.addEventListener('click', () => { b.check = b.check || {}; b.check[el.dataset.bchk] = !b.check[el.dataset.bchk]; saveNow(); renderPlanOut(plan); }));
+  if($('bioNextBtn')) $('bioNextBtn').addEventListener('click', () => { const to = bioNext(cur); if(!confirm('「' + PH[to].name + '」へ移ります。よろしいですか。')) return; bioMove(plan, to); renderPlanOut(plan); toast(PH[to].name + 'へ移りました'); });
+  if($('bioBackBtn')) $('bioBackBtn').addEventListener('click', () => { const to = BIO_SEQ[BIO_SEQ.indexOf(cur) - 1]; if(!confirm('「' + PH[to].name + '」に戻ります。よろしいですか。')) return; bioMove(plan, to); renderPlanOut(plan); });
+  $('bioAsk').addEventListener('click', () => copyText(bioPrompt(plan)));
+}
+/* Claudeに貼りつけて相談するための文 */
+function bioPrompt(plan){
+  const b = bioState(plan), j = bioJudge(plan), r = BIO_RULES[b.current];
+  const base = bioBaseline(b.log.slice().sort((x, y) => x.date < y.date ? -1 : 1));
+  const logs = b.log.slice().sort((x, y) => x.date < y.date ? -1 : 1).slice(-7);
+  return ['あなたはバイオフレキシブル期分けモデル（期間を固定せず、選手の適応状態に応じてプレシーズン→筋力→持久力→移行→パワーの順にモメンタムを移る方法）に基づく競泳のコーチです。',
+    '対象：' + planTargetLabel(plan) + '（' + EVG[plan.group || 'middle'].name + '）',
+    '今のモメンタム：' + PH[b.current].name + '（' + ymdS(b.since) + 'から' + j.days + '日）',
+    'このモメンタムのねらい：' + r.goal + '。水泳：' + r.swim + '。ウエイト：' + r.wt + '。避けること：' + r.avoid + '。',
+    j.nextBig ? '次のターゲット試合：' + j.nextBig.name + '（' + ymdS(j.nextBig.date) + '、あと' + j.toRace + '日）' : '次のターゲット試合：なし',
+    '直近の記録：', ...logs.map(e => '・' + ymdS(e.date) + ' RPE' + (e.rpe ?? '−') + ' 睡眠' + (e.sleep ?? '−') + ' 筋の張り' + (e.sore ?? '−') + (e.hr != null ? ' 心拍' + e.hr : '') + (e.hrv != null ? ' HRV' + e.hrv : '') + (e.la != null ? ' 乳酸' + e.la : '') + (e.ck != null ? ' CK' + e.ck : '') + ' 伸び：' + (PERF_TXT[e.perf] || '−') + ' 疲労のサイン' + (fatigueScore(e, base) ?? '−') + (e.note ? '（' + e.note + '）' : '')),
+    'ソフトの判定：' + ({stay:'継続', next:PH[bioNext(b.current)].name + 'へ移ることを提案', reduce:'負荷を下げることを提案'})[j.act],
+    'この状態で、今のモメンタムを続けるべきか次へ移るべきかの意見と、明日の水泳とウエイトのメニュー案（休息の取り方を含む）を提案してください。'].join('\n');
+}
+
+/* メニュー作成のアドバイスに、今のモメンタムの注意を足す */
+function bioLineWarn(info, team){
+  const pi = planInfoFor(M.date, team); if(!pi || pi.plan.model !== 'bioflex' || !pi.plan.bio) return '';
+  const cur = pi.plan.bio.current;
+  if(cur === 'mfor' && ['LT','LP','VO2'].includes(info.zone)) return '【バイオフレキシブル】今は筋力モメンタムです。乳酸がたまるセット（' + ZMAP[info.zone].name + '）は避け、完全な休息で短く速い泳ぎにするのがこのモメンタムのルールです。';
+  if(cur === 'mres' && ['SP'].includes(info.zone) && info.cls.rr != null && info.cls.rr > 3) return '【バイオフレキシブル】今は持久力モメンタムです。密度が鍵なので、休息を短くしたセットを中心にします。';
+  if((cur === 'mtra' || cur === 'mpot') && info.dist > 1500 && !['EZ','A1'].includes(info.zone)) return '【バイオフレキシブル】今は' + PH[cur].name + 'です。新たな疲労をためないよう、量の多いセットは避けます。';
+  return '';
+}
+
+/* =====================================================================
+   週間スケジュール（曜日ごとの開始時刻と水路）
+   青い帯の曜日ボタンを押すと、その週のその日のメニューに移り、時刻と水路が入る
+   ===================================================================== */
+const WS_DAYS = ['月','火','水','木','金','土','日'];
+function weekSched(){
+  if(!Array.isArray(S.settings.weekSched)){
+    S.settings.weekSched = [
+      [{start:'6:20', pool:'長水路'}], [{start:'16:30', pool:'長水路'}], [{start:'6:20', pool:'長水路'}], [],
+      [{start:'6:20', pool:'短水路'}], [{start:'9:00', pool:'長水路'}], []
+    ];
+  }
+  return S.settings.weekSched;
+}
+function renderWeekRow(){
+  const box = $('weekRow'); if(!box || !M) return;
+  const ws = weekSched(), mon = mondayOf(M.date), today = todayYmd();
+  let h = '<span class="symLabel">週間</span>';
+  ws.forEach((list, d) => {
+    const date = addDays(mon, d);
+    if(!list.length){ h += '<span class="wkBtn off" title="休み">' + WS_DAYS[d] + ' ' + shortDate(date) + '<small>休み</small></span>'; return; }
+    list.forEach((s, k) => {
+      const on = M.date === date && fmtClock(M.start) === fmtClock(s.start);
+      const has = Object.values(S.menus).some(m => m.date === date && fmtClock(m.start) === fmtClock(s.start) && menuHasContent(m));
+      h += '<button type="button" class="wkBtn' + (on ? ' on' : '') + (date === today ? ' today' : '') + (s.pool === '短水路' ? ' scm' : '') + '" data-wd="' + d + '" data-wk="' + k + '" aria-pressed="' + on + '" aria-label="' + WS_DAYS[d] + '曜 ' + shortDate(date) + ' ' + fmtClock(s.start) + '開始 ' + s.pool + (has ? '（メニューあり）' : '') + '">' +
+        WS_DAYS[d] + ' ' + shortDate(date) + (has ? '<i class="wkDot"></i>' : '') + '<small>' + fmtClock(s.start) + ' ' + (s.pool === '短水路' ? '短' : '長') + '</small></button>';
+    });
+  });
+  h += '<button type="button" class="btn small ghost wkEdit" id="wsEdit">週間スケジュールを設定</button>';
+  box.innerHTML = h;
+}
+/* 曜日ボタン：その週のその日・その時刻のメニューへ（なければ新しく作る） */
+function goWeekSlot(d, k){
+  const s = weekSched()[d][k]; if(!s) return;
+  const date = addDays(mondayOf(M.date), d), start = fmtClock(s.start);
+  const ex = Object.values(S.menus).find(m => m.date === date && fmtClock(m.start) === start);
+  if(ex){ openMenu(date, ex.session); }
+  else {
+    const free = SESSIONS.find(x => !S.menus[menuId(date, x)]);
+    if(!free){ toast('この日のメニューは4つまでです'); return; }
+    const panels = M.panels;
+    openMenu(date, free);
+    if(!S.menus[M.id]) M.panels = panels.map(p => ({team:p.team, stroke:p.stroke || '', text:'', print:p.print}));
+    M.start = start; M.pool = s.pool;
+    renderMenuView();
+  }
+  if(fmtClock(M.start) !== start || M.pool !== s.pool){ M.start = start; M.pool = s.pool; if(menuHasContent(M)) commitMenu(); renderMenuView(); }
+  toast(WS_DAYS[d] + '曜 ' + jpDate(date) + '　' + start + '開始　' + s.pool + 'に切りかえました');
+}
+/* 設定の画面 */
+function openWeekSched(){
+  const ws = weekSched();
+  $('wsBody').innerHTML = '<table class="list wsTbl"><thead><tr><th>曜日</th><th>1回目</th><th>2回目</th></tr></thead><tbody>' +
+    WS_DAYS.map((dn, d) => '<tr><th>' + dn + '</th>' + [0, 1].map(k => { const s = ws[d][k] || {start:'', pool:'長水路'};
+      return '<td><div class="row" style="gap:6px"><label class="fld">開始<input type="text" inputmode="numeric" placeholder="なし" value="' + esc(s.start || '') + '" data-ws-t="' + d + '-' + k + '" style="width:90px" aria-label="' + dn + '曜の' + (k+1) + '回目の開始時刻"></label>' +
+        '<label class="fld">水路<select data-ws-p="' + d + '-' + k + '" aria-label="' + dn + '曜の' + (k+1) + '回目の水路"><option' + (s.pool === '長水路' ? ' selected' : '') + '>長水路</option><option' + (s.pool === '短水路' ? ' selected' : '') + '>短水路</option></select></label></div></td>'; }).join('') + '</tr>').join('') +
+    '</tbody></table>';
+  showOv('wsOv');
+}
+function saveWeekSched(){
+  const out = [];
+  for(let d = 0; d < 7; d++){
+    const list = [];
+    for(let k = 0; k < 2; k++){
+      const t = $('wsBody').querySelector('[data-ws-t="' + d + '-' + k + '"]').value.trim();
+      if(!t) continue;
+      const c = parseClock(t);
+      if(!c){ toast(WS_DAYS[d] + '曜の' + (k+1) + '回目の時刻が読めません（6:20 や 1630 のように入れます）', 5000); return; }
+      list.push({start:c, pool:$('wsBody').querySelector('[data-ws-p="' + d + '-' + k + '"]').value});
+    }
+    list.sort((a, b) => hmToSec(a.start) - hmToSec(b.start));
+    out.push(list);
+  }
+  S.settings.weekSched = out; saveNow(); closeOv('wsOv'); renderWeekRow();
+  toast('週間スケジュールを保存しました');
+}
+
+/* =====================================================================
    週間分析
    ===================================================================== */
 function weekData(mon, team){
@@ -3728,8 +3972,8 @@ function init(){
   $('mStart').addEventListener('change', () => {
     const c = parseClock($('mStart').value);
     if(!c){ toast('開始時刻は 6:00 や 1830 のように、24時間で入れてください'); $('mStart').value = fmtClock(M.start); return; }
-    $('mStart').value = c; M.start = c; S.settings.lastStart = M.start; M.panels.forEach((p, i) => updatePanel(i)); commitMenu(); renderAdvice(true); });
-  $('mPool').addEventListener('change', () => { M.pool = $('mPool').value; S.settings.lastPool = M.pool; commitMenu(); });
+    $('mStart').value = c; M.start = c; S.settings.lastStart = M.start; M.panels.forEach((p, i) => updatePanel(i)); commitMenu(); renderAdvice(true); renderWeekRow(); });
+  $('mPool').addEventListener('change', () => { M.pool = $('mPool').value; S.settings.lastPool = M.pool; commitMenu(); renderWeekRow(); });
   $('mTitle').addEventListener('input', () => { M.title = $('mTitle').value; commitMenu(); });
   $('btnPrint').addEventListener('click', () => doPrint());
   $('btnLine').addEventListener('click', openLine);
@@ -3757,6 +4001,8 @@ function init(){
   document.addEventListener('click', e => { if(document.body.classList.contains('moreOpen') && e.target.closest('.tgroup.sec button, button.msec')) setMore(false); });
   $('panelTabs').addEventListener('click', e => { const b = e.target.closest('[data-pt]'); if(b) selectPanel(+b.dataset.pt); });
   $('btnPlanned').addEventListener('click', openPlanned);
+  $('weekRow').addEventListener('click', e => { if(e.target.closest('#wsEdit')){ openWeekSched(); return; } const b = e.target.closest('[data-wd]'); if(b) goWeekSlot(+b.dataset.wd, +b.dataset.wk); });
+  $('wsSave').addEventListener('click', saveWeekSched);
   $('printPer').value = String(S.settings.printPerSheet || 2);
   $('printPer').addEventListener('change', () => { S.settings.printPerSheet = +$('printPer').value; saveNow(); });
   $('prPer').addEventListener('change', () => { S.settings.printPerSheet = +$('prPer').value; $('printPer').value = $('prPer').value; saveNow(); doPrint(null, printKind); });
@@ -3890,12 +4136,6 @@ function applyAdviceToggle(){
 }
 document.addEventListener('DOMContentLoaded', init);
 
-</script>
-<script>
-/* ホーム画面に入れたアプリとして動かすための仕組み（GitHubに置いたときだけ働きます。ダブルクリックで開いたときは何もしません） */
-if('serviceWorker' in navigator && location.protocol==='https:'){
-  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
-}
 </script>
 </body>
 </html>

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.30.1">
+<meta name="app-ver" content="2026.09.30.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -738,10 +738,15 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide{ display:none !important; }
+/* 分析の やり直し：なにを やり直すかを えらぶ まど */
+.reList{ display:flex; flex-direction:column; gap:10px; margin:6px 0 12px; }
+.reList .btn{ width:100%; min-height:62px; display:flex; flex-direction:column; align-items:flex-start;
+  justify-content:center; gap:3px; padding:8px 14px; text-align:left; font-size:17px; font-weight:900; }
+.reList .btn small{ font-size:12.5px; font-weight:700; color:var(--dim); line-height:1.5; }
 /* 使い方の 中身 */
 .hpSec{ margin-top:18px; }
 .hpSec h4{ margin:0 0 8px; padding-left:9px; border-left:5px solid var(--am);
@@ -1637,7 +1642,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.30.1</p>
+  <p class="ver" id="verBottom">ver 2026.09.30.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2353,6 +2358,54 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 </div>
 
+<!-- ================= 分析の やり直し ================= -->
+<div id="reBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="reH">
+  <div class="svWrap">
+    <h3 id="reH" data-t="reTitle"></h3>
+    <p class="lead" data-t="reLead"></p>
+    <div class="reList">
+      <button class="btn y" type="button" id="reTime"><span data-t="reTimeB"></span><small data-t="reTimeS"></small></button>
+      <button class="btn y" type="button" id="reStroke"><span data-t="reStrB"></span><small data-t="reStrS"></small></button>
+      <button class="btn b" type="button" id="reInfo"><span data-t="reInfoB"></span><small data-t="reInfoS"></small></button>
+      <button class="btn" type="button" id="reAll"><span data-t="reAllB"></span><small data-t="reAllS"></small></button>
+    </div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="reCancel" data-t="dMenuX"></button>
+    </div>
+  </div>
+</div>
+
+<div id="reFix" class="hide" role="dialog" aria-modal="true" aria-labelledby="rfH">
+  <div class="svWrap">
+    <h3 id="rfH" data-t="reInfoB"></h3>
+    <p class="lead" data-t="rfLead"></p>
+    <div class="sq">
+      <p class="q" data-t="poolLbl"></p>
+      <select id="rfPool"><option value="25">25mプール</option><option value="50">50mプール</option></select>
+    </div>
+    <div class="sq">
+      <p class="q" data-t="distLbl"></p>
+      <select id="rfDist"></select>
+    </div>
+    <div class="sq">
+      <p class="q" data-t="eventLbl"></p>
+      <select id="rfEvent">
+        <option value="free">自由形</option>
+        <option value="back">背泳ぎ</option>
+        <option value="breast">平泳ぎ</option>
+        <option value="fly">バタフライ</option>
+        <option value="im">個人メドレー</option>
+        <option value="relay">リレー</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="rfCancel" data-t="dMenuX"></button>
+      <button class="btn g" type="button" id="rfSave" data-t="save"></button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= 選手プロフィール ================= -->
 <div id="swimmers" class="cmp hide">
   <div class="cmpHd">
@@ -2942,6 +2995,19 @@ var W={
  segNone:['まだ データが ありません','まだデータがありません'],
  dSegTitle:['50mごとの ストローク','50mごとのストローク'],
  mSaved:['きろくを ほぞんしました','記録を保存しました'],
+ reTitle:['なにを やりなおしますか','何をやり直しますか'],
+ reLead:['やりなおしたい ところだけ えらべます。ほかの きろくは そのまま のこります。','やり直したい部分だけ選べます。ほかの記録はそのまま残ります。'],
+ reTimeB:['タイムだけ 計りなおす','記録のみ再度計測'],
+ reTimeS:['ストロークは そのまま のこします','ストロークはそのまま残します'],
+ reStrB:['ストロークだけ 計りなおす','ストロークのみ再度計測'],
+ reStrS:['タイムは そのまま。はじめから 数えなおします','タイムはそのまま。最初から数え直します'],
+ reInfoB:['プール・きょり・しゅもくを なおす','プールサイズ・距離・種目の修正'],
+ reInfoS:['計りなおさずに、せっていだけ なおします','計測はせず、設定だけ直します'],
+ reAllB:['ぜんぶ やりなおす','すべてやり直す'],
+ reAllS:['いまの きろくを 見ながら 分析画面で なおします','今の記録を見ながら分析画面で直します'],
+ reTimeGo:['タイムを 計りなおします。ストロークは のこって います','タイムを計り直します。ストロークは残っています'],
+ reStrGo:['はじめから 再生します。右手が 水に 入るたびに 画面を おしてください','最初から再生します。右手が入水するたびに画面を押してください'],
+ rfLead:['計った タイムや ストロークは そのまま です。','計測したタイムやストロークはそのままです。'],
  mBadge:['手で 入力','手入力'],
 
  shareBtn:['選手に 共有する','選手に共有する'],
@@ -5238,13 +5304,94 @@ $('dDel').onclick=function(){
 };
 $('dAna').onclick=function(){ $('dAgain').click(); };
 $('dView').onclick=function(){ if(dRec) viewOpen(dRec); };
+/* ================= 分析の やり直し =================
+   〈分析をやり直す〉を おすと、なにを やり直すかを えらびます。
+   ・タイムだけ …… ストロークを のこして、分析画面で タイムを 計り直す
+   ・ストロークだけ …… タイムを のこして、この画面で はじめから 数え直す
+   ・せっていだけ …… プール・きょり・しゅもくを なおす（計り直さない）
+   ・ぜんぶ …… これまでと 同じ（いまの きろくを のせて 分析画面へ）
+   どれも「保存」するまでは もとの きろくは かわりません。 */
+function reClose(){ $('reBox').classList.add('hide'); }
 $('dAgain').onclick=function(){
+  if(!dRec) return;
+  if($('detail').classList.contains('stroke')) return;
+  $('dv').pause(); $('dPlay').innerHTML=T('playI');
+  $('reBox').classList.remove('hide');
+  setTimeout(function(){ try{ $('reTime').focus(); }catch(e){} }, 50);
+};
+$('reCancel').onclick=reClose;
+$('reAll').onclick=function(){
+  reClose();
   if(!dRec) return;
   if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
   openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
                         sigT:dRec.sigT, rt:dRec.rt });
+};
+$('reTime').onclick=function(){
+  reClose();
+  if(!dRec) return;
+  if(!hasVid(dRec)){ noVidGo(dRec); return; }
+  $('dv').pause();
+  /* タイムに かかわる もの（スタート・通過・合図・RT）だけ 空に して ひらきます */
+  openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+                        event:dRec.event, t0:null, splits:[], strokes:dRec.strokes,
+                        sigT:null, rt:null });
+  setTimeout(function(){ toast(T('reTimeGo')); }, 400);
+};
+$('reStroke').onclick=function(){
+  reClose();
+  if(!dRec) return;
+  /* 数え直しは この 画面で します。
+     〈測定終了〉を おした ときに はじめて 保存されます。 */
+  dStrokes=[]; dPaintSR();
+  try{ $('dv').currentTime=0; }catch(e){}
+  $('dStroke').click();
+  setTimeout(function(){ toast(T('reStrGo')); }, 300);
+};
+$('reInfo').onclick=function(){
+  reClose();
+  if(!dRec) return;
+  var sp=dRec.splits||[], last=sp.length ? sp[sp.length-1].d : null;
+  $('rfPool').value = String(dRec.pool||50);
+  distFill($('rfDist'), dRec.dist || last || 100);
+  $('rfEvent').value = dRec.event || 'free';
+  $('reFix').classList.remove('hide');
+};
+$('rfDist').onchange=function(){ distPick(this); };
+$('rfCancel').onclick=function(){ $('reFix').classList.add('hide'); };
+$('rfSave').onclick=function(){
+  if(!dRec) return;
+  var pool=Number($('rfPool').value), dist=Number($('rfDist').value), ev=$('rfEvent').value;
+  if(!(dist>0)){ toast(T('distBad')); return; }
+  /* 新しい きょりに ない 通過タイムが あれば、けして よいか たしかめます */
+  var all=lapDists(dist), ok={}, i, keep=[], bad=[];
+  for(i=0;i<all.length;i++) ok[all[i]]=1;
+  var sp=dRec.splits||[];
+  for(i=0;i<sp.length;i++){ if(ok[sp[i].d]) keep.push(sp[i]); else bad.push(sp[i].d); }
+  if(bad.length){
+    var list=bad.join('m・')+'m';
+    if(!confirm(T('askTrim1')+dist+T('askTrim2')+list+T('askTrim3'))) return;
+  }
+  var id=dRec.id;
+  dbGet(id).then(function(rec){
+    if(!rec){ toast(T('msgNotFound')); return null; }
+    var oldDist=rec.dist;
+    rec.pool=pool; rec.dist=dist; rec.event=ev; rec.splits=keep;
+    /* 名前が「9/30 25m」のような 自動の 名前なら、きょりも あわせて かえます */
+    var m=/^(\d{1,2}\/\d{1,2}) (\d+)m$/.exec(rec.title||'');
+    if(m && Number(m[2])===Number(oldDist)) rec.title=m[1]+' '+dist+'m';
+    rec.updatedAt=Date.now();
+    return dbPut(rec).then(function(){ return rec; });
+  }).then(function(rec){
+    if(!rec) return;
+    pushOne(rec);
+    $('reFix').classList.add('hide');
+    toast(T('mSaved'));
+    paintList();
+    openDetail(rec.id);
+  }).catch(function(){ toast(T('msgSaveNG')); });
 };
 $('dVid').onclick=function(){
   if(!dRec) return;

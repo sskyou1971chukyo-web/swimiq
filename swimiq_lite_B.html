@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.09.30.2">
+<meta name="app-ver" content="2026.10.01.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -738,10 +738,16 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #admPw{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #admPw.hide{ display:none !important; }
+#admPw input[type=password]{ width:100%; min-height:52px; padding:6px 12px; border-radius:6px;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:20px; font-weight:800; letter-spacing:2px; }
+.btn.r{ border-color:var(--red); color:#ff8e78; }
+#admInfo .tr{ display:flex; gap:10px; padding:8px 10px; font-size:14px; font-weight:800; border-bottom:1px solid var(--line2); }
+#admInfo .tr .k{ flex:0 0 42%; color:var(--am); }
+#admInfo .tr .v{ flex:1; min-width:0; color:#fff; word-break:break-all; font-variant-numeric:tabular-nums; }
 /* 分析の やり直し：なにを やり直すかを えらぶ まど */
 .reList{ display:flex; flex-direction:column; gap:10px; margin:6px 0 12px; }
 .reList .btn{ width:100%; min-height:62px; display:flex; flex-direction:column; align-items:flex-start;
@@ -1642,7 +1648,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.09.30.2</p>
+  <p class="ver" id="verBottom">ver 2026.10.01.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1888,6 +1894,41 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <button class="btn y" id="openSurvey" type="button" data-t="svBtn"></button>
   </div>
 
+  <div class="gl" data-t="exGl"></div>
+  <div class="take">
+    <button class="btn b" id="exCsv" type="button" data-t="exCsvBtn"></button>
+    <button class="btn b" id="exJson" type="button" data-t="exJsonBtn"></button>
+    <label class="btn" for="fImport" data-t="exImportBtn"></label>
+    <input type="file" id="fImport" accept="application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+  </div>
+
+  <div class="gl" data-t="admGl"></div>
+  <div class="take">
+    <button class="btn" id="openAdmin" type="button" data-t="admBtn"></button>
+  </div>
+</div>
+
+<!-- ================= 管理者メニュー（パスワードで ひらく） ================= -->
+<div id="admin" class="cmp hide">
+  <div class="cmpHd">
+    <button class="btn b" id="admBack" type="button" data-t="back" style="flex:0 0 auto;"></button>
+    <h2 data-t="admTitle"></h2>
+  </div>
+
+  <div class="gl" data-t="admGlSv"></div>
+  <div class="take">
+    <button class="btn g" id="admSheet" type="button" data-t="admSheetBtn"></button>
+    <button class="btn b" id="admSvPrev" type="button" data-t="admSvPrevBtn"></button>
+    <button class="btn b" id="admSvReset" type="button" data-t="admSvResetBtn"></button>
+  </div>
+
+  <div class="gl" data-t="admGlInfo"></div>
+  <div class="take">
+    <div class="tbl" id="admInfo" aria-live="polite"></div>
+    <button class="btn b" id="admInfoCopy" type="button" data-t="admInfoCopyBtn"></button>
+    <button class="btn b" id="admUpNow" type="button" data-t="admUpNowBtn"></button>
+  </div>
+
   <div class="gl" data-t="glSync"></div>
   <div class="take">
     <p class="hint" data-t="syncHint" style="margin:0 2px 4px;"></p>
@@ -1904,12 +1945,33 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <p class="hint" id="syncStepsBody" style="margin:0 2px;white-space:pre-line;"></p>
   </div>
 
-  <div class="gl" data-t="exGl"></div>
+
+  <div class="gl" data-t="admGlTest"></div>
   <div class="take">
-    <button class="btn b" id="exCsv" type="button" data-t="exCsvBtn"></button>
-    <button class="btn b" id="exJson" type="button" data-t="exJsonBtn"></button>
-    <label class="btn" for="fImport" data-t="exImportBtn"></label>
-    <input type="file" id="fImport" accept="application/json" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <button class="btn b" id="admConsent" type="button" data-t="admConsentBtn"></button>
+    <button class="btn r" id="admDelRec" type="button" data-t="admDelRecBtn"></button>
+    <button class="btn r" id="admFactory" type="button" data-t="admFactoryBtn"></button>
+    <p class="hint" data-t="admTestHint" style="margin:6px 2px 2px;"></p>
+  </div>
+
+  <div class="gl" data-t="admGlEnd"></div>
+  <div class="take">
+    <button class="btn" id="admLock" type="button" data-t="admLockBtn"></button>
+  </div>
+</div>
+
+<div id="admPw" class="hide" role="dialog" aria-modal="true" aria-labelledby="admPwH">
+  <div class="svWrap">
+    <h3 id="admPwH" data-t="admPwTitle"></h3>
+    <p class="lead" data-t="admPwLead"></p>
+    <div class="sq">
+      <p class="q" data-t="admPwLbl"></p>
+      <input type="password" id="admPwIn" autocomplete="off" autocapitalize="off" spellcheck="false" data-ta="admPwLbl">
+    </div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="admPwX" data-t="dMenuX"></button>
+      <button class="btn g" type="button" id="admPwOK" data-t="admPwOKBtn"></button>
+    </div>
   </div>
 </div>
 
@@ -2503,6 +2565,54 @@ var W={
  moreClose:['とじる','閉じる'],
  settingsBtn:['せってい','設定'],
  setTitle:['せってい','設定'],
+ admGl:['管理者','管理者'],
+ admBtn:['管理者メニュー<small>パスワードが ひつようです</small>','管理者メニュー<small>パスワードが必要です</small>'],
+ admTitle:['管理者メニュー','管理者メニュー'],
+ admPwTitle:['管理者の パスワード','管理者パスワード'],
+ admPwLead:['管理者だけが つかう メニューです。','管理者専用のメニューです。'],
+ admPwLbl:['パスワード','パスワード'],
+ admPwOKBtn:['ひらく','開く'],
+ admPwNG:['パスワードが ちがいます','パスワードが違います'],
+ admPwEmpty:['パスワードを 入れて ください','パスワードを入力してください'],
+ admGlSv:['アンケート','アンケート'],
+ admSheetBtn:['アンケートの 回答を 見る<small>Google スプレッドシートが ひらきます</small>','アンケートの回答を見る<small>Googleスプレッドシートが開きます</small>'],
+ admSvPrevBtn:['アンケート画面を たしかめる<small>利用者と 同じ 画面が ひらきます</small>','アンケート画面を確認する<small>利用者と同じ画面が開きます</small>'],
+ admSvResetBtn:['この端末の 回答を 消す<small>つぎの 人が この端末で 新しく 答えられます</small>','この端末の回答を消す<small>次の人がこの端末で新しく回答できます</small>'],
+ admSvResetAsk:['この端末に のこって いる アンケートの 回答を 消します。送った 回答は スプレッドシートに のこります。よろしいですか？','この端末に残っているアンケートの回答を消します。送信済みの回答はスプレッドシートに残ります。よろしいですか？'],
+ admSvResetDone:['この端末の 回答を 消しました','この端末の回答を消しました'],
+ admGlInfo:['この端末の じょうたい','この端末の状態'],
+ admInfoCopyBtn:['じょうたいを コピー<small>不具合の 報告に つかえます</small>','状態をコピー<small>不具合の報告に使えます</small>'],
+ admUpNowBtn:['上げ残しの 動画を いま 送る','未送信の動画を今すぐ送る'],
+ admUpNoUrl:['クラウド同期の アドレスが 入って いません','クラウド同期のアドレスが未設定です'],
+ admUpNone:['上げ残しの 動画は ありません','未送信の動画はありません'],
+ aiVer:['アプリの 版','アプリの版'],
+ aiRec:['きろくの 数','記録の数'],
+ aiVid:['動画つき','動画つき'],
+ aiPend:['上げ残しの 動画','未送信の動画'],
+ aiStore:['つかって いる 容量','使用容量'],
+ aiConsent:['同意した 日','同意日'],
+ aiSurvey:['アンケート','アンケート'],
+ aiSvSent:['送信ずみ','送信済み'],
+ aiSvNot:['まだ','未送信'],
+ aiSync:['クラウド同期','クラウド同期'],
+ aiSyncOn:['せってい ずみ','設定済み'],
+ aiSyncOff:['なし','未設定'],
+ aiSwm:['選手の 登録','選手の登録'],
+ aiDev:['端末','端末'],
+ aiNone:['なし','なし'],
+ admGlTest:['テストの じゅんび','テストの準備'],
+ admConsentBtn:['同意画面を もう一度 出す','同意画面をもう一度出す'],
+ admConsentAsk:['同意を とりけして、はじめの 同意画面を 出します。よろしいですか？','同意を取り消して、最初の同意画面を表示します。よろしいですか？'],
+ admDelRecBtn:['この端末の きろくを ぜんぶ 消す','この端末の記録をすべて消す'],
+ admDelRecAsk1:['この端末の きろくと 動画を ぜんぶ 消します。もとに もどせません。よろしいですか？','この端末の記録と動画をすべて削除します。元に戻せません。よろしいですか？'],
+ admDelRecAsk2:['ほんとうに 消しますか？ 最後の かくにんです。','本当に削除しますか？最後の確認です。'],
+ admDelRecDone:['きろくを ぜんぶ 消しました','記録をすべて削除しました'],
+ admFactoryBtn:['はじめて ひらいた ときの 状態に もどす','初めて開いたときの状態に戻す'],
+ admFactoryAsk:['きろく・動画・選手・せってい・アンケート・同意を ぜんぶ 消して、はじめて ひらいた ときの 状態に します。もとに もどせません。よろしいですか？','記録・動画・選手・設定・アンケート・同意をすべて消して、初めて開いたときの状態にします。元に戻せません。よろしいですか？'],
+ admTestHint:['テストで 端末を ほかの 人に わたす ときに つかいます。クラウドに 上げた きろくは 消えません。','テストで端末を別の人に渡すときに使います。クラウドに上げた記録は消えません。'],
+ admGlEnd:['おわる','終了'],
+ admLockBtn:['管理者メニューを とじて ロックする','管理者メニューを閉じてロックする'],
+ admLocked:['ロックしました','ロックしました'],
  glOther:['その他','その他'],
  glWord:['ことばづかい','表示の言葉'],
  wKid:['小学生用','小学生用'],
@@ -3291,7 +3401,7 @@ function shareText(text, title){
 
 /* ===== 画面の きりかえ ===== */
 function show(id){
-  ['home','ana','detail','compare','settings','swimmers'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
+  ['home','ana','detail','compare','settings','swimmers','admin'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
   document.body.classList.toggle('vs', id==='ana' || id==='detail');
   window.scrollTo(0,0);
 }
@@ -9028,6 +9138,155 @@ cPaintLaps(); cBtns(); sensPaint();
 applyWords();
 distInitAll();
 $('cdDist').onchange=function(){ distPick(this); };
+/* ================================================================
+   管理者メニュー
+   設定の いちばん下の〈管理者メニュー〉から、パスワードで ひらきます。
+   パスワードは そのまま 書かず、くずした 形（ハッシュ）で くらべます。
+   一度 ひらくと、ブラウザを とじるまでは もう 聞きません。
+   ================================================================ */
+var ADM_KEY='1ukux4nsttv';
+var ADM_SHEET='https://docs.google.com/spreadsheets/d/1ZJrDD9D0VdCeUgZpNwFtOAm4z1G9pAlOk_AboeNX4lY/edit#gid=672398572';
+function admHash(s){
+  var a=0xdeadbeef^7, b=0x41c6ce57^7, i, c;
+  for(i=0;i<s.length;i++){ c=s.charCodeAt(i); a=Math.imul(a^c,2654435761); b=Math.imul(b^c,1597334677); }
+  a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);
+  b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);
+  return (4294967296*(2097151&b)+(a>>>0)).toString(36);
+}
+function admIsOpen(){ try{ return sessionStorage.getItem('swimiq_adm')==='1'; }catch(e){ return false; } }
+function admGo(){ show('admin'); admInfo(); }
+$('openAdmin').onclick=function(){
+  if(admIsOpen()){ admGo(); return; }
+  $('admPwIn').value='';
+  $('admPw').classList.remove('hide');
+  setTimeout(function(){ try{ $('admPwIn').focus(); }catch(e){} }, 60);
+};
+$('admPwX').onclick=function(){ $('admPw').classList.add('hide'); $('admPwIn').value=''; };
+$('admPwOK').onclick=function(){
+  var v=($('admPwIn').value||'').trim();
+  if(!v){ toast(T('admPwEmpty')); return; }
+  if(admHash(v)!==ADM_KEY){
+    toast(T('admPwNG')); $('admPwIn').value='';
+    try{ if(navigator.vibrate) navigator.vibrate([40,60,40]); }catch(e){}
+    return;
+  }
+  try{ sessionStorage.setItem('swimiq_adm','1'); }catch(e){}
+  $('admPw').classList.add('hide'); $('admPwIn').value='';
+  admGo();
+};
+$('admPwIn').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); $('admPwOK').click(); } });
+$('admBack').onclick=function(){ show('settings'); };
+$('admLock').onclick=function(){
+  try{ sessionStorage.removeItem('swimiq_adm'); }catch(e){}
+  toast(T('admLocked')); show('settings');
+};
+/* --- アンケート --- */
+$('admSheet').onclick=function(){
+  var w=null;
+  try{ w=window.open(ADM_SHEET,'_blank'); }catch(e){}
+  if(!w) location.href=ADM_SHEET;
+};
+$('admSvPrev').onclick=function(){ svPaint(); $('survey').classList.remove('hide'); };
+$('admSvReset').onclick=function(){
+  if(!confirm(T('admSvResetAsk'))) return;
+  SVA={};
+  try{ localStorage.removeItem('swimiq_survey'); }catch(e){}
+  $('svSend').textContent=T('svSend');
+  toast(T('admSvResetDone')); admInfo();
+};
+/* --- 端末の じょうたい --- */
+var admLines=[];
+function admMB(n){ return (n/1048576).toFixed(1)+'MB'; }
+function admInfo(){
+  var box=$('admInfo'); if(!box) return;
+  var rows=[[T('aiVer'), APP_VER]];
+  function paint(){
+    box.innerHTML=''; admLines=[];
+    rows.forEach(function(r){
+      var d=document.createElement('div'); d.className='tr';
+      var k=document.createElement('span'); k.className='k'; k.textContent=r[0];
+      var v=document.createElement('span'); v.className='v'; v.textContent=r[1];
+      d.appendChild(k); d.appendChild(v); box.appendChild(d);
+      admLines.push(r[0]+'：'+r[1]);
+    });
+  }
+  paint();
+  var swn=0; try{ swn=(JSON.parse(localStorage.getItem('swimiq_swimmers')||'[]')||[]).length; }catch(e){}
+  dbAll().then(function(all){
+    var vid=0, pend=0;
+    all.forEach(function(r){ if(r.video) vid++; if(needUpload(r)) pend++; });
+    rows.push([T('aiRec'), all.length+'']);
+    rows.push([T('aiVid'), vid+'']);
+    rows.push([T('aiPend'), SYNC_URL ? (pend+'') : T('aiNone')]);
+  }, function(){}).then(function(){
+    rows.push([T('aiSwm'), swn+'']);
+    rows.push([T('aiConsent'), CONSENT ? cnDateText(CONSENT) : T('aiNone')]);
+    rows.push([T('aiSurvey'), (SVA && SVA.sentAt) ? (T('aiSvSent')+' '+cnDateText(SVA.sentAt)) : T('aiSvNot')]);
+    rows.push([T('aiSync'), SYNC_URL ? T('aiSyncOn') : T('aiSyncOff')]);
+    if(navigator.storage && navigator.storage.estimate){
+      return navigator.storage.estimate().then(function(es){
+        rows.push([T('aiStore'), admMB(es.usage||0)+' / '+admMB(es.quota||0)]);
+      }, function(){});
+    }
+  }).then(function(){
+    rows.push([T('aiDev'), navigator.userAgent]);
+    paint();
+  });
+}
+$('admInfoCopy').onclick=function(){
+  var tx='SwimIQ LITE B\n'+admLines.join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(tx).then(function(){ toast(T('msgCopied')); }, function(){ toast(T('msgCopyNG')); });
+  }else toast(T('msgCopyNo'));
+};
+$('admUpNow').onclick=function(){
+  if(!SYNC_URL){ toast(T('admUpNoUrl')); return; }
+  dbAll().then(function(all){
+    if(!all.filter(needUpload).length){ toast(T('admUpNone')); return; }
+    uploadPending();
+    setTimeout(admInfo, 3000);
+  });
+};
+/* --- テストの じゅんび --- */
+$('admConsent').onclick=function(){
+  if(!confirm(T('admConsentAsk'))) return;
+  CONSENT='';
+  try{ localStorage.removeItem('swimiq_consent'); }catch(e){}
+  $('cnCheck').checked=false;
+  show('home'); cnPaint();
+};
+function admClearDB(){
+  return dbOpen().then(function(d){
+    return new Promise(function(res,rej){
+      var t=d.transaction(ST,'readwrite');
+      t.objectStore(ST).clear();
+      t.oncomplete=function(){ res(); };
+      t.onerror=function(){ rej(t.error); };
+    });
+  });
+}
+$('admDelRec').onclick=function(){
+  if(!confirm(T('admDelRecAsk1'))) return;
+  if(!confirm(T('admDelRecAsk2'))) return;
+  admClearDB().then(function(){
+    toast(T('admDelRecDone')); paintList(); admInfo();
+  }, function(){ toast(T('msgSaveNG')); });
+};
+$('admFactory').onclick=function(){
+  if(!confirm(T('admFactoryAsk'))) return;
+  if(!confirm(T('admDelRecAsk2'))) return;
+  admClearDB().then(function(){}, function(){}).then(function(){
+    try{
+      var ks=[], i, k;
+      for(i=0;i<localStorage.length;i++){ k=localStorage.key(i); if(k && k.indexOf('swimiq_')===0) ks.push(k); }
+      ks.forEach(function(x){ localStorage.removeItem(x); });
+    }catch(e){}
+    try{ sessionStorage.removeItem('swimiq_adm'); }catch(e){}
+    var base=location.href.split('#')[0].split('?')[0];
+    if(location.protocol==='file:') location.reload(); else location.replace(base+'?v='+Date.now());
+  });
+};
+
 /* ===== 同意の かくにん =====
    はじめて ひらいた ときだけ 出します。同意すると、この 携帯に おぼえます。 */
 var CONSENT='';

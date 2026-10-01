@@ -79,7 +79,9 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 .wkDot{position:absolute;top:3px;right:4px;width:8px;height:8px;border-radius:50%;background:#2ecc71}
 .wkEdit{background:transparent!important;color:#fff!important;border-color:rgba(255,255,255,.55)!important}
 .wsTbl th{width:4em;font-size:16px}
-.weekRow .symLabel{color:#fff;font-size:14px;font-weight:700;margin-right:2px}
+.weekRow .symLabel{color:#fff;font-size:14px;font-weight:700;margin-right:2px;white-space:nowrap;flex-shrink:0}
+.wkBtn b{font-weight:700}
+.wkEdit{white-space:nowrap;flex-shrink:0}
 #makeBand .syncLbl{margin-left:auto;color:#fff;font-size:15px;gap:6px}
 #symRow .symLabel{color:#cfe0f2;font-size:14px;font-weight:700;margin-right:2px}
 #symRow button{min-width:46px;font-size:18px;font-weight:700;border:2px solid #fff;background:#fff;color:#16202e;border-radius:8px;padding:4px 10px}
@@ -368,8 +370,15 @@ details.more[open]>summary{background:#e3eefa}
   #makeBand #btnCalc{flex:1;font-size:16px;padding:8px}
   #makeBand .msec{flex:1 1 40%;font-size:14px;padding:8px 4px}
   #symRow{flex-wrap:nowrap;overflow-x:auto}
-  .weekRow{flex-wrap:nowrap;overflow-x:auto}
-  .wkBtn{flex-shrink:0}
+  .weekRow{flex-wrap:nowrap;overflow-x:auto;align-items:stretch;gap:4px;margin-bottom:6px;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .weekRow::-webkit-scrollbar{display:none}
+  .weekRow .symLabel,.wkDate,.wkPool{display:none}
+  .wkBtn{flex:0 0 auto;flex-direction:row;gap:3px;min-width:0;padding:4px 7px;font-size:14px;line-height:1.2;border-width:1.5px;border-radius:8px;white-space:nowrap}
+  .wkBtn small{font-size:13px}
+  .wkBtn.scm{border-bottom:3px solid #ffd166}
+  .wkBtn.off{padding:4px 6px}
+  .wkBtn.off small{display:none}
+  .wkEdit{flex:0 0 auto;padding:4px 9px!important;font-size:15px!important;min-height:0}
   #symRow .symLabel{display:none}
   #symRow button{flex-shrink:0;min-width:44px;font-size:17px;padding:6px 10px}
   #symRow button[data-tip]:hover::after,#symRow button[data-tip]:hover::before{display:none}
@@ -3685,15 +3694,15 @@ function renderWeekRow(){
   let h = '<span class="symLabel">週間</span>';
   ws.forEach((list, d) => {
     const date = addDays(mon, d);
-    if(!list.length){ h += '<span class="wkBtn off" title="休み">' + WS_DAYS[d] + ' ' + shortDate(date) + '<small>休み</small></span>'; return; }
+    if(!list.length){ h += '<span class="wkBtn off" title="休み"><b>' + WS_DAYS[d] + '</b><span class="wkDate"> ' + shortDate(date) + '</span><small>休み</small></span>'; return; }
     list.forEach((s, k) => {
       const on = M.date === date && fmtClock(M.start) === fmtClock(s.start);
       const has = Object.values(S.menus).some(m => m.date === date && fmtClock(m.start) === fmtClock(s.start) && menuHasContent(m));
       h += '<button type="button" class="wkBtn' + (on ? ' on' : '') + (date === today ? ' today' : '') + (s.pool === '短水路' ? ' scm' : '') + '" data-wd="' + d + '" data-wk="' + k + '" aria-pressed="' + on + '" aria-label="' + WS_DAYS[d] + '曜 ' + shortDate(date) + ' ' + fmtClock(s.start) + '開始 ' + s.pool + (has ? '（メニューあり）' : '') + '">' +
-        WS_DAYS[d] + ' ' + shortDate(date) + (has ? '<i class="wkDot"></i>' : '') + '<small>' + fmtClock(s.start) + ' ' + (s.pool === '短水路' ? '短' : '長') + '</small></button>';
+        '<b>' + WS_DAYS[d] + '</b><span class="wkDate"> ' + shortDate(date) + '</span>' + (has ? '<i class="wkDot"></i>' : '') + '<small>' + fmtClock(s.start) + '<span class="wkPool"> ' + (s.pool === '短水路' ? '短' : '長') + '</span></small></button>';
     });
   });
-  h += '<button type="button" class="btn small ghost wkEdit" id="wsEdit">週間スケジュールを設定</button>';
+  h += '<button type="button" class="btn small ghost wkEdit" id="wsEdit" title="週間スケジュールを設定" aria-label="週間スケジュールを設定"><span class="pcOnly">週間スケジュールを設定</span><span class="phoneOnly">⚙</span></button>';
   box.innerHTML = h;
 }
 /* 曜日ボタン：その週のその日・その時刻のメニューへ（なければ新しく作る） */

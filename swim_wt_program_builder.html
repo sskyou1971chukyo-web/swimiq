@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>競泳WT・ドライランド プログラム作成</title>
+<style>
+:root{
+  --navy:#0b2447; --navy2:#19376d; --bg:#f4f6fa; --card:#ffffff; --ink:#111827; --sub:#374151;
+  --line:#c9d2e3; --red:#c81e1e; --redbg:#fdecec; --blue:#1d4ed8; --bluebg:#e8efff;
+  --green:#0f7a3d; --greenbg:#e6f6ec; --amber:#8a5a00; --amberbg:#fff4d6; --focus:#ffb000;
+  --fig:#19376d; --panel:#eef2f8; --eq:#8a94a6; --sil:#dfe4ec; --mbase:#c9d1dd; --mp:#d62828; --ms:#f2a33a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --grid:#e3e7ee; --chartink:#52514e;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --navy:#0f2b57; --navy2:#1e4380; --bg:#0d1117; --card:#161b22; --ink:#f0f3f6; --sub:#c9d1d9;
+    --line:#3a4556; --red:#ff7b72; --redbg:#3a1414; --blue:#79b8ff; --bluebg:#132541;
+    --green:#56d364; --greenbg:#10301b; --amber:#f2cc60; --amberbg:#3a2e0a;
+    --fig:#9ec1ff; --panel:#1c2433; --eq:#6b7689; --sil:#2b3444; --mbase:#3b4557; --mp:#ff6b6b; --ms:#e0a040;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --grid:#2a3140; --chartink:#c3c2b7;
+  }
+}
+:root[data-theme="dark"]{
+  --navy:#0f2b57; --navy2:#1e4380; --bg:#0d1117; --card:#161b22; --ink:#f0f3f6; --sub:#c9d1d9;
+  --line:#3a4556; --red:#ff7b72; --redbg:#3a1414; --blue:#79b8ff; --bluebg:#132541;
+  --green:#56d364; --greenbg:#10301b; --amber:#f2cc60; --amberbg:#3a2e0a;
+    --fig:#9ec1ff; --panel:#1c2433; --eq:#6b7689; --sil:#2b3444; --mbase:#3b4557; --mp:#ff6b6b; --ms:#e0a040;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --grid:#2a3140; --chartink:#c3c2b7;
+}
+html{font-size:18px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;line-height:1.7}
+a{color:var(--blue)}
+:focus-visible{outline:4px solid var(--focus);outline-offset:2px}
+header{background:var(--navy);color:#fff;padding:16px}
+header h1{margin:0;font-size:1.4rem}
+header p{margin:4px 0 0;font-size:.9rem;opacity:.9}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.toolbar button{background:#fff;color:var(--navy);border:0}
+nav[role=tablist]{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;background:var(--navy2);position:sticky;top:0;z-index:5}
+nav[role=tablist] button{background:transparent;color:#fff;border:2px solid #fff;font-weight:700}
+nav[role=tablist] button[aria-selected=true]{background:#fff;color:var(--navy)}
+main{max-width:1200px;margin:0 auto;padding:16px}
+section.panel{display:none}
+section.panel.active{display:block}
+h2{font-size:1.3rem;border-left:8px solid var(--red);padding-left:10px;margin:8px 0 14px}
+h3{font-size:1.1rem;margin:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border-radius:8px;padding:8px 14px;border:2px solid var(--navy2);background:var(--card);color:var(--ink);min-height:44px}
+button.primary{background:var(--navy2);color:#fff;border-color:var(--navy2);font-weight:700}
+button.danger{border-color:var(--red);color:var(--red)}
+button.small{padding:4px 10px;min-height:36px;font-size:.9rem}
+select,input[type=text],input[type=number],input[type=date],textarea{background:var(--card);border:2px solid var(--line);border-radius:8px;padding:6px 8px;min-height:44px}
+label{font-weight:700}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.field{display:flex;flex-direction:column;gap:4px}
+.muted{color:var(--sub);font-size:.92rem}
+.pill{display:inline-block;font-size:.8rem;padding:1px 8px;border-radius:999px;border:1px solid var(--line);margin-right:4px;background:var(--bg)}
+.pill.warn{border-color:var(--red);color:var(--red)}
+.exlist{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+.ex{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.ex .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.ex details summary{cursor:pointer;font-weight:700;color:var(--blue);min-height:36px;padding-top:4px}
+.ex dl{margin:6px 0}
+.ex dt{font-weight:700;margin-top:8px}
+.ex dd{margin:2px 0 0 0}
+.good{background:var(--greenbg);border-left:5px solid var(--green);padding:6px 10px;border-radius:6px}
+.bad{background:var(--redbg);border-left:5px solid var(--red);padding:6px 10px;border-radius:6px}
+.info{background:var(--bluebg);border-left:5px solid var(--blue);padding:8px 12px;border-radius:6px;margin:6px 0}
+.caution{background:var(--amberbg);border-left:5px solid var(--amber);padding:8px 12px;border-radius:6px;margin:6px 0}
+.alert{background:var(--redbg);border-left:5px solid var(--red);padding:8px 12px;border-radius:6px;margin:6px 0}
+.ok{background:var(--greenbg);border-left:5px solid var(--green);padding:8px 12px;border-radius:6px;margin:6px 0}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:6px;vertical-align:top;text-align:left}
+th{background:var(--navy);color:#fff}
+.rx th{background:var(--navy2)}
+.tablewrap{overflow-x:auto}
+#progTable input,#progTable select,#progTable textarea{width:100%;min-width:90px}
+#progTable textarea{resize:vertical;min-height:60px}
+#progTable td.name{min-width:170px;font-weight:700}
+.checkrow{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px;align-items:end;padding:10px 0;border-bottom:1px solid var(--line)}
+@media (max-width:700px){.checkrow{grid-template-columns:1fr 1fr}}
+.sheet-head{display:none}
+.reflist li{margin-bottom:6px}
+.sr{position:absolute;left:-9999px}
+.thumbwrap{margin:4px 0}
+svg.thumb{width:100%;height:auto;display:block}
+svg.thumb .panel,svg.minifig .panel{fill:var(--panel)}
+.ground{stroke:var(--eq);stroke-width:1.5}
+.fig polyline{fill:none;stroke:var(--fig);stroke-linecap:round;stroke-linejoin:round}
+.fig .limb2{opacity:.5}
+.fig .head{fill:var(--fig)}
+.fig .plate{fill:var(--eq);stroke:var(--fig);stroke-width:1.5}
+.fig .ball{fill:var(--ms);stroke:var(--fig);stroke-width:1.2}
+.fig.ghost{opacity:.28}
+.eqfill{fill:var(--eq);opacity:.55}
+.eqline{stroke:var(--eq);stroke-linecap:round}
+.band{stroke:var(--ms);stroke-dasharray:3 2}
+.ghostline{opacity:.3}
+.arrow line{stroke:var(--mp)}
+.arrow polygon{fill:var(--mp)}
+.sil{fill:var(--sil)}
+.mb{fill:var(--mbase)} .mp{fill:var(--mp)} .ms{fill:var(--ms)}
+.mlabel{font-size:8px;fill:var(--sub);text-anchor:middle}
+.muslegend{margin:4px 0 0;font-size:.9rem}
+.sw{display:inline-block;width:.9em;height:.9em;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.swp{background:var(--mp)} .sws{background:var(--ms)}
+svg.minifig{width:56px;height:56px;float:left;margin:0 8px 4px 0}
+.tiles{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tlab{font-size:.9rem;color:var(--sub)}
+.tval{font-size:1.8rem;font-weight:700;line-height:1.2}
+.tunit{font-size:.9rem;font-weight:400;margin-left:4px;color:var(--sub)}
+svg.chart{width:100%;height:auto;display:block;background:var(--card)}
+svg.chart .grid{stroke:var(--grid);stroke-width:1}
+svg.chart .axis{font-size:12px;fill:var(--chartink)}
+svg.chart .blabel{font-size:14px;fill:var(--ink)}
+svg.chart .bval{font-size:13px;fill:var(--ink);font-weight:700}
+svg.chart .series{fill:none;stroke:var(--s1);stroke-width:2}
+svg.chart .dot{fill:var(--s1);stroke:var(--card);stroke-width:2}
+svg.chart .hit{fill:transparent;cursor:pointer}
+svg.chart .hit:hover{fill:rgba(128,128,128,.08)}
+h4{margin:6px 0}
+#tip{position:absolute;z-index:20;background:var(--ink);color:var(--card);padding:6px 10px;border-radius:6px;font-size:.9rem;pointer-events:none;max-width:320px}
+#logTable input{width:100%;min-width:70px}
+#logTable td.name{min-width:190px;font-weight:700}
+.mstage{margin:10px 0}
+#mCanvas{display:block;margin:0 auto;max-width:100%;max-height:75vh;width:auto;height:auto;touch-action:none;border-radius:8px;cursor:crosshair;background:#10151f}
+.mctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+[hidden]{display:none !important}
+.bigangle{font-size:2rem;font-weight:700;margin:6px 0}
+.checkrow .mbtn{grid-column:1/-1;justify-self:start}
+
+@media print{
+  header .toolbar,nav,#settingsCard,#addHelp,.noprint,#tab-check,#tab-lib,#tab-basis,#tab-log{display:none !important}
+  section.panel{display:none !important}
+  #tab-prog{display:block !important}
+  body{background:#fff;color:#000;font-size:11pt}
+  .card{border:0;padding:0}
+  .sheet-head{display:block}
+  #progTable input,#progTable select,#progTable textarea{border:0;resize:none;min-height:auto;padding:0;appearance:none;-webkit-appearance:none;background:transparent}
+  th{background:#0b2447 !important;color:#fff !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>競泳 ウエイト・ドライランド プログラム作成</h1>
+  <p>ASP × JAPAN スイムクリニックの内容と研究エビデンスをもとに、種目を選んでプログラムを組み立てるページです。</p>
+  <div class="toolbar" role="group" aria-label="文字の大きさ">
+    <button type="button" data-fs="18">文字 標準</button>
+    <button type="button" data-fs="21">文字 大</button>
+    <button type="button" data-fs="25">文字 特大</button>
+  </div>
+</header>
+
+<nav role="tablist" aria-label="画面の切り替え">
+  <button role="tab" id="t-check" aria-controls="tab-check" aria-selected="true">1 セルフチェック</button>
+  <button role="tab" id="t-lib" aria-controls="tab-lib" aria-selected="false">2 種目ライブラリ</button>
+  <button role="tab" id="t-prog" aria-controls="tab-prog" aria-selected="false">3 プログラム作成</button>
+  <button role="tab" id="t-log" aria-controls="tab-log" aria-selected="false">4 記録とグラフ</button>
+  <button role="tab" id="t-basis" aria-controls="tab-basis" aria-selected="false">5 原則と根拠</button>
+</nav>
+
+<main>
+
+<!-- ================= 1 セルフチェック ================= -->
+<section class="panel active" id="tab-check" role="tabpanel" aria-labelledby="t-check">
+  <h2>セルフチェック（可動性の評価）</h2>
+  <div class="card">
+    <p>講演で示された4つのテストです。左右それぞれの角度を入力し、代償動作が出た場合はチェックを入れてください。目標値は講演で示された競泳選手の一つの目安であり、統一された基準値ではありません。</p>
+    <div id="checkRows"></div>
+    <p style="margin-top:12px">
+      <button type="button" class="primary" id="btnEval">判定する</button>
+      <button type="button" id="btnAddCorrective">足りない項目の修正エクササイズをW-UPに追加</button>
+    </p>
+    <div id="checkResult" aria-live="polite"></div>
+  </div>
+  <div class="card" id="measureCard">
+    <h3>動画・写真から角度を測る</h3>
+    <p class="muted">携帯で撮った動画か写真を開き、測りたい瞬間で止めて関節の位置を順に押すと角度を計算します。点はあとから指でずらして直せます。インターネットにつながっていなくても使えます（AIの自動検出だけは接続が必要です）。</p>
+    <div class="grid">
+      <div class="field"><label for="mTest">測るテスト</label><select id="mTest"></select></div>
+      <div class="field"><label for="mSide">左右</label><select id="mSide"><option value="L">左</option><option value="R">右</option></select></div>
+      <div class="field"><label for="mFile">動画または写真を選ぶ</label><input type="file" id="mFile" accept="video/*,image/*"></div>
+    </div>
+    <div id="mGuide" class="info"></div>
+    <div class="mstage">
+      <canvas id="mCanvas" width="960" height="540" tabindex="0" aria-label="測定画面。動画または写真の上で関節の位置を押します。矢印キーで最後に選んだ点を動かせます。"></canvas>
+    </div>
+    <div id="mVideoCtl" class="mctl" hidden>
+      <button type="button" id="mPlay">再生</button>
+      <button type="button" data-step="-0.5">0.5秒戻る</button>
+      <button type="button" data-step="-0.0334">1コマ戻る</button>
+      <button type="button" data-step="0.0334">1コマ進む</button>
+      <button type="button" data-step="0.5">0.5秒進む</button>
+      <label for="mSeek" class="sr">再生位置</label>
+      <input type="range" id="mSeek" min="0" max="1" step="0.001" value="0" style="flex:1;min-width:160px">
+      <span id="mTime" class="muted">0.00秒</span>
+    </div>
+    <div class="mctl">
+      <button type="button" id="mUndo">1点戻す</button>
+      <button type="button" id="mReset" class="danger">点をすべて消す</button>
+    </div>
+    <div id="mAi" class="mctl" hidden>
+      <button type="button" class="primary" id="mAiFrame">AIでこのコマの関節を見つける</button>
+      <button type="button" class="primary" id="mAiScan">AIで動画全体から一番腕が上がった瞬間を探す</button>
+      <button type="button" id="mAiStop" hidden>探すのをやめる</button>
+    </div>
+    <p id="mStatus" class="muted" aria-live="polite"></p>
+    <div id="mResult" aria-live="assertive"></div>
+    <div class="mctl">
+      <button type="button" class="primary" id="mApply" disabled>この角度を入力欄に入れる</button>
+      <button type="button" id="mSave" disabled>線を描いた画像を保存</button>
+    </div>
+    <details><summary>正しく測るための撮り方</summary>
+      <p>写真や動画は平面なので、動きの面に対してカメラが斜めだと角度が実際より小さく写ります。動く面に対してカメラをまっすぐ向け、体から2〜3メートル離れて、ズームで大きく写すと歪みが減ります。携帯は傾けずに持つか、三脚や自撮り棒で固定してください。</p>
+      <p>関節の位置が分かりやすいように、肩・肘・手首・腰に丸いシールやテープを貼ってから撮ると、点を押す位置がぶれにくくなります。</p>
+      <p>iPhoneで撮った動画がパソコンで開けない場合は、iPhoneでその瞬間のスクリーンショットを撮り、写真として開いてください。</p>
+      <p>正しい位置から撮れば、写真や動画で測った関節の角度は角度計とよく一致すると報告されていますが、数度の誤差は出るものと考えてください。同じ選手を比べるときは、毎回同じ撮り方にそろえることが大切です。</p>
+    </details>
+  </div>
+
+</section>
+
+<!-- ================= 2 種目ライブラリ ================= -->
+<section class="panel" id="tab-lib" role="tabpanel" aria-labelledby="t-lib">
+  <h2>種目ライブラリ</h2>
+  <div class="card">
+    <div class="grid">
+      <div class="field"><label for="fCat">カテゴリ</label><select id="fCat"></select></div>
+      <div class="field"><label for="fText">名前で探す</label><input type="text" id="fText" placeholder="例 スクワット"></div>
+      <div class="field"><label for="fStroke">泳法で絞る</label>
+        <select id="fStroke"><option value="">すべて</option><option value="Fr">自由形</option><option value="Ba">背泳ぎ</option><option value="Fly">バタフライ</option><option value="Br">平泳ぎ</option><option value="start">スタート・ターン</option></select></div>
+      <div class="field"><label for="fAsp"><input type="checkbox" id="fAsp"> 講演で紹介された種目だけ表示</label></div>
+    </div>
+    <p class="muted" id="libCount" aria-live="polite"></p>
+  </div>
+  <div class="exlist" id="exList"></div>
+</section>
+
+<!-- ================= 3 プログラム作成 ================= -->
+<section class="panel" id="tab-prog" role="tabpanel" aria-labelledby="t-prog">
+  <h2>プログラム作成</h2>
+
+  <div class="card" id="settingsCard">
+    <h3 style="margin-bottom:8px">基本設定</h3>
+    <div class="grid">
+      <div class="field"><label for="sName">選手名またはグループ名</label><input type="text" id="sName"></div>
+      <div class="field"><label for="sDate">実施日</label><input type="date" id="sDate"></div>
+      <div class="field"><label for="sStroke">主な泳法</label>
+        <select id="sStroke"><option value="Fr">自由形</option><option value="Ba">背泳ぎ</option><option value="Fly">バタフライ</option><option value="Br">平泳ぎ</option><option value="IM">個人メドレー</option></select></div>
+      <div class="field"><label for="sDist">主な距離</label>
+        <select id="sDist"><option value="sprint">短距離（50・100）</option><option value="middle">中距離（200・400）</option><option value="distance">長距離（800以上）</option></select></div>
+      <div class="field"><label for="sPhase">時期</label>
+        <select id="sPhase"><option value="gp">一般準備期</option><option value="sp">専門準備期</option><option value="comp">試合期</option><option value="taper">テーパー期</option><option value="trans">移行期（オフ）</option></select></div>
+      <div class="field"><label for="sGoal">この日の主な目的</label>
+        <select id="sGoal"><option value="power">パワー向上</option><option value="strength">最大筋力向上</option><option value="hypertrophy">筋肥大</option><option value="endurance">筋持久力</option></select></div>
+      <div class="field"><label for="sSwim">週の水中練習回数</label><input type="number" id="sSwim" min="0" max="14" value="8"></div>
+      <div class="field"><label for="sWt">週のWT回数</label><input type="number" id="sWt" min="0" max="7" value="2"></div>
+      <div class="field"><label for="sMin">目標の所要時間（分）</label><input type="number" id="sMin" min="20" max="180" value="90"></div>
+    </div>
+    <div id="goalAdvice" aria-live="polite"></div>
+    <div id="phaseAdvice" aria-live="polite"></div>
+  </div>
+
+  <div class="card noprint" id="addHelp">
+    <h3>種目の追加</h3>
+    <p class="muted">種目ライブラリの「プログラムに追加」ボタン、または下のひな形から追加できます。追加すると、上で選んだ目的に合わせて回数や重量の目安が自動で入ります。</p>
+    <div class="grid">
+      <div class="field"><label for="quickAdd">ここから直接追加</label><select id="quickAdd"></select></div>
+      <div class="field" style="justify-content:flex-end"><button type="button" class="primary" id="btnQuickAdd">この種目を追加</button></div>
+    </div>
+    <p style="margin-top:10px">ひな形：
+      <button type="button" data-tpl="aspRoutine">講演のプール前ルーティン</button>
+      <button type="button" data-tpl="powerUpper">パワー日（上肢中心）</button>
+      <button type="button" data-tpl="strengthDay">最大筋力日</button>
+      <button type="button" data-tpl="brPower">平泳ぎパワー日</button>
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="sheet-head">
+      <h2 id="printTitle">トレーニングプログラム</h2>
+      <p id="printMeta"></p>
+    </div>
+    <div class="tablewrap">
+      <table id="progTable">
+        <caption class="sr">作成中のプログラム</caption>
+        <thead><tr>
+          <th scope="col">順</th><th scope="col">ブロック</th><th scope="col">種目</th><th scope="col">セット</th><th scope="col">回数・時間</th><th scope="col">重量・強度</th><th scope="col">休息</th><th scope="col">メモ</th><th scope="col" class="noprint">操作</th>
+        </tr></thead>
+        <tbody id="progBody"></tbody>
+      </table>
+    </div>
+    <p id="progEmpty" class="muted">まだ種目がありません。</p>
+  </div>
+
+  <div class="card">
+    <h3>プログラムの点検</h3>
+    <div id="summary"></div>
+    <div id="checks" aria-live="polite"></div>
+  </div>
+
+  <div class="card noprint">
+    <h3>保存と書き出し</h3>
+    <p>
+      <button type="button" class="primary" id="btnPrint">印刷またはPDF保存</button>
+      <button type="button" id="btnCopy">文章でコピー</button>
+      <button type="button" id="btnSave">ファイルに保存</button>
+      <label for="fileLoad" style="font-weight:400"><span class="sr">保存したファイルを読み込む</span></label>
+      <button type="button" id="btnLoad">保存したファイルを開く</button>
+      <input type="file" id="fileLoad" accept=".json,application/json" style="display:none">
+      <button type="button" class="danger" id="btnClear">すべて消す</button>
+    </p>
+    <p id="ioMsg" class="muted" aria-live="polite"></p>
+    <textarea id="copyArea" rows="6" style="width:100%;display:none" aria-label="コピー用の文章"></textarea>
+  </div>
+</section>
+
+<!-- ================= 4 記録とグラフ ================= -->
+<section class="panel" id="tab-log" role="tabpanel" aria-labelledby="t-log">
+  <h2>記録とグラフ（ウエイト）</h2>
+
+  <div class="card">
+    <h3 style="margin-bottom:8px">実施した内容を入力</h3>
+    <p class="muted">重量・回数・セット数・休憩を入れると、総挙上量（重量×回数×セット数）と推定1RMを自動で計算してグラフにします。懸垂とディップスは「体重＋加重」で計算するので、加重なしなら重量は0で構いません。</p>
+    <div class="grid">
+      <div class="field"><label for="lDate">日付</label><input type="date" id="lDate"></div>
+      <div class="field"><label for="lAth">選手名</label><input type="text" id="lAth"></div>
+      <div class="field"><label for="lEx">種目</label><select id="lEx"></select></div>
+      <div class="field"><label for="lKg">重量（kg）</label><input type="number" id="lKg" step="0.5" min="0"></div>
+      <div class="field"><label for="lReps">回数</label><input type="number" id="lReps" min="1" max="50"></div>
+      <div class="field"><label for="lSets">セット数</label><input type="number" id="lSets" min="1" max="20"></div>
+      <div class="field"><label for="lRest">休憩（秒）</label><input type="number" id="lRest" min="0" step="15" value="180"></div>
+      <div class="field"><label for="lRm">その種目の1RM（kg、分かれば）</label><input type="number" id="lRm" step="0.5" min="0"></div>
+      <div class="field"><label for="lBw">体重（kg、懸垂などの計算用）</label><input type="number" id="lBw" step="0.5" min="0"></div>
+    </div>
+    <p style="margin-top:10px">
+      <button type="button" class="primary" id="btnLogAdd">記録を追加</button>
+      <button type="button" id="btnLogFromProg">作成したプログラムから取り込む</button>
+      <button type="button" id="btnLogCsv">記録をCSVで書き出す</button>
+    </p>
+    <p id="logMsg" class="muted" aria-live="polite"></p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:8px">表示するもの</h3>
+    <div class="grid">
+      <div class="field"><label for="vAth">選手</label><select id="vAth"></select></div>
+      <div class="field"><label for="vDate">評価する日</label><select id="vDate"></select></div>
+      <div class="field"><label for="vEx">推移のグラフにする種目</label><select id="vEx"></select></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>評価</h3>
+    <div id="tiles"></div>
+    <div id="logEval" aria-live="polite"></div>
+  </div>
+
+  <div class="card"><div id="c1"></div></div>
+  <div class="card"><div id="c2"></div></div>
+  <div class="card"><div id="c3"></div></div>
+  <div class="card"><div id="c4"></div></div>
+
+  <div class="card">
+    <h3>記録の一覧</h3>
+    <p class="muted">表の数字は直接書き換えられます。書き換えるとグラフも更新されます。</p>
+    <div class="tablewrap">
+      <table id="logTable">
+        <caption class="sr">ウエイトトレーニングの記録</caption>
+        <thead><tr><th scope="col">日付</th><th scope="col">選手</th><th scope="col">種目</th><th scope="col">重量kg</th><th scope="col">回数</th><th scope="col">セット</th><th scope="col">休憩秒</th><th scope="col">1RM</th><th scope="col">総挙上量kg</th><th scope="col">推定1RM</th><th scope="col">操作</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+    <p id="logEmpty" class="muted">まだ記録がありません。</p>
+  </div>
+</section>
+
+<!-- ================= 5 原則と根拠 ================= -->
+<section class="panel" id="tab-basis" role="tabpanel" aria-labelledby="t-basis">
+  <h2>原則と根拠</h2>
+
+  <div class="card">
+    <h3>目的別の処方の目安</h3>
+    <p class="muted">ACSMの立場声明（2009）とNSCAの教本（2016）に示された一般的な範囲を、講演の方針に合わせて整理したものです。</p>
+    <div class="tablewrap"><table class="rx">
+      <thead><tr><th scope="col">目的</th><th scope="col">重量</th><th scope="col">回数</th><th scope="col">セット</th><th scope="col">休息</th><th scope="col">水泳選手にとっての位置づけ</th></tr></thead>
+      <tbody id="goalTable"></tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3>講演（ASP・Sean Kao コーチ）の方針</h3>
+    <div id="aspPrinciples"></div>
+  </div>
+
+  <div class="card">
+    <h3>研究から分かっていること</h3>
+    <div id="evidenceSummary"></div>
+  </div>
+
+  <div class="card">
+    <h3>参考文献</h3>
+    <p class="muted">書誌情報は作成時点のものです。指導資料に引用する際は原典で確認してください。</p>
+    <ol class="reflist" id="refList"></ol>
+  </div>
+</section>
+
+</main>
+
+<div id="tip" hidden role="status"></div>
+<script>
+/* ============ 参考文献 ============ */
+const REFS = {
+  asp:'ASP × JAPAN スイムクリニック資料および Sean Kao コーチからのフィードバック（2026年、講演資料）',
+  acsm2009:'American College of Sports Medicine. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708.',
+  nsca2016:'Haff GG, Triplett NT (eds). Essentials of Strength Training and Conditioning, 4th ed. Human Kinetics; 2016.',
+  crowley2017:'Crowley E, Harrison AJ, Lyons M. The impact of resistance training on swimming performance: a systematic review. Sports Med. 2017;47(11):2285-2307.',
+  aspenes2009:'Aspenes S, Kjendlie PL, Hoff J, Helgerud J. Combined strength and endurance training in competitive swimmers. J Sports Sci Med. 2009;8(3):357-365.',
+  girold2007:'Girold S, Maurin D, Dugué B, Chatard JC, Millet G. Effects of dry-land vs. resisted- and assisted-sprint exercises on swimming sprint performances. J Strength Cond Res. 2007;21(2):599-605.',
+  west2011:'West DJ, Owen NJ, Cunningham DJ, Cook CJ, Kilduff LP. Strength and power predictors of swimming starts in international sprint swimmers. J Strength Cond Res. 2011;25(4):950-955.',
+  thng2019:'Thng S, Pearson S, Keogh JWL. Relationships between dry-land resistance training and swim start performance and effects of such training on the swim start: a systematic review. Sports Med. 2019;49(12):1957-1973.',
+  keiner2021:'Keiner M, Wirth K, Fuhrmann S, Kunz M, Hartmann H, Haff GG. The influence of upper- and lower-body maximum strength on swim block start, turn, and overall swim performance in sprint swimming. J Strength Cond Res. 2021;35(10):2839-2845.',
+  morouco2011:'Morouço P, Neiva H, González-Badillo JJ, Garrido N, Marinho DA, Marques MC. Associations between dry land strength and power measurements with swimming performance in elite athletes: a pilot study. J Hum Kinet. 2011;29A:105-112.',
+  bishop2009:'Bishop DC, Smith RJ, Smith MF, Rigby HE. The effects of plyometric training on swimming block start performance in adolescents. J Strength Cond Res. 2009;23(7):2137-2143.',
+  weston2015:'Weston M, Hibbs AE, Thompson KG, Spears IR. Isolated core training improves sprint performance in national-level junior swimmers. Int J Sports Physiol Perform. 2015;10(2):204-210.',
+  suchomel2015:'Suchomel TJ, Comfort P, Stone MH. Weightlifting pulling derivatives: rationale for implementation and application. Sports Med. 2015;45(6):823-839.',
+  suchomel2016:'Suchomel TJ, Nimphius S, Stone MH. The importance of muscular strength in athletic performance. Sports Med. 2016;46(10):1419-1449.',
+  schoenfeld2017load:'Schoenfeld BJ, Grgic J, Ogborn D, Krieger JW. Strength and hypertrophy adaptations between low- vs. high-load resistance training: a systematic review and meta-analysis. J Strength Cond Res. 2017;31(12):3508-3523.',
+  schoenfeld2017vol:'Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass: a systematic review and meta-analysis. J Sports Sci. 2017;35(11):1073-1082.',
+  schoenfeld2016rest:'Schoenfeld BJ, Pope ZK, Benik FM, et al. Longer interset rest periods enhance muscle strength and hypertrophy in resistance-trained men. J Strength Cond Res. 2016;30(7):1805-1812.',
+  pareja2017:'Pareja-Blanco F, Rodríguez-Rosell D, Sánchez-Medina L, et al. Effects of velocity loss during resistance training on athletic performance, strength gains and muscle adaptations. Scand J Med Sci Sports. 2017;27(7):724-735.',
+  weakley2021:'Weakley J, Mann B, Banyard H, McLaren S, Scott T, Garcia-Ramos A. Velocity-based training: from theory to application. Strength Cond J. 2021;43(2):31-49.',
+  wilson2012:'Wilson JM, Marin PJ, Rhea MR, Wilson SM, Loenneke JP, Anderson JC. Concurrent training: a meta-analysis examining interference of aerobic and resistance exercises. J Strength Cond Res. 2012;26(8):2293-2307.',
+  bosquet2007:'Bosquet L, Montpetit J, Arvisais D, Mujika I. Effects of tapering on performance: a meta-analysis. Med Sci Sports Exerc. 2007;39(8):1358-1365.',
+  wanivenhaus2012:'Wanivenhaus F, Fox AJS, Chaudhury S, Rodeo SA. Epidemiology of injuries and prevention strategies in competitive swimmers. Sports Health. 2012;4(3):246-251.',
+  batalha2015:'Batalha N, Raimundo A, Tomas-Carus P, Paulo J, Simão R, Silva AJ. Does a land-based compensatory strength-training programme really alter the shoulder rotators balance in the young competitive swimmers? Eur J Sport Sci. 2015;15(8):764-772.',
+  riemann2011:'Riemann BL, Witt J, Davies GJ. Glenohumeral joint rotation range of motion in competitive swimmers. J Sports Sci. 2011;29(11):1191-1199.',
+  kibler2012:'Kibler WB, Sciascia A, Wilkes T. Scapular dyskinesis and its relation to shoulder injury. J Am Acad Orthop Surg. 2012;20(6):364-372.',
+  cools2015:'Cools AM, Johansson FR, Borms D, Maenhout A. Prevention of shoulder injuries in overhead athletes: a science-based approach. Braz J Phys Ther. 2015;19(5):331-339.',
+  reinold2004:'Reinold MM, Wilk KE, Fleisig GS, et al. Electromyographic analysis of the rotator cuff and deltoid musculature during common shoulder external rotation exercises. J Orthop Sports Phys Ther. 2004;34(7):385-394.',
+  gullett2009:'Gullett JC, Tillman MD, Gutierrez GM, Chow JW. A biomechanical comparison of back and front squats in healthy trained individuals. J Strength Cond Res. 2009;23(1):284-292.',
+  swinton2011:'Swinton PA, Stewart A, Agouris I, Keogh JWL, Lloyd R. A biomechanical analysis of straight and hexagonal barbell deadlifts using submaximal loads. J Strength Cond Res. 2011;25(7):2000-2009.',
+  contreras2017:'Contreras B, Vigotsky AD, Schoenfeld BJ, et al. Effects of a six-week hip thrust vs. front squat resistance training program on performance in adolescent males: a randomized controlled trial. J Strength Cond Res. 2017;31(4):999-1008.',
+  mcgill2016:'McGill S. Low Back Disorders: Evidence-Based Prevention and Rehabilitation, 3rd ed. Human Kinetics; 2016.',
+  ronnestad2014:'Rønnestad BR, Mujika I. Optimizing strength training for running and cycling endurance performance: a review. Scand J Med Sci Sports. 2014;24(4):603-612.'
+};
+const REF_ORDER = Object.keys(REFS);
+
+/* ============ 目的別の一般処方 ============ */
+const GOALS = {
+  power:{label:'パワー向上', sets:'3–5', reps:'1–5', load:'種目により1RMの30–90%。挙上は常に最大スピードで', rest:'2–5分',
+    swim:'講演の方針の中心。WTは出力を上げるために行い、1セットずつ集中して最大スピードで行う。速度が落ちたらセットを終える（速度低下10–20%程度で打ち切る方法が研究で支持されている）。',
+    refs:['asp','nsca2016','pareja2017','weakley2021']},
+  strength:{label:'最大筋力向上', sets:'3–5', reps:'2–5', load:'1RMの80–90%', rest:'2–5分',
+    swim:'パワーの土台。下肢の最大筋力はスタートやターンの速さと関連することが報告されている。講演の方針では5回を超えない。',
+    refs:['acsm2009','nsca2016','suchomel2016','keiner2021']},
+  hypertrophy:{label:'筋肥大', sets:'3–4', reps:'6–12', load:'1RMの67–85%', rest:'1–3分（長めの休息でも肥大効果は落ちない）',
+    swim:'講演の方針では行わない（体重と抵抗が増えるため）。ただし水中で抵抗が増えることを直接示した研究は少なく、体が細い選手や平泳ぎ・短距離選手の一般準備期に限って用いる考え方もある。',
+    refs:['asp','schoenfeld2017load','schoenfeld2017vol','schoenfeld2016rest']},
+  endurance:{label:'筋持久力', sets:'2–3', reps:'12以上', load:'1RMの67%以下', rest:'30–60秒',
+    swim:'筋持久力そのものは競泳に必要。ただし泳ぎに必要な持久力は、動き・力の大きさ・速さに限定して身につくため、水中の反復練習で鍛えるのが最も直接的。陸上では最大筋力を上げるほうが、1ストロークの負担が最大筋力に対して軽くなり、結果として持久力も助ける。陸上で持久的に行う意味があるのは、肩のローテーターカフや肩甲骨の安定筋、体幹の姿勢保持など、ケガ予防を目的とする補強に限られる。',
+    refs:['asp','ronnestad2014','wilson2012','batalha2015']}
+};
+
+/* 種類ごとの基本処方（重量種目以外） */
+const TYPE_RX = {
+  mobility:{any:{sets:'1–2', reps:'左右各20–30秒 または 5–8回', load:'自重', rest:'なし'}},
+  activation:{any:{sets:'2', reps:'10–15回', load:'自重〜軽いバンド', rest:'30秒'}},
+  plyo:{power:{sets:'3–4', reps:'3–5回', load:'自重', rest:'1–2分'}},
+  mb:{power:{sets:'3–4', reps:'3–6回', load:'ボール2–5kg', rest:'1–2分'}},
+  core:{any:{sets:'2–3', reps:'20–40秒 または 8–12回', load:'自重', rest:'30–60秒'}},
+  olympic:{power:{sets:'3–5', reps:'1–3回', load:'1RMの70–85%', rest:'2–4分'}, strength:{sets:'3–5', reps:'1–3回', load:'1RMの85–95%', rest:'3–5分'}}
+};
+
+const CATS = {
+  mobility:'モビリティ（可動性）',
+  shoulder:'肩の安定性・ローテーターカフ',
+  plyo:'プライオメトリクス（ジャンプ）',
+  olympic:'クイックリフト（爆発的な全身種目）',
+  lower:'下肢の筋力（スタート・ターン）',
+  pull:'上肢の引く種目（推進力）',
+  push:'上肢の押す種目',
+  mb:'メディシンボール（上肢・体幹パワー）',
+  core:'体幹'
+};
+const BLOCKS = ['W-UP','パワー','メイン','補助','体幹','クールダウン'];
+
+/* ============ 種目データ ============
+ type: loaded（重量で目的を変えられる）/ olympic / plyo / mb / core / mobility / activation
+ check: セルフチェックとの対応（flex 肩屈曲, er 外旋, pec 大胸筋, tho 胸椎回旋）
+ flags: lumbarRot 腰椎の回旋を伴う / shoulderRisk 肩の負担が大きい
+*/
+const EX = [
+ /* ---- モビリティ ---- */
+ {id:'m_dsq_rot', name:'ディープスクワット＋回旋', cat:'mobility', type:'mobility', asp:true, check:['tho'], strokes:['Fr','Ba','Fly'],
+  muscles:'胸椎の回旋筋群・股関節周囲',
+  why:'深くしゃがんで骨盤と腰を固定した状態で胸椎だけを回す。講演のプール前ルーティンの1番目の種目。',
+  swim:'自由形・背泳ぎのローリングと息継ぎで使う胸椎の回旋。',
+  merit:['胸椎の回旋と股関節の可動性を同時に高められる','器具がいらず、プールサイドでできる','腰ではなく胸椎を回す感覚を覚えやすい'],
+  demerit:['足首や股関節が硬いとしゃがんだ姿勢が保てない（台に手をつくなどで調整）','可動域は広がるが回旋の筋力そのものはあまり高まらない'],
+  cue:'上げた手の方向に視線を向け、骨盤は正面のまま。呼吸を止めない。', refs:['asp']},
+ {id:'m_wide_rot', name:'ワイドスタンス胸椎回旋', cat:'mobility', type:'mobility', asp:true, check:['tho'], strokes:['Fr','Ba'],
+  muscles:'胸椎の回旋筋群・ハムストリングス',
+  why:'足を大きく開いた前傾姿勢で片手を床、反対の手を天井へ伸ばし、胸椎を回す。',
+  swim:'ローリングと入水〜プル局面での体幹と肩の連動。',
+  merit:['骨盤を固定しやすく、腰の代償が出にくい','ハムストリングスのストレッチも同時に行える'],
+  demerit:['ハムストリングスが硬い選手は腰が丸まりやすい','肩に痛みがある選手は天井へ上げる腕の高さを調整する'],
+  cue:'床についた手の真上に肩がくるように。腰ではなく胸から回す。', refs:['asp']},
+ {id:'m_wall_rot', name:'ウォール胸椎回旋＋リフトオフ', cat:'mobility', type:'mobility', asp:true, check:['tho','flex'], strokes:['Fr','Ba','Fly'],
+  muscles:'胸椎の回旋筋群・僧帽筋下部',
+  why:'横向きで壁を使って胸椎を回し、回しきった位置で手を壁から浮かせて保持する。講演の「ストレッチ＋強化」の原則をそのまま形にした種目。',
+  swim:'広げた可動域の端で力を出せるようにし、泳ぎの中で使える可動性にする。',
+  merit:['可動域を広げるだけでなく、その端で筋肉を使う練習になる','壁があるので代償動作に気づきやすい'],
+  demerit:['浮かせる局面は思ったより難しく、最初は数秒で十分','首や肩に力が入りやすい'],
+  cue:'浮かせるときに肩をすくめない。3–5秒保持を数回。', refs:['asp']},
+ {id:'m_foam_ext', name:'フォームローラー胸郭伸展', cat:'mobility', type:'mobility', asp:true, check:['flex','pec'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'胸椎の伸展・胸郭',
+  why:'胸の真下にフォームローラーを置き、腰を反らさずに胸郭だけを反らす。肩の屈曲（腕を頭上へ上げる動き）の土台をつくる。',
+  swim:'ストリームラインと入水〜前方伸展で腕を頭上へ運ぶ動き。',
+  merit:['肩屈曲の制限が胸椎の硬さから来ている選手に効果的','ペアで補助すると伸展を深められる'],
+  demerit:['腰を反らせてしまうと腰に負担がかかり、胸郭のストレッチにならない','腰痛がある選手は注意'],
+  cue:'足をベンチに乗せ、股関節と膝を90°に。呼吸を止めない。', refs:['asp']},
+ {id:'m_prone_cross', name:'うつ伏せ片脚クロス（胸郭のストレッチ）', cat:'mobility', type:'mobility', asp:true, check:['tho'], strokes:['Fr','Ba'],
+  muscles:'胸郭・腹斜筋・股関節屈筋',
+  why:'うつ伏せで両腕を横に広げ、片脚を反対側の脚を越えて床につける。',
+  swim:'自由形・背泳ぎのローリング。',
+  merit:['胸郭と股関節前面を同時に伸ばせる','器具不要'],
+  demerit:['腰を反らせると腰椎が代わりに動いてしまう','腰痛がある選手は範囲を小さく'],
+  cue:'腕は床から浮かさない。力を抜いてリラックス。', refs:['asp']},
+ {id:'m_lat_str', name:'広背筋ストレッチ（ポールを使う）', cat:'mobility', type:'mobility', asp:true, check:['flex'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'広背筋',
+  why:'広背筋は上腕骨と骨盤をつなぐ大きな筋肉で、硬いと肩の屈曲が制限される。講演では上腕骨と骨盤のつながりを意識して伸ばす原則が示された。',
+  swim:'ストリームライン、入水〜前方伸展、キャッチ〜プル。',
+  merit:['肩屈曲180°に届かない選手の多くに当てはまる','ポール1本でできる'],
+  demerit:['腰を反らすと広背筋が伸びずに腰で代償する','伸ばしている側の肩がすくみやすい'],
+  cue:'体を真横ではなくやや前に倒す。わきの下から体側が伸びる感覚。', refs:['asp']},
+ {id:'m_scorpion', name:'スコーピオン大胸筋ストレッチ', cat:'mobility', type:'mobility', asp:true, check:['pec','tho'], strokes:['Fr','Ba','Fly'],
+  muscles:'大胸筋・胸郭',
+  why:'うつ伏せで片腕を横に広げ、反対の脚を後ろから反対側へ回して胸の前を伸ばす。',
+  swim:'入水後の前方伸展、プル、リカバリーでの肩の外転・外旋。',
+  merit:['大胸筋テスト45°に届かない選手に直接対応','胸郭の回旋も同時に入る'],
+  demerit:['勢いをつけると肩の前方に負担がかかる','腰で回らないように範囲を調整'],
+  cue:'反動を使わず、伸びる位置で呼吸しながら保持。', refs:['asp']},
+ {id:'m_subscap', name:'肩甲下筋ストレッチ（膝を使う）', cat:'mobility', type:'mobility', asp:true, check:['er'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'肩甲下筋',
+  why:'片膝を立てて座り、肘を膝の内側に入れて反対の手で前腕を外側へ押す。外旋テストが15°未満の選手向け。',
+  swim:'入水〜前方伸展とリカバリーで使う肩の外旋。',
+  merit:['外旋可動域の制限に直接アプローチできる','肩の前側の詰まり感を減らす'],
+  demerit:['強く押しすぎると肩の前方が不安定になるおそれ','痛みが出る場合は中止する'],
+  cue:'背すじを丸めすぎない。心地よい伸び感で20–30秒。', refs:['asp']},
+ {id:'m_stick_er', name:'スティック外旋ストレッチ', cat:'mobility', type:'mobility', asp:true, check:['er'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'肩甲下筋・肩の内旋筋群',
+  why:'仰向けで肘を体側で90°に曲げ、棒を使って前腕を外側へ倒す。ペアで行うパートナー外旋ストレッチの一人版。',
+  swim:'肩の外旋可動域の確保。',
+  merit:['一人でも負荷を細かく調整できる','左右差を確認しやすい'],
+  demerit:['押しすぎは肩前方への負担','肩の前方不安定感がある選手は専門家に相談'],
+  cue:'肘が体から離れないように。痛みのない範囲で。', refs:['asp','riemann2011']},
+
+ /* ---- 肩の安定性 ---- */
+ {id:'s_prone_er', name:'プローン外旋リフトオフ', cat:'shoulder', type:'activation', asp:true, check:['er'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'棘下筋・小円筋・僧帽筋下部',
+  why:'うつ伏せで肘を曲げ、外旋した位置で前腕を床から浮かせて保持する。可動域の端で外旋筋を使う「ストレッチ＋強化」の代表種目。',
+  swim:'水泳選手は内旋筋が強く外旋筋が相対的に弱くなりやすい。外旋筋は肩の安定に重要。',
+  merit:['外旋の可動域と筋力を同時に高められる','器具がいらない','講演の2時間版ルーティンにも含まれる'],
+  demerit:['負荷は小さいので筋力の大きな向上は期待しにくい','腰を反らせて代償しやすい'],
+  cue:'肩をすくめずに浮かせ、2–3秒保持。', refs:['asp','cools2015','wanivenhaus2012']},
+ {id:'s_band_er', name:'セラバンド外旋', cat:'shoulder', type:'activation', asp:true, check:['er'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'棘下筋・小円筋',
+  why:'肘を体側につけてバンドを外側へ引く。ローテーターカフの基本種目。',
+  swim:'肩の内旋・外旋の筋力バランス。',
+  merit:['負荷調整が簡単でプールサイドでもできる','ウォームアップに組み込みやすい'],
+  demerit:['体側での外旋は泳ぎの腕の位置（頭上）と異なるため、慣れたら腕を90°上げた位置へ進める','若年選手の研究では、陸上の補強を行っても内旋と外旋の筋力比がほとんど変わらなかった報告もあり、継続と十分な負荷が必要'],
+  cue:'肘と体の間にタオルを挟むと代償が減る。', refs:['asp','batalha2015','cools2015']},
+ {id:'s_sl_er', name:'サイドライイング外旋', cat:'shoulder', type:'activation', asp:true, check:['er'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'棘下筋・小円筋',
+  why:'横向きに寝て上側の腕でダンベルを持ち上げる外旋。講演では徒手抵抗版が紹介された。',
+  swim:'外旋筋力の強化。',
+  merit:['外旋種目の中で棘下筋・小円筋の筋活動が高い種目として報告されている','徒手抵抗なら相手の力に合わせられる'],
+  demerit:['重すぎると三角筋や体幹のひねりで代償する','1–3kg程度の軽い重量で丁寧に'],
+  cue:'肘の下に丸めたタオルを置き、ゆっくり下ろす。', refs:['asp','reinold2004']},
+ {id:'s_bent_y', name:'ベントオーバーY', cat:'shoulder', type:'activation', asp:true, check:['flex'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'僧帽筋下部・前鋸筋',
+  why:'前傾姿勢で腕をY字に斜め前へ上げる。僧帽筋下部は肩甲骨を下げながら上方回旋させ、腕を頭上へ上げる動きを支える。',
+  swim:'ストリームラインと入水時の肩甲骨の位置。',
+  merit:['講演で「水泳選手に多い不足」として挙げられた僧帽筋下部を直接ねらえる','バンドでも自重でもできる'],
+  demerit:['肩をすくめると僧帽筋上部の種目になってしまう','反動を使うと効果が薄れる'],
+  cue:'肩甲骨を下げる意識。肘を軽く伸ばして斜め前へ。10–15回×2–3セット。', refs:['asp','cools2015','kibler2012']},
+ {id:'s_prone_w', name:'プローンW', cat:'shoulder', type:'activation', asp:true, check:['pec','er'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'僧帽筋中部・下部・外旋筋群',
+  why:'うつ伏せで腕をW字にして肩甲骨を寄せて下げ、外旋位で持ち上げる。',
+  swim:'丸まりやすい肩の姿勢を整え、大胸筋の硬さに対抗する。',
+  merit:['肩甲骨の内転・下制と外旋を同時に使える','器具不要'],
+  demerit:['腰を反らせて持ち上げる代償が出やすい'],
+  cue:'額を床につけたまま、肘と手を同時に浮かせる。', refs:['asp','cools2015']},
+ {id:'s_pushup_plus', name:'プッシュアッププラス＋交互ダウンドッグ', cat:'shoulder', type:'activation', asp:true, check:['flex'], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'前鋸筋・体幹',
+  why:'腕立ての最後にさらに床を押して肩甲骨を前に出す（プラス）。前鋸筋は肩甲骨の上方回旋を支え、肩甲骨の動きの乱れは肩の障害と関連する。',
+  swim:'入水〜前方伸展でのリーチ。',
+  merit:['前鋸筋を安全にねらえる','ダウンドッグと組み合わせて肩屈曲の可動域も使える'],
+  demerit:['肘や手首に痛みがある選手は膝つきで','腰が落ちると体幹の代償'],
+  cue:'首・背中・お尻を一直線に。', refs:['asp','kibler2012']},
+
+ /* ---- プライオメトリクス ---- */
+ {id:'p_cmj', name:'カウンタームーブメントジャンプ（CMJ）', cat:'plyo', type:'plyo', check:[], strokes:['start','Br'],
+  muscles:'下肢全体（伸張反射と爆発力）',
+  why:'しゃがみ込みからすばやく真上に跳ぶ。下肢の爆発的な力発揮の基本で、測定指標にも使える。',
+  swim:'スタートの飛び出し、ターンの壁蹴り。',
+  merit:['下肢のパワーはスタートのタイムと関連することが報告されている','跳躍高を記録すれば疲労やトレーニング効果の確認に使える'],
+  demerit:['着地の衝撃があり、下肢の疲労が水中練習に影響しうる（講演の指摘）','跳ぶ回数を増やしすぎない'],
+  cue:'腕の振りを使って全力で跳ぶ。1回ずつ質を重視。', refs:['west2011','bishop2009','thng2019','asp']},
+ {id:'p_box', name:'ボックスジャンプ', cat:'plyo', type:'plyo', check:[], strokes:['start','Br'],
+  muscles:'下肢全体',
+  why:'箱の上に跳び乗る。着地が高い位置になるため衝撃が小さい。',
+  swim:'スタートの飛び出し。',
+  merit:['着地の衝撃が小さく、プライオメトリクスの入門に向く','3関節（股・膝・足首）をすばやく伸ばす練習になる'],
+  demerit:['箱の高さを競うと、跳ぶ練習ではなく脚をたたむ練習になる','降りるときは跳び降りず歩いて降りる'],
+  cue:'股関節・膝・足首をすばやく伸ばしきる。', refs:['bishop2009','thng2019']},
+ {id:'p_depth', name:'デプスジャンプ', cat:'plyo', type:'plyo', check:[], strokes:['start'],
+  muscles:'下肢全体（反応筋力）',
+  why:'台から落ちて着地した瞬間にすぐ跳ぶ。接地時間を短くして反応筋力を高める。',
+  swim:'スタート・ターンでの力の立ち上がり。',
+  merit:['短い時間で大きな力を出す能力を高める'],
+  demerit:['強度が高く、筋力の土台がある選手向け','回数は少なく（1セット3–5回、合計でも少なめ）','下肢に痛みがある選手は行わない'],
+  cue:'着地したらすぐ跳ぶ。台は30cm前後から。', refs:['nsca2016','thng2019']},
+ {id:'p_broad', name:'立ち幅跳び（ブロードジャンプ）', cat:'plyo', type:'plyo', check:[], strokes:['start'],
+  muscles:'下肢全体・臀筋',
+  why:'前方へ遠くへ跳ぶ。スタートの飛び出しと同じ前方向の力発揮。',
+  swim:'スタートの飛び出し方向（水平方向）。',
+  merit:['水平方向の力発揮を練習できる','距離を記録すれば評価にも使える'],
+  demerit:['着地の衝撃が大きい','連続で跳ぶと質が落ちる'],
+  cue:'腕を大きく振り、1回ずつしっかり着地。', refs:['thng2019']},
+ {id:'p_jsq', name:'ジャンプスクワット（軽負荷）', cat:'plyo', type:'plyo', check:[], strokes:['start','Br'],
+  muscles:'下肢全体',
+  why:'軽い負荷を持って最大スピードで跳ぶ。',
+  swim:'スタート。国際レベルの短距離選手で、ジャンプスクワットのパワーとスタートのタイムの関連が報告されている。',
+  merit:['負荷を少し加えてパワーを高められる','VBTで速度を測りやすい'],
+  demerit:['着地衝撃が大きい','重くしすぎると速度が落ちてパワー種目でなくなる'],
+  rx:{power:{sets:'3–4', reps:'3–5回', load:'バーのみ〜1RMの30%', rest:'2–3分'}},
+  cue:'最大スピードで跳ぶ。速度が落ちたらセット終了。', refs:['west2011','nsca2016']},
+
+ /* ---- クイックリフト ---- */
+ {id:'o_clean', name:'パワークリーン（ハングを含む）', cat:'olympic', type:'olympic', check:[], strokes:['start','Br','Fly'],
+  muscles:'全身（臀筋・ハムストリングス・大腿四頭筋・僧帽筋）',
+  why:'床または膝上からバーを一気に引き上げて肩で受ける。股関節・膝・足首を同時に伸ばす動きで、力の立ち上がりの速さを高める。',
+  swim:'スタートと壁蹴りでの3関節の同時伸展。',
+  merit:['全身の爆発的な力発揮を高められる','ウエイトリフティング系の種目は力の立ち上がりやパワーの向上に有効とされる'],
+  demerit:['技術の習得に時間がかかる','肩で受ける姿勢（フロントラック）には手首・肘・肩の柔軟性が必要','疲労すると技術が崩れやすいので回数は少なく'],
+  cue:'1セットずつ集中。股関節・膝・足首を同時に伸ばす。', refs:['suchomel2015','asp']},
+ {id:'o_pull', name:'クリーンプル・ハイプル', cat:'olympic', type:'olympic', check:[], strokes:['start','Br','Fly'],
+  muscles:'臀筋・ハムストリングス・僧帽筋',
+  why:'クリーンの引き上げ局面だけを行う。受ける動作がないので技術の負担が小さい。',
+  swim:'スタート。',
+  merit:['キャッチ動作がないため技術的に易しく、手首や肩の負担も小さい','クリーンより重い負荷を扱える'],
+  demerit:['受けないので最後まで引き切らずに終わりやすい'],
+  rx:{power:{sets:'3–5', reps:'2–3回', load:'パワークリーン1RMの80–100%', rest:'2–4分'}},
+  cue:'つま先立ちになるまで伸びきる。', refs:['suchomel2015']},
+ {id:'o_thruster', name:'スラスター', cat:'olympic', type:'olympic', check:[], strokes:['Br','Fly'],
+  muscles:'全身（下肢・体幹・肩）',
+  why:'フロントスクワットから立ち上がる勢いでバーを頭上へ押し上げる。',
+  swim:'全身の連動と伸展。平泳ぎチームのメニューに含まれる。',
+  merit:['下肢から上肢へ力をつなぐ全身の連動を練習できる'],
+  demerit:['頭上へ押し上げる動作は肩の負担があり、肩屈曲が180°に届かない選手は腰を反らせて代償する','疲労しやすいので回数は少なく'],
+  rx:{power:{sets:'3', reps:'2–3回', load:'25–30kg程度から', rest:'3分'}},
+  cue:'少しジャンプするくらいの勢いで3関節を伸ばす。', refs:['nsca2016']},
+
+ /* ---- 下肢 ---- */
+ {id:'l_bsq', name:'バックスクワット', cat:'lower', type:'loaded', check:[], strokes:['start','Br'],
+  muscles:'大腿四頭筋・大臀筋・内転筋・脊柱起立筋',
+  why:'下肢の最大筋力をつくる代表的な種目。',
+  swim:'スタート・ターンの壁蹴り、平泳ぎのキック。下肢の最大筋力はスタートやターンのタイムと関連することが報告されている。',
+  merit:['下肢の最大筋力を効率よく高められる','1RMや挙上速度を測りやすく、進歩が分かりやすい','パワー・筋力・筋肥大のどの目的にも使える'],
+  demerit:['腰への圧縮負担が大きい','バーを担ぐ姿勢（肩の外転・外旋）がつらい選手がいる','下肢の疲労が水中練習に残りやすい（講演で指摘）'],
+  rx:{power:{sets:'3–5', reps:'2–4回', load:'1RMの40–70%を最大スピードで（VBT推奨）', rest:'2–3分'}},
+  cue:'パラレル（太もも水平）まで。背中を丸めない。', refs:['keiner2021','suchomel2016','asp']},
+ {id:'l_fsq', name:'フロントスクワット', cat:'lower', type:'loaded', check:[], strokes:['start','Br'],
+  muscles:'大腿四頭筋・大臀筋・体幹',
+  why:'バーを体の前で持つスクワット。上体が立つので体幹の関与が大きい。',
+  swim:'スタート・ターン。',
+  merit:['バックスクワットと同程度の筋活動で、膝への圧縮力が小さいことが報告されている','上体が立つので腰の負担が比較的小さい'],
+  demerit:['フロントラックの姿勢に手首・肩の柔軟性が必要','扱える重量はバックスクワットより軽い'],
+  rx:{power:{sets:'3–5', reps:'2–4回', load:'1RMの40–70%を最大スピードで', rest:'2–3分'}},
+  cue:'肘を高く保ち、前傾しない。', refs:['gullett2009','asp']},
+ {id:'l_trap', name:'トラップバーデッドリフト', cat:'lower', type:'loaded', check:[], strokes:['start','Br'],
+  muscles:'大腿四頭筋・大臀筋・ハムストリングス',
+  why:'六角形のバーの中に立って持ち上げる。',
+  swim:'スタート・ターン。',
+  merit:['通常のデッドリフトより腰の負担が小さく、発揮できる力とパワーが大きいことが報告されている','技術が易しい'],
+  demerit:['専用のバーが必要'],
+  rx:{power:{sets:'3–5', reps:'2–3回', load:'1RMの40–60%を最大スピードで（ジャンプも可）', rest:'2–3分'}},
+  cue:'床を押す意識で立ち上がる。', refs:['swinton2011']},
+ {id:'l_rdl', name:'ルーマニアンデッドリフト（RDL）', cat:'lower', type:'loaded', check:[], strokes:['start','Fly','Fr'],
+  muscles:'ハムストリングス・大臀筋',
+  why:'膝を軽く曲げたまま股関節を曲げ伸ばしする（ヒップヒンジ）。',
+  swim:'スタートの構えと飛び出しのヒップヒンジ、ドルフィンキックの股関節伸展。',
+  merit:['ハムストリングスと臀筋を強化できる','ヒップヒンジの感覚が身につく'],
+  demerit:['背中が丸まると腰痛の原因になる','ハムストリングスの筋肉痛が残りやすい'],
+  cue:'お尻を後ろへ引く。バーは脚に沿わせる。', refs:['nsca2016']},
+ {id:'l_slrdl', name:'シングルレッグRDL', cat:'lower', type:'loaded', check:[], strokes:['start'],
+  muscles:'ハムストリングス・中臀筋・大臀筋',
+  why:'片脚で行うRDL。チームのウォームアップにも含まれる。',
+  swim:'スタートの後ろ脚、左右差の改善。',
+  merit:['左右差を見つけて修正できる','骨盤の安定性も高まる','軽い負荷で済むので腰の負担が小さい'],
+  demerit:['重い重量は扱いにくく、最大筋力には向かない'],
+  rx:{power:{sets:'1–2', reps:'左右各5回', load:'自重〜軽いダンベル', rest:'1分'}},
+  cue:'壁と膝でボールを挟むとお尻を意識しやすい。', refs:['nsca2016']},
+ {id:'l_bss', name:'ブルガリアンスプリットスクワット', cat:'lower', type:'loaded', check:[], strokes:['start','Br'],
+  muscles:'大腿四頭筋・大臀筋',
+  why:'後ろ足を台に乗せた片脚スクワット。',
+  swim:'スタートの前脚・後ろ脚、左右差の改善。',
+  merit:['片脚ずつ高い負荷をかけられ、腰への圧縮は小さい','左右差を確認できる'],
+  demerit:['筋肉痛が強く出やすく、水中練習に影響しやすい','バランスが必要'],
+  cue:'前脚に体重を乗せる。膝がつま先の方向を向くように。', refs:['nsca2016']},
+ {id:'l_hipthrust', name:'ヒップスラスト', cat:'lower', type:'loaded', check:[], strokes:['start','Fly'],
+  muscles:'大臀筋・ハムストリングス',
+  why:'背中をベンチに乗せてお尻を持ち上げる。股関節を伸ばしきる局面で大臀筋に大きな負荷がかかる。',
+  swim:'スタートの飛び出し、ドルフィンキック。',
+  merit:['腰への圧縮負担が小さい','青年男子の研究で、フロントスクワットより短い距離の加速が向上した可能性が報告されている'],
+  demerit:['水泳選手を対象にした研究はまだ少ない','可動域が狭く、他の種目の代わりにはならない'],
+  cue:'首・背中・お尻を一直線に。頭を振って反動をつけない。', refs:['contreras2017']},
+ {id:'l_sidelunge', name:'サイドランジ（プレートまたはダンベル）', cat:'lower', type:'loaded', check:[], strokes:['Br'],
+  muscles:'大臀筋・内転筋',
+  why:'横へ大きく踏み出す。前後の動きが中心の他の種目では弱い内転筋を使う。',
+  swim:'平泳ぎのキックで使う内転筋と股関節。',
+  merit:['横方向の動きで内転筋と股関節の可動性を同時に高める'],
+  demerit:['鼠径部に痛みがある選手は注意','平泳ぎとの直接の関連を示す研究は少なく、実践的な考え方にもとづく'],
+  cue:'腰を丸めず、かかとをしっかりつける。', refs:['nsca2016']},
+
+ /* ---- 上肢 引く ---- */
+ {id:'u_pullup', name:'懸垂（プルアップ・チンアップ・加重懸垂）', cat:'pull', type:'loaded', asp:true, check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'広背筋・大円筋・上腕二頭筋・僧帽筋下部',
+  why:'広背筋は水をとらえて後ろへ押す局面の主な筋肉。自重を引き上げる種目で上肢の引く力を高める。',
+  swim:'キャッチ〜プル。講演では平泳ぎ以外の泳法は上肢で推進力をつくる割合が大きいので上肢中心のWTにするよう助言された。',
+  merit:['自重で最大筋力からパワーまで対応でき、加重で負荷を上げられる','肩甲骨を下げるコントロールも練習できる'],
+  demerit:['回数が出ない選手はアシストやラットプルダウンから','反動や腕だけで引くと肩の前方に負担','講演の方針では水中重視の時期は加重懸垂を週1回（土曜）に限定'],
+  rx:{power:{sets:'3–4', reps:'2–4回', load:'自重または軽い加重で、できるだけ速く引く', rest:'2–3分'}, strength:{sets:'3–5', reps:'2–5回', load:'加重（5回が限界になる重さ）', rest:'2–4分'}},
+  cue:'肩を下げてから引き始める。腕だけで引かない。', refs:['asp','crowley2017','morouco2011']},
+ {id:'u_latpd', name:'ラットプルダウン', cat:'pull', type:'loaded', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'広背筋・大円筋',
+  why:'マシンで上から引き下ろす。懸垂ができない選手の代わりや、負荷を細かく調整したいときに使う。',
+  swim:'キャッチ〜プル。',
+  merit:['負荷を細かく調整できる','初心者でも安全'],
+  demerit:['体幹を固定する要素が少ない','首の後ろへ引く方法は肩前方へのストレスが大きいので避ける'],
+  cue:'胸の上部へ引く。上体を大きく反らせない。', refs:['nsca2016']},
+ {id:'u_dbrow', name:'ワンアーム・ダンベルロウ', cat:'pull', type:'loaded', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'広背筋・菱形筋・僧帽筋中部',
+  why:'片手と片膝をベンチにつき、ダンベルを引き上げる。',
+  swim:'肩甲骨を寄せる力で、押す種目や泳ぎで前に出やすい肩の姿勢を整える。',
+  merit:['片側ずつ行えるので左右差を確認できる','体を支えるので腰の負担が小さい'],
+  demerit:['体幹をひねって代償しやすい'],
+  cue:'肘を腰の方向へ引く。', refs:['nsca2016','cools2015']},
+ {id:'u_bbrow', name:'ベントオーバーロウ（バーベル）', cat:'pull', type:'loaded', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'広背筋・菱形筋・僧帽筋・脊柱起立筋',
+  why:'前傾姿勢でバーベルを引き上げる。',
+  swim:'上肢の引く力と肩甲骨の安定。',
+  merit:['重い負荷を扱える'],
+  demerit:['前傾姿勢の保持で腰に負担がかかる','腰痛のある選手はダンベルロウやチェストサポートロウを選ぶ'],
+  cue:'背中をまっすぐに保つ。', refs:['nsca2016']},
+ {id:'u_straight', name:'ストレートアームプルダウン', cat:'pull', type:'loaded', check:[], strokes:['Fr','Fly','Ba'],
+  muscles:'広背筋・大円筋',
+  why:'肘を伸ばしたままケーブルやバンドを下へ引く。',
+  swim:'肘を高く保ったキャッチからプルへの腕の軌道に近い。',
+  merit:['広背筋を肘を伸ばした位置で使える','バンドならプールサイドでもできる'],
+  demerit:['重い負荷には向かず、最大筋力の種目にはならない'],
+  rx:{power:{sets:'3', reps:'5回', load:'中程度の負荷をすばやく', rest:'1–2分'}, strength:{sets:'3', reps:'5回', load:'やや重め', rest:'2分'}},
+  cue:'肩をすくめず、胸を張ったまま引く。', refs:['nsca2016']},
+
+ /* ---- 上肢 押す ---- */
+ {id:'b_bench', name:'ベンチプレス', cat:'push', type:'loaded', check:['pec'], strokes:['Fr','Fly','Br'],
+  muscles:'大胸筋・三角筋前部・上腕三頭筋',
+  why:'上肢の押す力の代表的な種目で、上半身の最大筋力の指標になる。上腕三頭筋はプルの後半（プッシュ）に使われる。',
+  swim:'プルの後半の押し出し、上肢全体の筋力の土台。ただし水中の推進はほとんどが「引く」動作なので、直接の特異性は懸垂などより低い。',
+  merit:['上半身の最大筋力を効率よく高められ、1RMや速度の測定もしやすい','軽い重量を最大スピードで挙げればパワー種目になる','目的（パワー・筋力・筋肥大）を重量と回数で切り替えやすい'],
+  demerit:['大胸筋と三角筋前部が硬く強くなりすぎると、肩が前に出た内旋位の姿勢を強めるおそれがある（大胸筋テストが45°未満の選手は特に注意）','深く下ろしすぎると肩の前方に負担','引く種目より多くなりすぎないようにする'],
+  rx:{power:{sets:'3–5', reps:'2–4回', load:'1RMの30–60%を最大スピードで（VBT推奨）', rest:'2–3分'}},
+  cue:'肩甲骨を寄せて下げたまま。胸の高さまで下ろし、押し切る。', refs:['suchomel2016','crowley2017','cools2015']},
+ {id:'b_incline', name:'インクラインベンチプレス', cat:'push', type:'loaded', check:['pec'], strokes:['Fr','Fly'],
+  muscles:'大胸筋上部・三角筋前部・上腕三頭筋',
+  why:'ベンチを30–45°に傾けて行う。',
+  swim:'上肢の押す力。',
+  merit:['フラットより肩の屈曲に近い角度で押せる'],
+  demerit:['肩前方への負担はフラットと同様にある','肩屈曲や大胸筋の柔軟性が不足している選手は注意'],
+  rx:{power:{sets:'3', reps:'3回', load:'1RMの30–60%を最大スピードで', rest:'2–3分'}},
+  cue:'肩甲骨をしっかり寄せる。', refs:['nsca2016']},
+ {id:'b_pushup', name:'プッシュアップ（加重を含む）', cat:'push', type:'loaded', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'大胸筋・上腕三頭筋・前鋸筋・体幹',
+  why:'自重の腕立て伏せ。プレートを背中に乗せれば負荷を上げられる。チームのメニューにも含まれる。',
+  swim:'上肢の押す力と体幹の安定。',
+  merit:['肩甲骨が自由に動くので肩にやさしい','体幹も同時に使える','どこでもできる'],
+  demerit:['自重では負荷が足りなくなりやすい（加重で調整）','腰が落ちると腰に負担'],
+  rx:{power:{sets:'3', reps:'3–5回', load:'自重（手が床から離れるくらい速く）', rest:'1–2分'}},
+  cue:'肘を開きすぎない。首・背中・お尻を一直線に。', refs:['nsca2016']},
+ {id:'b_landmine', name:'ランドマインプレス（片手）', cat:'push', type:'loaded', check:[], strokes:['Fr','Fly','Ba'],
+  muscles:'大胸筋上部・三角筋前部・前鋸筋・体幹',
+  why:'床に固定したバーの端を斜め上へ押し出す。',
+  swim:'入水〜前方へのリーチに近い斜め上方向の押し。',
+  merit:['真上に押すより肩の負担が小さい','片手で行うと体幹の安定性も必要になる','肩甲骨の上方回旋を伴う'],
+  demerit:['最大筋力の種目としては扱える重量が小さい'],
+  cue:'押し切ったところで肩甲骨をさらに前に出す。', refs:['nsca2016']},
+ {id:'b_ohp', name:'ダンベルショルダープレス', cat:'push', type:'loaded', check:['flex'], strokes:['Fly'], flags:['shoulderRisk'],
+  muscles:'三角筋・上腕三頭筋・僧帽筋',
+  why:'ダンベルを真上へ押し上げる。',
+  swim:'頭上での肩の安定。',
+  merit:['頭上の位置での肩の筋力と安定性を高める'],
+  demerit:['水泳選手は練習で既に頭上の動作が非常に多い','肩屈曲が180°に届かない選手は腰を反らせて代償する','肩の痛みや詰まり感がある選手には勧めない。ランドマインプレスが代わりになる'],
+  cue:'行う場合は腰を反らせない範囲で。', refs:['cools2015','wanivenhaus2012']},
+ {id:'b_dips', name:'ディップス', cat:'push', type:'loaded', check:[], strokes:[], flags:['shoulderRisk'],
+  muscles:'大胸筋下部・上腕三頭筋・三角筋前部',
+  why:'平行棒で体を沈めて押し上げる。',
+  swim:'直接の関連は小さい。',
+  merit:['上腕三頭筋と大胸筋に高い負荷をかけられる'],
+  demerit:['下まで沈むと肩が大きく伸展し、肩の前方に強いストレスがかかる','肩の障害が多い水泳選手には基本的に勧めない。ベンチプレスやプッシュアップで代用する'],
+  cue:'行う場合は浅い範囲に限定する。', refs:['wanivenhaus2012','cools2015']},
+
+ /* ---- メディシンボール ---- */
+ {id:'mb_slam', name:'メディシンボールスラム', cat:'mb', type:'mb', check:[], strokes:['Fr','Fly','Ba'],
+  muscles:'広背筋・腹直筋・全身',
+  why:'頭上から床へボールを全力で叩きつける。',
+  swim:'頭上から下へ引き下ろす方向で、キャッチ〜プルの力発揮に近い。',
+  merit:['上肢の引き下ろしを爆発的に行える','疲労が少なく、パワー日に入れやすい'],
+  demerit:['腰を丸めすぎると腰に負担','はね返りの少ないボールを使う'],
+  cue:'全力で。1回ずつ構え直す。', refs:['nsca2016']},
+ {id:'mb_chest', name:'メディシンボール チェストパス', cat:'mb', type:'mb', check:[], strokes:['Fr','Fly','Br'],
+  muscles:'大胸筋・上腕三頭筋',
+  why:'胸の前からボールを壁へ全力で投げる。',
+  swim:'上肢の押すパワー。',
+  merit:['ボールを手放すので最後まで加速でき、ベンチプレスより純粋なパワー練習になる'],
+  demerit:['水泳の動きとの特異性は限定的'],
+  cue:'押し切って手放す。', refs:['nsca2016']},
+ {id:'mb_rot', name:'メディシンボール ローテーションスロー', cat:'mb', type:'mb', check:['tho'], strokes:['Fr','Ba'],
+  muscles:'腹斜筋・胸椎の回旋筋群・股関節',
+  why:'横向きに立ち、体をひねってボールを壁へ投げる。チームのメニューのMBローテーションスラムに相当。',
+  swim:'自由形・背泳ぎのローリング。',
+  merit:['回旋方向のパワーを高められる'],
+  demerit:['腰椎でひねると腰の負担が大きい。講演では回旋は腰椎ではなく胸椎で行うことが強調された','股関節と胸椎から回すことを意識する'],
+  cue:'骨盤と胸郭の順に回す。腰だけでひねらない。', refs:['asp','mcgill2016']},
+
+ /* ---- 体幹 ---- */
+ {id:'c_hollow', name:'ホローホールド', cat:'core', type:'core', asp:true, check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'腹直筋・腹横筋',
+  why:'仰向けで手足を浮かせ、腰を床に押しつけた姿勢を保つ。講演の2時間版ルーティンに含まれる。',
+  swim:'ストリームラインの体幹。水中ドリルのホローボディホールドにつながる。',
+  merit:['ストリームラインの姿勢を陸上で練習できる','ジュニア選手の研究で、体幹トレーニング単独でも短距離の泳速が向上したと報告されている'],
+  demerit:['腰が浮くと腰への負担になる','手足の位置で難易度を調整する'],
+  cue:'腰と床のすき間をなくす。', refs:['asp','weston2015']},
+ {id:'c_pallof', name:'パロフプレス（抗回旋）', cat:'core', type:'core', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'腹斜筋・腹横筋',
+  why:'横から引っぱるバンドやケーブルに負けないように、胸の前で腕を伸ばして保持する。ひねらないことで鍛える体幹種目。',
+  swim:'ローリング中に腰椎を安定させる力。講演の「腰椎を動かさず胸椎で回す」という方針に合う。',
+  merit:['腰椎を回旋させずに体幹を鍛えられる','腰痛のある選手でも行いやすい'],
+  demerit:['負荷が小さく感じやすい（バンドの強さで調整）'],
+  cue:'腕を伸ばしたとき体が回らないように。', refs:['mcgill2016','asp']},
+ {id:'c_deadbug', name:'デッドバグ', cat:'core', type:'core', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'腹横筋・腹直筋',
+  why:'仰向けで対角の手足を交互に伸ばす。',
+  swim:'キックと腕の動きの中で腰を安定させる。',
+  merit:['手足を動かしながら腰を安定させる練習になる','難易度が低く初心者向け'],
+  demerit:['腰が浮くと効果がない'],
+  cue:'息を吐きながら伸ばす。', refs:['mcgill2016']},
+ {id:'c_sideplank', name:'サイドプランク', cat:'core', type:'core', check:[], strokes:['Fr','Ba','Fly','Br'],
+  muscles:'腹斜筋・腰方形筋・中臀筋',
+  why:'横向きで体を一直線に支える。',
+  swim:'ローリング時の体側の安定。',
+  merit:['脊柱への負担が小さく、側方の安定性を高める代表的な種目'],
+  demerit:['肩に痛みがある選手は肘の位置に注意'],
+  cue:'頭から足まで一直線。', refs:['mcgill2016']},
+ {id:'c_hlr', name:'ハンギングレッグレイズ', cat:'core', type:'core', check:[], strokes:['Fly','Fr'],
+  muscles:'腹直筋・股関節屈筋・握力',
+  why:'ぶら下がった状態で脚を持ち上げる。チームのメニューに含まれる。',
+  swim:'ドルフィンキックの体幹屈曲。',
+  merit:['体幹とぶら下がる肩の安定を同時に使う'],
+  demerit:['反動を使うと股関節屈筋主体になり、腰を反らせやすい','肩に痛みがある選手はぶら下がりがつらい'],
+  cue:'反動をつけない。下ろすときに体幹を固める。', refs:['nsca2016']},
+ {id:'c_wiper', name:'ワイパー', cat:'core', type:'core', check:[], strokes:[], flags:['lumbarRot'],
+  muscles:'腹斜筋・腹直筋',
+  why:'仰向けまたはぶら下がって、そろえた脚を左右に倒す。チームのメニューに含まれる。',
+  swim:'回旋の体幹。',
+  merit:['腹斜筋に大きな負荷をかけられる'],
+  demerit:['腰椎の回旋を大きく伴う。講演では回旋動作で腰椎を動かさないこと、種目の選択が重要と指摘された','パロフプレスやサイドプランクへの置き換えを検討する'],
+  cue:'行う場合は範囲を小さくし、ゆっくりと。', refs:['asp','mcgill2016']},
+ {id:'c_russian', name:'ロシアンツイスト', cat:'core', type:'core', check:[], strokes:[], flags:['lumbarRot'],
+  muscles:'腹斜筋',
+  why:'座って上体を後ろに傾け、左右にひねる。',
+  swim:'回旋の体幹とされることが多いが、腰椎で回る動きになりやすい。',
+  merit:['器具が少なくてもできる'],
+  demerit:['腰を丸めた状態でのひねりの反復は腰椎への負担が大きい','講演の方針（腰椎ではなく胸椎で回旋）に合いにくい。MBローテーションスローやパロフプレスへの置き換えを勧める'],
+  cue:'行う場合は背すじを伸ばし、胸から回す。', refs:['mcgill2016','asp']}
+];
+const EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
+
+/* ============ セルフチェック ============ */
+const TESTS = [
+  {key:'flex', name:'肩の屈曲テスト', target:180, desc:'骨盤を後ろに倒して座り、腕を前から頭上へ上げる。腰の反りや肋骨が開く代償に注意。',
+   fix:['m_lat_str','m_foam_ext','s_bent_y','m_wall_rot']},
+  {key:'er', name:'肩甲下筋の外旋テスト', target:15, desc:'肘を90°に曲げてわきをしめ、前腕を外側へ開く。前腕が体の横にある位置を0°とする。',
+   fix:['m_subscap','m_stick_er','s_prone_er','s_band_er','s_sl_er']},
+  {key:'pec', name:'大胸筋の柔軟性テスト', target:45, desc:'仰向けで腕を横に開き、床と平行を0°として下へ下ろせる角度を測る。',
+   fix:['m_scorpion','s_prone_w','m_foam_ext']},
+  {key:'tho', name:'胸椎の回旋テスト', target:70, desc:'椅子に座って骨盤を固定し、胸の前で腕を組んで左右にひねる。',
+   fix:['m_dsq_rot','m_wide_rot','m_prone_cross','m_wall_rot']}
+];
+
+/* ============ 状態 ============ */
+let state = {
+  settings:{name:'', date:'', stroke:'Fr', dist:'sprint', phase:'gp', goal:'power', swim:8, wt:2, min:90},
+  rows:[],
+  check:{},
+  log:[],
+  bw:60
+};
+let uidSeq = 1;
+
+function saveLocal(){
+  try{ localStorage.setItem('swimWtBuilder_v1', JSON.stringify(state)); }catch(e){}
+}
+function loadLocal(){
+  try{
+    const s = localStorage.getItem('swimWtBuilder_v1');
+    if(s){ const o = JSON.parse(s); if(o && o.settings){ state = Object.assign(state, o); } }
+  }catch(e){}
+  if(!Array.isArray(state.log)) state.log=[];
+  state.rows.concat(state.log).forEach(r=>{ if(r.uid>=uidSeq) uidSeq = r.uid+1; });
+}
+
+/* ============ ユーティリティ ============ */
+const $ = s=>document.querySelector(s);
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function nums(s){ return (String(s).match(/\d+(\.\d+)?/g)||[]).map(Number); }
+function refLinks(keys){
+  return keys.map(k=>{ const i = REF_ORDER.indexOf(k)+1; return '<a href="#ref-'+k+'" data-goref="'+k+'">文献'+i+'</a>'; }).join('、');
+}
+const STROKE_LABEL = {Fr:'自由形',Ba:'背泳ぎ',Fly:'バタフライ',Br:'平泳ぎ',start:'スタート・ターン',IM:'個人メドレー'};
+
+function rxFor(ex, goal){
+  if(ex.rx && ex.rx[goal]) return {rx:ex.rx[goal], match:true};
+  if(ex.type==='loaded' && GOALS[goal]){
+    const g = GOALS[goal];
+    return {rx:{sets:g.sets, reps:g.reps.includes('以上')?g.reps:g.reps+'回', load:g.load, rest:g.rest}, match:true};
+  }
+  const t = TYPE_RX[ex.type];
+  if(t){
+    if(t[goal]) return {rx:t[goal], match:true};
+    if(t.any) return {rx:t.any, match:true};
+    const first = Object.keys(t)[0];
+    return {rx:t[first], match:false, used:first};
+  }
+  return {rx:{sets:'3',reps:'5回',load:'',rest:'2分'}, match:false};
+}
+function defaultBlock(ex){
+  return {mobility:'W-UP', activation:'W-UP', plyo:'パワー', olympic:'パワー', mb:'パワー', loaded:'メイン', core:'体幹'}[ex.type] || 'メイン';
+}
+function midSets(s){ const n = nums(s); if(!n.length) return 3; if(n.length===1) return n[0]; return Math.round((n[0]+n[1])/2); }
+
+/* ============ タブ ============ */
+function showTab(id){
+  document.querySelectorAll('[role=tab]').forEach(b=>{
+    const on = b.getAttribute('aria-controls')===id;
+    b.setAttribute('aria-selected', on?'true':'false');
+  });
+  document.querySelectorAll('section.panel').forEach(p=>p.classList.toggle('active', p.id===id));
+}
+document.querySelectorAll('[role=tab]').forEach(b=>b.addEventListener('click',()=>showTab(b.getAttribute('aria-controls'))));
+document.querySelectorAll('[data-fs]').forEach(b=>b.addEventListener('click',()=>{ document.documentElement.style.fontSize = b.dataset.fs+'px'; }));
+document.addEventListener('click',e=>{
+  const a = e.target.closest('[data-goref]');
+  if(a){ e.preventDefault(); showTab('tab-basis'); const t = document.getElementById('ref-'+a.dataset.goref); if(t){ t.scrollIntoView({block:'center'}); t.setAttribute('tabindex','-1'); t.focus(); } }
+});
+
+/* ============ セルフチェック画面 ============ */
+function renderCheck(){
+  const box = $('#checkRows');
+  box.innerHTML = TESTS.map(t=>{
+    const c = state.check[t.key]||{};
+    return '<div class="checkrow">'+
+      '<div><strong>'+esc(t.name)+'</strong>（目安 '+t.target+'°）<div class="muted">'+esc(t.desc)+'</div></div>'+
+      '<div class="field"><label for="ck-'+t.key+'-L">'+esc(t.name)+' 左（度）</label><input type="number" id="ck-'+t.key+'-L" value="'+esc(c.L??'')+'"></div>'+
+      '<div class="field"><label for="ck-'+t.key+'-R">'+esc(t.name)+' 右（度）</label><input type="number" id="ck-'+t.key+'-R" value="'+esc(c.R??'')+'"></div>'+
+      '<div class="field"><label for="ck-'+t.key+'-C"><input type="checkbox" id="ck-'+t.key+'-C" '+(c.comp?'checked':'')+'> 代償動作あり</label></div>'+
+      '<button type="button" class="small mbtn" data-measure="'+t.key+'">'+esc(t.name)+'を動画・写真から測る</button>'+
+    '</div>';
+  }).join('');
+  box.querySelectorAll('input').forEach(i=>i.addEventListener('change',readCheck));
+  box.querySelectorAll('[data-measure]').forEach(b=>b.addEventListener('click',()=>{
+    $('#mTest').value=b.dataset.measure; $('#mTest').dispatchEvent(new Event('change'));
+    $('#measureCard').scrollIntoView({behavior:'smooth',block:'start'}); $('#mTest').focus();
+  }));
+}
+function readCheck(){
+  TESTS.forEach(t=>{
+    const L = $('#ck-'+t.key+'-L').value, R = $('#ck-'+t.key+'-R').value;
+    state.check[t.key] = {L:L===''?null:Number(L), R:R===''?null:Number(R), comp:$('#ck-'+t.key+'-C').checked};
+  });
+  saveLocal();
+}
+function evalCheck(){
+  readCheck();
+  const out = []; const need = [];
+  TESTS.forEach(t=>{
+    const c = state.check[t.key];
+    if(c.L==null && c.R==null && !c.comp){ out.push('<div class="info">'+esc(t.name)+'：未入力です。</div>'); return; }
+    if(c.L==null && c.R==null && c.comp){
+      need.push(t.key);
+      out.push('<div class="alert"><strong>'+esc(t.name)+'</strong>：角度は未入力ですが、代償動作が見られました。おすすめの修正エクササイズは、'+t.fix.map(id=>EXMAP[id].name).join('、')+'です。</div>');
+      return;
+    }
+    const parts = []; let short = false;
+    ['L','R'].forEach(side=>{
+      const v = c[side]; if(v==null) return;
+      const lab = side==='L'?'左':'右';
+      if(v < t.target){ parts.push(lab+' '+v+'°（目安まであと'+(t.target-v)+'°）'); short = true; }
+      else parts.push(lab+' '+v+'°（目安クリア）');
+    });
+    let diff = '';
+    if(c.L!=null && c.R!=null && Math.abs(c.L-c.R)>=10) diff = ' 左右差が'+Math.abs(c.L-c.R)+'°あります（本ツールでは10°以上を左右差の目安としています）。';
+    const comp = c.comp ? ' 代償動作が見られたため、角度が出ていても実際の可動性は不足している可能性があります。' : '';
+    if(short || c.comp) need.push(t.key);
+    const cls = (short||c.comp||diff)?'alert':'ok';
+    const fixNames = (short||c.comp) ? ' おすすめの修正エクササイズは、'+t.fix.map(id=>EXMAP[id].name).join('、')+'です。' : '';
+    out.push('<div class="'+cls+'"><strong>'+esc(t.name)+'</strong>：'+parts.join('、')+'。'+diff+comp+fixNames+'</div>');
+  });
+  out.push('<p class="muted">講演の「ストレッチ＋強化」の原則では、制限のある部位を伸ばすだけでなく、広がった範囲の端で筋肉を使う種目を組み合わせて、泳ぎの中で使える可動性にします。</p>');
+  $('#checkResult').innerHTML = out.join('');
+  return need;
+}
+$('#btnEval').addEventListener('click',evalCheck);
+$('#btnAddCorrective').addEventListener('click',()=>{
+  const need = evalCheck();
+  if(!need.length){ $('#checkResult').insertAdjacentHTML('beforeend','<div class="info">不足している項目がないため、追加する種目はありません。</div>'); return; }
+  const ids = [];
+  need.forEach(k=>TESTS.find(t=>t.key===k).fix.forEach(id=>{ if(!ids.includes(id)) ids.push(id); }));
+  let added = 0;
+  ids.forEach(id=>{ if(!state.rows.some(r=>r.id===id)){ addRow(id,'W-UP',true); added++; } });
+  renderProg();
+  $('#checkResult').insertAdjacentHTML('beforeend','<div class="ok">'+added+'種目をプログラムのW-UPに追加しました。「3 プログラム作成」で確認できます。</div>');
+});
+
+/* ============ 種目ライブラリ ============ */
+function renderFilters(){
+  $('#fCat').innerHTML = '<option value="">すべて</option>'+Object.entries(CATS).map(([k,v])=>'<option value="'+k+'">'+esc(v)+'</option>').join('');
+  $('#quickAdd').innerHTML = Object.entries(CATS).map(([k,v])=>'<optgroup label="'+esc(v)+'">'+EX.filter(e=>e.cat===k).map(e=>'<option value="'+e.id+'">'+esc(e.name)+'</option>').join('')+'</optgroup>').join('');
+}
+function rxTableHTML(ex){
+  const goals = ex.type==='loaded' ? ['power','strength','hypertrophy','endurance'] :
+                ex.type==='olympic' ? ['power','strength'] : null;
+  if(!goals){
+    const r = rxFor(ex, state.settings.goal).rx;
+    return '<table class="rx"><thead><tr><th scope="col">セット</th><th scope="col">回数・時間</th><th scope="col">重量</th><th scope="col">休息</th></tr></thead><tbody><tr><td>'+esc(r.sets)+'</td><td>'+esc(r.reps)+'</td><td>'+esc(r.load)+'</td><td>'+esc(r.rest)+'</td></tr></tbody></table>';
+  }
+  return '<table class="rx"><thead><tr><th scope="col">目的</th><th scope="col">セット</th><th scope="col">回数</th><th scope="col">重量</th><th scope="col">休息</th></tr></thead><tbody>'+
+    goals.map(g=>{ const r = rxFor(ex,g).rx; return '<tr><th scope="row" style="background:transparent;color:inherit">'+GOALS[g].label+'</th><td>'+esc(r.sets)+'</td><td>'+esc(r.reps)+'</td><td>'+esc(r.load)+'</td><td>'+esc(r.rest)+'</td></tr>'; }).join('')+
+    '</tbody></table>'+
+    (ex.type==='loaded' ? '<p class="muted">筋肥大は講演の方針では行わない目的です。筋持久力は競泳に必要ですが、パフォーマンスのための持久力は水中で鍛え、陸上の重量種目は最大筋力とパワーに使います。詳しくは「原則と根拠」を参照。</p>' : '');
+}
+function renderLibrary(){
+  const cat = $('#fCat').value, txt = $('#fText').value.trim(), st = $('#fStroke').value, asp = $('#fAsp').checked;
+  const list = EX.filter(e=>(!cat||e.cat===cat) && (!txt||e.name.includes(txt)||e.muscles.includes(txt)) && (!st||e.strokes.includes(st)) && (!asp||e.asp||e.refs.includes('asp')));
+  $('#libCount').textContent = list.length+'種目を表示しています。';
+  $('#exList').innerHTML = list.map(e=>{
+    const flags = (e.flags||[]).map(f=>f==='lumbarRot'?'<span class="pill warn">腰椎の回旋に注意</span>':f==='shoulderRisk'?'<span class="pill warn">肩の負担が大きい</span>':'').join('');
+    const aspTag = (e.asp||e.refs.includes('asp'))?'<span class="pill">講演</span>':'';
+    const strokes = e.strokes.length ? e.strokes.map(s=>STROKE_LABEL[s]).join('・') : '特になし';
+    return '<article class="ex" aria-labelledby="h-'+e.id+'">'+
+      '<div class="top"><h3 id="h-'+e.id+'">'+esc(e.name)+'</h3>'+
+      '<button type="button" class="primary small" data-add="'+e.id+'" aria-label="'+esc(e.name)+'をプログラムに追加">プログラムに追加</button></div>'+
+      thumbHTML(e.id)+
+      '<div><span class="pill">'+esc(CATS[e.cat])+'</span>'+aspTag+flags+'</div>'+
+      '<div class="muted">関わる筋肉の詳細：'+esc(e.muscles)+'。関連する泳ぎ：'+esc(strokes)+'</div>'+
+      '<p style="margin:4px 0">'+esc(e.why)+'</p>'+
+      '<details><summary>なぜ行うか、メリットとデメリット、処方を見る</summary><dl>'+
+        '<dt>水泳との関連</dt><dd>'+esc(e.swim)+'</dd>'+
+        '<dt>メリット</dt><dd class="good">'+e.merit.map(esc).join('。<br>')+'。</dd>'+
+        '<dt>デメリット・注意</dt><dd class="bad">'+e.demerit.map(esc).join('。<br>')+'。</dd>'+
+        '<dt>処方の目安</dt><dd>'+rxTableHTML(e)+'</dd>'+
+        '<dt>ポイント</dt><dd>'+esc(e.cue)+'</dd>'+
+        '<dt>根拠</dt><dd>'+refLinks(e.refs)+'</dd>'+
+      '</dl></details>'+
+    '</article>';
+  }).join('');
+}
+['#fCat','#fStroke','#fAsp'].forEach(s=>$(s).addEventListener('change',renderLibrary));
+$('#fText').addEventListener('input',renderLibrary);
+$('#exList').addEventListener('click',e=>{
+  const b = e.target.closest('[data-add]'); if(!b) return;
+  addRow(b.dataset.add); renderProg();
+  b.textContent = '追加しました'; setTimeout(()=>{ b.textContent = 'プログラムに追加'; },1500);
+});
+
+/* ============ プログラム ============ */
+function addRow(id, block, silent){
+  const ex = EXMAP[id]; if(!ex) return;
+  const r = rxFor(ex, state.settings.goal);
+  let memo = ex.cue;
+  if(!r.match) memo = '（この種目は'+(GOALS[r.used]?GOALS[r.used].label:'')+'向けの処方です）'+memo;
+  state.rows.push({uid:uidSeq++, id, block:block||defaultBlock(ex), sets:midSets(r.rx.sets), reps:r.rx.reps, load:r.rx.load, rest:r.rx.rest, memo});
+  saveLocal();
+}
+function renderProg(){
+  const body = $('#progBody');
+  $('#progEmpty').style.display = state.rows.length?'none':'block';
+  body.innerHTML = state.rows.map((r,i)=>{
+    const ex = EXMAP[r.id]; const n = esc(ex.name);
+    return '<tr data-uid="'+r.uid+'">'+
+      '<td>'+(i+1)+'</td>'+
+      '<td><select data-f="block" aria-label="'+n+'のブロック">'+BLOCKS.map(b=>'<option'+(b===r.block?' selected':'')+'>'+b+'</option>').join('')+'</select></td>'+
+      '<td class="name">'+miniFig(r.id)+n+'</td>'+
+      '<td><input type="number" min="1" max="20" data-f="sets" value="'+esc(r.sets)+'" aria-label="'+n+'のセット数"></td>'+
+      '<td><textarea rows="2" data-f="reps" aria-label="'+n+'の回数">'+esc(r.reps)+'</textarea></td>'+
+      '<td><textarea rows="2" data-f="load" aria-label="'+n+'の重量">'+esc(r.load)+'</textarea></td>'+
+      '<td><textarea rows="2" data-f="rest" aria-label="'+n+'の休息">'+esc(r.rest)+'</textarea></td>'+
+      '<td><textarea rows="2" data-f="memo" aria-label="'+n+'のメモ">'+esc(r.memo)+'</textarea></td>'+
+      '<td class="noprint"><button type="button" class="small" data-act="up" aria-label="'+n+'を上へ">上へ</button> '+
+      '<button type="button" class="small" data-act="down" aria-label="'+n+'を下へ">下へ</button> '+
+      '<button type="button" class="small danger" data-act="del" aria-label="'+n+'を削除">削除</button></td>'+
+    '</tr>';
+  }).join('');
+  renderChecks();
+  renderPrintHead();
+}
+$('#progBody').addEventListener('change',e=>{
+  const tr = e.target.closest('tr'); const f = e.target.dataset.f; if(!tr||!f) return;
+  const r = state.rows.find(x=>x.uid==tr.dataset.uid);
+  r[f] = f==='sets' ? Number(e.target.value)||0 : e.target.value;
+  saveLocal(); renderChecks();
+});
+$('#progBody').addEventListener('click',e=>{
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const uid = Number(b.closest('tr').dataset.uid); const i = state.rows.findIndex(x=>x.uid===uid);
+  if(b.dataset.act==='del') state.rows.splice(i,1);
+  if(b.dataset.act==='up' && i>0) [state.rows[i-1],state.rows[i]] = [state.rows[i],state.rows[i-1]];
+  if(b.dataset.act==='down' && i<state.rows.length-1) [state.rows[i+1],state.rows[i]] = [state.rows[i],state.rows[i+1]];
+  saveLocal(); renderProg();
+  const again = document.querySelector('tr[data-uid="'+uid+'"] [data-act="'+b.dataset.act+'"]'); if(again) again.focus();
+});
+$('#btnQuickAdd').addEventListener('click',()=>{ addRow($('#quickAdd').value); renderProg(); });
+
+const TEMPLATES = {
+  aspRoutine:{goal:null, ids:['m_dsq_rot','s_prone_er','s_bent_y','c_hollow','s_pushup_plus']},
+  powerUpper:{goal:'power', ids:['m_dsq_rot','s_prone_er','s_bent_y','p_cmj','mb_slam','u_pullup','b_bench','u_dbrow','c_pallof','c_hollow']},
+  strengthDay:{goal:'strength', ids:['m_lat_str','m_foam_ext','s_band_er','p_box','l_trap','u_pullup','b_bench','u_bbrow','c_sideplank']},
+  brPower:{goal:'power', ids:['m_dsq_rot','l_slrdl','p_cmj','o_clean','l_fsq','l_sidelunge','u_pullup','b_pushup','c_pallof']}
+};
+document.querySelectorAll('[data-tpl]').forEach(b=>b.addEventListener('click',()=>{
+  const t = TEMPLATES[b.dataset.tpl];
+  if(t.goal){ state.settings.goal = t.goal; $('#sGoal').value = t.goal; renderAdvice(); }
+  let added = 0, skipped = 0;
+  t.ids.forEach(id=>{ if(state.rows.some(r=>r.id===id)){ skipped++; } else { addRow(id); added++; } });
+  renderProg();
+  $('#ioMsg').textContent = added+'種目を追加しました。'+(skipped?'すでに入っていた'+skipped+'種目は重ねて追加していません。':'');
+}));
+
+/* ============ 設定と助言 ============ */
+const SET_IDS = {name:'#sName', date:'#sDate', stroke:'#sStroke', dist:'#sDist', phase:'#sPhase', goal:'#sGoal', swim:'#sSwim', wt:'#sWt', min:'#sMin'};
+function fillSettings(){ Object.entries(SET_IDS).forEach(([k,s])=>{ $(s).value = state.settings[k]; }); }
+Object.entries(SET_IDS).forEach(([k,s])=>$(s).addEventListener('change',()=>{
+  const v = $(s).value; state.settings[k] = ['swim','wt','min'].includes(k)?Number(v):v;
+  saveLocal(); renderAdvice(); renderChecks(); renderPrintHead();
+}));
+const PHASE = {
+  gp:{label:'一般準備期', text:'筋力の土台づくりとモビリティの改善を優先する時期です。最大筋力の種目を中心にし、セルフチェックで見つかった弱点をこの時期に改善します。', refs:['nsca2016','asp']},
+  sp:{label:'専門準備期', text:'最大筋力からパワーへ重点を移す時期です。講演では狙う大会の16週間前からVBT（挙上速度を測るトレーニング）を導入してパワー向上を図るとされました。', refs:['asp','weakley2021']},
+  comp:{label:'試合期', text:'パワーを維持しながら量を減らし、下肢の疲労を残さないことを優先します。講演では、疲労が残ると本来の100%ではなく「こなすための力配分」になってしまうと指摘されました。', refs:['asp']},
+  taper:{label:'テーパー期', text:'研究のメタ分析では、トレーニングの総量を41–60%減らし、強度と頻度は保つテーパーが最も効果的でした。WTも重量は保ち、セット数を減らします。', refs:['bosquet2007']},
+  trans:{label:'移行期', text:'回復を優先し、モビリティや弱点の補強、ケガの予防に時間を使う時期です。筋肥大をねらうなら、この時期か一般準備期に限定します。', refs:['asp','wanivenhaus2012']}
+};
+function renderAdvice(){
+  const g = GOALS[state.settings.goal];
+  $('#goalAdvice').innerHTML = '<div class="info"><strong>'+g.label+'</strong>：'+esc(g.swim)+' 根拠：'+refLinks(g.refs)+'</div>';
+  const p = PHASE[state.settings.phase];
+  $('#phaseAdvice').innerHTML = '<div class="info"><strong>'+p.label+'</strong>：'+esc(p.text)+' 根拠：'+refLinks(p.refs)+'</div>';
+}
+
+/* ============ 点検 ============ */
+function region(ex){
+  if(['lower','plyo','olympic'].includes(ex.cat)) return 'lower';
+  if(ex.cat==='pull') return 'pull';
+  if(ex.cat==='push') return 'push';
+  if(ex.cat==='core') return 'core';
+  if(ex.cat==='mb') return 'upperPower';
+  return 'prep';
+}
+function restMin(s){
+  const n = nums(s); if(!n.length) return 0.5;
+  const avg = n.length>1 ? (n[0]+n[1])/2 : n[0];
+  return String(s).includes('秒') && !String(s).includes('分') ? avg/60 : avg;
+}
+function estMinutes(){
+  let t = 5;
+  state.rows.forEach(r=>{
+    const ex = EXMAP[r.id]; const sets = Number(r.sets)||0;
+    let work = ex.type==='mobility'?1.2:(ex.type==='core'||ex.type==='activation')?0.8:0.8;
+    const rest = (ex.type==='mobility')?0:restMin(r.rest);
+    t += sets*work + Math.max(0,sets-1)*rest + 1;
+  });
+  return Math.round(t);
+}
+function renderChecks(){
+  const S = state.settings; const c = {lower:0,pull:0,push:0,core:0,upperPower:0,prep:0};
+  state.rows.forEach(r=>{ c[region(EXMAP[r.id])] += Number(r.sets)||0; });
+  const mins = estMinutes();
+  $('#summary').innerHTML = state.rows.length ? '<p>合計'+state.rows.length+'種目。セット数の内訳は、下肢系 '+c.lower+'、引く '+c.pull+'、押す '+c.push+'、上肢パワー '+c.upperPower+'、体幹 '+c.core+'、準備系 '+c.prep+'。おおよその所要時間は '+mins+'分です。</p>' : '';
+  const msgs = [];
+  if(!state.rows.length){ $('#checks').innerHTML=''; return; }
+
+  if(mins > S.min) msgs.push(['alert','所要時間が目標の'+S.min+'分を超えています（約'+mins+'分）。講演では陸上トレーニングは90分以内で終わるように作ることが勧められました。長時間のトレーニングは疲労の蓄積と水中でのパフォーマンス低下につながります。',['asp']]);
+  else msgs.push(['ok','所要時間は約'+mins+'分で、目標の'+S.min+'分以内です。',[]]);
+
+  if(c.push>0 && c.pull < c.push) msgs.push(['alert','引く種目（'+c.pull+'セット）が押す種目（'+c.push+'セット）より少なくなっています。水泳の推進は主に引く動作で、肩の障害予防の観点からも、引く種目を押す種目と同じかそれ以上にすることを勧めます。',['cools2015','wanivenhaus2012']]);
+
+  const upper = c.pull+c.push+c.upperPower;
+  if(S.stroke!=='Br' && c.lower > upper && S.swim>=6) msgs.push(['caution','下肢系のセット（'+c.lower+'）が上肢系（'+upper+'）より多くなっています。講演では、水中練習が週'+S.swim+'回ある中でWTのボリューム、特に下半身の疲労の管理が課題とされ、平泳ぎ以外の泳法では上肢をメインにしたWTを考えるよう助言されました。',['asp']]);
+  if(S.stroke==='Br') msgs.push(['info','平泳ぎは他の泳法に比べて下肢（キック）の推進への関与が大きいため、下肢の種目を多めにする構成も妥当です。ただし水中練習の量に応じて下肢の疲労を管理してください。',['asp']]);
+
+  if(S.goal==='power' || S.goal==='strength'){
+    const over = state.rows.filter(r=>{ const ex=EXMAP[r.id]; return (ex.type==='loaded'||ex.type==='olympic') && !String(r.reps).includes('左右') && Math.max(0,...nums(r.reps))>5; });
+    if(over.length) msgs.push(['caution','次の種目で回数が5回を超えています：'+over.map(r=>EXMAP[r.id].name).join('、')+'。講演の方針では、すべての種目を最大筋力で行い5レップを超えないとされています。',['asp']]);
+  }
+  if(S.goal==='hypertrophy') msgs.push(['caution','目的が筋肥大になっています。講演の方針では筋肥大は行いません（体重と水の抵抗が増えるため）。一方で抵抗増加を直接示した研究は少ないため、行う場合は一般準備期や移行期、体が細い選手などに限定し、上肢の引く種目を中心にすることを勧めます。',['asp','schoenfeld2017vol']]);
+  if(S.goal==='endurance'){
+    const heavy = state.rows.filter(r=>['loaded','olympic','plyo'].includes(EXMAP[r.id].type));
+    const prev = state.rows.filter(r=>['activation','core'].includes(EXMAP[r.id].type));
+    if(heavy.length) msgs.push(['caution','目的が筋持久力で、重量種目やジャンプ（'+heavy.map(r=>EXMAP[r.id].name).join('、')+'）が入っています。泳ぎのための筋持久力は水中の練習で鍛えるのが最も直接的で、陸上で高回数を重ねると疲労が増えてパワーの向上を妨げやすくなります。重量種目は最大筋力かパワーの目的に切り替えることを勧めます。',['asp','wilson2012','ronnestad2014']]);
+    if(prev.length) msgs.push(['ok','肩の安定筋や体幹の種目（'+prev.map(r=>EXMAP[r.id].name).join('、')+'）を持久的に行うのは、ケガ予防の目的として妥当です。練習の後半に肩甲骨の位置が崩れないように、軽い負荷で丁寧に行ってください。',['cools2015','batalha2015']]);
+  }
+
+  const lum = state.rows.filter(r=>(EXMAP[r.id].flags||[]).includes('lumbarRot'));
+  if(lum.length) msgs.push(['caution',lum.map(r=>EXMAP[r.id].name).join('、')+'は腰椎の回旋を伴います。講演では回旋動作で腰椎を動かさず胸椎を使うこと、種目の選択が重要と指摘されました。パロフプレス、サイドプランク、MBローテーションスローへの置き換えを検討してください。',['asp','mcgill2016']]);
+  const sh = state.rows.filter(r=>(EXMAP[r.id].flags||[]).includes('shoulderRisk'));
+  if(sh.length) msgs.push(['caution',sh.map(r=>EXMAP[r.id].name).join('、')+'は肩の負担が大きい種目です。肩に痛みや違和感がある選手には勧めません。',['cools2015','wanivenhaus2012']]);
+
+  if(!state.rows.some(r=>['mobility','activation'].includes(EXMAP[r.id].type))) msgs.push(['info','モビリティや肩の安定性の種目が入っていません。講演ではウォームアップやメインの中にモビリティ系を積極的に組み込むことが勧められました。セルフチェックの結果から追加できます。',['asp']]);
+
+  const plyoContacts = state.rows.filter(r=>EXMAP[r.id].cat==='plyo').reduce((a,r)=>a+(Number(r.sets)||0)*Math.max(1,...nums(r.reps)),0);
+  if(plyoContacts>40) msgs.push(['caution','ジャンプ系の合計回数が約'+plyoContacts+'回です。水中練習と合わせると下肢の疲労が大きくなるため、1回ずつ質を保てる回数に絞ることを勧めます。',['asp','nsca2016']]);
+
+  if(S.phase==='taper') msgs.push(['info','テーパー期です。重量（強度）は保ったまま、通常期よりセット数を4〜6割程度減らしてください。',['bosquet2007']]);
+  if(S.phase==='sp' && S.goal==='power') msgs.push(['info','専門準備期のパワー日です。挙上速度を測れる機器があれば、速度が一定以上落ちたところでセットを終える方法（VBT）が有効です。',['asp','pareja2017']]);
+
+  $('#checks').innerHTML = msgs.map(([cls,t,refs])=>'<div class="'+cls+'">'+esc(t)+(refs.length?' 根拠：'+refLinks(refs):'')+'</div>').join('');
+}
+
+/* ============ 印刷・保存 ============ */
+function renderPrintHead(){
+  const S = state.settings;
+  $('#printTitle').textContent = (S.name?S.name+' ':'')+'トレーニングプログラム';
+  $('#printMeta').textContent = [S.date, STROKE_LABEL[S.stroke], PHASE[S.phase].label, '目的 '+GOALS[S.goal].label, '所要 約'+estMinutes()+'分'].filter(Boolean).join('　');
+}
+$('#btnPrint').addEventListener('click',()=>{ renderPrintHead(); window.print(); });
+function asText(){
+  const S = state.settings;
+  const lines = [(S.name||'')+' トレーニングプログラム', [S.date, STROKE_LABEL[S.stroke], PHASE[S.phase].label, '目的 '+GOALS[S.goal].label].filter(Boolean).join(' / '), ''];
+  let cur = '';
+  state.rows.forEach((r,i)=>{
+    if(r.block!==cur){ cur = r.block; lines.push('【'+cur+'】'); }
+    lines.push((i+1)+'. '+EXMAP[r.id].name+'　'+r.sets+'セット × '+r.reps+'　'+r.load+'　休息 '+r.rest+(r.memo?'　'+r.memo:''));
+  });
+  return lines.join('\n');
+}
+$('#btnCopy').addEventListener('click',async()=>{
+  const t = asText();
+  try{ await navigator.clipboard.writeText(t); $('#ioMsg').textContent = 'プログラムを文章としてコピーしました。LINEなどに貼り付けられます。'; }
+  catch(e){ const a = $('#copyArea'); a.style.display='block'; a.value=t; a.focus(); a.select(); $('#ioMsg').textContent = '自動コピーができなかったため、下の欄に文章を表示しました。全選択してコピーしてください。'; }
+});
+$('#btnSave').addEventListener('click',()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  const S = state.settings;
+  a.href = URL.createObjectURL(blob);
+  a.download = 'WTプログラム_'+(S.name||'無題')+'_'+(S.date||'')+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  $('#ioMsg').textContent = 'ファイルを保存しました。ダウンロードフォルダを確認してください。';
+});
+$('#btnLoad').addEventListener('click',()=>$('#fileLoad').click());
+$('#fileLoad').addEventListener('change',e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const o = JSON.parse(rd.result);
+      if(!o.settings || !Array.isArray(o.rows)) throw new Error();
+      o.rows = o.rows.filter(r=>EXMAP[r.id]);
+      if(Array.isArray(o.log)) o.log = o.log.filter(e=>EXMAP[e.id]);
+      state = Object.assign({check:{}, log:[], bw:60}, o);
+      uidSeq = 1; state.rows.concat(state.log).forEach(r=>{ if(r.uid>=uidSeq) uidSeq=r.uid+1; });
+      fillSettings(); renderAdvice(); renderCheck(); renderProg(); logInit(); renderLog(); saveLocal();
+      $('#ioMsg').textContent = '保存したプログラムを読み込みました。';
+    }catch(err){ $('#ioMsg').textContent = 'このファイルは読み込めませんでした。このページで保存したファイルを選んでください。'; }
+  };
+  rd.readAsText(f); e.target.value='';
+});
+$('#btnClear').addEventListener('click',()=>{
+  if(!confirm('作成中のプログラムをすべて消します。よろしいですか。')) return;
+  state.rows = []; saveLocal(); renderProg(); $('#ioMsg').textContent = 'プログラムを消しました。';
+});
+
+/* ============ 原則と根拠 ============ */
+function renderBasis(){
+  $('#goalTable').innerHTML = Object.values(GOALS).map(g=>'<tr><th scope="row">'+g.label+'</th><td>'+esc(g.load)+'</td><td>'+esc(g.reps)+'</td><td>'+esc(g.sets)+'</td><td>'+esc(g.rest)+'</td><td>'+esc(g.swim)+' '+refLinks(g.refs)+'</td></tr>').join('');
+  const asp = [
+    'WTは筋肥大や筋持久力ではなく、水中でのパフォーマンスを高めるための最大出力（パワー）の向上を目的に行う。',
+    '筋肥大系は水中での抵抗が増えるため行わない。筋持久系はSWIMの反復練習で十分に高められるため行わない。',
+    'すべての種目を最大筋力で行い、種目によってレップ数は違っても5レップを超えない（例：デッドリフト2回×10セット）。',
+    '男女でメニューを分けず、同じ内容・同じ基準で負荷を設定する。',
+    '休息は画一的に決めず、次のセットで質の高いパフォーマンスが出せるかを基準に各自で設定する。',
+    'モビリティ系のトレーニングを多く取り入れ、ウォームアップやメインの中に組み込む。',
+    '陸上トレーニングは90分で終わるように作る。',
+    'VBTは狙う大会の16週間前から導入し、パワーの向上を図る。',
+    '回旋動作では腰椎が動かないようにし、胸椎の回旋を使う。種目の選択も重要。',
+    '週の基本はSWIM5回、WT3回、休養2日。SWIM重視期は加重懸垂を土曜のみ、WT重視期は加重懸垂も実施する。',
+    '自チームのメニュー（SWIM週8回、WT週2回、Dry週2回）への指摘：WTのボリュームがやや多く、特に下半身の疲労の管理が課題。平泳ぎ以外は上肢の推進力が大きいので、上肢をメインにしたWTを考える。'
+  ];
+  $('#aspPrinciples').innerHTML = asp.map(t=>'<div class="info">'+esc(t)+'</div>').join('')+'<p class="muted">出典：'+refLinks(['asp'])+'</p>';
+  const ev = [
+    ['陸上の筋力トレーニングと泳速','系統的レビューでは、陸上の筋力トレーニングは特にスタートやターン、短い距離の泳速に好影響を示す研究が多い一方、研究の質や方法にばらつきがあり、効果は一様ではないとされています。',['crowley2017','aspenes2009','girold2007']],
+    ['最大筋力とスタート・ターン','下肢の最大筋力や跳躍パワーは、スタートやターンのタイムと関連することが複数の研究で報告されています。',['west2011','keiner2021','thng2019']],
+    ['プライオメトリクス','青年期の選手でプライオメトリクスによりスタートのパフォーマンスが向上したと報告されています。',['bishop2009']],
+    ['体幹トレーニング','ジュニアの全国レベル選手で、12週間の体幹トレーニングにより50mの泳速が向上したと報告されています。',['weston2015']],
+    ['速度にもとづくトレーニング（VBT）','挙上速度の低下が小さいうちにセットを終える方法は、疲労を抑えながら筋力とジャンプ能力を高められることが報告されています。',['pareja2017','weakley2021']],
+    ['持久トレーニングとの同時実施','持久トレーニングと筋力トレーニングを同時に行うと、筋力やパワーの伸びが妨げられることがあり（干渉効果）、持久トレーニングの量や頻度が多いほど大きくなるとされます。水中練習の量が多い選手ほど、WTの量を絞り質を高める講演の方針と一致します。',['wilson2012']],
+    ['肩の障害予防','水泳選手では肩の障害が多く、肩甲骨の安定性、外旋筋力、胸椎や大胸筋の柔軟性を整えることが予防の柱とされています。',['wanivenhaus2012','cools2015','kibler2012','riemann2011']],
+    ['テーパー','総量を41–60%減らし強度と頻度を保つテーパーが最も効果的だったとするメタ分析があります。',['bosquet2007']],
+    ['筋持久力は必要か','筋持久力は競泳に必要です。ただし筋持久力は動き・力の大きさ・速さに限定して身につくため、泳ぎのための持久力は水中の練習で鍛えるのが最も直接的です。陸上では、最大筋力を上げると同じ力が最大に対して軽い割合で済むようになり、結果として持久力も助けます。持久系の競技でも、重い負荷の筋力トレーニングのほうが軽い高回数より持久パフォーマンスの改善に有効だったとまとめられています。陸上で持久的に行う意味があるのは、肩の安定筋や体幹の姿勢保持など、ケガ予防の補強です。',['ronnestad2014','wilson2012','cools2015','batalha2015']],
+    ['筋肥大と水の抵抗','筋肉量の増加が水中の抵抗を増やすという考えは実践現場で広く共有されていますが、それを直接示した研究は限られています。講演の方針は、限られた陸上時間を出力の向上に使うという優先順位の判断として理解できます。',['asp','crowley2017']]
+  ];
+  $('#evidenceSummary').innerHTML = ev.map(([h,t,r])=>'<div class="info"><strong>'+esc(h)+'</strong>：'+esc(t)+' '+refLinks(r)+'</div>').join('');
+  $('#refList').innerHTML = REF_ORDER.map(k=>'<li id="ref-'+k+'">'+esc(REFS[k])+'</li>').join('');
+}
+
+/* ============ イメージ図（動作の人型図と筋肉図） ============ */
+const MUS_NAME = {delt:'三角筋', pec:'大胸筋', subscap:'肩甲下筋', bic:'上腕二頭筋', tri:'上腕三頭筋', fore:'前腕', serr:'前鋸筋',
+  abs:'腹直筋・腹横筋', obl:'腹斜筋', hipflex:'股関節屈筋群', quad:'大腿四頭筋', add:'内転筋群',
+  traps_u:'僧帽筋上部', traps_l:'僧帽筋中部・下部', cuff:'棘下筋・小円筋（ローテーターカフ）', lats:'広背筋', erec:'脊柱起立筋',
+  tspine:'胸椎まわり', glute:'大臀筋', ham:'ハムストリングス', calf:'ふくらはぎ'};
+/* 形： e=楕円[x,y,rx,ry,左右対称] r=四角[x,y,w,h] p=多角形[点,左右対称] */
+const MUS_FRONT = {
+  delt:[['e',-15,29,4,5.5,1]], pec:[['e',-6.5,32.5,6,4.5,1]], subscap:[['e',-11.3,37.5,1.8,3,1]],
+  bic:[['e',-17.6,42,2.3,6,1]], fore:[['e',-18,61,2,7,1]], serr:[['e',-10.3,46,1.9,4,1]],
+  abs:[['r',-4,40,8,22]], obl:[['e',-8.6,55,2.3,6,1]], hipflex:[['e',-6,71.5,3,2.6,1]],
+  quad:[['e',-6.5,87,3.7,11,1]], add:[['e',-2.2,81,1.5,6,1]]
+};
+const MUS_BACK = {
+  traps_u:[['p','-11,25 0,20 11,25 0,31']], traps_l:[['p','-6.5,31 6.5,31 0,50']], delt:[['e',-15,29,4,5.5,1]],
+  cuff:[['e',-7.6,35,3.6,3,1]], lats:[['p','-12,38 -4,46 -6,61 -11,57',1]], tri:[['e',-17.6,42,2.3,6,1]],
+  fore:[['e',-18,61,2,7,1]], erec:[['r',-3,51,6,15]], tspine:[['r',-1.4,26,2.8,24]],
+  glute:[['e',-6,72.5,5.5,5,1]], ham:[['e',-6.5,88,3.6,10,1]], calf:[['e',-6,105,2.6,7,1]]
+};
+const BODY_SIL = '<circle cx="0" cy="12" r="7"/><rect x="-3" y="18" width="6" height="7"/>'+
+  '<polygon points="-13,24 13,24 11.5,60 12,70 -12,70 -11.5,60"/>'+
+  '<polygon points="-13,24 -19,28 -21,50 -20,73 -15.5,73 -15.5,50 -12.5,36"/><polygon points="13,24 19,28 21,50 20,73 15.5,73 15.5,50 12.5,36"/>'+
+  '<polygon points="-12,69 -0.8,69 -2.5,95 -3,117 -9,117 -10.5,95"/><polygon points="12,69 0.8,69 2.5,95 3,117 9,117 10.5,95"/>';
+function musShapes(def, cls){
+  let o='';
+  def.forEach(d=>{
+    if(d[0]==='e'){ o+='<ellipse class="'+cls+'" cx="'+d[1]+'" cy="'+d[2]+'" rx="'+d[3]+'" ry="'+d[4]+'"/>'; if(d[5]) o+='<ellipse class="'+cls+'" cx="'+(-d[1])+'" cy="'+d[2]+'" rx="'+d[3]+'" ry="'+d[4]+'"/>'; }
+    else if(d[0]==='r'){ o+='<rect class="'+cls+'" x="'+d[1]+'" y="'+d[2]+'" width="'+d[3]+'" height="'+d[4]+'" rx="1.5"/>'; }
+    else if(d[0]==='p'){ o+='<polygon class="'+cls+'" points="'+d[1]+'"/>'; if(d[2]) o+='<polygon class="'+cls+'" points="'+d[1].split(' ').map(q=>{const [x,y]=q.split(',');return (-x)+','+y;}).join(' ')+'"/>'; }
+  });
+  return o;
+}
+function musBody(map, cx, prim, sec){
+  let o='<g transform="translate('+cx+',3)"><g class="sil">'+BODY_SIL+'</g>';
+  Object.keys(map).forEach(k=>{ if(k==='tspine') return; o+=musShapes(map[k], prim.includes(k)?'mp':sec.includes(k)?'ms':'mb'); });
+  if(map.tspine && (prim.includes('tspine')||sec.includes('tspine'))) o+=musShapes(map.tspine, prim.includes('tspine')?'mp':'ms');
+  return o+'</g>';
+}
+
+/* 人型の姿勢：右向き（正面図のものは両腕両脚あり）。地面は y=112 */
+const POSES = {
+  stand:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[61,47],w:[62,62]},
+  standLow:{h:[60,27],n:[60,39],p:[60,68],k:[61,90],a:[60,111],t:[68,111],e:[61,53],w:[62,66]},
+  standBarBack:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[50,40],w:[56,30],plate:[57,30]},
+  squatBarBack:{h:[66,46],n:[60,56],p:[38,80],k:[66,84],a:[56,111],t:[64,111],e:[48,63],w:[56,53],plate:[58,54]},
+  frontRack:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[73,40],w:[67,31],plate:[68,30]},
+  frontSquat:{h:[64,44],n:[60,56],p:[38,80],k:[66,84],a:[56,111],t:[64,111],e:[75,62],w:[69,54],plate:[70,53]},
+  hingeTop:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[62,47],w:[64,64],plate:[65,66]},
+  hingeBottom:{h:[94,54],n:[84,56],p:[52,62],k:[58,86],a:[56,111],t:[64,111],e:[84,72],w:[84,88],plate:[84,90]},
+  deadBottom:{h:[80,48],n:[72,54],p:[44,76],k:[64,82],a:[56,111],t:[64,111],e:[66,72],w:[62,88],plate:[62,92]},
+  deadTop:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[61,47],w:[62,64],plate:[62,66]},
+  splitTop:{h:[60,18],n:[60,30],p:[58,62],k:[72,86],a:[74,111],t:[82,111],k2:[48,86],a2:[32,96],t2:[24,96],e:[60,46],w:[60,62],db:1},
+  splitBottom:{h:[56,36],n:[56,48],p:[54,80],k:[76,84],a:[76,111],t:[84,111],k2:[46,104],a2:[32,96],t2:[24,96],e:[56,64],w:[56,80],db:1},
+  slRdlTop:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],k2:[57,86],a2:[50,107],t2:[56,109],e:[61,47],w:[62,63],db:1},
+  slRdlBottom:{h:[96,52],n:[86,54],p:[54,60],k:[56,86],a:[55,111],t:[63,111],k2:[34,58],a2:[14,56],t2:[12,62],e:[86,70],w:[86,84],db:1},
+  hipLow:{h:[20,74],n:[30,80],p:[56,100],k:[80,84],a:[84,111],t:[92,111],e:[44,92],w:[56,97],plate:[57,95]},
+  hipHigh:{h:[20,74],n:[30,80],p:[60,78],k:[82,80],a:[86,111],t:[94,111],e:[45,84],w:[59,76],plate:[60,74]},
+  sideStart:{h:[60,19],n:[60,31],p:[60,63],k:[54,87],a:[52,111],t:[48,111],k2:[66,87],a2:[68,111],t2:[72,111],e:[52,44],w:[60,54],e2:[68,44],w2:[60,54],ball:[60,56]},
+  sideEnd:{h:[74,40],n:[72,52],p:[64,80],k:[40,96],a:[20,111],t:[16,111],k2:[88,92],a2:[86,111],t2:[92,111],e:[64,64],w:[72,74],e2:[82,64],w2:[74,74],ball:[73,76]},
+  crouch:{h:[66,42],n:[60,52],p:[44,76],k:[66,82],a:[58,111],t:[66,111],e:[48,62],w:[38,72]},
+  crouchBar:{h:[66,42],n:[60,52],p:[44,76],k:[66,82],a:[58,111],t:[66,111],e:[48,60],w:[56,50],plate:[58,50]},
+  jumpAir:{h:[62,12],n:[62,24],p:[60,56],k:[62,78],a:[60,98],t:[67,101],e:[66,12],w:[70,2]},
+  jumpAirBar:{h:[62,12],n:[62,24],p:[60,56],k:[62,78],a:[60,98],t:[67,101],e:[52,32],w:[58,22],plate:[60,22]},
+  boxEnd:{h:[90,14],n:[90,26],p:[86,56],k:[94,76],a:[90,96],t:[98,96],e:[94,40],w:[100,54]},
+  depthStart:{h:[20,7],n:[20,19],p:[20,48],k:[21,70],a:[20,90],t:[27,90],e:[21,33],w:[22,47]},
+  cleanStart:{h:[66,24],n:[64,36],p:[56,64],k:[62,86],a:[60,111],t:[68,111],e:[66,52],w:[66,66],plate:[66,68]},
+  cleanEnd:{h:[60,24],n:[58,36],p:[50,66],k:[64,86],a:[58,111],t:[66,111],e:[73,42],w:[67,34],plate:[68,33]},
+  pullEnd:{h:[60,16],n:[60,28],p:[60,60],k:[60,84],a:[60,103],t:[67,111],e:[74,28],w:[66,36],plate:[66,38]},
+  thrusterEnd:{h:[60,27],n:[60,39],p:[60,68],k:[61,90],a:[60,111],t:[68,111],e:[63,22],w:[63,6],plate:[63,5]},
+  pullHang:{h:[60,34],n:[60,46],e:[45,28],w:[46,10],e2:[75,28],w2:[74,10],p:[60,78],k:[59,96],a:[59,112]},
+  pullTop:{h:[60,13],n:[60,26],e:[40,30],w:[46,10],e2:[80,30],w2:[74,10],p:[60,58],k:[59,78],a:[59,96]},
+  latStart:{h:[60,40],n:[60,52],e:[47,30],w:[44,14],e2:[73,30],w2:[76,14],p:[60,84],k:[48,90],a:[48,111],k2:[72,90],a2:[72,111],hbar:[34,86,14]},
+  latEnd:{h:[60,40],n:[60,52],e:[43,68],w:[40,50],e2:[77,68],w2:[80,50],p:[60,84],k:[48,90],a:[48,111],k2:[72,90],a2:[72,111],hbar:[30,90,50]},
+  rowStart:{h:[92,42],n:[82,48],p:[50,62],k:[58,86],a:[56,111],t:[64,111],e:[82,64],w:[82,80],plate:[82,82]},
+  rowEnd:{h:[92,42],n:[82,48],p:[50,62],k:[58,86],a:[56,111],t:[64,111],e:[66,52],w:[74,66],plate:[74,68]},
+  dbRowStart:{h:[94,50],n:[84,54],p:[48,60],k:[54,86],a:[52,111],t:[60,111],e2:[88,64],w2:[90,74],e:[82,70],w:[82,88],db:1},
+  dbRowEnd:{h:[94,50],n:[84,54],p:[48,60],k:[54,86],a:[52,111],t:[60,111],e2:[88,64],w2:[90,74],e:[66,52],w:[72,68],db:1},
+  strStart:{h:[66,20],n:[64,32],p:[58,64],k:[60,87],a:[58,111],t:[66,111],e:[78,24],w:[92,18]},
+  strEnd:{h:[66,20],n:[64,32],p:[58,64],k:[60,87],a:[58,111],t:[66,111],e:[70,48],w:[70,64]},
+  benchBottom:{h:[94,72],n:[84,76],p:[44,78],k:[26,82],a:[20,111],t:[28,111],e:[74,88],w:[84,64],plate:[84,62]},
+  benchTop:{h:[94,72],n:[84,76],p:[44,78],k:[26,82],a:[20,111],t:[28,111],e:[84,58],w:[84,40],plate:[84,38]},
+  inclineBottom:{h:[94,48],n:[84,56],p:[42,82],k:[24,86],a:[18,111],t:[26,111],e:[74,70],w:[86,50],plate:[86,48]},
+  inclineTop:{h:[94,48],n:[84,56],p:[42,82],k:[24,86],a:[18,111],t:[26,111],e:[90,38],w:[94,20],plate:[94,18]},
+  pushTop:{h:[98,74],n:[88,78],p:[52,88],k:[34,96],a:[16,104],t:[14,111],e:[88,95],w:[88,111]},
+  pushBottom:{h:[98,96],n:[88,99],p:[52,102],k:[34,106],a:[16,108],t:[14,111],e:[74,92],w:[88,111]},
+  pushPlus:{h:[98,70],n:[88,74],p:[52,86],k:[34,95],a:[16,104],t:[14,111],e:[88,93],w:[88,111]},
+  landStart:{h:[58,20],n:[58,32],p:[56,64],k:[60,88],a:[58,111],t:[66,111],e:[68,46],w:[72,36]},
+  landEnd:{h:[58,20],n:[58,32],p:[56,64],k:[60,88],a:[58,111],t:[66,111],e:[80,28],w:[94,18]},
+  ohpStart:{h:[60,27],n:[60,39],p:[60,68],k:[61,90],a:[60,111],t:[68,111],e:[73,46],w:[68,36],db:1},
+  ohpEnd:{h:[60,27],n:[60,39],p:[60,68],k:[61,90],a:[60,111],t:[68,111],e:[66,22],w:[64,6],db:1},
+  dipTop:{h:[60,20],n:[60,32],e:[42,46],w:[40,60],e2:[78,46],w2:[80,60],p:[60,66],k:[60,86],a:[60,104]},
+  dipBottom:{h:[60,38],n:[60,50],e:[34,40],w:[40,60],e2:[86,40],w2:[80,60],p:[60,82],k:[60,98],a:[60,112]},
+  slamStart:{h:[60,27],n:[60,39],p:[60,68],k:[61,90],a:[60,111],t:[68,111],e:[64,22],w:[67,8],ball:[68,4]},
+  slamEnd:{h:[82,52],n:[74,56],p:[46,72],k:[64,84],a:[56,111],t:[64,111],e:[82,76],w:[88,96],ball:[90,104]},
+  chestStart:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[66,52],w:[72,42],ball:[79,42]},
+  chestEnd:{h:[62,19],n:[62,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[80,40],w:[94,40],ball:[108,38]},
+  rotStart:{h:[58,19],n:[58,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[50,50],w:[42,60],ball:[38,62]},
+  rotEnd:{h:[62,19],n:[62,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[76,44],w:[90,42],ball:[102,40]},
+  hollow:{h:[84,90],n:[74,97],p:[46,106],k:[28,100],a:[12,94],t:[7,95],e:[90,88],w:[104,82]},
+  pallofStart:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[64,50],w:[70,44]},
+  pallofEnd:{h:[60,19],n:[60,31],p:[60,63],k:[61,87],a:[60,111],t:[68,111],e:[80,42],w:[94,42]},
+  dbugStart:{h:[100,102],n:[90,105],p:[52,106],k:[52,84],a:[32,84],t:[30,80],k2:[54,84],a2:[34,84],e:[88,90],w:[88,74],e2:[90,90],w2:[90,74]},
+  dbugEnd:{h:[100,102],n:[90,105],p:[52,106],k:[34,104],a:[14,104],t:[10,101],k2:[54,84],a2:[34,84],e:[100,94],w:[114,98],e2:[90,90],w2:[90,74]},
+  sidePlank:{h:[100,66],n:[90,72],p:[58,90],k:[34,100],a:[12,108],t:[9,111],e:[90,110],w:[106,110],e2:[92,56],w2:[94,40]},
+  hlrStart:{h:[66,28],n:[60,38],e:[60,24],w:[60,10],p:[60,70],k:[60,92],a:[60,112]},
+  hlrEnd:{h:[66,28],n:[60,38],e:[60,24],w:[60,10],p:[62,70],k:[84,70],a:[106,70],t:[108,64]},
+  wiperStart:{h:[100,104],n:[90,106],p:[52,107],k:[52,84],a:[52,62],t:[56,60],e:[76,108],w:[66,110]},
+  wiperEnd:{h:[100,104],n:[90,106],p:[52,107],k:[40,90],a:[27,74],t:[27,70],e:[76,108],w:[66,110]},
+  russianStart:{h:[76,62],n:[70,74],p:[50,104],k:[70,88],a:[88,100],t:[93,97],e:[70,92],w:[60,94]},
+  russianEnd:{h:[80,64],n:[72,74],p:[50,104],k:[70,88],a:[88,100],t:[93,97],e:[86,84],w:[96,90]},
+  dsqRotStart:{h:[66,50],n:[62,58],p:[42,84],k:[70,84],a:[60,111],t:[68,111],e2:[70,80],w2:[72,108],e:[70,76],w:[74,92]},
+  dsqRotEnd:{h:[64,48],n:[62,58],p:[42,84],k:[70,84],a:[60,111],t:[68,111],e2:[70,80],w2:[72,108],e:[62,40],w:[62,22]},
+  wideStart:{h:[92,58],n:[82,58],p:[52,58],k:[52,84],a:[52,111],t:[60,111],e2:[82,82],w2:[82,108],e:[82,78],w:[86,94]},
+  wideEnd:{h:[90,56],n:[82,58],p:[52,58],k:[52,84],a:[52,111],t:[60,111],e2:[82,82],w2:[82,108],e:[82,40],w:[82,22]},
+  wallStart:{h:[96,96],n:[86,100],p:[54,104],k:[40,90],a:[22,104],t:[18,102],e:[98,102],w:[110,104]},
+  wallEnd:{h:[96,96],n:[86,100],p:[54,104],k:[40,90],a:[22,104],t:[18,102],e:[84,86],w:[76,74]},
+  foamStart:{h:[94,92],n:[84,96],p:[48,104],k:[34,78],a:[18,80],t:[14,76],e:[92,84],w:[100,90]},
+  foamEnd:{h:[98,104],n:[88,102],p:[48,104],k:[34,78],a:[18,80],t:[14,76],e:[94,92],w:[102,100]},
+  proneStart:{h:[100,104],n:[90,106],p:[52,106],k:[32,106],a:[12,106],t:[8,102],e:[90,108],w:[104,109]},
+  proneCrossEnd:{h:[100,104],n:[90,106],p:[52,104],k:[40,90],a:[24,78],t:[20,80],e:[90,108],w:[104,109]},
+  scorpEnd:{h:[100,104],n:[90,106],p:[52,104],k:[44,86],a:[62,74],t:[66,76],e:[90,108],w:[104,109]},
+  latStrStart:{h:[64,18],n:[64,30],p:[60,62],k:[62,87],a:[64,111],t:[72,111],k2:[56,88],a2:[50,110],e:[80,24],w:[95,16]},
+  latStrEnd:{h:[66,26],n:[64,36],p:[52,62],k:[58,87],a:[64,111],t:[72,111],k2:[50,88],a2:[46,110],e:[80,26],w:[95,16]},
+  subscapStart:{h:[58,56],n:[54,68],p:[46,104],k:[66,78],a:[80,111],t:[88,111],e:[64,86],w:[70,70]},
+  subscapEnd:{h:[58,56],n:[54,68],p:[46,104],k:[66,78],a:[80,111],t:[88,111],e:[64,86],w:[80,76]},
+  stickStart:{h:[98,104],n:[88,106],p:[50,106],k:[34,88],a:[18,106],t:[14,104],e:[80,108],w:[80,92]},
+  stickEnd:{h:[98,104],n:[88,106],p:[50,106],k:[34,88],a:[18,106],t:[14,104],e:[80,108],w:[92,97]},
+  proneERStart:{h:[100,104],n:[90,106],p:[52,106],k:[32,106],a:[12,106],t:[8,102],e:[92,106],w:[92,110]},
+  proneEREnd:{h:[100,104],n:[90,106],p:[52,106],k:[32,106],a:[12,106],t:[8,102],e:[92,103],w:[102,92]},
+  proneWEnd:{h:[100,102],n:[90,104],p:[52,106],k:[32,106],a:[12,106],t:[8,102],e:[84,94],w:[96,90]},
+  bandStart:{h:[60,19],n:[60,31],p:[60,63],k:[55,87],a:[53,111],k2:[65,87],a2:[67,111],e:[48,48],w:[58,54],e2:[72,48],w2:[70,62]},
+  bandEnd:{h:[60,19],n:[60,31],p:[60,63],k:[55,87],a:[53,111],k2:[65,87],a2:[67,111],e:[48,48],w:[32,48],e2:[72,48],w2:[70,62]},
+  slerStart:{h:[100,96],n:[90,100],p:[52,104],k:[36,96],a:[18,104],t:[14,102],e:[76,98],w:[90,104],db:1},
+  slerEnd:{h:[100,96],n:[90,100],p:[52,104],k:[36,96],a:[18,104],t:[14,102],e:[76,98],w:[80,82],db:1},
+  bentYStart:{h:[92,50],n:[84,54],p:[52,60],k:[58,86],a:[56,111],t:[64,111],e:[84,70],w:[84,84]},
+  bentYEnd:{h:[92,50],n:[84,54],p:[52,60],k:[58,86],a:[56,111],t:[64,111],e:[98,44],w:[112,36]}
+};
+function shift(P,dx,dy){ const o={}; Object.entries(P).forEach(([k,v])=>{ o[k]= Array.isArray(v)? (k==='hbar'?[v[0]+dx,v[1]+dx,v[2]+dy]:[v[0]+dx,v[1]+dy]) : v; }); return o; }
+
+/* 種目ごとの図：a=開始（うすく）、b=終わり（濃く）、eq=器具、p=主に鍛える筋肉、s=補助の筋肉 */
+const VIS = {
+  m_dsq_rot:{a:'dsqRotStart',b:'dsqRotEnd',p:['tspine','obl'],s:['glute','add']},
+  m_wide_rot:{a:'wideStart',b:'wideEnd',p:['tspine','obl'],s:['ham']},
+  m_wall_rot:{a:'wallStart',b:'wallEnd',eq:[['wall',114]],p:['tspine','traps_l'],s:['obl']},
+  m_foam_ext:{a:'foamStart',b:'foamEnd',eq:[['bench',2,80,30,32],['roller',70,105,7]],p:['tspine'],s:['pec','lats']},
+  m_prone_cross:{a:'proneStart',b:'proneCrossEnd',p:['obl','tspine'],s:['hipflex']},
+  m_lat_str:{a:'latStrStart',b:'latStrEnd',eq:[['line',98,6,98,112,4]],p:['lats'],s:['obl']},
+  m_scorpion:{a:'proneStart',b:'scorpEnd',p:['pec'],s:['tspine','hipflex']},
+  m_subscap:{a:'subscapStart',b:'subscapEnd',p:['subscap'],s:['pec']},
+  m_stick_er:{a:'stickStart',b:'stickEnd',eq:[['stickTo','w',62,86]],p:['subscap'],s:['pec']},
+  s_prone_er:{a:'proneERStart',b:'proneEREnd',p:['cuff'],s:['traps_l']},
+  s_band_er:{a:'bandStart',b:'bandEnd',eq:[['bandTo','w',116,50]],p:['cuff'],s:['delt']},
+  s_sl_er:{a:'slerStart',b:'slerEnd',p:['cuff'],s:['delt']},
+  s_bent_y:{a:'bentYStart',b:'bentYEnd',p:['traps_l'],s:['delt','serr']},
+  s_prone_w:{a:'proneERStart',b:'proneWEnd',p:['traps_l','cuff'],s:['delt']},
+  s_pushup_plus:{a:'pushTop',b:'pushPlus',p:['serr'],s:['pec','abs']},
+  p_cmj:{a:'crouch',b:'jumpAir',pt:'p',p:['quad','glute'],s:['calf','ham']},
+  p_box:{a:['crouch',-20,0],b:'boxEnd',eq:[['box',70,96,44,16]],pt:'p',p:['quad','glute'],s:['calf','ham']},
+  p_depth:{a:'depthStart',b:['jumpAir',26,0],eq:[['box',4,90,34,22]],pt:'p',p:['quad','calf','glute'],s:['ham']},
+  p_broad:{a:['crouch',-26,0],b:['crouch',30,0],pt:'p',p:['glute','quad'],s:['ham','calf']},
+  p_jsq:{a:'crouchBar',b:'jumpAirBar',pt:'p',p:['quad','glute'],s:['calf']},
+  o_clean:{a:'cleanStart',b:'cleanEnd',p:['glute','ham','quad','traps_u'],s:['calf','erec']},
+  o_pull:{a:'cleanStart',b:'pullEnd',p:['glute','ham','traps_u'],s:['calf','erec']},
+  o_thruster:{a:'frontSquat',b:'thrusterEnd',p:['quad','glute','delt'],s:['tri','abs']},
+  l_bsq:{a:'standBarBack',b:'squatBarBack',pt:'p',p:['quad','glute'],s:['add','erec']},
+  l_fsq:{a:'frontRack',b:'frontSquat',pt:'p',p:['quad','glute'],s:['abs','erec']},
+  l_trap:{a:'deadBottom',b:'deadTop',pt:'p',p:['quad','glute','ham'],s:['erec','traps_u']},
+  l_rdl:{a:'hingeTop',b:'hingeBottom',pt:'h',p:['ham','glute'],s:['erec']},
+  l_slrdl:{a:'slRdlTop',b:'slRdlBottom',pt:'h',p:['ham','glute'],s:['erec','calf']},
+  l_bss:{a:'splitTop',b:'splitBottom',pt:'p',eq:[['bench',4,96,34,16]],p:['quad','glute'],s:['add']},
+  l_hipthrust:{a:'hipLow',b:'hipHigh',pt:'p',eq:[['bench',2,80,28,32]],p:['glute'],s:['ham']},
+  l_sidelunge:{a:'sideStart',b:'sideEnd',pt:'p',p:['add','glute'],s:['quad']},
+  u_pullup:{a:'pullHang',b:'pullTop',pt:'h',eq:[['line',28,10,92,10,3]],p:['lats'],s:['bic','traps_l']},
+  u_latpd:{a:'latStart',b:'latEnd',eq:[['box',44,84,32,28]],p:['lats'],s:['bic']},
+  u_dbrow:{a:'dbRowStart',b:'dbRowEnd',eq:[['bench',80,74,38,38]],p:['lats','traps_l'],s:['bic','delt']},
+  u_bbrow:{a:'rowStart',b:'rowEnd',p:['lats','traps_l'],s:['erec','bic']},
+  u_straight:{a:'strStart',b:'strEnd',eq:[['cableTo','w',116,4]],p:['lats'],s:['tri']},
+  b_bench:{a:'benchBottom',b:'benchTop',eq:[['bench',18,80,86,6],['line',30,86,30,111,3],['line',92,86,92,111,3]],p:['pec'],s:['tri','delt']},
+  b_incline:{a:'inclineBottom',b:'inclineTop',eq:[['line',36,90,90,56,6],['line',62,76,62,111,3]],p:['pec','delt'],s:['tri']},
+  b_pushup:{a:'pushBottom',b:'pushTop',pt:'n',p:['pec','tri'],s:['serr','abs']},
+  b_landmine:{a:'landStart',b:'landEnd',eq:[['cableTo','w',8,111,'bar']],p:['delt','pec'],s:['serr','tri']},
+  b_ohp:{a:'ohpStart',b:'ohpEnd',p:['delt','tri'],s:['traps_u']},
+  b_dips:{a:'dipTop',b:'dipBottom',pt:'n',eq:[['line',30,60,48,60,3],['line',72,60,90,60,3]],p:['pec','tri'],s:['delt']},
+  mb_slam:{a:'slamStart',b:'slamEnd',p:['lats','abs'],s:['tri']},
+  mb_chest:{a:'chestStart',b:'chestEnd',p:['pec','tri'],s:['delt']},
+  mb_rot:{a:'rotStart',b:'rotEnd',p:['obl','tspine'],s:['glute']},
+  c_hollow:{b:'hollow',p:['abs'],s:['hipflex']},
+  c_pallof:{a:'pallofStart',b:'pallofEnd',eq:[['bandTo','w',4,44]],p:['obl','abs'],s:[]},
+  c_deadbug:{a:'dbugStart',b:'dbugEnd',p:['abs'],s:['hipflex']},
+  c_sideplank:{b:'sidePlank',p:['obl'],s:['glute']},
+  c_hlr:{a:'hlrStart',b:'hlrEnd',pt:'a',eq:[['line',40,10,80,10,3]],p:['abs','hipflex'],s:['fore','lats']},
+  c_wiper:{a:'wiperStart',b:'wiperEnd',pt:'a',p:['obl'],s:['abs']},
+  c_russian:{a:'russianStart',b:'russianEnd',p:['obl'],s:['abs']}
+};
+function getPose(ref){ if(!ref) return null; if(Array.isArray(ref)) return shift(POSES[ref[0]],ref[1],ref[2]); return POSES[ref]; }
+function ln(pts,w,extra){ return '<polyline points="'+pts.map(q=>q.join(',')).join(' ')+'" stroke-width="'+w+'" '+(extra||'')+'/>'; }
+function drawPose(P, cls){
+  let o='<g class="'+cls+'">';
+  const back=[]; if(P.k2&&P.a2){ back.push([P.p,P.k2,P.a2].concat(P.t2?[P.t2]:[])); } if(P.e2&&P.w2){ back.push([P.n,P.e2,P.w2]); }
+  back.forEach(b=>{ o+=ln(b,4.5,'class="limb2"'); });
+  if(P.hbar) o+='<line class="eqline" x1="'+P.hbar[0]+'" y1="'+P.hbar[2]+'" x2="'+P.hbar[1]+'" y2="'+P.hbar[2]+'" stroke-width="3"/>';
+  o+=ln([P.n,P.p],6.5); o+=ln([P.p,P.k,P.a].concat(P.t?[P.t]:[]),5.2); o+=ln([P.n,P.e,P.w],4.6);
+  o+='<circle class="head" cx="'+P.h[0]+'" cy="'+P.h[1]+'" r="7"/>';
+  if(P.plate) o+='<circle class="plate" cx="'+P.plate[0]+'" cy="'+P.plate[1]+'" r="6.5"/>';
+  if(P.db){ o+='<rect class="plate" x="'+(P.w[0]-5)+'" y="'+(P.w[1]-2.5)+'" width="10" height="5" rx="2"/>'; if(P.w2 && P.e2 && P.db===2) o+=''; }
+  if(P.ball) o+='<circle class="ball" cx="'+P.ball[0]+'" cy="'+P.ball[1]+'" r="6"/>';
+  return o+'</g>';
+}
+function drawEq(eq, B){
+  let o='';
+  (eq||[]).forEach(e=>{
+    if(e[0]==='bench'||e[0]==='box') o+='<rect class="eqfill" x="'+e[1]+'" y="'+e[2]+'" width="'+e[3]+'" height="'+e[4]+'" rx="2"/>';
+    if(e[0]==='line') o+='<line class="eqline" x1="'+e[1]+'" y1="'+e[2]+'" x2="'+e[3]+'" y2="'+e[4]+'" stroke-width="'+e[5]+'"/>';
+    if(e[0]==='roller') o+='<circle class="eqfill" cx="'+e[1]+'" cy="'+e[2]+'" r="'+e[3]+'"/>';
+    if(e[0]==='wall') o+='<rect class="eqfill" x="'+e[1]+'" y="4" width="4" height="108"/>';
+    if((e[0]==='bandTo'||e[0]==='cableTo'||e[0]==='stickTo') && B && B[e[1]]){
+      const w = e[0]==='bandTo'?1.6:e[0]==='cableTo'&&e[4]!=='bar'?1.4:3.2;
+      o+='<line class="'+(e[0]==='bandTo'?'band':'eqline')+'" x1="'+B[e[1]][0]+'" y1="'+B[e[1]][1]+'" x2="'+e[2]+'" y2="'+e[3]+'" stroke-width="'+w+'"/>';
+    }
+  });
+  return o;
+}
+function arrowSVG(A,B,pt){
+  if(!A||!B||!A[pt]||!B[pt]) return '';
+  const [x1,y1]=A[pt], [x2,y2]=B[pt]; const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy); if(L<8) return '';
+  const ux=dx/L, uy=dy/L; const sx=x1+ux*6, sy=y1+uy*6, ex=x2-ux*8, ey=y2-uy*8;
+  const hx=ex-ux*7, hy=ey-uy*7, px=-uy*4.5, py=ux*4.5;
+  return '<g class="arrow"><line x1="'+sx.toFixed(1)+'" y1="'+sy.toFixed(1)+'" x2="'+hx.toFixed(1)+'" y2="'+hy.toFixed(1)+'" stroke-width="2.4"/>'+
+    '<polygon points="'+ex.toFixed(1)+','+ey.toFixed(1)+' '+(hx+px).toFixed(1)+','+(hy+py).toFixed(1)+' '+(hx-px).toFixed(1)+','+(hy-py).toFixed(1)+'"/></g>';
+}
+function figureInner(id){
+  const v = VIS[id]; if(!v) return '';
+  const A = getPose(v.a), B = getPose(v.b);
+  let o='<rect class="panel" x="0" y="0" width="120" height="120" rx="8"/><line class="ground" x1="2" y1="112" x2="118" y2="112"/>';
+  o+=drawEq(v.eq,B);
+  if(A) o+=drawEq((v.eq||[]).filter(e=>/To$/.test(e[0])),A).replace(/class="(band|eqline)"/g,'class="$1 ghostline"');
+  if(A) o+=drawPose(A,'fig ghost');
+  o+=drawPose(B,'fig');
+  if(A) o+=arrowSVG(A,B,v.pt||'w');
+  return o;
+}
+function musLabel(id){
+  const v=VIS[id]; if(!v) return '';
+  return '主に鍛える筋肉：'+v.p.map(k=>MUS_NAME[k]).join('、')+(v.s.length?'。補助的に使う筋肉：'+v.s.map(k=>MUS_NAME[k]).join('、'):'')+'。';
+}
+function thumbHTML(id){
+  const v=VIS[id]; if(!v) return '';
+  const ex=EXMAP[id];
+  const svg='<svg class="thumb" viewBox="0 0 250 124" role="img" aria-label="'+esc(ex.name)+'の動作イメージと筋肉の図。'+esc(musLabel(id))+'">'+
+    '<g>'+figureInner(id)+'</g>'+
+    '<g class="musmap">'+musBody(MUS_FRONT,157,v.p,v.s)+musBody(MUS_BACK,220,v.p,v.s)+
+    '<text x="157" y="123" class="mlabel">前</text><text x="220" y="123" class="mlabel">後ろ</text></g></svg>';
+  const leg='<p class="muslegend"><span class="sw swp" aria-hidden="true"></span>主に鍛える：'+v.p.map(k=>MUS_NAME[k]).join('、')+
+    (v.s.length?'　<span class="sw sws" aria-hidden="true"></span>補助：'+v.s.map(k=>MUS_NAME[k]).join('、'):'')+
+    '<br><span class="muted">うすい人型＝開始、濃い人型＝動作の終わり、矢印＝動く方向</span></p>';
+  return '<div class="thumbwrap">'+svg+leg+'</div>';
+}
+function miniFig(id){
+  if(!VIS[id]) return '';
+  return '<svg class="minifig" viewBox="0 0 120 120" aria-hidden="true">'+figureInner(id)+'</svg>';
+}
+
+/* ============ 記録とグラフ ============ */
+const BW_EX = ['u_pullup','b_dips'];           /* 体重＋加重で計算する種目 */
+const LOG_EX = EX.filter(e=>['loaded','olympic'].includes(e.type) || e.id==='p_jsq');
+const REGION_LABEL = {lower:'下肢', pull:'引く', push:'押す'};
+const REGION_COLOR = {lower:'var(--s1)', pull:'var(--s2)', push:'var(--s3)'};
+function logRegion(id){ const r = region(EXMAP[id]); return ['lower','pull','push'].includes(r)?r:'lower'; }
+function massOf(en){ const kg = Number(en.kg)||0; return BW_EX.includes(en.id) ? (Number(state.bw)||0)+kg : kg; }
+function volOf(en){ return massOf(en)*(Number(en.reps)||0)*(Number(en.sets)||0); }
+function e1rmOf(en){ const m=massOf(en), r=Number(en.reps)||0; if(!m||!r||r>10) return null; return r===1?m:m*(1+r/30); }
+function timeOf(en){ const s=Number(en.sets)||0; return s*0.5 + Math.max(0,s-1)*(Number(en.rest)||0)/60; }
+function fmt(n,d){ if(n==null||isNaN(n)) return '—'; return Number(n).toLocaleString('ja-JP',{maximumFractionDigits:d||0}); }
+function niceMax(v){ if(v<=0) return 10; const p=Math.pow(10,Math.floor(Math.log10(v))); const f=v/p; const st=[1,1.2,1.5,2,2.5,3,4,5,6,8,10]; return st.find(x=>f<=x)*p; }
+
+/* ---- 横棒グラフ ---- */
+function barChart(rows, unit, title){
+  if(!rows.length) return '<p class="muted">表示できる記録がありません。</p>';
+  const W=640, L=190, R=90, rowH=34, top=24, H=top+rows.length*rowH+8;
+  const max=niceMax(Math.max(...rows.map(r=>r.value))), sx=v=>(W-L-R)*v/max;
+  let g='';
+  for(let i=0;i<=4;i++){ const x=L+(W-L-R)*i/4; g+='<line class="grid" x1="'+x+'" y1="'+(top-6)+'" x2="'+x+'" y2="'+(H-6)+'"/><text class="axis" x="'+x+'" y="14" text-anchor="middle">'+fmt(max*i/4)+'</text>'; }
+  rows.forEach((r,i)=>{
+    const y=top+i*rowH+6, h=20, w=Math.max(2,sx(r.value)), x=L;
+    const rr=Math.min(4,w/2);
+    const d='M'+x+','+y+' h'+(w-rr)+' q'+rr+',0 '+rr+','+rr+' v'+(h-2*rr)+' q0,'+rr+' '+(-rr)+','+rr+' h'+(-(w-rr))+' z';
+    g+='<text class="blabel" x="'+(L-8)+'" y="'+(y+15)+'" text-anchor="end">'+esc((l=>l.length>12?l.slice(0,11)+'…':l)(r.label.split('（')[0]))+'</text>';
+    g+='<path d="'+d+'" style="fill:'+r.color+'"/>';
+    g+='<text class="bval" x="'+(x+w+6)+'" y="'+(y+15)+'">'+fmt(r.value)+unit+'</text>';
+    g+='<rect class="hit" x="0" y="'+(y-6)+'" width="'+W+'" height="'+rowH+'" data-tip="'+esc(r.tip||(r.label+'：'+fmt(r.value)+unit))+'"/>';
+  });
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(title)+'">'+g+'</svg>';
+}
+/* ---- 折れ線グラフ ---- */
+function lineChart(pts, unit, title, zeroBase){
+  if(!pts.length) return '<p class="muted">表示できる記録がありません。</p>';
+  const W=640, H=260, L=64, R=24, T=20, B=44;
+  const ys=pts.map(p=>p.y); let lo=zeroBase?0:Math.min(...ys)*0.9, hi=niceMax(Math.max(...ys)*1.05);
+  if(!zeroBase){ lo=Math.floor(lo/5)*5; if(hi-lo<10) hi=lo+10; }
+  const sx=i=>pts.length===1?(L+(W-L-R)/2):L+(W-L-R)*i/(pts.length-1), sy=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+  let g='';
+  for(let i=0;i<=4;i++){ const v=lo+(hi-lo)*i/4, y=sy(v); g+='<line class="grid" x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'"/><text class="axis" x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end">'+fmt(v)+'</text>'; }
+  const step=Math.ceil(pts.length/7);
+  pts.forEach((p,i)=>{ if(i%step===0||i===pts.length-1) g+='<text class="axis" x="'+sx(i)+'" y="'+(H-18)+'" text-anchor="middle">'+esc(p.x.slice(5).replace('-','/'))+'</text>'; });
+  g+='<text class="axis" x="'+L+'" y="'+(H-2)+'">単位：'+unit+'</text>';
+  if(pts.length>1) g+='<polyline class="series" points="'+pts.map((p,i)=>sx(i).toFixed(1)+','+sy(p.y).toFixed(1)).join(' ')+'"/>';
+  pts.forEach((p,i)=>{
+    g+='<circle class="dot" cx="'+sx(i)+'" cy="'+sy(p.y)+'" r="4.5"/>';
+    g+='<circle class="hit" cx="'+sx(i)+'" cy="'+sy(p.y)+'" r="14" data-tip="'+esc(p.tip||(p.x+'：'+fmt(p.y)+unit))+'"/>';
+  });
+  const last=pts[pts.length-1]; g+='<text class="bval" x="'+(sx(pts.length-1)-6)+'" y="'+(sy(last.y)-10)+'" text-anchor="end">'+fmt(last.y,1)+unit+'</text>';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(title)+'">'+g+'</svg>';
+}
+function dataTable(headers, rows){
+  return '<details class="tview"><summary>表で見る</summary><div class="tablewrap"><table><thead><tr>'+headers.map(h=>'<th scope="col">'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
+    rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div></details>';
+}
+
+/* ---- 入力と一覧 ---- */
+function logInit(){
+  $('#lEx').innerHTML = Object.entries(CATS).filter(([k])=>LOG_EX.some(e=>e.cat===k)).map(([k,v])=>'<optgroup label="'+esc(v)+'">'+LOG_EX.filter(e=>e.cat===k).map(e=>'<option value="'+e.id+'">'+esc(e.name)+'</option>').join('')+'</optgroup>').join('');
+  $('#lDate').value = state.settings.date; $('#lAth').value = state.settings.name||''; $('#lBw').value = state.bw||'';
+}
+function addLog(en){ en.uid = uidSeq++; state.log.push(en); }
+$('#btnLogAdd').addEventListener('click',()=>{
+  const en = {date:$('#lDate').value, ath:$('#lAth').value.trim(), id:$('#lEx').value, kg:Number($('#lKg').value)||0,
+    reps:Number($('#lReps').value)||0, sets:Number($('#lSets').value)||0, rest:Number($('#lRest').value)||0, rm:Number($('#lRm').value)||0};
+  if(!en.date||!en.reps||!en.sets){ $('#logMsg').textContent='日付、回数、セット数を入力してください。'; return; }
+  if(!en.kg && !BW_EX.includes(en.id)){ $('#logMsg').textContent='重量を入力してください。'; return; }
+  addLog(en); saveLocal(); $('#logMsg').textContent=EXMAP[en.id].name+'の記録を追加しました。'; focusDate=en.date; renderLog();
+});
+$('#lBw').addEventListener('change',()=>{ state.bw=Number($('#lBw').value)||0; saveLocal(); renderLog(); });
+$('#btnLogFromProg').addEventListener('click',()=>{
+  const rows = state.rows.filter(r=>LOG_EX.some(e=>e.id===r.id));
+  if(!rows.length){ $('#logMsg').textContent='プログラムに重量種目が入っていません。'; return; }
+  const date=$('#lDate').value||state.settings.date, ath=$('#lAth').value.trim()||state.settings.name||'';
+  rows.forEach(r=>addLog({date, ath, id:r.id, kg:0, reps:nums(r.reps)[0]||0, sets:Number(r.sets)||0, rest:Math.round(restMin(r.rest)*60), rm:0}));
+  saveLocal(); focusDate=date; renderLog();
+  $('#logMsg').textContent=rows.length+'種目を取り込みました。一覧の「重量」に実際に挙げた重さを入れてください。';
+});
+let focusDate=null;
+function athletes(){ return [...new Set(state.log.map(e=>e.ath||'（名前なし）'))]; }
+function logFiltered(){ const a=$('#vAth').value; return state.log.filter(e=>!a || (e.ath||'（名前なし）')===a); }
+function renderLogFilters(){
+  const keepA=$('#vAth').value, keepD=$('#vDate').value, keepE=$('#vEx').value;
+  $('#vAth').innerHTML='<option value="">全員</option>'+athletes().map(a=>'<option>'+esc(a)+'</option>').join('');
+  if([...$('#vAth').options].some(o=>o.value===keepA)) $('#vAth').value=keepA;
+  const L=logFiltered(); const dates=[...new Set(L.map(e=>e.date))].sort();
+  $('#vDate').innerHTML=dates.map(d=>'<option>'+d+'</option>').join('');
+  $('#vDate').value = (focusDate && dates.includes(focusDate))?focusDate:dates.includes(keepD)?keepD:(dates[dates.length-1]||'');
+  focusDate=null;
+  const exs=[...new Set(L.map(e=>e.id))];
+  $('#vEx').innerHTML='<option value="">すべての種目の合計</option>'+exs.map(id=>'<option value="'+id+'">'+esc(EXMAP[id].name)+'</option>').join('');
+  if(exs.includes(keepE)) $('#vEx').value=keepE;
+}
+['#vAth','#vDate','#vEx'].forEach(s=>$(s).addEventListener('change',()=>{ if(s==='#vAth') renderLogFilters(); renderLogCharts(); }));
+
+function renderLog(){
+  renderLogFilters();
+  const L=[...state.log].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  $('#logEmpty').style.display = L.length?'none':'block';
+  $('#logBody').innerHTML = L.map(e=>{
+    const n=esc(EXMAP[e.id].name), v=volOf(e), rm=e1rmOf(e);
+    return '<tr data-uid="'+e.uid+'"><td><input type="date" data-f="date" value="'+esc(e.date)+'" aria-label="'+n+'の日付"></td>'+
+      '<td><input type="text" data-f="ath" value="'+esc(e.ath)+'" aria-label="'+n+'の選手名"></td>'+
+      '<td class="name">'+miniFig(e.id)+n+(BW_EX.includes(e.id)?'<div class="muted">体重＋加重で計算</div>':'')+'</td>'+
+      '<td><input type="number" step="0.5" data-f="kg" value="'+esc(e.kg)+'" aria-label="'+n+'の重量キログラム"></td>'+
+      '<td><input type="number" data-f="reps" value="'+esc(e.reps)+'" aria-label="'+n+'の回数"></td>'+
+      '<td><input type="number" data-f="sets" value="'+esc(e.sets)+'" aria-label="'+n+'のセット数"></td>'+
+      '<td><input type="number" data-f="rest" value="'+esc(e.rest)+'" aria-label="'+n+'の休憩秒"></td>'+
+      '<td><input type="number" step="0.5" data-f="rm" value="'+esc(e.rm||'')+'" aria-label="'+n+'の1RM"></td>'+
+      '<td>'+fmt(v)+'</td><td>'+(rm?fmt(rm,1):'—')+'</td>'+
+      '<td><button type="button" class="small danger" data-del="'+e.uid+'" aria-label="'+n+'の記録を削除">削除</button></td></tr>';
+  }).join('');
+  renderLogCharts();
+}
+$('#logBody').addEventListener('change',e=>{
+  const tr=e.target.closest('tr'), f=e.target.dataset.f; if(!tr||!f) return;
+  const en=state.log.find(x=>x.uid==tr.dataset.uid); en[f]= ['date','ath'].includes(f)?e.target.value:Number(e.target.value)||0;
+  saveLocal(); renderLog();
+});
+$('#logBody').addEventListener('click',e=>{
+  const b=e.target.closest('[data-del]'); if(!b) return;
+  state.log=state.log.filter(x=>x.uid!=b.dataset.del); saveLocal(); renderLog();
+});
+
+/* ---- 評価とグラフ ---- */
+function renderLogCharts(){
+  const L=logFiltered(), day=$('#vDate').value, D=L.filter(e=>e.date===day);
+  if(!L.length){ ['#tiles','#c1','#c2','#c3','#c4','#logEval'].forEach(s=>$(s).innerHTML=''); return; }
+  /* 数値タイル */
+  const vol=D.reduce((a,e)=>a+volOf(e),0), sets=D.reduce((a,e)=>a+(Number(e.sets)||0),0), mins=D.reduce((a,e)=>a+timeOf(e),0);
+  const reg={lower:0,pull:0,push:0}; D.forEach(e=>{ reg[logRegion(e.id)]+=volOf(e); });
+  const regSets={lower:0,pull:0,push:0}; D.forEach(e=>{ regSets[logRegion(e.id)]+=Number(e.sets)||0; });
+  const tiles=[['総挙上量',fmt(vol),'kg'],['セット数の合計',fmt(sets),'セット'],['重量種目の所要時間の目安',fmt(mins),'分'],['密度（1分あたりの挙上量）',mins?fmt(vol/mins):'—','kg/分']];
+  $('#tiles').innerHTML='<p class="muted">'+esc(day)+' の記録（'+($('#vAth').value||'全員')+'）</p><div class="tiles">'+tiles.map(t=>'<div class="tile"><div class="tlab">'+t[0]+'</div><div class="tval">'+t[1]+'<span class="tunit">'+t[2]+'</span></div></div>').join('')+'</div>';
+  /* 1 種目別 */
+  const byEx={}; D.forEach(e=>{ byEx[e.id]=(byEx[e.id]||0)+volOf(e); });
+  const r1=Object.entries(byEx).sort((a,b)=>b[1]-a[1]).map(([id,v])=>({label:EXMAP[id].name,value:v,color:REGION_COLOR[logRegion(id)],tip:EXMAP[id].name+'：'+fmt(v)+'kg（'+REGION_LABEL[logRegion(id)]+'）'}));
+  $('#c1').innerHTML='<h4>種目別の総挙上量（'+esc(day)+'）</h4><p class="muted">棒の色は部位を表します。下肢＝青、引く＝橙、押す＝緑。</p>'+barChart(r1,'kg','種目別の総挙上量')+
+    dataTable(['種目','部位','総挙上量（kg）'],Object.entries(byEx).map(([id,v])=>[EXMAP[id].name,REGION_LABEL[logRegion(id)],fmt(v)]));
+  /* 2 部位別 */
+  const r2=['lower','pull','push'].map(k=>({label:REGION_LABEL[k],value:reg[k],color:REGION_COLOR[k],tip:REGION_LABEL[k]+'：'+fmt(reg[k])+'kg、'+regSets[k]+'セット'}));
+  $('#c2').innerHTML='<h4>部位別の総挙上量（'+esc(day)+'）</h4>'+barChart(r2,'kg','部位別の総挙上量')+
+    dataTable(['部位','総挙上量（kg）','セット数'],['lower','pull','push'].map(k=>[REGION_LABEL[k],fmt(reg[k]),regSets[k]]));
+  /* 3 推移 */
+  const exSel=$('#vEx').value, dates=[...new Set(L.map(e=>e.date))].sort();
+  const p3=dates.map(d=>{ const v=L.filter(e=>e.date===d && (!exSel||e.id===exSel)).reduce((a,e)=>a+volOf(e),0); return {x:d,y:v,tip:d+'：'+fmt(v)+'kg'}; }).filter(p=>p.y>0);
+  const exName=exSel?EXMAP[exSel].name:'すべての種目の合計';
+  $('#c3').innerHTML='<h4>総挙上量の推移（'+esc(exName)+'）</h4>'+lineChart(p3,'kg','総挙上量の推移',true)+dataTable(['日付','総挙上量（kg）'],p3.map(p=>[p.x,fmt(p.y)]));
+  /* 4 推定1RM */
+  let h4='';
+  if(exSel){
+    const p4=dates.map(d=>{ const vals=L.filter(e=>e.date===d&&e.id===exSel).map(e=>e1rmOf(e)).filter(Boolean); return vals.length?{x:d,y:Math.max(...vals),tip:d+'：推定1RM '+fmt(Math.max(...vals),1)+'kg'}:null; }).filter(Boolean);
+    h4='<h4>推定1RMの推移（'+esc(exName)+'）</h4><p class="muted">Epleyの式（重量×(1＋回数÷30)）で計算。10回以下の記録だけを使います。</p>'+lineChart(p4,'kg','推定1RMの推移',false)+dataTable(['日付','推定1RM（kg）'],p4.map(p=>[p.x,fmt(p.y,1)]));
+  } else h4='<h4>推定1RMの推移</h4><p class="muted">上の「グラフにする種目」で種目を一つ選ぶと、その種目の推定1RMの推移が表示されます。</p>';
+  $('#c4').innerHTML=h4;
+  /* 評価コメント */
+  const msgs=[];
+  if(reg.push>0 && regSets.pull<regSets.push) msgs.push(['alert','この日は引く種目のセット数（'+regSets.pull+'）が押す種目（'+regSets.push+'）より少なくなっています。水泳の推進と肩の障害予防の観点から、引く種目を押す種目と同じかそれ以上にすることを勧めます。']);
+  const up=reg.pull+reg.push;
+  if(state.settings.stroke!=='Br' && reg.lower>up && up>0) msgs.push(['caution','下肢の総挙上量（'+fmt(reg.lower)+'kg）が上肢（'+fmt(up)+'kg）を上回っています。講演では、平泳ぎ以外は上肢をメインにし、下半身の疲労を管理するよう助言されました。下肢の種目は重い重量を扱うので総挙上量が大きく出やすい点も考慮してください。']);
+  const hi=D.filter(e=>(Number(e.reps)||0)>5 && ['loaded','olympic'].includes(EXMAP[e.id].type));
+  if(hi.length) msgs.push(['caution','5回を超える設定があります：'+[...new Set(hi.map(e=>EXMAP[e.id].name))].join('、')+'。講演の方針では5レップを超えません。']);
+  D.forEach(e=>{ const rm=e.rm||0; if(rm){ const pct=massOf(e)/rm*100; msgs.push(['info',EXMAP[e.id].name+'：1RMの約'+fmt(pct)+'%で実施。'+(pct>=80?'最大筋力の範囲です。':pct>=30?'速く挙げればパワーの範囲です。':'軽い負荷です。')]); } });
+  const prevDates=dates.filter(d=>d<day);
+  if(prevDates.length){ const pd=prevDates[prevDates.length-1]; const pv=L.filter(e=>e.date===pd).reduce((a,e)=>a+volOf(e),0);
+    if(pv>0){ const ch=(vol-pv)/pv*100; msgs.push([Math.abs(ch)>30?'caution':'info','前回（'+pd+'）の総挙上量 '+fmt(pv)+'kg から '+(ch>=0?'+':'')+fmt(ch)+'% の変化です。'+(ch>30?'急に増やすと疲労が水中練習に残りやすくなります。':ch<-30?'テーパー期などの意図的な減量でなければ、原因を確認してください。':'')]); } }
+  if(state.settings.phase==='taper') msgs.push(['info','テーパー期は、重量を保ったままセット数を減らし、総挙上量を通常期の4〜6割程度減らすのが目安です。']);
+  msgs.push(['info','総挙上量は「どれだけの量をこなしたか」の目安で、疲労の管理に役立ちます。一方、講演の方針であるパワー向上では量より質（挙上の速さ）が大切なので、総挙上量が多いほど良いわけではありません。']);
+  $('#logEval').innerHTML=msgs.map(([c,t])=>'<div class="'+c+'">'+esc(t)+'</div>').join('');
+}
+/* ツールチップ */
+(function(){
+  const tip=document.getElementById('tip');
+  function show(e){ const t=e.target.closest('[data-tip]'); if(!t) return; tip.textContent=t.dataset.tip; tip.hidden=false;
+    const r=t.getBoundingClientRect(); tip.style.left=Math.min(window.innerWidth-tip.offsetWidth-8, Math.max(8,(e.clientX||r.left+r.width/2)+12))+'px'; tip.style.top=((e.clientY||r.top)+window.scrollY+14)+'px'; }
+  document.addEventListener('mousemove',e=>{ if(e.target.closest && e.target.closest('[data-tip]')) show(e); else tip.hidden=true; });
+})();
+$('#btnLogCsv').addEventListener('click',()=>{
+  const head=['日付','選手','種目','部位','重量kg','回数','セット','休憩秒','1RMkg','総挙上量kg','推定1RMkg'];
+  const rows=[...state.log].sort((a,b)=>a.date<b.date?-1:1).map(e=>[e.date,e.ath,EXMAP[e.id].name,REGION_LABEL[logRegion(e.id)],e.kg,e.reps,e.sets,e.rest,e.rm||'',Math.round(volOf(e)),e1rmOf(e)?e1rmOf(e).toFixed(1):'']);
+  const csv='﻿'+[head].concat(rows).map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='WT記録.csv'; document.body.appendChild(a); a.click(); a.remove();
+  $('#logMsg').textContent='記録をCSVファイルで書き出しました。Excelやスプレッドシートで開けます。';
+});
+
+/* ============ 動画・写真から角度を測る ============ */
+const MP_VER = '1.0.1';
+const MEASURE = {
+  flex:{mode:'three', labels:['腰（骨盤の横）','肩','肘'],
+    guide:'撮り方：選手の真横から、肩の高さで撮ります。測る側の腕がカメラ側になるように座ってもらいます。点の置き方：腰（骨盤の横の出っ張り）、肩（腕の付け根の中心）、肘の順に押します。体幹の線（腰から肩）と腕の線（肩から肘）の間の角度を測ります。'},
+  er:{mode:'lines', labels:['反対側の肩','測る側の肩','測る側の肘','測る側の手首'],
+    guide:'撮り方：頭の真上から見下ろして撮ります（講演資料の図と同じ向き）。自撮り棒か三脚で携帯を下向きに固定すると安定します。点の置き方：左右の肩（2点）で肩のラインを引き、次に肘と手首（2点）で前腕の線を引きます。前腕がまっすぐ前を向いた位置を0°として、外側に開いた角度を計算します。'},
+  pec:{mode:'lines', labels:['台の面の端（1点目）','台の面の端（2点目）','肩','手首'],
+    guide:'撮り方：選手の頭の方向か足の方向から、台の高さで撮ります。台の面が水平な線として写るようにします。点の置き方：台の面の上の離れた2点で水平の基準線を引き、次に肩と手首で腕の線を引きます。基準線から腕が下がった角度を計算します。'},
+  tho:{mode:'lines', labels:['骨盤の基準線（1点目）','骨盤の基準線（2点目）','左肩','右肩'],
+    guide:'撮り方：真上から撮ります。骨盤の向きが分かるように、椅子の座面の前の縁や、腰の左右に貼ったテープを写します。点の置き方：骨盤の基準線を2点で引き、次に左右の肩で肩のラインを引きます。回旋しきった瞬間の、基準線と肩のラインの間の角度を計算します。'}
+};
+const M = {media:null, kind:null, w:960, h:540, pts:[], sel:-1, drag:-1, angle:null, extra:null, playing:false, pose:null, scanning:false};
+const mc = $('#mCanvas'), mctx = mc.getContext('2d');
+const mvideo = document.createElement('video'); mvideo.muted = true; mvideo.playsInline = true; mvideo.setAttribute('playsinline','');
+const frameCanvas = document.createElement('canvas');
+
+function mInit(){
+  $('#mTest').innerHTML = TESTS.map(t=>'<option value="'+t.key+'">'+esc(t.name)+'（目安 '+t.target+'°）</option>').join('');
+  mGuide(); mDraw();
+}
+function mCfg(){ return MEASURE[$('#mTest').value]; }
+function mGuide(){
+  const t = $('#mTest').value;
+  $('#mGuide').textContent = MEASURE[t].guide;
+  $('#mAi').hidden = !(t==='flex' && M.media);
+  $('#mAiScan').hidden = M.kind!=='video';
+  mNextHint();
+}
+function mNextHint(){
+  const c = mCfg();
+  if(!M.media){ $('#mStatus').textContent = '動画または写真を選んでください。'; return; }
+  if(M.pts.length < c.labels.length) $('#mStatus').textContent = (M.pts.length+1)+'点目：「'+c.labels[M.pts.length]+'」の位置を押してください。';
+  else $('#mStatus').textContent = 'すべての点を置きました。点を指でずらすと角度が更新されます。';
+}
+$('#mTest').addEventListener('change',()=>{ M.pts=[]; M.sel=-1; mGuide(); mCompute(); mDraw(); });
+$('#mSide').addEventListener('change',()=>{ mCompute(); });
+
+/* ---- 読み込み ---- */
+$('#mFile').addEventListener('change',e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const url = URL.createObjectURL(f);
+  M.pts=[]; M.sel=-1; M.angle=null; mResult();
+  if(f.type.startsWith('image/')){
+    const img = new Image();
+    img.onload = ()=>{ M.media=img; M.kind='image'; mSetSize(img.naturalWidth,img.naturalHeight); $('#mVideoCtl').hidden=true; mGuide(); mDraw(); };
+    img.onerror = ()=>{ $('#mStatus').textContent='この写真は開けませんでした。JPEGかPNGの写真を選んでください。'; };
+    img.src = url;
+  } else {
+    mvideo.onloadedmetadata = ()=>{
+      M.media=mvideo; M.kind='video'; mSetSize(mvideo.videoWidth,mvideo.videoHeight);
+      $('#mSeek').max = mvideo.duration; $('#mVideoCtl').hidden=false; mGuide();
+      mvideo.currentTime = 0.001;
+    };
+    mvideo.onerror = ()=>{ $('#mStatus').textContent='この動画は開けませんでした。iPhoneの動画がパソコンで開けない場合は、iPhoneでその瞬間のスクリーンショットを撮り、写真として開いてください。'; };
+    mvideo.src = url; mvideo.load();
+  }
+});
+function mSetSize(w,h){
+  const s = Math.min(1, 1280/Math.max(w,h));
+  M.w = Math.round(w*s); M.h = Math.round(h*s); M.scale = s;
+  mc.width = M.w; mc.height = M.h;
+}
+mvideo.addEventListener('seeked',()=>{ mDraw(); mTimeText(); });
+function mTimeText(){ $('#mTime').textContent = mvideo.currentTime.toFixed(2)+'秒 / '+(mvideo.duration||0).toFixed(2)+'秒'; $('#mSeek').value = mvideo.currentTime; }
+$('#mSeek').addEventListener('input',e=>{ if(M.kind==='video'){ mvideo.pause(); M.playing=false; $('#mPlay').textContent='再生'; mvideo.currentTime = Number(e.target.value); } });
+document.querySelectorAll('#mVideoCtl [data-step]').forEach(b=>b.addEventListener('click',()=>{
+  if(M.kind!=='video') return; mvideo.pause(); M.playing=false; $('#mPlay').textContent='再生';
+  mvideo.currentTime = Math.min(mvideo.duration, Math.max(0, mvideo.currentTime + Number(b.dataset.step)));
+}));
+$('#mPlay').addEventListener('click',()=>{
+  if(M.kind!=='video') return;
+  if(M.playing){ mvideo.pause(); M.playing=false; $('#mPlay').textContent='再生'; return; }
+  mvideo.play(); M.playing=true; $('#mPlay').textContent='一時停止';
+  (function loop(){ if(!M.playing) return; mDraw(); mTimeText(); if(mvideo.ended){ M.playing=false; $('#mPlay').textContent='再生'; return; } requestAnimationFrame(loop); })();
+});
+
+/* ---- 描画 ---- */
+function mDraw(){
+  const W=mc.width, H=mc.height;
+  mctx.fillStyle='#10151f'; mctx.fillRect(0,0,W,H);
+  if(!M.media){
+    mctx.fillStyle='#c9d1d9'; mctx.font='28px sans-serif'; mctx.textAlign='center';
+    mctx.fillText('ここに動画または写真が表示されます', W/2, H/2); mctx.textAlign='left'; return;
+  }
+  try{ mctx.drawImage(M.media,0,0,W,H); }catch(e){}
+  const c = mCfg(), r = Math.max(14, Math.round(Math.max(W,H)/55)), lw = Math.max(4, Math.round(Math.max(W,H)/220));
+  const P = M.pts;
+  function line(a,b,col){ mctx.strokeStyle='rgba(0,0,0,.6)'; mctx.lineWidth=lw+4; mctx.beginPath(); mctx.moveTo(a[0],a[1]); mctx.lineTo(b[0],b[1]); mctx.stroke();
+    mctx.strokeStyle=col; mctx.lineWidth=lw; mctx.beginPath(); mctx.moveTo(a[0],a[1]); mctx.lineTo(b[0],b[1]); mctx.stroke(); }
+  if(c.mode==='three'){
+    if(P.length>=2) line(P[0],P[1],'#ffd400');
+    if(P.length>=3){ line(P[1],P[2],'#ff4d4d');
+      const a1=Math.atan2(P[0][1]-P[1][1],P[0][0]-P[1][0]), a2=Math.atan2(P[2][1]-P[1][1],P[2][0]-P[1][0]);
+      let d=a2-a1; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
+      mctx.strokeStyle='#ffffff'; mctx.lineWidth=lw*0.7; mctx.beginPath(); mctx.arc(P[1][0],P[1][1],r*4,a1,a1+d,d<0); mctx.stroke();
+    }
+  } else {
+    if(P.length>=2){ line(P[0],P[1],'#ffd400'); }
+    if(P.length>=4){ line(P[2],P[3],'#ff4d4d'); }
+  }
+  P.forEach((p,i)=>{
+    mctx.beginPath(); mctx.arc(p[0],p[1],r,0,Math.PI*2); mctx.fillStyle = i===M.sel?'#00e5ff':'#ffffff'; mctx.fill();
+    mctx.lineWidth=3; mctx.strokeStyle='#000'; mctx.stroke();
+    mctx.fillStyle='#000'; mctx.font='bold '+Math.round(r*1.2)+'px sans-serif'; mctx.textAlign='center'; mctx.textBaseline='middle';
+    mctx.fillText(String(i+1),p[0],p[1]+1); mctx.textAlign='left'; mctx.textBaseline='alphabetic';
+  });
+  if(M.angle!=null){
+    const txt = Math.round(M.angle)+'°', fs = Math.round(Math.max(W,H)/12);
+    mctx.font='bold '+fs+'px sans-serif'; mctx.lineWidth=fs/8; mctx.strokeStyle='#000'; mctx.fillStyle='#ffd400';
+    mctx.strokeText(txt, fs*0.4, fs*1.1); mctx.fillText(txt, fs*0.4, fs*1.1);
+    const sub = TESTS.find(t=>t.key===$('#mTest').value).name+' '+($('#mSide').value==='L'?'左':'右');
+    const fs2 = Math.round(fs*0.35); mctx.font='bold '+fs2+'px sans-serif'; mctx.lineWidth=fs2/5;
+    mctx.strokeText(sub, fs*0.4, fs*1.1+fs2*1.4); mctx.fillStyle='#ffffff'; mctx.fillText(sub, fs*0.4, fs*1.1+fs2*1.4);
+  }
+}
+
+/* ---- 点の操作 ---- */
+function mPos(e){ const b=mc.getBoundingClientRect(); return [(e.clientX-b.left)/b.width*mc.width, (e.clientY-b.top)/b.height*mc.height]; }
+mc.addEventListener('pointerdown',e=>{
+  if(!M.media) return;
+  const p=mPos(e), r=Math.max(14,Math.max(mc.width,mc.height)/55)*2;
+  const hit = M.pts.findIndex(q=>Math.hypot(q[0]-p[0],q[1]-p[1])<r);
+  if(hit>=0){ M.drag=hit; M.sel=hit; mc.setPointerCapture(e.pointerId); }
+  else if(M.pts.length < mCfg().labels.length){ M.pts.push(p); M.sel=M.pts.length-1; M.drag=M.sel; mc.setPointerCapture(e.pointerId);
+    if(M.kind==='video' && M.playing){ mvideo.pause(); M.playing=false; $('#mPlay').textContent='再生'; } }
+  mCompute(); mDraw(); mNextHint(); e.preventDefault();
+});
+mc.addEventListener('pointermove',e=>{ if(M.drag<0) return; M.pts[M.drag]=mPos(e); mCompute(); mDraw(); });
+mc.addEventListener('pointerup',()=>{ M.drag=-1; mResult(); });
+mc.addEventListener('keydown',e=>{
+  if(M.sel<0 || !M.pts[M.sel]) return;
+  const d = e.shiftKey?10:1, k={ArrowLeft:[-d,0],ArrowRight:[d,0],ArrowUp:[0,-d],ArrowDown:[0,d]}[e.key];
+  if(!k) return; e.preventDefault(); M.pts[M.sel][0]+=k[0]; M.pts[M.sel][1]+=k[1]; mCompute(); mDraw(); mResult();
+});
+$('#mUndo').addEventListener('click',()=>{ M.pts.pop(); M.sel=M.pts.length-1; mCompute(); mDraw(); mNextHint(); });
+$('#mReset').addEventListener('click',()=>{ M.pts=[]; M.sel=-1; mCompute(); mDraw(); mNextHint(); });
+
+/* ---- 角度の計算 ---- */
+function deg(r){ return r*180/Math.PI; }
+function angleAt(a,b,c){ const v1=[a[0]-b[0],a[1]-b[1]], v2=[c[0]-b[0],c[1]-b[1]]; const d=(v1[0]*v2[0]+v1[1]*v2[1])/(Math.hypot(...v1)*Math.hypot(...v2)); return deg(Math.acos(Math.max(-1,Math.min(1,d)))); }
+function acuteBetween(a,b,c,d){ const t1=Math.atan2(b[1]-a[1],b[0]-a[0]), t2=Math.atan2(d[1]-c[1],d[0]-c[0]); let x=Math.abs(deg(t1-t2))%180; return Math.min(x,180-x); }
+function mCompute(){
+  const c=mCfg(), P=M.pts, t=$('#mTest').value; M.angle=null; M.extra=null;
+  if(P.length<c.labels.length){ mResult(); return; }
+  if(c.mode==='three'){
+    M.angle = angleAt(P[0],P[1],P[2]);
+    const arm=[P[2][0]-P[1][0],P[2][1]-P[1][1]];
+    M.extra = deg(Math.acos(Math.max(-1,Math.min(1,arm[1]/Math.hypot(...arm)))));  /* 真下方向を0°とした腕の角度 */
+  } else {
+    const a = acuteBetween(P[0],P[1],P[2],P[3]);
+    M.angle = t==='er' ? 90-a : a;
+  }
+  mResult();
+}
+function mResult(){
+  const has = M.angle!=null; $('#mApply').disabled=!has; $('#mSave').disabled=!has;
+  if(!has){ $('#mResult').innerHTML=''; return; }
+  const t=TESTS.find(x=>x.key===$('#mTest').value), side=$('#mSide').value==='L'?'左':'右', v=Math.round(M.angle);
+  let html='<div class="bigangle">'+esc(t.name)+' '+side+'：'+v+'°</div><p>'+(v>=t.target?'目安の'+t.target+'°に届いています。':'目安の'+t.target+'°まで、あと'+(t.target-v)+'°です。')+'</p>';
+  if(t.key==='flex' && M.extra!=null){
+    const e=Math.round(M.extra), diff=e-v;
+    html+='<p>体幹の線に対する腕の角度（測定値）は'+v+'°、画面の真下の方向に対する腕の角度は'+e+'°です。';
+    if(diff>=10) html+='後者の方が'+diff+'°大きいので、体を後ろに反らせて腕の上がりを補っている（代償動作）可能性があります。携帯が傾いていないことを確かめたうえで、代償動作の欄にチェックを入れるか検討してください。';
+    else html+='二つの差は小さく、体を反らせる代償は目立ちません。';
+    html+='</p>';
+  }
+  $('#mResult').innerHTML=html;
+}
+$('#mApply').addEventListener('click',()=>{
+  if(M.angle==null) return;
+  const t=$('#mTest').value, s=$('#mSide').value, v=Math.round(M.angle);
+  $('#ck-'+t+'-'+s).value=v; readCheck();
+  $('#mStatus').textContent=TESTS.find(x=>x.key===t).name+'の'+(s==='L'?'左':'右')+'の欄に'+v+'°を入れました。';
+});
+$('#mSave').addEventListener('click',()=>{
+  mc.toBlob(b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+    a.download=($('#mTest').selectedOptions[0].text.split('（')[0])+'_'+($('#mSide').value==='L'?'左':'右')+'_'+Math.round(M.angle)+'度.png';
+    document.body.appendChild(a); a.click(); a.remove(); $('#mStatus').textContent='線と角度を描いた画像を保存しました。'; },'image/png');
+});
+
+/* ---- AI（肩の屈曲テストのみ） ---- */
+async function mLoadPose(){
+  if(M.pose) return M.pose;
+  $('#mStatus').textContent='AIを読み込んでいます。初回は10〜20秒ほどかかります（インターネット接続が必要です）。';
+  const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MP_VER+'/vision_bundle.mjs');
+  const fs = await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MP_VER+'/wasm');
+  M.pose = await vision.PoseLandmarker.createFromOptions(fs,{
+    baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task', delegate:'CPU'},
+    runningMode:'IMAGE', numPoses:1});
+  return M.pose;
+}
+function mDetectFrame(){
+  frameCanvas.width=M.w; frameCanvas.height=M.h;
+  frameCanvas.getContext('2d').drawImage(M.media,0,0,M.w,M.h);
+  const res = M.pose.detect(frameCanvas);
+  const L = res && res.landmarks && res.landmarks[0]; if(!L) return null;
+  const idx = $('#mSide').value==='L' ? [23,11,13] : [24,12,14];
+  const oth = $('#mSide').value==='L' ? [24,12,14] : [23,11,13];
+  const vis = idx.reduce((a,i)=>a+(L[i].visibility||0),0)/3, visO = oth.reduce((a,i)=>a+(L[i].visibility||0),0)/3;
+  const pts = idx.map(i=>[L[i].x*M.w, L[i].y*M.h]);
+  return {pts, vis, visO, angle:angleAt(pts[0],pts[1],pts[2])};
+}
+function mAiNote(d){
+  let s='AIが腰・肩・肘の位置を置きました。ずれている点は指でずらして直してください。';
+  if(d.vis<0.5) s+=' 選んだ側（'+($('#mSide').value==='L'?'左':'右')+'）の関節がはっきり写っていない可能性があります。'+(d.visO>d.vis+0.15?'反対側の腕の方がはっきり写っているので、左右の選択が合っているか確認してください。':'');
+  return s;
+}
+$('#mAiFrame').addEventListener('click',async()=>{
+  if(!M.media) return;
+  try{
+    await mLoadPose();
+    const d = mDetectFrame();
+    if(!d){ $('#mStatus').textContent='このコマでは人を見つけられませんでした。体全体が写っているコマで試してください。'; return; }
+    M.pts=d.pts; M.sel=1; mCompute(); mDraw(); $('#mStatus').textContent=mAiNote(d);
+  }catch(err){ $('#mStatus').textContent='AIを読み込めませんでした。インターネットにつながっているか確認してください。点を押して測る方法はこのまま使えます。'; }
+});
+$('#mAiStop').addEventListener('click',()=>{ M.scanning=false; });
+$('#mAiScan').addEventListener('click',async()=>{
+  if(M.kind!=='video') return;
+  try{ await mLoadPose(); }catch(err){ $('#mStatus').textContent='AIを読み込めませんでした。インターネットにつながっているか確認してください。点を押して測る方法はこのまま使えます。'; return; }
+  mvideo.pause(); M.playing=false; $('#mPlay').textContent='再生';
+  const dur=mvideo.duration, step=Math.max(1/15, dur/450); let best=null, n=0, total=Math.ceil(dur/step);
+  M.scanning=true; $('#mAiStop').hidden=false; $('#mAiScan').disabled=true;
+  for(let t=0; t<=dur && M.scanning; t+=step){
+    await new Promise(res=>{ mvideo.addEventListener('seeked',res,{once:true}); mvideo.currentTime=Math.min(t,dur-0.001); });
+    const d=mDetectFrame(); n++;
+    if(d && d.vis>0.3 && (!best || d.angle>best.angle)) best={t:mvideo.currentTime, ...d};
+    if(n%10===0) $('#mStatus').textContent='動画を調べています… '+Math.round(n/total*100)+'%';
+  }
+  $('#mAiStop').hidden=true; $('#mAiScan').disabled=false;
+  const stopped=!M.scanning; M.scanning=false;
+  if(!best){ $('#mStatus').textContent='腕の位置を見つけられませんでした。横から全身が写るように撮り直すか、点を押して測ってください。'; return; }
+  await new Promise(res=>{ mvideo.addEventListener('seeked',res,{once:true}); mvideo.currentTime=best.t; });
+  M.pts=best.pts; M.sel=1; mCompute(); mDraw();
+  $('#mStatus').textContent=(stopped?'途中までの範囲で、':'')+best.t.toFixed(2)+'秒のコマが一番腕が上がっていました。'+mAiNote(best);
+});
+
+/* ============ 起動 ============ */
+loadLocal();
+if(!state.settings.date){ const d = new Date(); state.settings.date = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+renderFilters(); fillSettings(); renderAdvice(); renderCheck(); renderLibrary(); renderProg(); logInit(); renderLog(); renderBasis(); mInit();
+</script>
+</body>
+</html>

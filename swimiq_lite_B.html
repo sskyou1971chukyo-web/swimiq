@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.01.1">
+<meta name="app-ver" content="2026.10.02.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1648,7 +1648,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.01.1</p>
+  <p class="ver" id="verBottom">ver 2026.10.02.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2665,11 +2665,11 @@ var W={
  rtOrder:['分析の 画面の 一覧に「合図」が ふえます。①合図 ②足離れ の じゅんに〈きろく〉を おしてください。','分析画面の一覧に「合図」が加わります。①合図②足離れの順に〈記録〉を押してください。'],
  rtNextFoot:['合図が きまりました。つぎは 一覧の「足離れ」で〈きろく〉です。','合図が決まりました。次は一覧の「足離れ」で〈記録〉です。'],
  msgRtSet:['足離れを きめました。RTも きまりました','足離れを決めました。RTも決まりました'],
- rtNoteSound:['音で さがします。しずかな ところから 音が 鳴った ところを 合図に します。','音で探します。静かな状態から音が鳴った瞬間を合図とします。'],
+ rtNoteSound:['音で さがします。音が きゅうに 大きく なった ところ（号令・声・笛・ブザー）を 合図に します。動画を ひらくと 自動で さがします。','音で探します。音が急に大きくなった瞬間（号令・声・笛・ブザー）を合図とします。動画を開くと自動で探します。'],
  rtNoteLight:['光で さがします。画面が パッと 明るく なった ところを 合図に します。','光で探します。画面が急に明るくなった瞬間を合図とします。'],
  rtNoteManual:['じぶんで 合わせます。一覧の「合図」で〈きろく〉を おすか、RTの 数字を ここに 入れます。','自分で合わせます。一覧の「合図」で〈記録〉を押すか、RTの数字をここに入れます。'],
  zoomHint:['2本の指で ひろげると 大きく、2回たたくと もとに もどります','2本指で広げると拡大、ダブルタップで元に戻ります'],
- rtFind:['合図を さがす（再生します）','合図を探す（再生します）'],
+ rtFind:['合図を さがしなおす','合図を探し直す'],
  rtFinding:['合図を さがしています…','合図を探しています…'],
  rtFound:['合図を 見つけました','合図を見つけました'],
  rtNotFound:['合図が 見つかりませんでした。手動で 合わせてください','合図が見つかりませんでした。手動で合わせてください'],
@@ -2757,6 +2757,11 @@ var W={
  msgSaved:['ほぞんしました','保存しました'],
  msgStartSet:['足離れを きめました','足離れを決めました'],
  msgSigSet:['合図を きめました','合図を決めました'],
+ sigFinding:['音から 合図を さがしています…','音から合図を探しています…'],
+ sigFound1:['合図を 見つけました（','合図を見つけました（'],
+ sigFound2:['秒）。ちがう ときは、その 場面で〈きろく〉を おしなおして ください','秒）。違うときは、その場面で〈記録〉を押し直してください'],
+ sigFixed1:['足離れに あわせて 合図を 見なおしました（','足離れに合わせて合図を見直しました（'],
+ sigFixed2:['秒）','秒）'],
  needFoot:['さきに 足離れを きめて ください','先に足離れを決めてください'],
  askClearStroke:['いままでの ストロークを けしますか？\n「OK」で ぜんぶ けして 0から かぞえます。\n「キャンセル」で つづきから かぞえます。','これまでのストローク情報を消しますか？\n「OK」で全て消して0から数えます。\n「キャンセル」で続きから数えます。'],
  msgTapStroke:['かきに あわせて 画面を おしてください','ストロークに合わせて画面を押してください'],
@@ -3954,6 +3959,7 @@ function openAna(blob, opt){
   aStrokes = opt.strokes ? opt.strokes.slice() : [];
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
   aSigT = (opt.sigT!=null) ? opt.sigT : null;
+  sigAuto=false;
   aRT   = (opt.rt!=null)   ? opt.rt   : null;
   aPreLaps = opt.laps || null;
   aPreT0 = opt.raceT0 || 0;          // 録画の はじめから レースの スタートまでの 秒
@@ -4006,6 +4012,10 @@ function openAna(blob, opt){
     aT0=aPreT0;
     paintTbl(); anaP.paint();
     setTimeout(function(){ toast(T('msgLapAuto1')+aSplits.length+T('msgLapAuto2')); }, 500);
+  }
+  /* 合図を 計る せってい（音）の ときは、ひらいた ところで 音から 合図を さがします */
+  if(rtIsOn() && rtMode==='sound' && aSigT==null){
+    setTimeout(function(){ sigRun(false, !!(aPreLaps && aPreLaps.length)); }, 700);
   }
 }
 
@@ -4353,9 +4363,10 @@ function setFoot(t){
   if(typeof aSigT!=='undefined' && aSigT!=null){ rtCalc(); toast(T('msgRtSet')); }
   else toast(T('msgStartSet'));
   paintTbl(); anaP.paint();
+  if(typeof sigRecheck==='function') sigRecheck();
 }
 function setSig(t){
-  aSigT=t;
+  aSigT=t; sigAuto=false;
   if(typeof rtCalc==='function') rtCalc();
   toast(T('msgSigSet'));
   paintTbl(); anaP.paint();
@@ -4811,6 +4822,130 @@ function rtScanStart(){
   }
   rtRaf=requestAnimationFrame(loop);
 }
+/* ===== 合図を 音から さがす（動画の 音を まとめて 調べます） =====
+   1) 低い ゴロゴロ音（手で もつ 音・風）を けずる
+   2) 0.01秒ごとに 音の 大きさ（dB）を 出す
+   3) その すこし前（0.3秒）と くらべて、ぐっと 大きく なった ところを「立ち上がり」と する
+   4) 立ち上がりの 強さで 合図らしさを 決める
+   号令・声・笛・ブザー、どれでも 合図に なります。 */
+function sigEnv(ch, sr){
+  var hop=Math.max(1,Math.round(sr/100)), win=hop*2, n=Math.floor((ch.length-win)/hop);
+  if(n<10) return null;
+  /* ひくい 音を けずる（150Hzより 下） */
+  var a=Math.exp(-2*Math.PI*150/sr), hp=new Float32Array(ch.length), py=0, px=0, i, k;
+  for(i=0;i<ch.length;i++){ var x=ch[i]; py=a*(py+x-px); px=x; hp[i]=py; }
+  var L=new Float32Array(n);
+  for(i=0;i<n;i++){
+    var s=0, o=i*hop;
+    for(k=0;k<win;k++){ var v=hp[o+k]; s+=v*v; }
+    L[i]=10*Math.log10(s/win+1e-12);
+  }
+  return { L:L, dt:hop/sr };
+}
+function sigOnsets(env){
+  var L=env.L, n=L.length, i, j;
+  var srt=Array.prototype.slice.call(L).sort(function(a,b){return a-b;});
+  var floor=srt[Math.floor(n*0.2)];
+  var out=[], last=-1e9, BK=30, GAP=3;
+  for(i=BK+GAP;i<n;i++){
+    var s=0; for(j=i-BK-GAP;j<i-GAP;j++) s+=L[j];
+    var base=s/BK, rise=L[i]-base;
+    if(rise<9 || L[i]<floor+12) continue;
+    if(i-last<30) continue;                         /* 0.3秒は つぎを 見ません */
+    /* 立ち上がりの いちばん 高い ところまで 見て 強さを 決めます */
+    var pk=L[i], m=Math.min(n,i+15);
+    for(j=i;j<m;j++) if(L[j]>pk) pk=L[j];
+    /* はじまりの しゅんかんを さがします（base より 6dB 上に なった ところ） */
+    var st=i; while(st>i-GAP-1 && L[st-1]-base>6) st--;
+    out.push({ t:st*env.dt, rise:pk-base, lvl:pk-floor, sc:(pk-base)+0.5*(pk-floor) });
+    last=i;
+  }
+  return out;
+}
+/* 足離れ（t0）が わかって いれば、その 2.5秒前〜0.1秒前で いちばん あとの 強い 立ち上がり。
+   わからなければ、動画の 中で つよい 立ち上がりの うち いちばん はじめ。 */
+function sigPick(ons, t0){
+  var c=ons, i, mx=0;
+  if(t0!=null) c=ons.filter(function(o){ return o.t>=t0-2.5 && o.t<=t0-0.1; });
+  if(!c.length) return null;
+  for(i=0;i<c.length;i++) if(c[i].sc>mx) mx=c[i].sc;
+  var ok=c.filter(function(o){ return o.sc>=mx*(t0!=null?0.6:0.7); });
+  return t0!=null ? ok[ok.length-1] : ok[0];
+}
+/* 動画を ひらく たびに 1回だけ 音を 調べ、けっかを とって おきます */
+var sigCache=null, sigCacheBlob=null, sigAuto=false, sigBusy=false;
+function sigAnalyze(blob){
+  if(sigCache && sigCacheBlob===blob) return Promise.resolve(sigCache);
+  return new Promise(function(res){
+    if(!blob || !blob.arrayBuffer || blob.size>400*1048576){ res(null); return; }
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC){ res(null); return; }
+    blob.arrayBuffer().then(function(buf){
+      var ac; try{ ac=new AC(); }catch(e){ res(null); return; }
+      var fin=false;
+      var done=function(ab){
+        if(fin) return; fin=true;
+        try{ var cp=ac.close(); if(cp && cp.catch) cp.catch(function(){}); }catch(e){}
+        if(!ab){ res(null); return; }
+        try{
+          var ch=ab.getChannelData(0);
+          if(ab.numberOfChannels>1){
+            var c2=ab.getChannelData(1), m=new Float32Array(ch.length);
+            for(var i=0;i<ch.length;i++) m[i]=(ch[i]+c2[i])*0.5;
+            ch=m;
+          }
+          var env=sigEnv(ch, ab.sampleRate);
+          var r = env ? { ons:sigOnsets(env) } : null;
+          sigCache=r; sigCacheBlob=blob; res(r);
+        }catch(e){ res(null); }
+      };
+      try{
+        var p=ac.decodeAudioData(buf, done, function(){ done(null); });
+        if(p && p.then) p.then(function(){}, function(){ done(null); });
+      }catch(e){ done(null); }
+    }, function(){ res(null); });
+  });
+}
+/* 合図を 自動で 決めます。
+   force … すでに 合図が あっても 決め直す（〈合図を探す〉ボタン） */
+function sigRun(force, quiet){
+  if(!aBlob || sigBusy) return;
+  if(!force && aSigT!=null) return;
+  var blob=aBlob; sigBusy=true;
+  if(!quiet) toast(T('sigFinding'));
+  if($('rtStatus')) $('rtStatus').textContent=T('rtFinding');
+  sigAnalyze(blob).then(function(r){
+    sigBusy=false;
+    if(blob!==aBlob) return;                       /* とちゅうで べつの 動画に なった */
+    var p = r ? sigPick(r.ons, aT0) : null;
+    if(!p){
+      if($('rtStatus')) $('rtStatus').textContent=T(r?'rtNotFound':'rtAudioNG');
+      if(!quiet) toast(T(r?'rtNotFound':'rtAudioNG'));
+      return;
+    }
+    if(!force && aSigT!=null) return;              /* そのあいだに 自分で 決めた */
+    aSigT=p.t; sigAuto=true;
+    if(aT0!=null && aT0>aSigT) aRT=aT0-aSigT;
+    if(aLastSel==='' || aLastSel==='sig'){ aLastSel='sig'; selManual=false; }
+    try{ rtCalc(); }catch(e){}
+    paintTbl(); anaP.paint();
+    var v=$('v');
+    if(v && v.paused && aT0==null){ try{ v.currentTime=Math.max(0,p.t-0.05); }catch(e){} }
+    var msg=T('sigFound1')+p.t.toFixed(2)+T('sigFound2');
+    if($('rtStatus')) $('rtStatus').textContent=msg;
+    toast(msg);
+  });
+}
+/* 足離れが 決まったら、その すぐ前の 立ち上がりで 合図を 見直します
+   （「よーい」と「笛」の 両方が 入って いても、笛の ほうを えらべます） */
+function sigRecheck(){
+  if(!sigAuto || aT0==null || !sigCache || sigCacheBlob!==aBlob) return;
+  var p=sigPick(sigCache.ons, aT0);
+  if(!p || Math.abs(p.t-aSigT)<0.03) return;
+  aSigT=p.t;
+  try{ rtCalc(); }catch(e){}
+  paintTbl(); anaP.paint();
+  setTimeout(function(){ toast(T('sigFixed1')+p.t.toFixed(2)+T('sigFixed2')); }, 900);
+}
 $('bRt').onclick=function(){ $('rtStatus').textContent=''; rtPaint(); $('rtBox').classList.remove('hide'); };
 $('rtX').onclick=function(){ if(rtScanning) rtStop(false); $('rtBox').classList.add('hide'); };
 (function(){
@@ -4826,24 +4961,26 @@ $('rtX').onclick=function(){ if(rtScanning) rtStop(false); $('rtBox').classList.
     if(rtScanning) rtStop(false);
     rtOn = (this.dataset.ro==='on');
     try{ localStorage.setItem('swimiq_rton', rtOn?'1':'0'); }catch(e){}
-    if(!rtOn){ aSigT=null; aRT=null; $('rtVal').value=''; }
+    if(!rtOn){ aSigT=null; aRT=null; sigAuto=false; $('rtVal').value=''; }
+    else if(rtMode==='sound' && aSigT==null) setTimeout(function(){ sigRun(false); }, 50);
     selManual=false; aLastSel='';
     $('rtStatus').textContent=''; rtPaint(); paintSheet(); paintNext();
   };
 })();
-$('rtFind').onclick=function(){ rtScanStart(); };
+$('rtFind').onclick=function(){ if(rtMode==='sound') sigRun(true); else rtScanStart(); };
 $('rtNow').onclick=function(){
-  aSigT=$('v').currentTime;
+  aSigT=$('v').currentTime; sigAuto=false;
   $('rtStatus').textContent=T(aT0==null ? 'rtNextFoot' : 'rtFound');
   rtCalc();
 };
 $('rtVal').oninput=function(){
   var n=parseFloat(this.value);
+  sigAuto=false;
   if(!isNaN(n) && n>0){ aRT=n; if(aT0!=null) aSigT=aT0-n; } else { aRT=null; }
   rtPaint(); paintSheet();
 };
 $('rtClear').onclick=function(){
-  aSigT=null; aRT=null; $('rtVal').value=''; $('rtStatus').textContent='';
+  aSigT=null; aRT=null; sigAuto=false; $('rtVal').value=''; $('rtStatus').textContent='';
   selManual=false; aLastSel=''; rtPaint(); paintSheet(); paintNext();
 };
 $('bStroke').onclick=function(){

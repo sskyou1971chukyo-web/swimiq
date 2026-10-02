@@ -67,6 +67,14 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #makeBand .btn.mk:hover{background:#e3eefa}
 #makeBand #btnCalc{background:#ffbf00;border-color:#ffbf00;color:#16202e}
 #symRow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tawrap{flex:1;display:flex;position:relative;min-width:0}
+.brk{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.brk i,.brk span{position:absolute;display:block}
+.bopen,.bclose{width:7px;border:2.5px solid;border-radius:2px}
+.bopen{border-right:none}
+.bclose{border-left:none}
+.bnum{transform:translateY(-50%);font-weight:700;white-space:nowrap;font-size:1.05em}
+.bnum small{font-size:.8em;font-weight:400}
 .weekRow{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;margin-bottom:8px}
 .wkDay{display:flex;align-items:center;gap:4px;border:2px solid rgba(255,255,255,.3);border-radius:10px;padding:2px 4px 2px 8px}
 .wkDay.today{border-color:#ffbf00}
@@ -164,6 +172,16 @@ table.list td.num,table.list th.num{text-align:right}
 .pp-row.title{background:#f3f3f3}
 .pp-row.title .c,.pp-row.title .a{font-weight:700}
 .pp-row.memo .c{font-size:.85em;color:#333}
+.pp-grp{display:flex;align-items:stretch;border-bottom:1px solid #ccc}
+.pp-grp .gin2{flex:0 1 auto;min-width:0}
+.pp-grp .pp-row:last-child{border-bottom:none}
+.pp-grp .c{flex:0 1 auto;position:relative;border-left:2px solid #000;margin-left:4px;padding-left:8px}
+.pp-grp .grp-first .c::before,.pp-grp .grp-last .c::after{content:'';position:absolute;left:-2px;width:7px;border-top:2px solid #000}
+.pp-grp .grp-first .c::before{top:0}
+.pp-grp .grp-last .c::after{bottom:0}
+.pp-grp .gr{display:block;width:7px;border:2px solid #000;border-left:none;margin:0 0 0 2px;flex-shrink:0}
+.pp-grp .gn{align-self:center;font-weight:700;padding-left:6px;white-space:nowrap}
+.pp-grp .gn small{font-weight:400;font-size:.85em}
 .pp-page{background:#fff;overflow:hidden;margin:0 auto 12px}
 .pp-page:last-child{margin-bottom:0}
 .pp-cmp{width:100%;border-collapse:collapse;font-size:.9em;table-layout:fixed}
@@ -1575,12 +1593,56 @@ function repTime(sec){
 }
 
 /* メニュー1列ぶんを解析する */
+/* ---------- 複数行のセット ----------
+   [50m*4(1')
+   25m*4(1')]*2set
+   のように、行をまたいで [ ] でくくった部分をまとめて「×セット数」で計算する */
+function bracketDelta(t){ let d = 0; for(const ch of t){ if(ch === '[') d++; else if(ch === ']') d--; } return d; }
+function findMultiSets(lines){
+  const map = {};
+  for(let i = 0; i < lines.length; i++){
+    const tr = normalize(lines[i]).trim();
+    if(tr[0] !== '[' || parseSetExpr(tr) || bracketDelta(tr) <= 0) continue;
+    let depth = bracketDelta(tr), j = i + 1, found = -1, closeAt = -1;
+    for(; j < lines.length && j <= i + 30; j++){
+      const t = normalize(lines[j]).trim();
+      if(!t) break;
+      let d = depth, at = -1;
+      for(let k = 0; k < t.length; k++){ if(t[k] === '[') d++; else if(t[k] === ']'){ d--; if(d === 0){ at = k; break; } } }
+      if(at >= 0){ found = j; closeAt = at; break; }
+      depth = d;
+    }
+    if(found < 0) continue;
+    const lastTr = normalize(lines[found]).trim();
+    const tail = lastTr.slice(closeAt + 1);
+    const m = /^\s*\*\s*(\d*)\s*(sets?|セット)?/i.exec(tail);
+    if(!m || (!m[1] && !m[2])) continue;
+    const n = m[1] ? Math.max(1, Math.round(+m[1])) : 1;
+    let after = tail.slice(m[0].length), rest = 0;
+    const rc = /^\s*\(([^)]*)\)/.exec(after);
+    if(rc){ const t = parseCircleInner(rc[1]); if(t != null){ rest = t; after = after.slice(rc[0].length); } }
+    const lead0 = /^\s*/.exec(normalize(lines[i]))[0].length, leadL = /^\s*/.exec(normalize(lines[found]))[0].length;
+    const g = {first:i, last:found, n, rest, closing:tail.slice(0, tail.length - after.length).trim(),
+      openCol:lead0, closeCol:leadL + closeAt, closeEnd:leadL + closeAt + 1 + (tail.length - after.length)};
+    for(let k = i; k <= found; k++){
+      let body = normalize(lines[k]).trim();
+      if(k === i) body = body.slice(1);
+      if(k === found) body = body.slice(0, closeAt) + ' ' + after;
+      if(!body.trim()) { map[k] = {g, body:'', empty:true}; continue; }
+      if(/^[\d\[]/.test(body.trim()) && parseSetExpr(body.trim())) map[k] = {g, body:body.trim()};
+      else map[k] = {g, body:body.trim(), memo:true};
+    }
+    i = found;
+  }
+  return map;
+}
 function analyzeText(text, team, startHm, panelStroke){
   const set = S.settings;
   const noCirclePace = +set.noCirclePace || 0;
   const blankSec = (+set.blankMin || 0) * 60;
   const start = hmToSec(startHm);
   const lines = String(text || '').split('\n');
+  const multi = findMultiSets(lines);
   const out = [];
   let elapsed = 0, pendingBlank = false, hadContent = false;
   let ctx = {cat:null, stroke:null, tag:null, title:''};
@@ -1599,13 +1661,26 @@ function analyzeText(text, team, startHm, panelStroke){
     if((m = /^(休憩|休み|休|レスト|rest)\s*:?\s*(\S+)/i.exec(tr)) && parseTime(m[2]) != null && tr.length < 20){
       info.type = 'rest'; info.sec = parseTime(m[2]); elapsed += info.sec; out.push(info); return;
     }
-    if(/^[\d\[]/.test(tr)){
-      const p = parseSetExpr(tr);
+    const mg = multi[i];
+    if(mg){ info.grp = mg.g; info.grpPos = i === mg.g.first ? 'first' : i === mg.g.last ? 'last' : 'mid'; }
+    if(mg && mg.empty){
+      info.type = 'memo'; info.expr = (i === mg.g.first ? '[' : '') + (i === mg.g.last ? ']' + mg.g.closing : ''); out.push(info); return;
+    }
+    if(mg && mg.memo){
+      if(i === mg.g.last && mg.g.rest) elapsed += mg.g.rest * (mg.g.n - 1);
+      info.type = 'memo'; out.push(info); return;
+    }
+    if(mg || /^[\d\[]/.test(tr)){
+      const open1 = !mg && tr[0] === '[' && bracketDelta(tr) > 0 && !parseSetExpr(tr);
+      const p = mg ? parseSetExpr(mg.body) : open1 ? parseSetExpr(tr.slice(1)) : parseSetExpr(tr);
       if(p){
-        const r = evalItems(p.items, noCirclePace);
+        const items = mg ? [{g:true, items:p.items, n:mg.g.n, rest:i === mg.g.last ? mg.g.rest : 0}] : p.items;
+        const r = evalItems(items, noCirclePace);
         if(r.dist > 0){
-          info.type = 'set'; info.items = p.items; info.dist = r.dist; info.sec = r.sec; info.est = r.est; info.atoms = r.atoms;
+          info.type = 'set'; info.items = items; info.dist = r.dist; info.sec = r.sec; info.est = r.est; info.atoms = r.atoms;
           info.expr = p.src.slice(0, p.end).trim(); info.comment = p.src.slice(p.end).trim();
+          if(open1) info.expr = '[' + info.expr;
+          if(mg){ info.exprBare = info.expr; if(i === mg.g.first) info.expr = '[' + info.expr; if(i === mg.g.last) info.expr += ']' + mg.g.closing; }
           info.cat = detectCat(info.comment) || ctx.cat || 'SWIM';
           info.stroke = detectStroke(info.comment) || ctx.stroke || panelStroke || set.defaultStroke || 'Fr';
           info.ctxTag = ctx.tag; info.ctxTitle = ctx.title;
@@ -1939,7 +2014,7 @@ function renderPanels(){
       (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') +
       (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</div>' +
       '<div class="editor"><div class="gutter" aria-hidden="true"><div class="gin"></div></div>' +
-      '<textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea></div>' +
+      '<div class="tawrap"><textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea><div class="brk" aria-hidden="true"></div></div></div>' +
       '<div class="pfoot" aria-live="polite"></div>';
     box.appendChild(el);
     const ta = el.querySelector('textarea'), sel = el.querySelector('[data-team]'), ssel = el.querySelector('[data-stroke]'), gut = el.querySelector('.gutter');
@@ -1948,7 +2023,7 @@ function renderPanels(){
       if(/\d"/.test(ta.value)){ const ss = ta.selectionStart, se = ta.selectionEnd; ta.value = ta.value.replace(/(\d)"/g, '$1”'); ta.setSelectionRange(ss, se); }
       p.text = ta.value; updatePrintCount(); updatePanel(i); commitMenu(); updateCursor(i, true); });
     ta.addEventListener('scroll', () => {
-      gut.scrollTop = ta.scrollTop;
+      gut.scrollTop = ta.scrollTop; drawBrackets(i);
       if(S.settings.syncScroll && !scrollSyncing){
         scrollSyncing = true;
         M.panels.forEach((q, k) => { if(k !== i){ const t2 = panelTA(k); if(t2){ t2.scrollTop = ta.scrollTop; panelEl(k).querySelector('.gutter').scrollTop = t2.scrollTop; } } });
@@ -2035,14 +2110,70 @@ function updatePanel(i){
     else if(l.type === 'set'){ d = fmtNum(l.dist); bc = ZMAP[l.zone].color; }
     else if(l.type === 'rest'){ cls += ' rest'; d = secToHm(l.start); }
     if(l.i === curLine && i === curPanel) cls += ' cur';
-    return '<div class="' + cls + '"><span class="gd"' + (bc ? ' style="border-right-color:' + bc + '"' : '') + '>' + d + '</span></div>';
+    let lab = '';
+    if(l.grp){
+      if(l.grpPos === 'last'){ const gl = tot.lines.slice(l.grp.first, l.grp.last + 1); const gd = gl.reduce((a, x) => a + (x.dist || 0), 0);
+        lab = ' title="まとめて ' + l.grp.n + 'セット　合計 ' + fmtNum(gd) + 'm" aria-label="' + d + 'm、まとめて' + l.grp.n + 'セット、合計' + fmtNum(gd) + 'm"'; } }
+    return '<div class="' + cls + '"' + lab + '><span class="gd"' + (bc ? ' style="border-right-color:' + bc + '"' : '') + '>' + d + '</span></div>';
   }).join('');
   el.querySelector('.gin').innerHTML = rows + '<div style="height:60px"></div>';
+  drawBrackets(i);
   if($('panelTabs')) renderPanelTabs();
   el.querySelector('.gutter').scrollTop = el.querySelector('textarea').scrollTop;
   el.querySelector('.pfoot').innerHTML = tot.dist
     ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist)
     : '<span class="muted">ここに入力すると、距離と終了時刻が自動で出ます。</span>';
+}
+/* ---------- 複数行のセットを大きな大括弧で表示 ----------
+   入力欄の上に重ねた層に、[ と ]*2set の文字を隠して、縦に長い大括弧と「×2」を描く。
+   カーソルがその記号の上にあるときは、打ちこめるように元の文字を見せる */
+let brkMeasure = null;
+function brkWidth(ta, text){
+  if(!brkMeasure){ brkMeasure = document.createElement('span'); brkMeasure.setAttribute('aria-hidden', 'true');
+    brkMeasure.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden;white-space:pre'; document.body.appendChild(brkMeasure); }
+  const cs = getComputedStyle(ta);
+  brkMeasure.style.font = cs.font; brkMeasure.style.letterSpacing = cs.letterSpacing; brkMeasure.style.tabSize = cs.tabSize;
+  brkMeasure.textContent = text;
+  return brkMeasure.getBoundingClientRect().width;
+}
+function drawBrackets(i){
+  const el = panelEl(i); if(!el) return;
+  const ta = el.querySelector('textarea'), box = el.querySelector('.brk'), tot = panelTots[i];
+  if(!ta || !box) return;
+  const lines = ta.value.split('\n');
+  const groups = [];
+  if(tot) tot.lines.forEach(l => { if(l.grp && l.grpPos === 'first' && !groups.includes(l.grp)) groups.push(l.grp); });
+  if(!groups.length){ box.innerHTML = ''; return; }
+  const cs = getComputedStyle(ta), lh = parseFloat(cs.lineHeight), pl = parseFloat(cs.paddingLeft), pt = parseFloat(cs.paddingTop);
+  const bg = cs.backgroundColor, col = cs.color;
+  const cpos = ta.selectionStart, cLine = ta.value.slice(0, cpos).split('\n').length - 1;
+  const cCol = cpos - (ta.value.lastIndexOf('\n', cpos - 1) + 1);
+  const ox = pl - ta.scrollLeft, oy = pt - ta.scrollTop;
+  let h = '';
+  groups.forEach(g => {
+    const editing = document.activeElement === ta && ((cLine === g.first && cCol <= g.openCol + 1) || (cLine === g.last && cCol >= g.closeCol));
+    if(editing) return;
+    const fl = lines[g.first] || '', ll = lines[g.last] || '';
+    const xOpen = ox + brkWidth(ta, fl.slice(0, g.openCol));
+    const wOpen = brkWidth(ta, fl.slice(g.openCol, g.openCol + 1));
+    let xEnd = 0;
+    for(let k = g.first; k <= g.last; k++){
+      const t = k === g.last ? ll.slice(0, g.closeCol) : (lines[k] || '');
+      xEnd = Math.max(xEnd, brkWidth(ta, t.replace(/\s+$/, '')));
+    }
+    xEnd += ox + 6;
+    const xTok = ox + brkWidth(ta, ll.slice(0, g.closeCol)), wTok = brkWidth(ta, ll.slice(g.closeCol, g.closeEnd));
+    const top = oy + g.first * lh + 3, hh = (g.last - g.first + 1) * lh - 6;
+    const yLast = oy + g.last * lh;
+    /* 元の記号を隠す */
+    h += '<i class="bpatch" style="left:' + xOpen + 'px;top:' + (oy + g.first * lh) + 'px;width:' + (wOpen + 1) + 'px;height:' + lh + 'px;background:' + bg + '"></i>';
+    h += '<i class="bpatch" style="left:' + xTok + 'px;top:' + yLast + 'px;width:' + (wTok + 2) + 'px;height:' + lh + 'px;background:' + bg + '"></i>';
+    /* 大括弧 */
+    h += '<i class="bopen" style="left:' + (xOpen + 1) + 'px;top:' + top + 'px;height:' + hh + 'px;border-color:' + col + '"></i>';
+    h += '<i class="bclose" style="left:' + xEnd + 'px;top:' + top + 'px;height:' + hh + 'px;border-color:' + col + '"></i>';
+    h += '<span class="bnum" style="left:' + (xEnd + 14) + 'px;top:' + (top + hh / 2) + 'px;color:' + col + ';font-size:' + cs.fontSize + '">×' + g.n + (g.rest ? '<small>（' + esc(circleText(g.rest)) + '）</small>' : '') + '</span>';
+  });
+  box.innerHTML = h;
 }
 function zoneBarHtml(zones, total){
   if(!total) return '';
@@ -2055,6 +2186,7 @@ function updateCursor(i, force){
   const ta = panelTA(i); if(!ta) return;
   const li = lineIndexOf(ta);
   if(i !== curPanel){ curPanel = i; [...$('panels').children].forEach((el, k) => el.classList.toggle('cur', k === i)); renderPanelTabs(); force = true; }
+  drawBrackets(i);
   if(li !== curLine || force){
     curLine = li;
     [...$('panels').children].forEach((el, k) => {
@@ -2165,6 +2297,22 @@ function wrapSet(){
   const line = v.slice(ls, le);
   const indent = /^[ \t]*/.exec(line)[0];
   let before, part, after;
+  /* 2行以上を選んだとき：選んだ行全体を [ ] でくくる */
+  if(se > ss && v.slice(ss, se).replace(/\n+$/, '').indexOf('\n') >= 0){
+    let e2 = se; while(e2 > ss && v[e2 - 1] === '\n') e2--;
+    let le2 = v.indexOf('\n', e2); if(le2 < 0) le2 = v.length;
+    const block = v.slice(ls, le2).replace(/\s+$/, '');
+    const ind = /^[ \t]*/.exec(block)[0];
+    const bl = block.split('\n').map((t, k) => k === 0 ? t : (/^[ \t]/.test(t) || !t.trim() ? t : ' ' + t));
+    const body = bl.join('\n');
+    const head = ind + '[' + body.slice(ind.length) + ']*';
+    ta.value = v.slice(0, ls) + head + 'set' + v.slice(ls + block.length);
+    const pos = ls + head.length;
+    ta.focus(); ta.setSelectionRange(pos, pos);
+    ta.dispatchEvent(new Event('input'));
+    toast('選んだ行をまとめました。set の前にセット数を数字で入れてください');
+    return;
+  }
   if(se > ss && v.slice(ss, se).indexOf('\n') < 0){
     before = line.slice(0, ss - ls); part = v.slice(ss, se); after = line.slice(se - ls);
   } else {
@@ -2352,7 +2500,9 @@ function pageHeadHtml(sub, team){
 /* 印刷・LINE用の行の文字。強度の#タグは載せず、式とメモの間をあけ、秒は ” にそろえる */
 function displayLine(l){
   let s;
-  if(l.type === 'set') s = l.expr + (l.comment ? '　' + l.comment : '');
+  if(l.grp && l.type === 'set') s = l.exprBare + (l.comment ? '　' + l.comment : '');
+  else if(l.grp){ let r = l.raw; if(l.i === l.grp.last) r = r.slice(0, l.grp.closeCol) + r.slice(l.grp.closeEnd); if(l.i === l.grp.first) r = r.slice(0, l.grp.openCol) + r.slice(l.grp.openCol + 1); s = r.trim(); }
+  else if(l.type === 'set') s = l.expr + (l.comment ? '　' + l.comment : '');
   else s = l.raw.replace(/\s+$/, '').replace(/^\s+/, '');
   s = s.replace(/\s*[#＃]\s*(EZ|A1|A2|AT|VO2|LT|LP|SP|EN1|EN2|EN3|SP1|SP2|SP3)(?![0-9a-z])/ig, '');
   return s.replace(/(\d)["“〃″]/g, '$1”');
@@ -2369,7 +2519,9 @@ function colHtml(t, label){
     else if(l.type === 'set'){ a = fmtNum(l.dist); }
     else if(l.type === 'rest'){ a = secToHm(l.start); }
     if(l.type === 'memo') c = '　' + c;
-    h += '<div class="pp-row ' + l.type + '"><div class="a">' + a + '</div><div class="c">' + c + '</div></div>';
+    if(l.grp && l.grpPos === 'first') h += '<div class="pp-grp"><div class="gin2">';
+    h += '<div class="pp-row ' + l.type + (l.grp ? ' grp grp-' + l.grpPos : '') + '"><div class="a">' + a + '</div><div class="c">' + c + '</div></div>';
+    if(l.grp && l.grpPos === 'last') h += '</div><i class="gr"></i><span class="gn">×' + l.grp.n + (l.grp.rest ? '<small>（' + esc(circleText(l.grp.rest)) + '）</small>' : '') + '</span></div>';
   });
   return h + '</div>';
 }

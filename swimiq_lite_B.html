@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.9">
+<meta name="app-ver" content="2026.10.03.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1504,7 +1504,10 @@ body.grid .gridL{ display:block; }
 #wave.hide, .ov.ana.play #wave, #ana.stroke #wave{ display:none !important; }
 #ana.wv .ov.ana .oInfo{ display:none !important; }
 #wave .wvTop{ display:flex; align-items:center; gap:10px; min-width:0; height:30px; }
+#wave .wvTop{ cursor:grab; touch-action:none; -webkit-user-select:none; user-select:none; }
 #wave .wvTop b{ flex:0 0 auto; font-size:14px; font-weight:900; color:#ffc400; }
+#wave .wvTop b::before{ content:"⠿ "; font-size:18px; }
+#wave.moving{ opacity:.9; }
 #wave #wvSelL{ flex:1; min-width:0; font-size:14px; font-weight:900; color:#fff;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
 #wave #wvX{ flex:0 0 auto; min-height:30px; padding:0 12px; border-radius:8px;
@@ -1713,7 +1716,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.9</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.10</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1788,7 +1791,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
     <div id="wave" class="hide" role="region" data-ta="wvTitle">
       <div class="wvTop">
-        <b data-t="wvTitle"></b>
+        <b class="wvGrip" data-t="wvTitle"></b>
         <span id="wvSelL" aria-live="polite"></span>
         <button type="button" id="wvX" data-t="wvClose"></button>
       </div>
@@ -5382,7 +5385,7 @@ function wvShow(on, byUser){
   wvOn=on;
   $('wave').classList.toggle('hide', !on);
   $('ana').classList.toggle('wv', on);
-  if(on){ wvLoad(); wvLabel(); wvLoop(); }
+  if(on){ if(window.wvRestorePos) window.wvRestorePos(); wvLoad(); wvLabel(); wvLoop(); }
   else if(wvRaf){ cancelAnimationFrame(wvRaf); wvRaf=null; }
 }
 /* 合図か 足離れを 計る ところでは、ひとりでに 出します */
@@ -5528,6 +5531,42 @@ function wvStep(dir){
     wvDragT=null;
   };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  /* ===== パネルを つかんで 好きな 場所へ 動かす（上の 帯を ドラッグ）===== */
+  var pw=$('wave'), ph=pw.querySelector('.wvTop'), pm=null;
+  function pwClamp(l,t){
+    var par=pw.offsetParent||pw.parentElement, W=par.clientWidth, H=par.clientHeight;
+    return { l:Math.max(0, Math.min(W-pw.offsetWidth, l)), t:Math.max(0, Math.min(H-pw.offsetHeight, t)) };
+  }
+  function pwApply(l,t,w){
+    var c=pwClamp(l,t);
+    pw.style.left=c.l+'px'; pw.style.top=c.t+'px'; pw.style.right='auto'; pw.style.width=w+'px';
+  }
+  ph.addEventListener('pointerdown', function(e){
+    if(e.target.closest && e.target.closest('button')) return;
+    var par=pw.offsetParent||pw.parentElement, pr=par.getBoundingClientRect(), r=pw.getBoundingClientRect();
+    pm={ x:e.clientX, y:e.clientY, l:r.left-pr.left, t:r.top-pr.top, w:r.width };
+    pw.classList.add('moving');
+    try{ ph.setPointerCapture(e.pointerId); }catch(er){}
+    e.preventDefault();
+  });
+  ph.addEventListener('pointermove', function(e){
+    if(!pm) return; e.preventDefault();
+    pwApply(pm.l+(e.clientX-pm.x), pm.t+(e.clientY-pm.y), pm.w);
+  });
+  var pend=function(){
+    if(!pm) return; pm=null; pw.classList.remove('moving');
+    try{ localStorage.setItem('swimiq_wvpos', JSON.stringify({l:parseFloat(pw.style.left), t:parseFloat(pw.style.top), w:parseFloat(pw.style.width)})); }catch(er){}
+  };
+  ph.addEventListener('pointerup', pend); ph.addEventListener('pointercancel', pend);
+  window.wvRestorePos=function(){
+    try{
+      var o=JSON.parse(localStorage.getItem('swimiq_wvpos')||'null');
+      if(o && isFinite(o.l) && isFinite(o.t) && isFinite(o.w)){
+        var par=pw.offsetParent||pw.parentElement;
+        pwApply(o.l, o.t, Math.min(o.w, par.clientWidth));
+      }
+    }catch(er){}
+  };
   $('wvPrev').onclick=function(){ wvStep(-1); };
   $('wvNext').onclick=function(){ wvStep(1); };
   $('wvX').onclick=function(){ wvPinned=false; wvShow(false, true); };

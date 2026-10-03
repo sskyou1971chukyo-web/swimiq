@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.10">
+<meta name="app-ver" content="2026.10.03.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -850,6 +850,17 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .cmpHd{ display:flex; align-items:center; gap:10px; margin:0 0 6px; }
 .cmpHd h2{ margin:0; flex:1; font-size:22px; font-weight:900; color:#fff; }
 .cmpFRow{ display:flex; gap:8px; margin:10px 0; }
+/* ホームの 名前さがし */
+.homeQ{ display:flex; gap:8px; margin:6px 0 4px; }
+.homeQ input{ flex:1; min-width:0; min-height:54px; padding:6px 14px 6px 44px; border-radius:12px;
+  border:2px solid var(--line2,#444); background:#1b1e24 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffc400' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 12px center / 24px 24px;
+  color:#fff; font-size:18px; font-weight:800; -webkit-appearance:none; appearance:none; }
+.homeQ input::placeholder{ color:#9aa3ad; }
+.homeQ input:focus{ border-color:#ffc400; outline:none; }
+.homeQ button{ flex:0 0 auto; min-height:54px; padding:0 18px; border-radius:12px; border:2px solid #fff;
+  background:transparent; color:#fff; font-size:16px; font-weight:900; }
+.homeQNote{ margin:4px 2px 10px; font-size:14px; font-weight:800; color:#ffc400; min-height:0; }
+.homeQNote:empty{ display:none; }
 .cmpFRow > *{ flex:1; min-width:0; min-height:46px; }
 .cmpFRow select{ -webkit-appearance:none; appearance:none; border-radius:6px; cursor:pointer;
   color:#fff; font-size:15px; font-weight:800; padding:6px 26px 6px 10px;
@@ -1715,8 +1726,13 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
+  <div class="homeQ">
+    <input type="text" id="homeQ" enterkeyhint="search" autocomplete="off" data-ta="homeQPh">
+    <button type="button" id="homeQClear" class="hide" data-t="cmpClearQ"></button>
+  </div>
+  <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.10</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.11</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2647,6 +2663,10 @@ var W={
  sub:['きろく・分析・くらべる','記録・分析・比較'],
  glTake:['とる','撮影'],
  glRec:['さいきんの きろく','最近の記録'],
+ homeQPh:['名前で さがす（大会名も）','名前で探す（大会名も可）'],
+ homeQHit1:['',''],
+ homeQHit2:['けん 見つかりました。カードを おすと 動画が ひらきます','件見つかりました。カードを押すと動画が開きます'],
+ homeQNone:['見つかりません。ちがう 書き方でも ためして ください','見つかりません。別の書き方でも試してください'],
  scAbbr:['SC','SC'],
  openCam:['カメラで とる<small>動画を とって 分析</small>','カメラで撮る<small>動画を撮って解析</small>'],
  pick:['とってある 動画を 分析<small>あとから 分析したいとき</small>','保存済みの動画を分析<small>後から分析する場合</small>'],
@@ -3334,6 +3354,7 @@ function applyWords(){
   for(i=0;i<n.length;i++) n[i].innerHTML=T(n[i].getAttribute('data-t'));
   n=document.querySelectorAll('[data-ta]');
   for(i=0;i<n.length;i++) n[i].setAttribute('aria-label', T(n[i].getAttribute('data-ta')));
+  if($('homeQ')) $('homeQ').placeholder=T('homeQPh');
   var w=document.getElementById('wordSeg');
   if(w){ var b=w.querySelectorAll('button');
     for(i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', b[i].dataset.w===MODE ? 'true':'false'); }
@@ -6045,11 +6066,33 @@ function recCard(r){
   }
   return c;
 }
+/* さがす ことばを そろえる（全角・半角、カタカナ・ひらがな、空白の ちがいを なくす） */
+function qNorm(s){
+  s=String(s||'');
+  try{ s=s.normalize('NFKC'); }catch(e){}
+  s=s.toLowerCase().replace(/[\s\u3000]+/g,'');
+  return s.replace(/[\u30a1-\u30f6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); });
+}
+function recHay(r){
+  var last=r.splits&&r.splits.length?r.splits[r.splits.length-1]:null;
+  return qNorm([r.swimmerName||'', r.title||'', (typeof meetName==='function'?meetName(r):'')||'', r.memo||'',
+    evLabel(r.event)||'', (r.dist||(last?last.d:''))+'m'].join(' '));
+}
 function paintList(){
   var box=$('list');
   dbAll().then(function(all){
     try{ bestIdxBuild(all); }catch(e){}
     box.innerHTML='';
+    var qEl=$('homeQ'), q=qEl ? qNorm(qEl.value) : '', note=$('homeQNote');
+    if($('homeQClear')) $('homeQClear').classList.toggle('hide', !q);
+    if(note) note.textContent='';
+    if(q){
+      /* 名前などで さがした ときは、日づけで まとめずに 当てはまる ものを ぜんぶ 出します */
+      var hit=all.filter(function(r){ return !r.deleted && recHay(r).indexOf(q)>=0; });
+      if(note) note.textContent = hit.length ? (hit.length+T('homeQHit2')) : T('homeQNone');
+      for(var hi=0; hi<hit.length && hi<100; hi++) box.appendChild(recCard(hit[hi]));
+      return;
+    }
     if(!all.length){ box.innerHTML='<div class="empty">'+T('noRec')+'</div>'; return; }
     var recent=all.slice(0,5), rest=all.slice(5), i;
     for(i=0;i<recent.length;i++) box.appendChild(recCard(recent[i]));
@@ -9379,6 +9422,13 @@ $('cmpDist').onchange=function(){ paintCompare(); };
 $('cmpSwim').onchange=function(){ paintCompare(); };
 $('cmpQ').oninput=function(){ paintCompare(); };
 $('cmpQClear').onclick=function(){ $('cmpQ').value=''; paintCompare(); };
+(function(){
+  var hq=$('homeQ'); if(!hq) return;
+  var tm=null;
+  hq.addEventListener('input', function(){ clearTimeout(tm); tm=setTimeout(paintList, 150); });
+  hq.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); hq.blur(); paintList(); } });
+  $('homeQClear').onclick=function(){ hq.value=''; paintList(); hq.focus(); };
+})();
 /* ===== 4つの みかたを 切りかえます ===== */
 var cmpView='cmp';
 function cmpViewSet(v){ cmpView=v; cmpSel=[]; paintCompare(); }
@@ -9528,7 +9578,7 @@ function paintCompare(){
       var eb=d.querySelector('.cmpEdit');
       if(eb) eb.onclick=function(e){ e.stopPropagation(); openEditRace(rec); };
       var vb=d.querySelector('.cmpView');
-      if(vb) vb.onclick=function(e){ e.stopPropagation(); viewOpen(rec); };
+      if(vb) vb.onclick=function(e){ e.stopPropagation(); if(!rec.manual && hasVid(rec)) openDetail(rec.id); else viewOpen(rec); };
     })(r);
     lb.appendChild(d);
   }

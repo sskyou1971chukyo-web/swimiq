@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.02.1">
+<meta name="app-ver" content="2026.10.03.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1487,6 +1487,38 @@ body.grid .gridL{ display:block; }
     right:calc(var(--sideW) + 10px); bottom:calc(env(safe-area-inset-bottom) + 78px); }
 }
 .ov.ana.play .oSteps{ display:none !important; }
+/* 音の 波形（動画の 上の はしに うすく かさねます。
+   足もとが 見える ように、まんなかより 下は あけて おきます） */
+#wave{ position:absolute; z-index:4; pointer-events:auto; display:flex; flex-direction:column; gap:4px;
+  left:calc(env(safe-area-inset-left) + 10px); right:calc(var(--sideW) + 10px);
+  top:calc(env(safe-area-inset-top) + 56px);
+  padding:6px 8px; border-radius:12px; background:rgba(6,8,12,.78); border:2px solid #3a3f48; }
+#wave.hide, .ov.ana.play #wave, #ana.stroke #wave{ display:none !important; }
+#ana.wv .ov.ana .oInfo{ display:none !important; }
+#wave .wvTop{ display:flex; align-items:center; gap:10px; min-width:0; height:30px; }
+#wave .wvTop b{ flex:0 0 auto; font-size:14px; font-weight:900; color:#ffc400; }
+#wave #wvSelL{ flex:1; min-width:0; font-size:14px; font-weight:900; color:#fff;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+#wave #wvX{ flex:0 0 auto; min-height:30px; padding:0 12px; border-radius:8px;
+  border:2px solid rgba(255,255,255,.3); background:transparent; color:#fff; font-size:13px; font-weight:800; }
+#wave .wvMain{ display:flex; gap:8px; align-items:stretch; }
+#wave .wvCvWrap{ position:relative; flex:1; min-width:0; }
+#wvCv{ display:block; width:100%; height:80px; touch-action:none; cursor:pointer;
+  border-radius:8px; background:rgba(17,21,27,.85); }
+#wvMsg{ position:absolute; inset:0; margin:0; display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:800; color:#cfd6df; pointer-events:none; }
+#wvMsg.hide{ display:none; }
+#wave .wvBtns{ flex:0 0 230px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:6px; }
+#wave .wvBtns button{ min-height:36px; border-radius:9px; font-size:14px; font-weight:900; padding:0 4px;
+  border:2px solid rgba(255,255,255,.3); background:rgba(255,255,255,.08); color:#fff; }
+#wave .wvBtns .wvSet{ grid-column:1 / span 2; background:#ffc400; border-color:#ffc400; color:#000; }
+#wave .wvBtns .wvSet:disabled{ opacity:.45; }
+@media (orientation:portrait){
+  #wave{ left:10px; right:10px; }
+  #wave .wvMain{ flex-direction:column; }
+  #wave .wvBtns{ flex:0 0 auto; }
+}
+
 #ana.stroke .oSteps{ display:none !important; }
 @media (orientation:portrait){ .oSteps{ display:none !important; } }
 
@@ -1648,7 +1680,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.02.1</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1721,11 +1753,31 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
     <div class="oSteps" id="stepRow" aria-hidden="true"></div>
 
+    <div id="wave" class="hide" role="region" data-ta="wvTitle">
+      <div class="wvTop">
+        <b data-t="wvTitle"></b>
+        <span id="wvSelL" aria-live="polite"></span>
+        <button type="button" id="wvX" data-t="wvClose"></button>
+      </div>
+      <div class="wvMain">
+        <div class="wvCvWrap">
+          <canvas id="wvCv" data-ta="wvCvLbl"></canvas>
+          <p id="wvMsg" class="hide"></p>
+        </div>
+        <div class="wvBtns">
+          <button type="button" id="wvPrev" data-t="wvPrev"></button>
+          <button type="button" id="wvNext" data-t="wvNext"></button>
+          <button type="button" id="wvSet" class="wvSet" data-t="wvSet"></button>
+        </div>
+      </div>
+    </div>
+
     <div class="oMore hide" id="anaMoreBox">
       <div class="oMoreH"><b data-t="moreBtn"></b>
         <button class="ob" id="anaMoreX" type="button" data-t="moreShut"></button></div>
       <button class="ob g" id="bStart" type="button" data-t="bStart"></button>
       <button class="ob y" id="bRt" type="button" data-t="rtBtn"></button>
+      <button class="ob y" id="anaWave" type="button" data-t="wvOpen"></button>
       <button class="ob" id="anaVid" type="button" data-t="saveVidBtn"></button>
     </div>
   </div>
@@ -2757,6 +2809,24 @@ var W={
  msgSaved:['ほぞんしました','保存しました'],
  msgStartSet:['足離れを きめました','足離れを決めました'],
  msgSigSet:['合図を きめました','合図を決めました'],
+ wvTitle:['音の 波形','音の波形'],
+ wvOpen:['音の 波形','音の波形'],
+ wvClose:['とじる','閉じる'],
+ wvCvLbl:['音の 波形。さわると その 場面へ 動きます','音の波形。触るとその場面へ移動します'],
+ wvPrev:['◀ 前の 候補','◀ 前の候補'],
+ wvNext:['次の 候補 ▶','次の候補 ▶'],
+ wvSet:['この 波形を 合図に する','この波形を合図にする'],
+ wvSetDone1:['合図を ','合図を '],
+ wvSetDone2:['秒に きめました','秒に決めました'],
+ wvSelLbl:['えらんだ 位置 ','選んだ位置 '],
+ wvSec:['秒','秒'],
+ wvCand:['候補 ','候補 '],
+ wvSelNone:['グラフを さわって 合図の 位置を えらんで ください','グラフに触れて合図の位置を選んでください'],
+ wvLoading:['音を 読みこんで います…','音を読み込んでいます…'],
+ wvNG:['この 動画の 音を 読みとれませんでした','この動画の音を読み取れませんでした'],
+ wvNoCand:['音の 立ち上がりが 見つかりません','音の立ち上がりが見つかりません'],
+ wvFirst:['これより 前の 候補は ありません','これより前の候補はありません'],
+ wvLast:['これより 後の 候補は ありません','これより後の候補はありません'],
  sigFinding:['音から 合図を さがしています…','音から合図を探しています…'],
  sigFound1:['合図を 見つけました（','合図を見つけました（'],
  sigFound2:['秒）。ちがう ときは、その 場面で〈きろく〉を おしなおして ください','秒）。違うときは、その場面で〈記録〉を押し直してください'],
@@ -3527,6 +3597,7 @@ function paintNext(){
   $('bStart').innerHTML = T(aT0===null ? 'bStart' : 'bStartRe');
   paintSteps();
   paintGuide();
+  if(typeof wvAuto==='function') wvAuto();
 }
 /* どこまで 計ったかを 下に ならべます。
    すんだ ところは 白、いま 計る ところは 白ぬき、これからは 灰色。 */
@@ -3960,6 +4031,7 @@ function openAna(blob, opt){
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
   aSigT = (opt.sigT!=null) ? opt.sigT : null;
   sigAuto=false;
+  if(typeof wvShow==='function'){ wvShow(false); wvSel=null; wvClosed=false; wvPinned=false; wvData=null; wvBlob=null; }
   aRT   = (opt.rt!=null)   ? opt.rt   : null;
   aPreLaps = opt.laps || null;
   aPreT0 = opt.raceT0 || 0;          // 録画の はじめから レースの スタートまでの 秒
@@ -4017,6 +4089,7 @@ function openAna(blob, opt){
   if(rtIsOn() && rtMode==='sound' && aSigT==null){
     setTimeout(function(){ sigRun(false, !!(aPreLaps && aPreLaps.length)); }, 700);
   }
+  if(typeof wvAuto==='function') setTimeout(wvAuto, 60);
 }
 
 /* ===== さつえい中の ラップを 一覧で 見て、きょりを チェックする ===== */
@@ -4193,6 +4266,7 @@ function setMode(m, say){
     $('ana').classList.remove('stroke'); $('bStroke').setAttribute('aria-pressed','false');
     if(say) toast(T('mPlayOn'));
   }
+  if(typeof wvAuto==='function') wvAuto();
 }
 (function(){
   var bs=$('modeSeg').querySelectorAll('button');
@@ -4893,8 +4967,12 @@ function sigAnalyze(blob){
             for(var i=0;i<ch.length;i++) m[i]=(ch[i]+c2[i])*0.5;
             ch=m;
           }
-          var env=sigEnv(ch, ab.sampleRate);
-          var r = env ? { ons:sigOnsets(env) } : null;
+          var env=sigEnv(ch, ab.sampleRate), r=null;
+          if(env){
+            var srt=Array.prototype.slice.call(env.L).sort(function(a,b){ return a-b; });
+            r={ ons:sigOnsets(env), L:env.L, dt:env.dt,
+                floor:srt[Math.floor(srt.length*0.1)], max:srt[srt.length-1] };
+          }
           sigCache=r; sigCacheBlob=blob; res(r);
         }catch(e){ res(null); }
       };
@@ -4930,6 +5008,7 @@ function sigRun(force, quiet){
     paintTbl(); anaP.paint();
     var v=$('v');
     if(v && v.paused && aT0==null){ try{ v.currentTime=Math.max(0,p.t-0.05); }catch(e){} }
+    if(wvOn){ wvSel=p.t; wvCenter(p.t); wvLabel(); }
     var msg=T('sigFound1')+p.t.toFixed(2)+T('sigFound2');
     if($('rtStatus')) $('rtStatus').textContent=msg;
     toast(msg);
@@ -4942,10 +5021,187 @@ function sigRecheck(){
   var p=sigPick(sigCache.ons, aT0);
   if(!p || Math.abs(p.t-aSigT)<0.03) return;
   aSigT=p.t;
+  if(wvOn){ wvSel=p.t; wvLabel(); }
   try{ rtCalc(); }catch(e){}
   paintTbl(); anaP.paint();
   setTimeout(function(){ toast(T('sigFixed1')+p.t.toFixed(2)+T('sigFixed2')); }, 900);
 }
+/* ================================================================
+   音の 波形（合図を 目で えらぶ）
+   動画の 音の 大きさを、時間に そって グラフに します。
+   ・黄色の たて線 …… 音が きゅうに 大きく なった ところ（合図の 候補）
+   ・緑の 線 …… いま 合図に して いる ところ
+   ・青の 線 …… 足離れ
+   ・赤の 線 …… いま 動画が とまって いる ところ
+   グラフを さわると、その 場面へ 動画が うごきます。
+   〈この波形を合図にする〉で 合図が きまります。
+   ================================================================ */
+var wvOn=false, wvClosed=false, wvSel=null, wvStart=0, wvDrag=false, wvRaf=null, wvData=null, wvBlob=null;
+function wvLen(){ var d=$('v').duration; return (isFinite(d) && d>0) ? d : 0; }
+function wvWin(){ var d=wvLen(); return d ? Math.min(d, 10) : 10; }
+function wvLoad(){
+  if(wvBlob===aBlob && wvData) return;
+  wvData=null; wvBlob=aBlob;
+  $('wvMsg').textContent=T('wvLoading'); $('wvMsg').classList.remove('hide');
+  var blob=aBlob;
+  sigAnalyze(blob).then(function(r){
+    if(blob!==aBlob) return;
+    if(!r || !r.L){ $('wvMsg').textContent=T('wvNG'); return; }
+    wvData=r; $('wvMsg').classList.add('hide');
+    if(wvSel==null){
+      var p=(aSigT!=null) ? { t:aSigT } : sigPick(r.ons, aT0);
+      wvSel = p ? p.t : null;
+    }
+    wvCenter(wvSel!=null ? wvSel : $('v').currentTime);
+    wvLabel();
+  });
+}
+function wvCenter(t){
+  var d=wvLen(), w=wvWin();
+  wvStart=Math.max(0, Math.min(Math.max(0,d-w), t-w*0.5));
+}
+function wvShow(on, byUser){
+  on=!!on;
+  if(on && !aBlob) return;
+  if(!on && byUser) wvClosed=true;
+  if(on && byUser) wvClosed=false;
+  wvOn=on;
+  $('wave').classList.toggle('hide', !on);
+  $('ana').classList.toggle('wv', on);
+  if(on){ wvLoad(); wvLabel(); wvLoop(); }
+  else if(wvRaf){ cancelAnimationFrame(wvRaf); wvRaf=null; }
+}
+/* 合図か 足離れを 計る ところでは、ひとりでに 出します */
+function wvAuto(){
+  if(typeof selKind!=='function' || !$('wave')) return;
+  var k=selKind();
+  var want = rtIsOn() && (k==='sig' || k==='t0') && anaMode!=='play' && !$('ana').classList.contains('hide');
+  if(want && !wvClosed && !wvOn) wvShow(true);
+  if(!want && wvOn && !wvPinned) wvShow(false);
+}
+var wvPinned=false;
+function wvLabel(){
+  var l=$('wvSelL'); if(!l) return;
+  if(wvSel==null){ l.textContent=T('wvSelNone'); $('wvSet').disabled=true; return; }
+  var ons=(wvData&&wvData.ons)||[], i, no=0;
+  for(i=0;i<ons.length;i++) if(Math.abs(ons[i].t-wvSel)<0.03) no=i+1;
+  l.textContent=T('wvSelLbl')+wvSel.toFixed(2)+T('wvSec')+(no ? ('（'+T('wvCand')+no+'/'+ons.length+'）') : '');
+  $('wvSet').disabled=false;
+}
+function wvSeek(t){
+  var v=$('v');
+  try{ if(!v.paused){ v.pause(); $('bPlay').innerHTML=T('playI'); } }catch(e){}
+  try{ v.currentTime=Math.max(0,t); }catch(e){}
+}
+/* 1コマ ごとに かきます */
+function wvLoop(){
+  if(wvRaf) cancelAnimationFrame(wvRaf);
+  (function f(){
+    if(!wvOn) return;
+    if($('ana').classList.contains('hide')){ wvShow(false); return; }
+    wvDraw();
+    wvRaf=requestAnimationFrame(f);
+  })();
+}
+function wvDraw(){
+  var cv=$('wvCv'); if(!cv) return;
+  var dpr=window.devicePixelRatio||1, W=Math.round(cv.clientWidth*dpr), H=Math.round(cv.clientHeight*dpr);
+  if(!W || !H) return;
+  if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
+  var g=cv.getContext('2d');
+  g.clearRect(0,0,W,H);
+  var v=$('v'), cur=v.currentTime||0, win=wvWin(), d=wvLen();
+  /* 再生中は 線が 画面の はしに 来たら ついて いきます */
+  if(!wvDrag && d && (cur<wvStart || cur>wvStart+win*0.92)) wvCenter(cur);
+  var x0=wvStart, px=function(t){ return (t-x0)/win*W; };
+  /* 1秒ごとの 目もり */
+  g.fillStyle='rgba(255,255,255,.55)'; g.font=(11*dpr)+'px sans-serif'; g.textBaseline='top';
+  var s;
+  for(s=Math.ceil(x0); s<=x0+win; s++){
+    var xs=px(s); g.fillRect(xs, H-6*dpr, 1*dpr, 6*dpr);
+    g.fillText(s+'s', xs+2*dpr, H-18*dpr);
+  }
+  if(!wvData || !wvData.L) return;
+  var L=wvData.L, dt=wvData.dt, fl=wvData.floor, mx=wvData.max, mid=(H-20*dpr)/2, amp=mid-4*dpr;
+  /* 音の 大きさ（上下に ひろがる 形） */
+  g.fillStyle='#b9c7d8';
+  for(var x=0;x<W;x+=Math.max(1,Math.round(dpr))){
+    var ta=x0+x/W*win, tb=x0+(x+1)/W*win, ia=Math.max(0,Math.floor(ta/dt)), ib=Math.min(L.length-1,Math.ceil(tb/dt));
+    var m=-1e9; for(var i=ia;i<=ib;i++) if(L[i]>m) m=L[i];
+    if(m<-1e8) continue;
+    var h=Math.max(0, Math.min(1, (m-fl)/(mx-fl+1e-6)));
+    h=Math.max(1*dpr, h*amp);
+    g.fillRect(x, mid-h, Math.max(1,Math.round(dpr)), h*2);
+  }
+  /* 候補（黄色） */
+  var ons=wvData.ons||[];
+  for(var k=0;k<ons.length;k++){
+    var xo=px(ons[k].t); if(xo<-2||xo>W+2) continue;
+    var on=(wvSel!=null && Math.abs(ons[k].t-wvSel)<0.03);
+    g.fillStyle= on ? '#ffc400' : 'rgba(255,196,0,.65)';
+    g.fillRect(xo-(on?2:1)*dpr, 0, (on?4:2)*dpr, mid*2);
+    g.beginPath(); g.moveTo(xo-6*dpr,0); g.lineTo(xo+6*dpr,0); g.lineTo(xo,9*dpr); g.closePath(); g.fill();
+  }
+  function mark(t, col, txt, row){
+    if(t==null) return; var xm=px(t); if(xm<-2||xm>W+2) return;
+    g.fillStyle=col; g.fillRect(xm-1.5*dpr, 0, 3*dpr, mid*2);
+    g.font='bold '+(12*dpr)+'px sans-serif'; g.textBaseline='top';
+    var tw=g.measureText(txt).width, tx=Math.min(W-tw-4*dpr, xm+4*dpr), ty=(10+row*16)*dpr;
+    g.fillStyle='rgba(0,0,0,.75)'; g.fillRect(tx-2*dpr, ty-1*dpr, tw+4*dpr, 15*dpr);
+    g.fillStyle=col; g.fillText(txt, tx, ty);
+  }
+  if(wvSel!=null){ var xsel=px(wvSel); if(xsel>-2&&xsel<W+2){ g.fillStyle='rgba(255,196,0,.18)'; g.fillRect(xsel-8*dpr,0,16*dpr,mid*2); } }
+  mark(aSigT, '#3ddc84', T('rtSigLbl'), 0);
+  mark(aT0, '#5ab0ff', T('rtFootLbl'), 1);
+  /* いまの ところ（赤） */
+  var xc=px(cur); g.fillStyle='#ff4d4d'; g.fillRect(xc-1*dpr, 0, 2*dpr, H-20*dpr);
+}
+/* グラフを さわった ところへ 動画を うごかし、近い 候補に すいつけます */
+function wvPick(ev){
+  var cv=$('wvCv'), r=cv.getBoundingClientRect();
+  var x=Math.max(0, Math.min(r.width, ev.clientX-r.left));
+  var t=wvStart + x/r.width*wvWin(), best=null, bd=wvWin()*0.025;
+  var ons=(wvData&&wvData.ons)||[];
+  for(var i=0;i<ons.length;i++){ var dd=Math.abs(ons[i].t-t); if(dd<bd){ bd=dd; best=ons[i].t; } }
+  wvSel = (best!=null) ? best : Math.round(t*100)/100;
+  wvSeek(wvSel); wvLabel();
+}
+function wvStep(dir){
+  var ons=(wvData&&wvData.ons)||[]; if(!ons.length){ toast(T('wvNoCand')); return; }
+  var base=(wvSel!=null)?wvSel:$('v').currentTime, i, hit=null;
+  if(dir>0){ for(i=0;i<ons.length;i++) if(ons[i].t>base+0.02){ hit=ons[i]; break; } }
+  else{ for(i=ons.length-1;i>=0;i--) if(ons[i].t<base-0.02){ hit=ons[i]; break; } }
+  if(!hit){ toast(T(dir>0?'wvLast':'wvFirst')); return; }
+  wvSel=hit.t; wvCenter(wvSel); wvSeek(wvSel); wvLabel();
+}
+(function(){
+  var cv=$('wvCv'); if(!cv) return;
+  cv.addEventListener('pointerdown', function(e){
+    e.preventDefault(); wvDrag=true;
+    try{ cv.setPointerCapture(e.pointerId); }catch(er){}
+    wvPick(e);
+  });
+  cv.addEventListener('pointermove', function(e){ if(wvDrag){ e.preventDefault(); wvPick(e); } });
+  var up=function(){ wvDrag=false; };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  $('wvPrev').onclick=function(){ wvStep(-1); };
+  $('wvNext').onclick=function(){ wvStep(1); };
+  $('wvX').onclick=function(){ wvPinned=false; wvShow(false, true); };
+  $('wvSet').onclick=function(){
+    if(wvSel==null) return;
+    if(aT0!=null && wvSel>=aT0){ toast(T('rtBad')); return; }
+    if(!rtIsOn()){
+      rtOn=true; try{ localStorage.setItem('swimiq_rton','1'); }catch(e){}
+      try{ rtPaint(); }catch(e){}
+    }
+    selManual=false; aLastSel='sig'; $('nextSel').value='';
+    setSig(wvSel);
+    paintNext();
+    try{ if(navigator.vibrate) navigator.vibrate(20); }catch(e){}
+    toast(T('wvSetDone1')+wvSel.toFixed(2)+T('wvSetDone2'));
+  };
+  $('anaWave').onclick=function(){ anaMoreOpen(false); wvPinned=true; wvShow(true, true); };
+})();
 $('bRt').onclick=function(){ $('rtStatus').textContent=''; rtPaint(); $('rtBox').classList.remove('hide'); };
 $('rtX').onclick=function(){ if(rtScanning) rtStop(false); $('rtBox').classList.add('hide'); };
 (function(){

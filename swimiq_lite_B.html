@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.8">
+<meta name="app-ver" content="2026.10.03.9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1511,7 +1511,7 @@ body.grid .gridL{ display:block; }
   border:2px solid rgba(255,255,255,.3); background:transparent; color:#fff; font-size:13px; font-weight:800; }
 #wave .wvMain{ display:flex; gap:8px; align-items:stretch; }
 #wave .wvCvWrap{ position:relative; flex:1; min-width:0; }
-#wvCv{ display:block; width:100%; height:80px; touch-action:none; cursor:pointer;
+#wvCv{ display:block; width:100%; height:80px; touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
   border-radius:8px; background:rgba(17,21,27,.85); }
 #wvMsg{ position:absolute; inset:0; margin:0; display:flex; align-items:center; justify-content:center;
   font-size:14px; font-weight:800; color:#cfd6df; pointer-events:none; }
@@ -1713,7 +1713,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.8</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.9</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2859,6 +2859,7 @@ var W={
  wvSelNone:['グラフを さわって 合図の 位置を えらんで ください','グラフに触れて合図の位置を選んでください'],
  wvLoading:['音を 読みこんで います…','音を読み込んでいます…'],
  wvNG:['音を 自動では 読みとれません。下の ボタンを おして ください','音を自動では読み取れません。下のボタンを押してください'],
+ wvNoAudio:['この 動画には 音が 入って いません。音つきで 撮った 動画を えらんで ください','この動画には音が入っていません。音つきで撮った動画を選んでください'],
  wvStop:['ここまでで 読みとり 終わり','ここまでで読み取り終了'],
  wvScanBtn:['音を 読みとる','音を読み取る'],
  wvScanning:['音を 読みとって います… ','音を読み取っています… '],
@@ -4997,6 +4998,160 @@ function sigPick(ons, t0){
 }
 /* 動画を ひらく たびに 1回だけ 音を 調べ、けっかを とって おきます */
 var sigCache=null, sigCacheBlob=null, sigAuto=false, sigBusy=false, sigFail=null;
+/* ===== 動画（mp4/mov）の 中の 音声を 自分で とりだして 読む =====
+   decodeAudioData が だめな 動画でも、AAC の 音声なら ここで 読めます。
+   戻り値：{ch,sr}＝読めた / 'noaudio'＝音声が 入って いない / null＝読めなかった */
+function mp4Boxes(dv, from, to){
+  var out=[], p=from;
+  while(p+8<=to){
+    var sz=dv.getUint32(p), tp=String.fromCharCode(dv.getUint8(p+4),dv.getUint8(p+5),dv.getUint8(p+6),dv.getUint8(p+7)), hd=8;
+    if(sz===1){ sz=dv.getUint32(p+8)*4294967296+dv.getUint32(p+12); hd=16; }
+    else if(sz===0){ sz=to-p; }
+    if(sz<hd || p+sz>to) break;
+    out.push({t:tp, s:p+hd, e:p+sz});
+    p+=sz;
+  }
+  return out;
+}
+function mp4Find(list, t){ for(var i=0;i<list.length;i++) if(list[i].t===t) return list[i]; return null; }
+function mp4Audio(buf){
+  var dv=new DataView(buf), top=mp4Boxes(dv,0,buf.byteLength), moov=mp4Find(top,'moov');
+  if(!moov) return null;
+  var traks=mp4Boxes(dv,moov.s,moov.e).filter(function(b){ return b.t==='trak'; }), k, hasSound=false;
+  for(k=0;k<traks.length;k++){
+    var mdia=mp4Find(mp4Boxes(dv,traks[k].s,traks[k].e),'mdia'); if(!mdia) continue;
+    var mk=mp4Boxes(dv,mdia.s,mdia.e), hdlr=mp4Find(mk,'hdlr'), mdhd=mp4Find(mk,'mdhd'), minf=mp4Find(mk,'minf');
+    if(!hdlr || !minf) continue;
+    var ht=String.fromCharCode(dv.getUint8(hdlr.s+8),dv.getUint8(hdlr.s+9),dv.getUint8(hdlr.s+10),dv.getUint8(hdlr.s+11));
+    if(ht!=='soun') continue;
+    hasSound=true;
+    var stbl=mp4Find(mp4Boxes(dv,minf.s,minf.e),'stbl'); if(!stbl) continue;
+    var sb=mp4Boxes(dv,stbl.s,stbl.e), stsd=mp4Find(sb,'stsd'), stsz=mp4Find(sb,'stsz'),
+        stsc=mp4Find(sb,'stsc'), stco=mp4Find(sb,'stco')||mp4Find(sb,'co64');
+    if(!stsd) continue;
+    /* 音声の しゅるいと 設定 */
+    var ent=mp4Boxes(dv,stsd.s+8,stsd.e)[0]; if(!ent || ent.t!=='mp4a') return null;
+    var ch=dv.getUint16(ent.s+16), srate=dv.getUint32(ent.s+24)>>>16;
+    var esds=mp4Find(mp4Boxes(dv,ent.s+28,ent.e),'esds'); if(!esds) return null;
+    var q=esds.s+4, asc=null;
+    function len(){ var n=0,b,c=0; do{ b=dv.getUint8(q++); n=(n<<7)|(b&127); c++; }while((b&128) && c<4); return n; }
+    while(q<esds.e){
+      var tag=dv.getUint8(q++), L=len();
+      if(tag===3){ q+=3; }
+      else if(tag===4){ q+=13; }
+      else if(tag===5){ asc=new Uint8Array(buf.slice(q,q+L)); break; }
+      else q+=L;
+    }
+    if(!asc) return null;
+    /* 1つぶんごとの 場所 */
+    var frames=[], i;
+    if(stsz && stsc && stco){
+      var cnt=dv.getUint32(stsz.s+8), fix=dv.getUint32(stsz.s+4), sizes=new Array(cnt);
+      for(i=0;i<cnt;i++) sizes[i]= fix ? fix : dv.getUint32(stsz.s+12+i*4);
+      var nco=dv.getUint32(stco.s+4), offs=new Array(nco), is64=(stco.t==='co64');
+      for(i=0;i<nco;i++) offs[i]= is64 ? dv.getUint32(stco.s+8+i*8)*4294967296+dv.getUint32(stco.s+12+i*8) : dv.getUint32(stco.s+8+i*4);
+      var nsc=dv.getUint32(stsc.s+4), sc=[];
+      for(i=0;i<nsc;i++) sc.push({f:dv.getUint32(stsc.s+8+i*12), n:dv.getUint32(stsc.s+12+i*12)});
+      var si=0, c, j, cs, nIn;
+      for(c=0;c<nco && si<cnt;c++){
+        nIn=0; for(j=0;j<sc.length;j++) if(sc[j].f<=c+1) nIn=sc[j].n;
+        var off=offs[c];
+        for(cs=0;cs<nIn && si<cnt;cs++){ frames.push({o:off, z:sizes[si]}); off+=sizes[si]; si++; }
+      }
+    }
+    /* 細切れ形式（カメラの 録画に 多い moof 形式）*/
+    if(!frames.length){
+      var tkhd=mp4Find(mp4Boxes(dv,traks[k].s,traks[k].e),'tkhd'), tid=0, defSz=0;
+      if(tkhd) tid = dv.getUint8(tkhd.s)===1 ? dv.getUint32(tkhd.s+20) : dv.getUint32(tkhd.s+12);
+      var mvex=mp4Find(mp4Boxes(dv,moov.s,moov.e),'mvex');
+      if(mvex){ var trs=mp4Boxes(dv,mvex.s,mvex.e); for(i=0;i<trs.length;i++) if(trs[i].t==='trex' && dv.getUint32(trs[i].s+4)===tid) defSz=dv.getUint32(trs[i].s+16); }
+      for(i=0;i<top.length;i++){
+        if(top[i].t!=='moof') continue;
+        var moofStart=top[i].s-8, tr=mp4Boxes(dv,top[i].s,top[i].e), ti;
+        for(ti=0;ti<tr.length;ti++){
+          if(tr[ti].t!=='traf') continue;
+          var tb=mp4Boxes(dv,tr[ti].s,tr[ti].e), tfhd=mp4Find(tb,'tfhd'); if(!tfhd) continue;
+          var fl=dv.getUint32(tfhd.s)&0xffffff, q2=tfhd.s+4;
+          if(dv.getUint32(q2)!==tid) continue;
+          q2+=4;
+          var base=moofStart, dSz=defSz;
+          if(fl&1){ base=dv.getUint32(q2)*4294967296+dv.getUint32(q2+4); q2+=8; }
+          if(fl&2) q2+=4;
+          if(fl&8) q2+=4;
+          if(fl&0x10){ dSz=dv.getUint32(q2); q2+=4; }
+          var bi, runs=tb.filter(function(b){ return b.t==='trun'; });
+          var cur=base;
+          for(bi=0;bi<runs.length;bi++){
+            var tf=dv.getUint32(runs[bi].s)&0xffffff, n=dv.getUint32(runs[bi].s+4), q3=runs[bi].s+8, o=cur, m;
+            if(tf&1){ o=base+dv.getInt32(q3); q3+=4; }
+            if(tf&4) q3+=4;
+            for(m=0;m<n;m++){
+              if(tf&0x100) q3+=4;
+              var z=dSz; if(tf&0x200){ z=dv.getUint32(q3); q3+=4; }
+              if(tf&0x400) q3+=4;
+              if(tf&0x800) q3+=4;
+              frames.push({o:o, z:z}); o+=z;
+            }
+            cur=o;
+          }
+        }
+      }
+    }
+    return { asc:asc, ch:ch, sr:srate, frames:frames };
+  }
+  return hasSound ? null : 'noaudio';
+}
+function sigMp4(blob){
+  return new Promise(function(res){
+    if(typeof AudioDecoder==='undefined' || typeof EncodedAudioChunk==='undefined'){ res(null); return; }
+    blob.arrayBuffer().then(function(buf){
+      var info; try{ info=mp4Audio(buf); }catch(e){ info=null; }
+      if(info==='noaudio'){ res('noaudio'); return; }
+      if(!info || !info.frames.length){ res(null); return; }
+      var cfg={ codec:'mp4a.40.2', sampleRate:info.sr, numberOfChannels:info.ch, description:info.asc };
+      var go=function(){
+        var parts=[], total=0, dead=false, outSr=info.sr, dec;
+        var fail=function(){ if(dead) return; dead=true; try{ dec.close(); }catch(e){} res(null); };
+        try{
+          dec=new AudioDecoder({
+            output:function(ad){
+              try{
+                var n=ad.numberOfFrames, nc=ad.numberOfChannels, m=new Float32Array(n), tmp=new Float32Array(n), c, i;
+                outSr=ad.sampleRate;
+                for(c=0;c<nc;c++){
+                  ad.copyTo(tmp,{planeIndex:c, format:'f32-planar'});
+                  for(i=0;i<n;i++) m[i]+=tmp[i]/nc;
+                }
+                parts.push(m); total+=n;
+              }catch(e){}
+              try{ ad.close(); }catch(e){}
+            },
+            error:fail
+          });
+          dec.configure(cfg);
+          var i, fr, t=0;
+          for(i=0;i<info.frames.length;i++){
+            fr=info.frames[i];
+            dec.decode(new EncodedAudioChunk({type:'key', timestamp:Math.round(i*1024/info.sr*1e6),
+              data:new Uint8Array(buf, fr.o, fr.z)}));
+          }
+          dec.flush().then(function(){
+            if(dead) return; dead=true;
+            try{ dec.close(); }catch(e){}
+            if(total<outSr*0.2){ res(null); return; }
+            var all=new Float32Array(total), p=0, k;
+            for(k=0;k<parts.length;k++){ all.set(parts[k],p); p+=parts[k].length; }
+            res({ch:all, sr:outSr});
+          }, fail);
+        }catch(e){ fail(); }
+      };
+      try{
+        AudioDecoder.isConfigSupported(cfg).then(function(r){ if(r && r.supported) go(); else res(null); }, function(){ res(null); });
+      }catch(e){ res(null); }
+    }, function(){ res(null); });
+  });
+}
+var sigNoAudio=null;
 function sigAnalyze(blob){
   if(sigCache && sigCacheBlob===blob) return Promise.resolve(sigCache);
   return new Promise(function(res){
@@ -5005,10 +5160,29 @@ function sigAnalyze(blob){
     blob.arrayBuffer().then(function(buf){
       var ac; try{ ac=new AC(); }catch(e){ res(null); return; }
       var fin=false;
+      var proc=function(ch, sr){
+        try{
+          var env=sigEnv(ch, sr), r=null;
+          if(env){
+            var srt=Array.prototype.slice.call(env.L).sort(function(a,b){ return a-b; });
+            r={ ons:sigOnsets(env), L:env.L, dt:env.dt,
+                floor:srt[Math.floor(srt.length*0.1)], max:srt[srt.length-1] };
+          }
+          sigCache=r; sigCacheBlob=blob; res(r);
+        }catch(e){ res(null); }
+      };
       var done=function(ab){
         if(fin) return; fin=true;
         try{ var cp=ac.close(); if(cp && cp.catch) cp.catch(function(){}); }catch(e){}
-        if(!ab){ sigFail=blob; res(null); return; }
+        if(!ab){
+          /* decodeAudioData が だめ → 動画の 中の 音声を 自分で 読んで みる */
+          sigMp4(blob).then(function(x){
+            if(x==='noaudio'){ sigNoAudio=blob; sigFail=blob; res(null); }
+            else if(x && x.ch){ proc(x.ch, x.sr); }
+            else { sigFail=blob; res(null); }
+          });
+          return;
+        }
         try{
           var ch=ab.getChannelData(0);
           if(ab.numberOfChannels>1){
@@ -5016,13 +5190,7 @@ function sigAnalyze(blob){
             for(var i=0;i<ch.length;i++) m[i]=(ch[i]+c2[i])*0.5;
             ch=m;
           }
-          var env=sigEnv(ch, ab.sampleRate), r=null;
-          if(env){
-            var srt=Array.prototype.slice.call(env.L).sort(function(a,b){ return a-b; });
-            r={ ons:sigOnsets(env), L:env.L, dt:env.dt,
-                floor:srt[Math.floor(srt.length*0.1)], max:srt[srt.length-1] };
-          }
-          sigCache=r; sigCacheBlob=blob; res(r);
+          proc(ch, ab.sampleRate);
         }catch(e){ res(null); }
       };
       try{
@@ -5091,6 +5259,11 @@ var wvOn=false, wvClosed=false, wvSel=null, wvStart=0, wvDrag=false, wvRaf=null,
 function wvLen(){ var d=$('v').duration; return (isFinite(d) && d>0) ? d : 0; }
 function wvWin(){ var d=wvLen(); return d ? Math.min(d, 4) : 4; }
 function wvPrompt(){
+  if(sigNoAudio===aBlob){
+    $('wave').classList.add('ask'); $('wvScan').classList.add('hide');
+    $('wvMsg').textContent=T('wvNoAudio'); $('wvMsg').classList.remove('hide'); $('wvMsg').classList.add('top');
+    wvLabel(); return;
+  }
   $('wave').classList.add('ask');
   $('wvMsg').textContent=T('wvNG'); $('wvMsg').classList.remove('hide'); $('wvMsg').classList.add('top');
   $('wvScan').classList.remove('hide'); wvLabel();
@@ -5180,6 +5353,8 @@ function wvScanStart(){
     if(v.ended || (tot && ct>=tot-0.03)){ finish(true); return; }
     /* 音の 回路が 動いて いない（ロックされて いる）とき */
     if(rtAC.state!=='running' && performance.now()-t0>1500){ finish(false); return; }
+    /* 動画が 3秒 たっても すすまない（音の 回路に とめられて いる） */
+    if(ct<0.05 && performance.now()-t0>3000){ finish(false); return; }
     wvAn.getFloatTimeDomainData(buf);
     var sum=0, a0=buf.length-N, k2;
     for(k2=a0;k2<buf.length;k2++) sum+=buf[k2]*buf[k2];
@@ -5323,7 +5498,10 @@ function wvStep(dir){
 }
 (function(){
   var cv=$('wvCv'); if(!cv) return;
+  /* iPhone で ゆびが ページの スクロールに とられないように */
+  ['touchstart','touchmove'].forEach(function(n){ cv.addEventListener(n, function(e){ e.preventDefault(); }, {passive:false}); });
   cv.addEventListener('pointerdown', function(e){
+    if(wvScanning) return;
     e.preventDefault(); wvDrag=true; wvMoved=false;
     wvX0=e.clientX; wvT0=$('v').currentTime||0; wvDragT=wvT0;
     try{ cv.setPointerCapture(e.pointerId); }catch(er){}

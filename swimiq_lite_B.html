@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.6">
+<meta name="app-ver" content="2026.10.03.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1188,6 +1188,14 @@ body, button, select, input, textarea{
 .homeBtn .hbTxt small{ display:block; font-family:"Zen Kaku Gothic New",sans-serif;
   font-size:12px; font-weight:700; margin-top:2px; }
 .homeBtn.dk{ background:var(--pane2); border-color:var(--line2); }
+.homeBtn .hbArrow{ margin-left:auto; flex:0 0 auto; color:#ffc400; font-size:20px; font-weight:900; }
+#moreTakeBtn.open{ border-color:#ffc400; }
+/* ひらいた とき：ひとつ 下げて、きいろい 線で つなぎ、中身だと わかるように */
+#moreTakeBox{ margin-left:26px; padding-left:12px; border-left:4px solid #ffc400; }
+#moreTakeBox.hide{ display:none; }
+#moreTakeBox > .btn{ margin:0 !important; color:#fff !important; }
+.homeBtn.sub{ min-height:60px; }
+.homeBtn.sub .hbIcon{ width:38px; height:38px; }
 .recHd{ display:flex; align-items:baseline; justify-content:space-between; }
 /* あたらしいカード（種目・距離・日付／大きな黄色タイム／ST・SR・SC） */
 .card2{ display:flex; flex-direction:column; gap:6px; cursor:pointer;
@@ -1679,17 +1687,30 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/><path d="M18.4 6.6l-1.3 1.3"/></svg></span>
       <span class="hbTxt" data-t="swOpen"></span>
     </button>
-    <button class="btn b" id="openHelp" type="button" data-t="helpBtn"></button>
-    <button class="btn" id="moreTakeBtn" type="button" aria-expanded="false" data-t="moreOpen"></button>
-  </div>
-  <div id="moreTakeBox" class="take hide">
-    <label class="btn b" for="fPick" data-t="pick"></label>
-    <button class="btn b" id="openManual" type="button" data-t="openManual"></button>
+    <button class="btn homeBtn dk" id="moreTakeBtn" type="button" aria-expanded="false">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg></span>
+      <span class="hbTxt" data-t="moreOpen"></span>
+      <span class="hbArrow" aria-hidden="true">▾</span>
+    </button>
+    <div id="moreTakeBox" class="take hide">
+      <label class="btn homeBtn dk sub" for="fPick">
+        <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+        <span class="hbTxt" data-t="pick"></span>
+      </label>
+      <button class="btn homeBtn dk sub" id="openManual" type="button">
+        <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></svg></span>
+        <span class="hbTxt" data-t="openManual"></span>
+      </button>
+    </div>
+    <button class="btn homeBtn dk" id="openHelp" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17v.01"/></svg></span>
+      <span class="hbTxt" data-t="helpBtn"></span>
+    </button>
   </div>
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.6</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.7</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2621,10 +2642,10 @@ var W={
  glRec:['さいきんの きろく','最近の記録'],
  scAbbr:['SC','SC'],
  openCam:['カメラで とる<small>動画を とって 分析</small>','カメラで撮る<small>動画を撮って解析</small>'],
- pick:['とってある 動画を ひらく<small>あとから 分析したいとき</small>','保存済みの動画を開く<small>後から分析する場合</small>'],
+ pick:['とってある 動画を 分析<small>あとから 分析したいとき</small>','保存済みの動画を分析<small>後から分析する場合</small>'],
  homeHint:['画面の 上に ストップウォッチが 出ます。ふえの音でも スタートできます。ストップを おすと、その動画で そのまま 分析が はじまります。','画面上部にストップウォッチを表示します。笛の音でも自動で計測を開始できます。ストップを押すと、その動画でそのまま分析が始まります。'],
  moreOpen:['ほかの きろくの しかたも 見る','他の記録方法を見る'],
- moreClose:['とじる','閉じる'],
+ moreClose:['ほかの しかたを とじる','他の記録方法を閉じる'],
  settingsBtn:['せってい','設定'],
  setTitle:['せってい','設定'],
  admGl:['管理者','管理者'],
@@ -8106,8 +8127,10 @@ $('moreTakeBtn').onclick=function(){
   moreTakeOpen=!moreTakeOpen;
   $('moreTakeBox').classList.toggle('hide', !moreTakeOpen);
   this.setAttribute('aria-expanded', moreTakeOpen?'true':'false');
-  this.setAttribute('data-t', moreTakeOpen ? 'moreClose' : 'moreOpen');
-  this.textContent = T(this.getAttribute('data-t'));
+  var tx=this.querySelector('.hbTxt'); tx.setAttribute('data-t', moreTakeOpen ? 'moreClose' : 'moreOpen');
+  tx.textContent = T(tx.getAttribute('data-t'));
+  this.classList.toggle('open', moreTakeOpen);
+  var ar=this.querySelector('.hbArrow'); if(ar) ar.textContent = moreTakeOpen ? '▴' : '▾';
 };
 $('openSettings').onclick=function(){ show('settings'); };
 $('setBack').onclick=function(){ show('home'); };

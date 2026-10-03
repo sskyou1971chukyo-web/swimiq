@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.3">
+<meta name="app-ver" content="2026.10.03.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1689,7 +1689,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.3</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.5</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2822,7 +2822,7 @@ var W={
  wvTitle:['音の 波形','音の波形'],
  wvOpen:['音の 波形','音の波形'],
  wvClose:['とじる','閉じる'],
- wvCvLbl:['音の 波形。さわると その 場面へ 動きます','音の波形。触るとその場面へ移動します'],
+ wvCvLbl:['音の 波形。よこに ひっぱると 動きます','音の波形。横にドラッグすると動きます'],
  wvPrev:['◀ 前の 候補','◀ 前の候補'],
  wvNext:['次の 候補 ▶','次の候補 ▶'],
  wvSet:['この 波形を 合図に する','この波形を合図にする'],
@@ -5060,9 +5060,10 @@ function sigRecheck(){
    グラフを さわると、その 場面へ 動画が うごきます。
    〈この波形を合図にする〉で 合図が きまります。
    ================================================================ */
+var wvMoved=false, wvX0=0, wvT0=0, wvDragT=null;
 var wvOn=false, wvClosed=false, wvSel=null, wvStart=0, wvDrag=false, wvRaf=null, wvData=null, wvBlob=null;
 function wvLen(){ var d=$('v').duration; return (isFinite(d) && d>0) ? d : 0; }
-function wvWin(){ var d=wvLen(); return d ? Math.min(d, 10) : 10; }
+function wvWin(){ var d=wvLen(); return d ? Math.min(d, 4) : 4; }
 function wvPrompt(){
   $('wave').classList.add('ask');
   $('wvMsg').textContent=T('wvNG'); $('wvMsg').classList.remove('hide'); $('wvMsg').classList.add('top');
@@ -5221,28 +5222,34 @@ function wvDraw(){
   if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
   var g=cv.getContext('2d');
   g.clearRect(0,0,W,H);
-  var v=$('v'), cur=v.currentTime||0, win=wvWin(), d=wvLen();
+  var v=$('v'), cur=(wvDrag && wvDragT!=null) ? wvDragT : (v.currentTime||0), win=wvWin(), d=wvLen();
   /* 再生中は 線が 画面の はしに 来たら ついて いきます */
-  if(!wvDrag && d && (cur<wvStart || cur>wvStart+win*0.92)) wvCenter(cur);
+  wvStart = cur - win*0.5;   /* いまの 位置が いつも まんなか。波形が よこに すべります */
   var x0=wvStart, px=function(t){ return (t-x0)/win*W; };
-  /* 1秒ごとの 目もり */
+  /* 目もり：0.1秒ごとに こまかい 線、0.5秒ごとに 中くらい、1秒ごとに 数字 */
   g.fillStyle='rgba(255,255,255,.55)'; g.font=(11*dpr)+'px sans-serif'; g.textBaseline='top';
-  var s;
-  for(s=Math.ceil(x0); s<=x0+win; s++){
-    var xs=px(s); g.fillRect(xs, H-6*dpr, 1*dpr, 6*dpr);
-    g.fillText(s+'s', xs+2*dpr, H-18*dpr);
+  var kk, kLo=Math.max(0,Math.ceil(x0*10)), kHi=Math.floor(Math.min(x0+win, d||1e9)*10);
+  for(kk=kLo; kk<=kHi; kk++){
+    var xs=px(kk/10), big=(kk%10===0), mid5=(kk%5===0);
+    g.fillRect(xs, H-(big?9:(mid5?7:4))*dpr, 1*dpr, (big?9:(mid5?7:4))*dpr);
+    if(big) g.fillText((kk/10)+'s', xs+2*dpr, H-22*dpr);
   }
   if(!wvData || !wvData.L) return;
-  var L=wvData.L, dt=wvData.dt, fl=wvData.floor, mx=wvData.max, mid=(H-20*dpr)/2, amp=mid-4*dpr;
-  /* 音の 大きさ（上下に ひろがる 形） */
-  g.fillStyle='#b9c7d8';
-  for(var x=0;x<W;x+=Math.max(1,Math.round(dpr))){
-    var ta=x0+x/W*win, tb=x0+(x+1)/W*win, ia=Math.max(0,Math.floor(ta/dt)), ib=Math.min(L.length-1,Math.ceil(tb/dt));
-    var m=-1e9; for(var i=ia;i<=ib;i++) if(L[i]>m) m=L[i];
+  var L=wvData.L, dt=wvData.dt, fl=wvData.floor, mx=wvData.max, mid=(H-24*dpr)/2, amp=mid-4*dpr;
+  /* 音の 大きさ：0.1秒ごとに 1本の 棒 */
+  var kb0=Math.floor(x0*10), kb1=Math.ceil((x0+win)*10), kb;
+  for(kb=kb0; kb<kb1; kb++){
+    var tA=kb/10, tB=(kb+1)/10;
+    if(tA<0 || tA>=L.length*dt) continue;
+    var ia=Math.max(0,Math.floor(tA/dt)), ib=Math.min(L.length-1,Math.ceil(tB/dt)-1), m=-1e9, i;
+    for(i=ia;i<=ib;i++) if(L[i]>m) m=L[i];
     if(m<-1e8) continue;
     var h=Math.max(0, Math.min(1, (m-fl)/(mx-fl+1e-6)));
-    h=Math.max(1*dpr, h*amp);
-    g.fillRect(x, mid-h, Math.max(1,Math.round(dpr)), h*2);
+    h=Math.max(2*dpr, h*amp);
+    var xa=px(tA), xb=px(tB);
+    var inSel=(wvSel!=null && wvSel>=tA && wvSel<tB);
+    g.fillStyle= inSel ? '#ffd966' : '#b9c7d8';
+    g.fillRect(xa+1*dpr, mid-h, Math.max(1,xb-xa-2*dpr), h*2);
   }
   /* 候補（黄色） */
   var ons=wvData.ons||[];
@@ -5265,12 +5272,13 @@ function wvDraw(){
   mark(aSigT, '#3ddc84', T('rtSigLbl'), 0);
   mark(aT0, '#5ab0ff', T('rtFootLbl'), 1);
   /* いまの ところ（赤） */
-  var xc=px(cur); g.fillStyle='#ff4d4d'; g.fillRect(xc-1*dpr, 0, 2*dpr, H-20*dpr);
+  var xc=px(cur); g.fillStyle='#ff4d4d'; g.fillRect(xc-1*dpr, 0, 2*dpr, H-24*dpr);
 }
 /* グラフを さわった ところへ 動画を うごかし、近い 候補に すいつけます */
 function wvPick(ev){
   var cv=$('wvCv'), r=cv.getBoundingClientRect();
   var x=Math.max(0, Math.min(r.width, ev.clientX-r.left));
+  wvStart=($('v').currentTime||0) - wvWin()*0.5;
   var t=wvStart + x/r.width*wvWin(), best=null, bd=wvWin()*0.025;
   var ons=(wvData&&wvData.ons)||[];
   for(var i=0;i<ons.length;i++){ var dd=Math.abs(ons[i].t-t); if(dd<bd){ bd=dd; best=ons[i].t; } }
@@ -5288,12 +5296,31 @@ function wvStep(dir){
 (function(){
   var cv=$('wvCv'); if(!cv) return;
   cv.addEventListener('pointerdown', function(e){
-    e.preventDefault(); wvDrag=true;
+    e.preventDefault(); wvDrag=true; wvMoved=false;
+    wvX0=e.clientX; wvT0=$('v').currentTime||0; wvDragT=wvT0;
     try{ cv.setPointerCapture(e.pointerId); }catch(er){}
-    wvPick(e);
   });
-  cv.addEventListener('pointermove', function(e){ if(wvDrag){ e.preventDefault(); wvPick(e); } });
-  var up=function(){ wvDrag=false; };
+  /* ゆびで 波形を つかんで よこへ ひっぱると、波形が すべって 動画も ついて きます */
+  cv.addEventListener('pointermove', function(e){
+    if(!wvDrag) return; e.preventDefault();
+    var r=cv.getBoundingClientRect(), dx=e.clientX-wvX0;
+    if(!wvMoved && Math.abs(dx)<6) return;
+    wvMoved=true;
+    var t=wvT0 - dx/r.width*wvWin(), d=wvLen();
+    t=Math.max(0, Math.min(d||t, t));
+    wvDragT=t; wvSel=Math.round(t*100)/100; wvSeek(wvSel); wvLabel();
+  });
+  var up=function(e){
+    if(!wvDrag) return;
+    var moved=wvMoved; wvDrag=false;
+    if(!moved){ if(e.type==='pointerup') wvPick(e); }                 /* ちょん と さわった だけ → その 位置の 候補へ */
+    else{                                    /* ひっぱって はなした → ちかい 候補に すいつく */
+      var ons=(wvData&&wvData.ons)||[], bd=wvWin()*0.03, best=null;
+      for(var i=0;i<ons.length;i++){ var dd=Math.abs(ons[i].t-wvDragT); if(dd<bd){ bd=dd; best=ons[i].t; } }
+      if(best!=null){ wvSel=best; wvSeek(best); wvLabel(); }
+    }
+    wvDragT=null;
+  };
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
   $('wvPrev').onclick=function(){ wvStep(-1); };
   $('wvNext').onclick=function(){ wvStep(1); };

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.11">
+<meta name="app-ver" content="2026.10.03.12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -738,10 +738,15 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #admPw{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #admPw, #saveBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #admPw.hide{ display:none !important; }
+#survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #admPw.hide, #saveBox.hide{ display:none !important; }
+#saveBox{ z-index:90; }
+#saveBox select, #saveBox input[type=text]{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
+  border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
+#saveBox select{ -webkit-appearance:none; appearance:none; }
+#saveBox .svBtns .btn{ flex:1; min-height:56px; font-size:18px; }
 #admPw input[type=password]{ width:100%; min-height:52px; padding:6px 12px; border-radius:6px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:20px; font-weight:800; letter-spacing:2px; }
 .btn.r{ border-color:var(--red); color:#ff8e78; }
@@ -1732,7 +1737,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.11</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.12</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2402,6 +2407,26 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 </div>
 
+<div id="saveBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="sbH">
+  <div class="svWrap">
+    <h3 id="sbH" data-t="sbH"></h3>
+    <div class="sq">
+      <p class="q" data-t="sbSwimLbl"></p>
+      <select id="sbSwim"></select>
+      <p class="lead" data-t="nameFreeLbl" style="margin-top:8px;"></p>
+      <input type="text" id="sbName" autocomplete="off" placeholder="例）山田 ゆり">
+    </div>
+    <div class="sq">
+      <p class="q" data-t="sbTitleLbl"></p>
+      <input type="text" id="sbTitle" autocomplete="off">
+    </div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="sbCancel" data-t="dMenuX"></button>
+      <button class="btn g" type="button" id="sbOk" data-t="save"></button>
+    </div>
+  </div>
+</div>
+
 <div id="manualBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="mH">
   <div class="svWrap">
     <h3 id="mH" data-t="manualTitle"></h3>
@@ -3049,6 +3074,9 @@ var W={
  askClear:['とった 数字を ぜんぶ 消しますか。','記録した数値をすべて消去しますか。'],
  askLeave:['ほぞんしていない 数字が あります。もどりますか。','保存していない記録があります。戻りますか。'],
  askName:['なまえを つけてください','名前を入力してください'],
+ sbH:['だれの きろくですか','誰の記録か選んで保存'],
+ sbSwimLbl:['選手','選手'],
+ sbTitleLbl:['きろくの 名前','記録の名前'],
  askDel:['この きろくを 消しますか。もどせません。','この記録を削除しますか。元に戻せません。'],
  askLap1:['さつえい中に とった ラップが ','撮影中に記録したラップが '],
  askLap2:['こ あります。\nそのまま 通過タイムに つかいますか。','件あります。\nそのまま通過タイムとして使いますか。'],
@@ -5941,8 +5969,8 @@ $('anaSave').onclick=function(){
   if(outOfRange().length){ distApply(); if(outOfRange().length) return; }
   var d=new Date();
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
-  var name=prompt(T('askName'), $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent);
-  if(name===null) return;
+  var defName = $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent;
+  sbAsk(defName, aId, function(name, swId, swName){
   thumb().then(function(th){
     var rec={
       id: aId || ('r'+Date.now()),
@@ -5958,7 +5986,9 @@ $('anaSave').onclick=function(){
       video: aBlob,
       videoUrl: '',
       updatedAt: Date.now(),
-      thumb: th
+      thumb: th,
+      swimmerId: swId || '',
+      swimmerName: swName || ''
     };
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
@@ -5976,7 +6006,38 @@ $('anaSave').onclick=function(){
       }, 900);
     }
   }).catch(function(){ toast(T('msgSaveNG')); });
+  });
 };
+/* --- ほぞんの まど：選手と 記録の名前を きく ---
+   前に えらんだ 選手を 最初から えらんで おきます。
+   やり直しの ときは、その 記録の 選手を つかいます。 */
+function sbAsk(defName, recId, cb){
+  var last={}; try{ last=JSON.parse(localStorage.getItem('swimiq_lastswim')||'{}')||{}; }catch(e){ last={}; }
+  var open=function(pre){
+    fillSwimSelect($('sbSwim'), '');
+    var id=pre.id||'', nm=pre.name||'';
+    if(id && swById(id)){ $('sbSwim').value=id; $('sbName').value=''; }
+    else { $('sbSwim').value=''; $('sbName').value=nm; }
+    $('sbTitle').value=defName||'';
+    $('saveBox').classList.remove('hide');
+    setTimeout(function(){ try{ $('sbOk').focus(); }catch(e){} }, 50);
+  };
+  $('sbSwim').onchange=function(){ if(this.value) $('sbName').value=''; };
+  $('sbName').oninput=function(){ if(this.value.trim()) $('sbSwim').value=''; };
+  $('sbCancel').onclick=function(){ $('saveBox').classList.add('hide'); };
+  $('sbOk').onclick=function(){
+    var id=$('sbSwim').value||'', typed=($('sbName').value||'').trim();
+    var nm = id ? ((swById(id)||{}).name||'') : typed;
+    try{ localStorage.setItem('swimiq_lastswim', JSON.stringify({id:id, name:id?'':typed})); }catch(e){}
+    $('saveBox').classList.add('hide');
+    cb(($('sbTitle').value||'').trim(), id, nm);
+  };
+  if(recId){
+    dbGet(recId).then(function(r){
+      if(r && (r.swimmerId || r.swimmerName)) open({id:r.swimmerId, name:r.swimmerName}); else open(last);
+    }, function(){ open(last); });
+  }else open(last);
+}
 
 /* --- たて向きの けっか一覧の ボタン --- */
 $('asSave').onclick=function(){ $('anaSave').click(); };

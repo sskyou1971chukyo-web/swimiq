@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.7">
+<meta name="app-ver" content="2026.10.03.8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1530,6 +1530,9 @@ body.grid .gridL{ display:block; }
   border:2px solid rgba(255,255,255,.3); background:rgba(255,255,255,.08); color:#fff; }
 #wave .wvBtns .wvSet{ grid-column:1 / span 2; background:#ffc400; border-color:#ffc400; color:#000; }
 #wave .wvBtns .wvSet:disabled{ opacity:.45; }
+#wave .wvBtns .wvStop{ display:none; grid-column:1 / span 2; grid-row:1 / span 2; background:#ff5a3c; border-color:#ff5a3c; color:#000; font-size:17px; }
+#wave.scan .wvBtns button{ display:none; }
+#wave.scan .wvBtns .wvStop{ display:block; }
 @media (orientation:portrait){
   #wave{ left:10px; right:10px; }
   #wave .wvMain{ flex-direction:column; }
@@ -1710,7 +1713,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.7</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.8</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1799,6 +1802,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
           <button type="button" id="wvPrev" data-t="wvPrev"></button>
           <button type="button" id="wvNext" data-t="wvNext"></button>
           <button type="button" id="wvSet" class="wvSet" data-t="wvSet"></button>
+          <button type="button" id="wvStop" class="wvStop" data-t="wvStop"></button>
         </div>
       </div>
     </div>
@@ -2855,6 +2859,7 @@ var W={
  wvSelNone:['グラフを さわって 合図の 位置を えらんで ください','グラフに触れて合図の位置を選んでください'],
  wvLoading:['音を 読みこんで います…','音を読み込んでいます…'],
  wvNG:['音を 自動では 読みとれません。下の ボタンを おして ください','音を自動では読み取れません。下のボタンを押してください'],
+ wvStop:['ここまでで 読みとり 終わり','ここまでで読み取り終了'],
  wvScanBtn:['音を 読みとる','音を読み取る'],
  wvScanning:['音を 読みとって います… ','音を読み取っています… '],
  wvScanDone:['音の 波形が できました','音の波形ができました'],
@@ -5118,6 +5123,7 @@ function wvLoad(){
 var wvScanning=false, wvScanRaf=null, wvScanFin=null;
 function wvScanStop(){
   wvScanning=false;
+  $('wave').classList.remove('scan');
   if(wvScanRaf){ cancelAnimationFrame(wvScanRaf); wvScanRaf=null; }
   if(rtGain){ try{ rtGain.gain.value=1; }catch(e){} }
   var v=$('v'); try{ v.pause(); }catch(e){}
@@ -5138,6 +5144,7 @@ function wvScanStart(){
   $('wave').classList.remove('ask');
   $('wvMsg').classList.add('hide'); $('wvScan').classList.add('hide');
   wvScanning=true;
+  $('wave').classList.add('scan');
   if(rtGain) rtGain.gain.value=0;
   try{ v.pause(); v.currentTime=0; v.playbackRate=1; }catch(e){}
   var pp=v.play();
@@ -5347,6 +5354,7 @@ function wvStep(dir){
   $('wvNext').onclick=function(){ wvStep(1); };
   $('wvX').onclick=function(){ wvPinned=false; wvShow(false, true); };
   $('wvScan').onclick=function(){ wvScanStart(); };
+  $('wvStop').onclick=function(){ if(wvScanning && wvScanFin) wvScanFin(true); };
   $('wvSet').onclick=function(){
     if(wvSel==null) return;
     if(aT0!=null && wvSel>=aT0){ toast(T('rtBad')); return; }

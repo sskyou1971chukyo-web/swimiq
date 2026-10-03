@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.2">
+<meta name="app-ver" content="2026.10.03.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1492,7 +1492,7 @@ body.grid .gridL{ display:block; }
 #wave{ position:absolute; z-index:4; pointer-events:auto; display:flex; flex-direction:column; gap:4px;
   left:calc(env(safe-area-inset-left) + 10px); right:calc(var(--sideW) + 10px);
   top:calc(env(safe-area-inset-top) + 56px);
-  padding:6px 8px; border-radius:12px; background:rgba(6,8,12,.78); border:2px solid #3a3f48; }
+  padding:6px 8px; border-radius:12px; background:rgba(6,8,12,.94); border:2px solid #3a3f48; }
 #wave.hide, .ov.ana.play #wave, #ana.stroke #wave{ display:none !important; }
 #ana.wv .ov.ana .oInfo{ display:none !important; }
 #wave .wvTop{ display:flex; align-items:center; gap:10px; min-width:0; height:30px; }
@@ -1513,6 +1513,10 @@ body.grid .gridL{ display:block; }
   min-height:44px; padding:0 18px; border-radius:10px; border:2px solid #ffc400;
   background:#ffc400; color:#000; font-size:15px; font-weight:900; white-space:nowrap; }
 #wvScan.hide{ display:none; }
+#wave.ask .wvBtns, #wave.ask #wvSelL{ display:none; }
+#wave.ask #wvCv{ height:96px; }
+#wave.ask #wvMsg{ align-items:flex-start; justify-content:center; padding:8px 6px 0; text-align:center; }
+#wave.ask #wvScan{ bottom:10px; min-height:48px; padding:0 28px; font-size:17px; }
 #wave .wvBtns{ flex:0 0 230px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:6px; }
 #wave .wvBtns button{ min-height:36px; border-radius:9px; font-size:14px; font-weight:900; padding:0 4px;
   border:2px solid rgba(255,255,255,.3); background:rgba(255,255,255,.08); color:#fff; }
@@ -1685,7 +1689,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 
   <div class="gl recHd" style="margin-top:22px;"><span data-t="glRec"></span></div>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.2</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.3</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2829,8 +2833,8 @@ var W={
  wvCand:['候補 ','候補 '],
  wvSelNone:['グラフを さわって 合図の 位置を えらんで ください','グラフに触れて合図の位置を選んでください'],
  wvLoading:['音を 読みこんで います…','音を読み込んでいます…'],
- wvNG:['この 動画の 音は 自動では 読みとれませんでした','この動画の音は自動では読み取れませんでした'],
- wvScanBtn:['タップして 音を 読みとる（動画が 流れます・音は 出ません）','タップして音を読み取る（動画が流れます・音は出ません）'],
+ wvNG:['音を 自動では 読みとれません。下の ボタンを おして ください','音を自動では読み取れません。下のボタンを押してください'],
+ wvScanBtn:['音を 読みとる','音を読み取る'],
  wvScanning:['音を 読みとって います… ','音を読み取っています… '],
  wvScanDone:['音の 波形が できました','音の波形ができました'],
  wvScanFlat:['この 動画には 音が ほとんど 入って いません','この動画には音がほとんど入っていません'],
@@ -5060,6 +5064,7 @@ var wvOn=false, wvClosed=false, wvSel=null, wvStart=0, wvDrag=false, wvRaf=null,
 function wvLen(){ var d=$('v').duration; return (isFinite(d) && d>0) ? d : 0; }
 function wvWin(){ var d=wvLen(); return d ? Math.min(d, 10) : 10; }
 function wvPrompt(){
+  $('wave').classList.add('ask');
   $('wvMsg').textContent=T('wvNG'); $('wvMsg').classList.remove('hide'); $('wvMsg').classList.add('top');
   $('wvScan').classList.remove('hide'); wvLabel();
 }
@@ -5067,6 +5072,7 @@ function wvLoad(){
   if(wvBlob===aBlob && wvData) return;
   if(wvScanning) return;
   wvData=null; wvBlob=aBlob;
+  $('wave').classList.remove('ask');
   $('wvScan').classList.add('hide');
   if(sigFail===aBlob){ wvPrompt(); return; }
   $('wvMsg').classList.remove('top');
@@ -5107,6 +5113,7 @@ function wvScanStart(){
   var buf=new Float32Array(wvAn.fftSize);
   var last=-1, mx=-60, quiet=0, t0=performance.now(), seen=0;
   wvData={ L:L, dt:dt, floor:-80, max:-40, ons:[], partial:true }; wvBlob=blob;
+  $('wave').classList.remove('ask');
   $('wvMsg').classList.add('hide'); $('wvScan').classList.add('hide');
   wvScanning=true;
   if(rtGain) rtGain.gain.value=0;

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.13">
+<meta name="app-ver" content="2026.10.04.14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1770,7 +1770,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.13</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.14</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2476,6 +2476,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="sq">
       <p class="q" data-t="sbTitleLbl"></p>
+      <select id="sbMeetPick" class="rdSel meetPick"></select>
+      <p class="lead meetFree" data-t="meetFreeLbl" style="margin-top:8px;"></p>
       <input type="text" id="sbTitle" autocomplete="off">
     </div>
     <div class="sq">
@@ -2505,6 +2507,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="sq">
       <p class="q" data-t="mTitleLbl"></p>
+      <select id="mMeetPick" class="rdSel meetPick"></select>
+      <p class="lead meetFree" data-t="meetFreeLbl" style="margin-top:8px;"></p>
       <input type="text" id="mTitle">
     </div>
     <div class="sq">
@@ -2555,6 +2559,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <p class="lead" data-t="vfLead"></p>
     <div class="sq">
       <p class="q" data-t="sbTitleLbl"></p>
+      <select id="vfMeetPick" class="rdSel meetPick"></select>
+      <p class="lead meetFree" data-t="meetFreeLbl" style="margin-top:8px;"></p>
       <input type="text" id="vfMeet" autocomplete="off">
     </div>
     <div class="sq">
@@ -2655,6 +2661,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <p class="lead" data-t="rfLead"></p>
     <div class="sq">
       <p class="q" data-t="sbTitleLbl"></p>
+      <select id="rfMeetPick" class="rdSel meetPick"></select>
+      <p class="lead meetFree" data-t="meetFreeLbl" style="margin-top:8px;"></p>
       <input type="text" id="rfMeet" autocomplete="off">
     </div>
     <div class="sq">
@@ -3431,6 +3439,9 @@ var W={
   '6　パソコンで直したことは、携帯を開いたときに自動で入ります\n'+
   '※ 動画は重いので同期しません。数字と名前と通過タイムだけです。\n'+
   '　　動画も見たいときは、記録を開いて動画をGoogleドライブに上げてください'],
+ meetPickNone:['（これまでの 試合名から えらぶ）','（これまでの試合名から選ぶ）'],
+ meetFreeLbl:['一覧に ない ときは、ここに 試合名を 書いて ください','一覧にないときは、ここに試合名を直接入力できます'],
+ swmPastLbl:['これまでに 入力した 名前','これまでに入力した名前'],
  nameFreeLbl:['一覧に ない ときは、ここに 名前を 書いて ください','一覧にないときは、ここに名前を直接入力できます'],
  vfSplLbl:['通過タイムを 直す','通過タイムを直す'],
  vfSplHint:['左が きょり、右が 経過タイムです。きょりが ちがう ときは 左で えらび直して ください。いらない 行は ✕ で けせます。','左が距離、右が経過タイムです。距離が違うときは左で選び直してください。いらない行は✕で消せます。'],
@@ -6236,8 +6247,9 @@ function sbAsk(defName, recId, cb){
     fillSwimSelect($('sbSwim'), '');
     var id=pre.id||'', nm=pre.name||'';
     if(id && swById(id)){ $('sbSwim').value=id; $('sbName').value=''; }
-    else { $('sbSwim').value=''; $('sbName').value=nm; }
+    else { $('sbSwim').value=''; $('sbName').value=nm; swPastSel($('sbSwim'), nm); }
     $('sbTitle').value=autoCut(stripRound(defName||''));
+    fillMeetPick($('sbMeetPick'), $('sbTitle'));
     roundFill($('sbRound'), pre.round!=null ? pre.round : roundTail(defName||''));
     $('sbKick').value=(pre.kick!=null)?String(pre.kick):'';
     $('sbUw').value=(pre.uw!=null)?String(pre.uw):'';
@@ -6248,7 +6260,7 @@ function sbAsk(defName, recId, cb){
   $('sbName').oninput=function(){ if(this.value.trim()) $('sbSwim').value=''; };
   $('sbCancel').onclick=function(){ $('saveBox').classList.add('hide'); };
   $('sbOk').onclick=function(){
-    var id=$('sbSwim').value||'', typed=($('sbName').value||'').trim();
+    var id=swSelId('sbSwim'), typed=($('sbName').value||'').trim();
     var nm = id ? ((swById(id)||{}).name||'') : typed;
     try{ localStorage.setItem('swimiq_lastswim', JSON.stringify({id:id, name:id?'':typed})); }catch(e){}
     $('saveBox').classList.add('hide');
@@ -6428,6 +6440,7 @@ function paintList(){
   dbAll().then(function(all){
     all = all.slice().sort(function(a,b){ return workAt(b)-workAt(a); });
     try{ bestIdxBuild(all); }catch(e){}
+    try{ pastBuild(all); }catch(e){}
     box.innerHTML='';
     var qEl=$('homeQ'), q=qEl ? qNorm(qEl.value) : '', note=$('homeQNote');
     if($('homeQClear')) $('homeQClear').classList.toggle('hide', !q);
@@ -6635,9 +6648,10 @@ $('reInfo').onclick=function(){
   $('rfEvent').value = dRec.event || 'free';
   $('rfMeet').value = meetName(dRec);
   roundFill($('rfRound'), roundOf(dRec));
+  fillMeetPick($('rfMeetPick'), $('rfMeet'));
   fillSwimSelect($('rfSwim'), '');
   if(dRec.swimmerId && swById(dRec.swimmerId)){ $('rfSwim').value=dRec.swimmerId; $('rfName').value=''; }
-  else { $('rfSwim').value=''; $('rfName').value=dRec.swimmerName||''; }
+  else { $('rfSwim').value=''; $('rfName').value=dRec.swimmerName||''; swPastSel($('rfSwim'), dRec.swimmerName); }
   $('reFix').classList.remove('hide');
 };
 $('rfSwim').onchange=function(){ if(this.value) $('rfName').value=''; };
@@ -6647,7 +6661,7 @@ $('rfCancel').onclick=function(){ $('reFix').classList.add('hide'); };
 $('rfSave').onclick=function(){
   if(!dRec) return;
   var pool=Number($('rfPool').value), dist=Number($('rfDist').value), ev=$('rfEvent').value;
-  var swId=$('rfSwim').value||'', swNm=swId ? ((swById(swId)||{}).name||'') : ($('rfName').value||'').trim();
+  var swId=swSelId('rfSwim'), swNm=swId ? ((swById(swId)||{}).name||'') : ($('rfName').value||'').trim();
   if(!(dist>0)){ toast(T('distBad')); return; }
   /* 新しい きょりに ない 通過タイムが あれば、けして よいか たしかめます */
   var all=lapDists(dist), ok={}, i, keep=[], bad=[];
@@ -8115,6 +8129,7 @@ function manualOpen(rec){
   $('mDate').value = rec ? new Date(rec.at).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
   $('mTitle').value = rec ? meetName(rec) : '';
   roundFill($('mRound'), rec ? roundOf(rec) : '');
+  fillMeetPick($('mMeetPick'), $('mTitle'));
   $('mEvent').value = rec ? (rec.event||'free') : 'free';
   var dist = rec ? (rec.dist||100) : 100;
   distFill($('mDist'), dist);
@@ -8124,6 +8139,7 @@ function manualOpen(rec){
   $('mVid').value = (rec && rec.videoUrl) ? rec.videoUrl : '';
   fillSwimSelect($('mSwim'), rec ? rec.swimmerId : '');
   $('mName').value = (rec && !rec.swimmerId && rec.swimmerName) ? rec.swimmerName : '';
+  swPastSel($('mSwim'), $('mName').value);
   $('mDel').classList.toggle('hide', !rec);
   $('mPdf').classList.toggle('hide', !rec);
   $('manualBox').classList.remove('hide');
@@ -8159,7 +8175,59 @@ function fillSwimSelect(sel, curId){
     var o=document.createElement('option'); o.value=s.id; o.textContent=s.name;
     sel.appendChild(o);
   });
+  /* 選手登録は していないが、前に 名前を 入力した ことが ある 人も 選べる ように します */
+  var reg={}; a.forEach(function(s){ reg[qNorm(s.name)]=1; });
+  var past=(PAST.names||[]).filter(function(n){ return !reg[qNorm(n)]; });
+  if(past.length){
+    var og=document.createElement('optgroup'); og.label=T('swmPastLbl');
+    past.forEach(function(n){ var o=document.createElement('option'); o.value='nm:'+n; o.textContent=n; og.appendChild(o); });
+    sel.appendChild(og);
+  }
   sel.value = curId || '';
+  /* 前の 名前を えらんだら、下の 名前の らんに 入れます（保存の しくみは 今までと 同じ） */
+  if(!sel.dataset.pastHook){
+    sel.dataset.pastHook='1';
+    sel.addEventListener('change', function(){
+      var v=sel.value||'';
+      if(v.indexOf('nm:')!==0) return;
+      var nmEl=$(sel.id.replace(/Swim$/,'Name'));
+      setTimeout(function(){ if(nmEl) nmEl.value=v.slice(3); sel.value=v; }, 0);
+    });
+  }
+}
+/* 選手の えらぶ らんの 値。前に 入力した 名前（nm:）の ときは 登録選手では ないので 空に します */
+function swSelId(id){ var v=($(id)&&$(id).value)||''; return v.indexOf('nm:')===0 ? '' : v; }
+/* 前に 入力した 名前なら、えらぶ らんも その 名前に そろえます */
+function swPastSel(sel, nm){
+  if(!sel || !nm || sel.value) return;
+  var k=qNorm(nm), op=sel.querySelectorAll('option'), i;
+  for(i=0;i<op.length;i++) if(op[i].value.indexOf('nm:')===0 && qNorm(op[i].value.slice(3))===k){ sel.value=op[i].value; return; }
+}
+/* これまでの 試合名と 名前（一覧から えらべる ように 覚えて おきます） */
+var PAST={ meets:[], names:[] };
+function pastBuild(all){
+  var ms=[], ns=[], seenM={}, seenN={};
+  (all||[]).filter(function(r){ return r && !r.draft; })
+    .sort(function(a,b){ return workAt(b)-workAt(a); })
+    .forEach(function(r){
+      var m=meetName(r), km=qNorm(m);
+      if(m && !seenM[km]){ seenM[km]=1; ms.push(m); }
+      var n=(r.swimmerName||'').trim(), kn=qNorm(n);
+      if(n && !(r.swimmerId && swById(r.swimmerId)) && !seenN[kn]){ seenN[kn]=1; ns.push(n); }
+    });
+  PAST.meets=ms.slice(0,40); PAST.names=ns.slice(0,60);
+}
+function fillMeetPick(sel, inp){
+  if(!sel) return;
+  var lead=sel.nextElementSibling;
+  var has=PAST.meets.length>0;
+  sel.classList.toggle('hide', !has);
+  if(lead && lead.classList.contains('meetFree')) lead.classList.toggle('hide', !has);
+  sel.innerHTML='<option value="">'+T('meetPickNone')+'</option>';
+  PAST.meets.forEach(function(m){ var o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  var cur=(inp && inp.value||'').trim();
+  sel.value = (PAST.meets.indexOf(cur)>=0) ? cur : '';
+  sel.onchange=function(){ if(sel.value && inp) inp.value=sel.value; };
 }
 /* 一覧を かき出す */
 function paintSwimmers(){
@@ -9276,8 +9344,8 @@ $('mSave').onclick=function(){
     manualN: hasN ? totalN : null,
     manualST: cntST ? (sumST/cntST) : null,
     videoUrl: ($('mVid').value||'').trim(),
-    swimmerId: $('mSwim').value || '',
-    swimmerName: ($('mSwim').value ? ((swById($('mSwim').value)||{}).name || '')
+    swimmerId: swSelId('mSwim'),
+    swimmerName: (swSelId('mSwim') ? ((swById(swSelId('mSwim'))||{}).name || '')
                                    : (($('mName').value||'').trim())),
     updatedAt: Date.now(),
     thumb: ''
@@ -9389,12 +9457,14 @@ function vfOpen(rec){
   $('vfMemo').placeholder = T('memoPh');
   $('vfMeet').value = meetName(rec);
   roundFill($('vfRound'), roundOf(rec));
+  fillMeetPick($('vfMeetPick'), $('vfMeet'));
   $('vfKick').value = (rec.uwKick!=null)?String(rec.uwKick):'';
   $('vfUw').value = (rec.uwDist!=null)?String(rec.uwDist):'';
   vfSplPaint(rec.splits || []);
   fillSwimSelect($('vfSwim'), rec.swimmerId || '');
   /* 一覧に ない 名前は 文字で のこして あるので、そのまま 出します */
   $('vfName').value = (!rec.swimmerId && rec.swimmerName) ? rec.swimmerName : '';
+  swPastSel($('vfSwim'), $('vfName').value);
   $('vfDel').classList.remove('hide');
   $('vFix').classList.remove('hide');
 }
@@ -9445,7 +9515,7 @@ $('vfSave').onclick=function(){
     rec.round=$('vfRound').value||'';
     rec.uwKick = numOrNull($('vfKick').value,false);
     rec.uwDist = numOrNull($('vfUw').value,true);
-    rec.swimmerId = $('vfSwim').value || '';
+    rec.swimmerId = swSelId('vfSwim');
     var vfTyped=($('vfName').value||'').trim();
     /* 一覧から えらんで いない ときは、書いた 名前を つかいます */
     rec.swimmerName = rec.swimmerId ? ((swById(rec.swimmerId)||{}).name || '') : vfTyped;

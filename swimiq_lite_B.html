@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.14">
+<meta name="app-ver" content="2026.10.04.15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -746,6 +746,33 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 #saveBox select, #saveBox input[type=text], #reFix input[type=text], #vFix #vfMeet{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
 #saveBox select{ -webkit-appearance:none; appearance:none; }
+#qWiz{ position:fixed; inset:0; z-index:96; display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.92); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px); }
+#qWiz.hide{ display:none !important; }
+.qwCard{ width:100%; max-width:720px; margin:auto; padding:18px 18px 16px; border-radius:12px; background:var(--bk); border:3px solid var(--am); }
+.qwStep{ margin:0; text-align:center; font-size:15px; font-weight:800; color:var(--dim); }
+.qwQ{ margin:2px 0 14px; text-align:center; font-size:34px; font-weight:900; color:#fff; outline:none; }
+.qwOpts{ display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; }
+.qwO{ min-height:64px; border-radius:10px; border:2px solid var(--line); background:var(--pane); color:#fff; font-size:22px; font-weight:900; cursor:pointer; }
+.qwO[aria-pressed="true"]{ background:var(--am); border-color:var(--am); color:#000; }
+#qwBody input[type=text]{ width:100%; min-height:58px; padding:6px 12px; border-radius:10px; border:2px solid var(--line); background:var(--pane); color:#fff; font-size:21px; font-weight:800; }
+#qwBody .lead{ margin:8px 0 6px; }
+#qwBody .qwSub{ margin:14px 0 6px; font-size:17px; font-weight:900; color:var(--am); }
+.qwBtns{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+.qwBtns .btn{ flex:1 1 120px; min-height:58px; font-size:18px; }
+.qwBtns .btn.g{ flex:2 1 160px; }
+.qwBtns .btn{ white-space:nowrap; }
+@media (max-height:520px){
+  .qwCard{ padding:10px 14px 12px; }
+  .qwQ{ font-size:26px; margin:0 0 8px; }
+  .qwOpts{ grid-template-columns:repeat(auto-fill,minmax(105px,1fr)); gap:8px; }
+  .qwO{ min-height:48px; font-size:19px; }
+  .qwBtns{ margin-top:10px; }
+  .qwBtns .btn{ min-height:50px; font-size:17px; }
+  #qwBody input[type=text], #qwBody select.rdSel{ min-height:48px; font-size:18px; }
+  #qwBody .qwSub{ margin:8px 0 4px; }
+}
 select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px; border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
 .cmpItem .r2.kv{ display:flex; flex-direction:column; gap:1px; font-size:15px; }
 .cmpItem .r2.kv span{ white-space:nowrap; }
@@ -1770,7 +1797,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.14</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.15</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2455,6 +2482,20 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="btn g" type="button" id="svSend" data-t="svSend"></button>
     </div>
     <p class="svNote" id="svNote"></p>
+  </div>
+</div>
+
+<div id="qWiz" class="hide" role="dialog" aria-modal="true" aria-labelledby="qwQ">
+  <div class="qwCard">
+    <p class="qwStep" id="qwStep"></p>
+    <h3 class="qwQ" id="qwQ" tabindex="-1"></h3>
+    <div id="qwBody"></div>
+    <div class="qwBtns">
+      <button class="btn" type="button" id="qwPrev">前へ</button>
+      <button class="btn" type="button" id="qwSkip">スキップ</button>
+      <button class="btn" type="button" id="qwAll">すべてスキップ</button>
+      <button class="btn g" type="button" id="qwNext">次へ</button>
+    </div>
   </div>
 </div>
 
@@ -3689,6 +3730,7 @@ var aBlob=null, aURL=null, aId=null, aFromCam=false;      // いま分析して�
 var aT0=null;                              // スタートの ところ（動画の中の 秒）
 var aSplits=[];                            // [{d:きょり, t:スタートからの 秒}]
 var aStrokes=[];                           // かきを おした 動画の中の 秒
+var aPre={};                                       // 分析の はじめに きいた 名前（保存の 画面で 使います）
 var aPreLaps=null, aPreT0=0;                         // さつえい中に とった ラップ（B版だけ）
 
 function hTimeLbl(rt){ return T('hTime'); }
@@ -4267,6 +4309,7 @@ function openAna(blob, opt){
   if(typeof wvShow==='function'){ wvShow(false); wvSel=null; wvClosed=false; wvPinned=false; wvData=null; wvBlob=null; }
   aRT   = (opt.rt!=null)   ? opt.rt   : null;
   aPreLaps = opt.laps || null;
+  aPre = opt.pre || {};
   aPreT0 = opt.raceT0 || 0;          // 録画の はじめから レースの スタートまでの 秒
   if(aURL){ try{ URL.revokeObjectURL(aURL); }catch(e){} }
   aURL=URL.createObjectURL(blob);
@@ -4327,6 +4370,7 @@ function openAna(blob, opt){
   if(typeof wvAuto==='function') setTimeout(wvAuto, 60);
   if(aDraftId){ aDraftSig=anaSig(); setTimeout(function(){ toast('途中まで分析した「未分析」の記録を開きました'); }, 400); }
   draftBtnPaint();
+  if(opt.ask) setTimeout(function(){ qwOpen(opt.ask); }, 80);
 }
 
 /* ================================================================
@@ -4338,7 +4382,7 @@ function openAna(blob, opt){
 var aDraftId=null, aDraftAt=null, aDraftThumb='', aDraftSig='', aDraftBusy=false, aNoDraft=false;
 function anaSig(){
   var st=aStrokes||[];
-  return JSON.stringify([aSplits, st.length, st[st.length-1]||0, aT0, aSigT, aRT, $('dist').value, $('pool').value, $('event').value]);
+  return JSON.stringify([aSplits, st.length, st[st.length-1]||0, aT0, aSigT, aRT, $('dist').value, $('pool').value, $('event').value, aPre, $('anaTitle').textContent]);
 }
 function anaHasWork(){ return !!((aSplits&&aSplits.length) || (aStrokes&&aStrokes.length) || aT0!=null || aSigT!=null); }
 function draftSave(){
@@ -4356,7 +4400,8 @@ function draftSave(){
       anaTitle:($('anaTitle').dataset.neu==='1'?'':$('anaTitle').textContent),
       pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value,
       t0:aT0, sigT:aSigT, rt:aRT, rtMode:(aRT!=null?rtMode:null),
-      splits:aSplits.slice(), strokes:aStrokes.slice(), video:aBlob, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now() };
+      splits:aSplits.slice(), strokes:aStrokes.slice(), video:aBlob, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now(),
+      preSwId:(aPre.id||''), preSwName:(aPre.name||'') };
     return dbPut(rec).then(function(){ aDraftSig=sig; aDraftBusy=false; draftBtnPaint(); return true; });
   }).catch(function(){ aDraftBusy=false; return false; });
 }
@@ -4369,7 +4414,8 @@ function draftResume(r){
   if(!hasVid(r)){ toast('この未分析には動画が入っていません'); viewOpen(r); return; }
   openAna(r.video, { id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb,
     splits:r.splits||[], strokes:r.strokes||[], t0:(r.t0!=null?r.t0:null), sigT:r.sigT, rt:r.rt,
-    pool:r.pool, dist:r.dist, event:r.event, title:(r.anaTitle||null) });
+    pool:r.pool, dist:r.dist, event:r.event, title:(r.anaTitle||null),
+    pre:{ id:(r.preSwId||''), name:(r.preSwName||'') } });
   show('ana');
 }
 function draftBtnPaint(){ var b=$('bDraftDel'); if(b) b.classList.toggle('hide', !aDraftId); }
@@ -6241,6 +6287,97 @@ $('anaSave').onclick=function(){
 /* --- ほぞんの まど：選手と 記録の名前を きく ---
    前に えらんだ 選手を 最初から えらんで おきます。
    やり直しの ときは、その 記録の 選手を つかいます。 */
+/* ================================================================
+   動画を 入れた すぐ あとに、大きな 字で 1つずつ たずねます（入力ミスを へらす）
+   練習中は はやさが 大事なので、どれも「スキップ」「すべてスキップ」が できます
+   ================================================================ */
+var qwSteps=[], qwI=0;
+var QW_ALL=['name','pool','event','dist','meet'];
+function qwOpen(kind){
+  qwSteps = (kind==='cam') ? ['name','meet'] : QW_ALL.slice();   /* カメラの あとは プール・種目・距離を もう きいて います */
+  qwI=0; qwPaint();
+  $('qWiz').classList.remove('hide');
+}
+function qwClose(){ $('qWiz').classList.add('hide'); }
+function qwBtns(list, cur, onPick){
+  var w=document.createElement('div'); w.className='qwOpts';
+  list.forEach(function(it){
+    var b=document.createElement('button'); b.type='button'; b.className='qwO';
+    b.textContent=it[1]; b.setAttribute('aria-pressed', String(it[0])===String(cur) ? 'true':'false');
+    b.onclick=function(){ onPick(it[0]); };
+    w.appendChild(b);
+  });
+  return w;
+}
+function qwPaint(){
+  var k=qwSteps[qwI], body=$('qwBody');
+  $('qwStep').textContent=(qwI+1)+' / '+qwSteps.length;
+  $('qwPrev').classList.toggle('hide', qwI===0);
+  $('qwNext').textContent = (qwI===qwSteps.length-1) ? '分析をはじめる' : '次へ';
+  body.innerHTML='';
+  var next=function(){ qwGo(1); };
+  if(k==='name'){
+    $('qwQ').textContent='名前は？';
+    body.innerHTML='<select id="qwSwim" class="rdSel" aria-label="選手"></select>'+
+      '<p class="lead">'+T('nameFreeLbl')+'</p><input type="text" id="qwName" autocomplete="off" placeholder="例）山田 ゆり">';
+    var last={}; try{ last=JSON.parse(localStorage.getItem('swimiq_lastswim')||'{}')||{}; }catch(e){}
+    var id=aPre.id||(aPre.name?'':last.id)||'', nm=aPre.name||(aPre.id?'':last.name)||'';
+    fillSwimSelect($('qwSwim'), (id && swById(id)) ? id : '');
+    if(!(id && swById(id))){ $('qwName').value=nm; swPastSel($('qwSwim'), nm); }
+    $('qwSwim').addEventListener('change', function(){ if(this.value && this.value.indexOf('nm:')!==0) $('qwName').value=''; });
+    $('qwName').oninput=function(){ if(this.value.trim()) $('qwSwim').value=''; };
+  }else if(k==='pool'){
+    $('qwQ').textContent='プールサイズは？';
+    body.appendChild(qwBtns([['25','25mプール'],['50','50mプール']], $('pool').value, function(v){
+      $('pool').value=v; selManual=false; aLastSel=''; paintTbl(); next(); }));
+  }else if(k==='event'){
+    $('qwQ').textContent='種目は？';
+    var ev=Array.prototype.map.call($('event').options, function(o){ return [o.value, o.textContent]; });
+    body.appendChild(qwBtns(ev, $('event').value, function(v){ $('event').value=v; paintTbl(); next(); }));
+  }else if(k==='dist'){
+    $('qwQ').textContent='距離は？';
+    var dl=DIST_LIST.map(function(n){ return [n, n+'m']; }); dl.push(['other', 'その他']);
+    body.appendChild(qwBtns(dl, $('dist').value, function(v){
+      if(v==='other'){ $('dist').value='other'; if(!distAsk($('dist'))) return; }
+      else distFill($('dist'), v);
+      distWas=$('dist').value; $('dist').dataset.prev=$('dist').value; selManual=false; aLastSel=''; paintTbl();
+      next(); }));
+  }else if(k==='meet'){
+    $('qwQ').textContent='イベントは？';
+    var cur=($('anaTitle').dataset.neu==='1') ? '' : $('anaTitle').textContent;
+    body.innerHTML='<p class="qwSub">試合名</p><select id="qwMeetPick" class="rdSel meetPick" aria-label="これまでの試合名"></select>'+
+      '<p class="lead meetFree">'+T('meetFreeLbl')+'</p><input type="text" id="qwMeet" autocomplete="off">'+
+      '<p class="qwSub">予選決勝</p><select id="qwRound" class="rdSel" aria-label="予選決勝"></select>';
+    $('qwMeet').value=meetName({ title:cur, dist:$('dist').value, event:$('event').value });
+    fillMeetPick($('qwMeetPick'), $('qwMeet'));
+    roundFill($('qwRound'), roundTail(cur));
+  }
+  setTimeout(function(){ try{ $('qwQ').focus(); }catch(e){} }, 30);
+}
+/* その 画面の 答えを 分析に 入れます（スキップの ときは 何も かえません） */
+function qwTake(){
+  var k=qwSteps[qwI];
+  if(k==='name'){
+    var id=swSelId('qwSwim'), typed=($('qwName').value||'').trim();
+    aPre = id ? { id:id, name:((swById(id)||{}).name||'') } : { id:'', name:typed };
+  }else if(k==='meet'){
+    var mt=($('qwMeet').value||'').trim(), rd=$('qwRound').value||'';
+    var d=new Date(), auto=(d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
+    var t = mt ? (mt+(rd?'　'+rd:'')) : (rd ? auto+' '+rd : '');
+    if(t){ $('anaTitle').textContent=t; $('anaTitle').dataset.neu='0'; }
+    else { $('anaTitle').textContent=T('anaNew'); $('anaTitle').dataset.neu='1'; }
+  }
+}
+function qwGo(step){
+  qwI+=step;
+  if(qwI<0) qwI=0;
+  if(qwI>=qwSteps.length){ qwClose(); return; }
+  qwPaint();
+}
+$('qwNext').onclick=function(){ qwTake(); qwGo(1); };
+$('qwSkip').onclick=function(){ qwGo(1); };
+$('qwPrev').onclick=function(){ qwGo(-1); };
+$('qwAll').onclick=function(){ qwClose(); };
 function sbAsk(defName, recId, cb){
   var last={}; try{ last=JSON.parse(localStorage.getItem('swimiq_lastswim')||'{}')||{}; }catch(e){ last={}; }
   var open=function(pre){
@@ -6272,7 +6409,11 @@ function sbAsk(defName, recId, cb){
       if(r){ pre.kick=r.uwKick; pre.uw=r.uwDist; pre.round=roundOf(r); }
       open(pre);
     }, function(){ open(last); });
-  }else open(last);
+  }else{
+    /* 分析の はじめに 名前を きいて いれば、それを 先に 出します */
+    if(aPre && (aPre.id || aPre.name)) open({ id:aPre.id, name:aPre.name });
+    else open(last);
+  }
 }
 
 /* --- たて向きの けっか一覧の ボタン --- */
@@ -7587,7 +7728,8 @@ $('cdAna').onclick=function(){
   $('pool').value=$('cdPool').value;
   distFill($('dist'), $('cdDist').value);
   camDoneClose(); cClose();
-  openAna(blob, { laps:laps, raceT0:t0 });
+  /* カメラの 画面で えらんだ 種目・プール・距離を そのまま 分析に 持って いきます */
+  openAna(blob, { laps:laps, raceT0:t0, ask:'cam', event:$('cdEvent').value, pool:$('cdPool').value, dist:$('cdDist').value });
   aFromCam=true;
   toast(T('msgToAna'));
   if(vidAutoSave()) setTimeout(function(){ saveBarShow(blob, 'cam'+Date.now()); }, 900);
@@ -7763,7 +7905,7 @@ makeDraggable($('detail').querySelector('.oInfo'));
 /* とってある 動画を ひらく */
 $('fPick').addEventListener('change', function(){
   var f=this.files && this.files[0]; this.value='';
-  if(f) openAna(f,{});
+  if(f) openAna(f,{ ask:'all' });
 });
 /* ことばづかいの きりかえ */
 (function(){

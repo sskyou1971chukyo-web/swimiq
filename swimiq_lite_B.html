@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.16">
+<meta name="app-ver" content="2026.10.04.17">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1799,7 +1799,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.16</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.17</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -10237,8 +10237,18 @@ bindDigitTime($('vfTime'));
    数字のデータと 動画リンクだけ 共有します。動画そのもの(video)は
    おもいので 送らず、各端末に のこします。
    ================================================================ */
-var SYNC_URL='';
+var SYNC_URL='', SYNC_BAD='';
 try{ SYNC_URL = localStorage.getItem('swimiq_sync_url') || ''; }catch(e){}
+/* 同期の アドレスは Apps Script の「ウェブアプリ」の URL（…/exec で おわる もの）だけ 使えます */
+function syncUrlOk(u){ return /^https:\/\/script\.google(usercontent)?\.com\/\S*\/exec(\?\S*)?$/.test(String(u||'').trim()); }
+function syncUrlWhy(u){
+  u=String(u||'');
+  var how='\n\n正しいアドレスの出し方：スプレッドシートの上のメニュー「拡張機能」→「Apps Script」→ 右上の「デプロイ」→「デプロイを管理」→ ウェブアプリの「URL」をコピーします。https://script.google.com/macros/s/…/exec の形です。\n\n携帯がもう同期できているなら、携帯の設定で「携帯とパソコンをつなぐ」→「リンクを送る」を使うと、正しいアドレスがそのまま入ります。';
+  if(/docs\.google\.com\/spreadsheets/.test(u)) return 'これはスプレッドシートのアドレスなので、同期には使えません。'+how;
+  if(/script\.google\.com\/.*\/dev(\?|$)/.test(u)) return 'これはテスト用（/dev）のアドレスなので、ほかの端末からは使えません。'+how;
+  return 'このアドレスは同期のアドレスではありません。'+how;
+}
+if(SYNC_URL && !syncUrlOk(SYNC_URL)){ SYNC_BAD=SYNC_URL; SYNC_URL=''; }
 function cloudRec(r){                       /* 送る用：動画Blobを のぞく */
   var o={}, k;
   for(k in r){ if(k==='video') continue; o[k]=r[k]; }
@@ -10263,10 +10273,10 @@ function cloudPull(){
   return fetch(SYNC_URL, { method:'GET' })
     .then(function(r){ return r.json(); }).catch(function(){ return null; });
 }
-var syncing=false;
+var syncing=false, syncLastNG=false;
 function syncNow(opts){
   opts = opts || {};
-  if(!SYNC_URL){ if(opts.toast) toast(T('syncNoUrl')); return Promise.resolve(); }
+  if(!SYNC_URL){ if(opts.toast){ if(SYNC_BAD) alert(syncUrlWhy(SYNC_BAD)); else toast(T('syncNoUrl')); } return Promise.resolve(); }
   if(syncing) return Promise.resolve();
   syncing=true;
   if(opts.toast) toast(T('syncDoing'));
@@ -10299,7 +10309,7 @@ function syncNow(opts){
     });
     return chain.then(function(){ return cloudPush(toPush); });
   }).then(function(){
-    syncing=false;
+    syncing=false; syncLastNG=false;
     syncAt=Date.now();
     try{ localStorage.setItem('swimiq_sync_at', String(syncAt)); }catch(e){}
     syncStatePaint();
@@ -10308,7 +10318,7 @@ function syncNow(opts){
     if(opts.toast) toast(T('syncDone'));
     setTimeout(uploadPending, 600);
   }).catch(function(){
-    syncing=false;
+    syncing=false; syncLastNG=true;
     syncStatePaint();
     if(opts.toast) toast(T('syncNG'));
   });
@@ -10325,7 +10335,10 @@ function syncWhen(ms){
 }
 function syncStatePaint(){
   var el=$('syncState'); if(!el) return;
+  el.style.color='';
+  if(SYNC_BAD){ el.textContent='同期していません。入っているアドレスが同期のアドレスではありません。正しいアドレスに直して「アドレスを保存」を押してください'; el.style.color='#ff8e78'; return; }
   if(!SYNC_URL){ el.textContent=T('syncOff'); return; }
+  if(syncLastNG){ el.textContent='同期できていません。アドレスか通信を確かめてください（「今すぐ同期する」でもう一度ためせます）'; el.style.color='#ff8e78'; return; }
   if(syncing){ el.textContent=T('syncDoing'); return; }
   el.textContent = syncAt ? (T('syncLast')+syncWhen(syncAt)) : T('syncOn');
 }
@@ -10354,13 +10367,16 @@ syncTimer();
 function pushOne(rec){ if(SYNC_URL && rec) cloudPush([rec]); }
 
 /* 設定：同期アドレスの ほぞんと 同期ボタン */
-$('syncUrl').value = SYNC_URL;
+$('syncUrl').value = SYNC_URL || SYNC_BAD;
 $('syncUrl').placeholder = T('syncUrlPh');
 $('syncSaveUrl').onclick=function(){
-  SYNC_URL = ($('syncUrl').value||'').trim();
+  var u = ($('syncUrl').value||'').trim();
+  if(u && !syncUrlOk(u)){ alert(syncUrlWhy(u)); return; }   /* まちがった アドレスは ほぞん しません */
+  SYNC_URL = u; SYNC_BAD='';
   try{ localStorage.setItem('swimiq_sync_url', SYNC_URL); }catch(e){}
   toast(T('syncUrlSaved'));
   syncTimer(); syncStatePaint();
+  if(SYNC_URL) syncNow({ toast:true });
 };
 $('syncNow').onclick=function(){ syncNow({ toast:true }); };
 /* アドレスを コピーして、メールなどで パソコンに わたせる ように します */
@@ -10391,7 +10407,7 @@ function pairLink(){
   return base+'#sync='+encodeURIComponent(SYNC_URL);
 }
 function pairOpen(){
-  if(!SYNC_URL){ toast('先に同期のアドレスを入れて「アドレスを保存」を押してください'); return; }
+  if(!SYNC_URL){ if(SYNC_BAD) alert(syncUrlWhy(SYNC_BAD)); else toast('先に同期のアドレスを入れて「アドレスを保存」を押してください'); return; }
   var box=$('pairQr'), link=pairLink();
   box.innerHTML='';
   try{
@@ -10414,12 +10430,12 @@ function pairReceive(){
   if(!m) return;
   var u=''; try{ u=decodeURIComponent(m[1]).trim(); }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
-  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){ toast('つなぐリンクが正しくありません'); return; }
+  if(!syncUrlOk(u)){ toast('つなぐリンクが正しくありません'); return; }
   if(u===SYNC_URL){ toast('この端末は もう つながっています'); syncNow({ toast:true }); return; }
   var msg = SYNC_URL ? 'いまの同期先を、このリンクの同期先に切りかえて、つなぎますか？' : 'この端末をつなぎますか？ つなぐと、ほかの端末の記録がここに入ります。';
   setTimeout(function(){
     if(!confirm(msg)) return;
-    SYNC_URL=u;
+    SYNC_URL=u; SYNC_BAD='';
     try{ localStorage.setItem('swimiq_sync_url', SYNC_URL); }catch(e){}
     if($('syncUrl')) $('syncUrl').value=SYNC_URL;
     syncTimer(); syncStatePaint();

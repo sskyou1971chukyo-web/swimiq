@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.5">
+<meta name="app-ver" content="2026.10.04.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -747,6 +747,11 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
 #saveBox select{ -webkit-appearance:none; appearance:none; }
 #saveBox .svBtns .btn{ flex:1; min-height:56px; font-size:18px; }
+.uwRow{ display:flex; gap:10px; }
+.uwRow label{ flex:1; display:flex; align-items:center; gap:6px; font-size:15px; font-weight:800; color:#fff; }
+.uwRow input{ flex:1; min-width:0; min-height:52px !important; padding:6px 10px; border-radius:10px; border:2px solid var(--line);
+  background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
+.uwRow span{ color:var(--dim); }
 #admPw input[type=password]{ width:100%; min-height:52px; padding:6px 12px; border-radius:6px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:20px; font-weight:800; letter-spacing:2px; }
 .btn.r{ border-color:var(--red); color:#ff8e78; }
@@ -1598,6 +1603,16 @@ body.grid .gridL{ display:block; }
   background:rgba(0,0,0,.55); color:#fff; font-size:13px; font-weight:800; line-height:1.4; }
 .tBand.hide{ display:none; }
 #vwAttach{ display:flex; align-items:center; justify-content:center; text-align:center; }
+.siGrow{ margin:10px 0 14px; padding:12px; border-radius:14px; border:2px solid var(--line2,#3a3f48); background:var(--pane2,#23272e); }
+.siTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.siTop small{ display:block; font-size:13px; font-weight:800; color:#ffc400; }
+.siTop b{ font-size:34px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; margin-right:8px; }
+.siTop span{ font-size:13px; font-weight:700; color:var(--dim); }
+.siVer{ padding:8px 12px; border-radius:999px; border:2px solid var(--line2,#3a3f48); font-size:16px; font-weight:900; color:#fff; text-align:center; }
+.siVer.up{ border-color:#35e06a; color:#35e06a; } .siVer.dn{ border-color:#ff4b2b; color:#ff8e78; }
+.siRow{ display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-top:1px solid var(--line2,#3a3f48); font-size:15px; font-weight:800; }
+.siRow span{ color:#fff; } .siRow b{ font-variant-numeric:tabular-nums; } .siRow b.up{ color:#35e06a; } .siRow b.dn{ color:#ff8e78; }
+.siNote{ margin:8px 0 0; font-size:12.5px; font-weight:700; color:var(--dim); line-height:1.6; }
 .tsBlk{ margin:0 0 8px; padding:6px 10px; border-radius:10px; border:2px solid #ffc400; background:rgba(255,196,0,.08); }
 .tsRow{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:14px; font-weight:800; }
 .tsRow span{ color:#ffc400; } .tsRow b{ color:#fff; font-variant-numeric:tabular-nums; }
@@ -1749,7 +1764,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.5</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.7</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2383,6 +2398,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="vwGl" data-t="vwTempoGl"></div>
     <div class="vwTbl" id="vwSeg"></div>
+    <div id="vwEiWrap" class="hide">
+      <div class="vwGl">効率指数（Swimming Efficiency Index）</div>
+      <div class="vwTbl" id="vwEi"></div>
+      <p class="vwNote">効率指数＝泳ぐ速さ（m/秒）×1ストロークで進む距離（m）。大きいほど、少ないストロークで速く進めています。スタートとターンのあとの15mまで（水中）は除いて計算しています。Costillら（1985）のStroke Indexと同じ式です。研究ではストロークを1サイクル（同じ手が入水するたび）で数えます。</p>
+    </div>
     <p class="vwNote hide" id="vwNote"></p>
     <div class="vwGl" data-t="tgtGl"></div>
     <div id="tgtBox">
@@ -2439,6 +2459,13 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <select id="sbSwim"></select>
       <p class="lead" data-t="nameFreeLbl" style="margin-top:8px;"></p>
       <input type="text" id="sbName" autocomplete="off" placeholder="例）山田 ゆり">
+    </div>
+    <div class="sq">
+      <p class="q">スタートの水中（わかるときだけ）</p>
+      <div class="uwRow">
+        <label>ドルフィン<input type="text" id="sbKick" inputmode="numeric" placeholder="例）6"><span>回</span></label>
+        <label>浮き上がり<input type="text" id="sbUw" inputmode="decimal" placeholder="例）12.5"><span>m</span></label>
+      </div>
     </div>
     <div class="sq">
       <p class="q" data-t="sbTitleLbl"></p>
@@ -2561,6 +2588,13 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <p class="q" data-t="vfVidLbl"></p>
       <input type="text" id="vfVid" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://drive.google.com/…">
       <button class="btn b" type="button" id="vfVidOpen" data-t="vidOpen" style="margin-top:6px;"></button>
+    </div>
+    <div class="sq">
+      <p class="q">スタートの水中（わかるときだけ）</p>
+      <div class="uwRow">
+        <label>ドルフィン<input type="text" id="vfKick" inputmode="numeric" placeholder="例）6"><span>回</span></label>
+        <label>浮き上がり<input type="text" id="vfUw" inputmode="decimal" placeholder="例）12.5"><span>m</span></label>
+      </div>
     </div>
     <div class="sq">
       <p class="q" data-t="memoLbl"></p>
@@ -6065,7 +6099,7 @@ $('anaSave').onclick=function(){
   var d=new Date();
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
   var defName = $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent;
-  sbAsk(defName, aId, function(name, swId, swName){
+  sbAsk(defName, aId, function(name, swId, swName, uwKick, uwDist){
   thumb().then(function(th){
     var rec={
       id: aId || ('r'+Date.now()),
@@ -6083,7 +6117,8 @@ $('anaSave').onclick=function(){
       updatedAt: Date.now(),
       thumb: th,
       swimmerId: swId || '',
-      swimmerName: swName || ''
+      swimmerName: swName || '',
+      uwKick: uwKick, uwDist: uwDist
     };
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
@@ -6114,6 +6149,8 @@ function sbAsk(defName, recId, cb){
     if(id && swById(id)){ $('sbSwim').value=id; $('sbName').value=''; }
     else { $('sbSwim').value=''; $('sbName').value=nm; }
     $('sbTitle').value=defName||'';
+    $('sbKick').value=(pre.kick!=null)?String(pre.kick):'';
+    $('sbUw').value=(pre.uw!=null)?String(pre.uw):'';
     $('saveBox').classList.remove('hide');
     setTimeout(function(){ try{ $('sbOk').focus(); }catch(e){} }, 50);
   };
@@ -6125,11 +6162,13 @@ function sbAsk(defName, recId, cb){
     var nm = id ? ((swById(id)||{}).name||'') : typed;
     try{ localStorage.setItem('swimiq_lastswim', JSON.stringify({id:id, name:id?'':typed})); }catch(e){}
     $('saveBox').classList.add('hide');
-    cb(($('sbTitle').value||'').trim(), id, nm);
+    cb(($('sbTitle').value||'').trim(), id, nm, numOrNull($('sbKick').value,false), numOrNull($('sbUw').value,true));
   };
   if(recId){
     dbGet(recId).then(function(r){
-      if(r && (r.swimmerId || r.swimmerName)) open({id:r.swimmerId, name:r.swimmerName}); else open(last);
+      var pre = (r && (r.swimmerId || r.swimmerName)) ? {id:r.swimmerId, name:r.swimmerName} : {id:last.id, name:last.name};
+      if(r){ pre.kick=r.uwKick; pre.uw=r.uwDist; }
+      open(pre);
     }, function(){ open(last); });
   }else open(last);
 }
@@ -6505,6 +6544,8 @@ function recText(r){
   }
   if(r.rt!=null) L.push('', T('rtOutLbl')+'  '+Number(r.rt).toFixed(2)+'秒（'+T('rtFootLbl')+'までの時間）');
   L=L.concat(turnText(turnStats(r)));
+  if(uwText(r)) L.push('スタートの水中  '+uwText(r));
+  var _eiT=raceEI(r); if(_eiT!=null) L.push('効率指数  '+_eiT.toFixed(2)+' m²/秒（泳ぐ速さ×1ストロークで進む距離）');
   var sts=[];
   for(var k=1;k<(r.strokes||[]).length;k++){ var st=r.strokes[k]-r.strokes[k-1]; if(st>0.05) sts.push(st); }
   if(sts.length){
@@ -8108,6 +8149,68 @@ function lapTempos(r){
   }
   return out;
 }
+/* ===== 効率指数（Swimming Efficiency Index）=====
+   効率指数 ＝ 泳ぐ速さ（m/秒）× 1ストロークで進む距離（m）。単位は m²/秒。
+   Costill ら（1985）の Stroke Index と同じ式です。
+   泳ぐ速さは、スタートと ターンの あとの 15mまで（水中の 部分）を 除いて 計算します。
+   1ストロークで 進む距離 ＝ 泳ぐ速さ × 1かきの 時間（ST）。 */
+function eiFor(r, from, to, st){
+  if(!r || !(st>0)) return null;
+  var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  if(by[from]==null || by[to]==null) return null;
+  var pool=Number(r.pool)||50, a=from;
+  if(from%pool===0 && by[from+15]!=null && from+15<to) a=from+15;      /* 水中を 除く */
+  var dt=by[to]-by[a]; if(!(dt>0)) return null;
+  var v=(to-a)/dt, dps=v*st;
+  return { ei:v*dps, v:v, dps:dps, swimD:to-a };
+}
+function raceEI(r){
+  var G=srSegs(r), sum=0, w=0, i;
+  for(i=0;i<G.length;i++){
+    var e=eiFor(r, G[i].from, G[i].to, G[i].st);
+    if(e){ sum+=e.ei*e.swimD; w+=e.swimD; }
+  }
+  return w ? sum/w : null;
+}
+/* ===== かんたん 効率指数（合計時間と ストローク数だけで 出す）=====
+   効率指数 ＝ 速さ × 1ストロークで進む距離 ＝ 距離×距離 ÷（時間 × ストローク数）
+   自由形・背泳ぎは、片手ずつ 数えた 数を 2で わって、バタフライ・平泳ぎ（両手で 1回）に そろえます。 */
+var siHalf=true; try{ siHalf = localStorage.getItem('swimiq_sihalf')!=='0'; }catch(e){}
+function siCyc(r, n){ if(n==null) return null; var ev=r.event||'free'; return (siHalf && (ev==='free'||ev==='back')) ? n/2 : n; }
+function siSimple(r){
+  if(!r) return null;
+  var t=raceBest(r), n=raceStroke(r).n, d=Number(r.dist)||0;
+  var c=siCyc(r, n);
+  if(!(t>0) || !(c>0) || !d) return null;
+  var out={ si:d*d/(t*c), t:t, c:c, d:d, halves:null };
+  /* 前半・後半 */
+  var h=d/2, sp=(r.splits||[]), by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  var rt=rtSec(r)||0, n1=null, n2=null;
+  if(by[h]!=null && by[d]!=null){
+    if(r.manual){
+      var ms=r.manualSegs||[];
+      if(ms.length===2 && ms[0] && ms[1] && ms[0].n!=null && ms[1].n!=null){ n1=ms[0].n; n2=ms[1].n; }
+    }else{
+      var a=strokeRel(r); if(a.length){ n1=0; n2=0; for(i=0;i<a.length;i++){ if(a[i]<=by[h]) n1++; else if(a[i]<=by[d]) n2++; } }
+    }
+    var t1=by[h]+rt, t2=by[d]-by[h], c1=siCyc(r,n1), c2=siCyc(r,n2);
+    if(c1>0 && c2>0) out.halves=[ { lbl:'前半', si:h*h/(t1*c1), t:t1, n:n1 }, { lbl:'後半', si:h*h/(t2*c2), t:t2, n:n2 } ];
+  }
+  return out;
+}
+/* スタートの 水中（ドルフィンの 回数・浮き上がりの 距離）*/
+function uwText(r){
+  if(!r) return '';
+  var b=[];
+  if(r.uwDist!=null) b.push('浮き上がり '+Number(r.uwDist).toFixed(1)+'m');
+  if(r.uwKick!=null) b.push('ドルフィン '+r.uwKick+'回');
+  return b.join('　');
+}
+function numOrNull(v, dec){
+  v=String(v==null?'':v).trim(); if(v==='') return null;
+  var n=Number(v.replace(/[^0-9.]/g,'')); if(!(n>=0)) return null;
+  return dec ? Math.round(n*10)/10 : Math.round(n);
+}
 /* ===== ターン区間・非泳区間 =====
    スタート（0〜15m）、ターン（かべの 5m前〜5m後の 10m）、フィニッシュ（最後の 5m）を
    「泳いで いない 区間（非泳区間）」と して、のこりの 泳ぎ区間と 分けます。 */
@@ -8339,6 +8442,7 @@ function buildReport(r){
     {k:T('nStr'), v:(ss.n!=null?ss.n:'--'), u:''}
   ];
   if(r.rt!=null) kp.push({ k:T('rtOutLbl'), v:Number(r.rt).toFixed(2), u:'秒' });
+  var _eiH=raceEI(r); if(_eiH!=null) kp.push({ k:'効率指数', v:_eiH.toFixed(2), u:'m²/秒' });
   var spSorted=(r.splits||[]).slice().sort(function(x,y){ return x.d-y.d; });
   var spTbl='<tr><th>区間</th><th>通過</th><th>ラップ</th></tr>';
   spSorted.forEach(function(sp,idx){ spTbl+='<tr><td>'+sp.d+'m</td><td>'+fmt(sp.t)+'</td><td>+'+fmt(sp.t-(idx>0?spSorted[idx-1].t:0))+'</td></tr>'; });
@@ -8413,6 +8517,7 @@ function reportSVG(r, W, H){
           {k:'平均SR',v:(ss.sr!=null?ss.sr.toFixed(1):'--'),u:''},
           {k:T('nStr'),v:(ss.n!=null?ss.n:'--'),u:''}];
   if(r.rt!=null) kp.push({k:T('rtOutLbl'),v:Number(r.rt).toFixed(2),u:'秒'});
+  var _eiR=raceEI(r); if(_eiR!=null) kp.push({k:'効率指数',v:_eiR.toFixed(2),u:'m²/秒'});
   var kW=(cw-10*(kp.length-1))/kp.length, kY=178, kH=76;
   kp.forEach(function(x,idx){ var kx=mx+idx*(kW+10);
     s+='<rect x="'+kx+'" y="'+kY+'" width="'+kW+'" height="'+kH+'" rx="12" fill="'+(x.hl?'#fffaf0':'#ffffff')+'" stroke="'+(x.hl?'#f2b01e':'#e4e6ea')+'" stroke-width="1.5"/>';
@@ -8470,11 +8575,11 @@ function reportSVG(r, W, H){
     var sy = srSvg ? Math.max(800, (srBottom||0)+66) : 560;
     s+='<rect x="'+mx+'" y="'+(sy-13)+'" width="4" height="15" fill="#f2b01e"/>';
     s+='<text x="'+(mx+10)+'" y="'+sy+'" font-size="13" font-weight="900" fill="#16181d">'+(_st?(_st+'mごとの平均テンポ'):'区間ごとの平均テンポ')+'</text>';
-    var _cap=Math.max(1, Math.floor((H-52-46-((tp.turns.length||tp.outs.length)?44:0)-(turnStats(r)?70:0)-(sy+50))/24)+1);
+    var _cap=Math.max(1, Math.floor((H-52-46-((tp.turns.length||tp.outs.length)?44:0)-((turnStats(r)||uwText(r))?70:0)-(sy+50))/24)+1);
     var rows=SEC.slice(0,_cap), more=SEC.length-rows.length;
-    var colX=[mx, mx+cw*0.30, mx+cw*0.50, mx+cw*0.72, mx+cw];
+    var colX=[mx, mx+cw*0.27, mx+cw*0.42, mx+cw*0.60, mx+cw*0.78, mx+cw];
     var hy=sy+22;
-    var heads=['区間','区間タイム','かき数','平均ST（秒）','平均SR'];
+    var heads=['区間','区間タイム','かき数','平均ST（秒）','平均SR','効率指数'];
     heads.forEach(function(t,ix){
       var anc=(ix===0)?'start':'end';
       s+='<text x="'+colX[ix]+'" y="'+hy+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="'+anc+'">'+t+'</text>';
@@ -8486,7 +8591,8 @@ function reportSVG(r, W, H){
                 (L.t!=null?fmt(L.t):'--'),
                 (L.n!=null?String(L.n):'--'),
                 (L.st!=null?L.st.toFixed(2):'--'),
-                (L.sr!=null?L.sr.toFixed(1):'--')];
+                (L.sr!=null?L.sr.toFixed(1):'--'),
+                (function(){ var e=eiFor(r, L.from, L.to, L.st); return e?e.ei.toFixed(2):'--'; })()];
       vals.forEach(function(t,jx){
         var anc=(jx===0)?'start':'end';
         var col=(jx===0)?'#5b6270':'#16181d';
@@ -8513,13 +8619,13 @@ function reportSVG(r, W, H){
     s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(_tn)+'</text>';
   }
   // スタート・ターン・ゴール（ターンも 計った とき）
-  var _ts=turnStats(r);
-  if(_ts){
+  var _ts=turnStats(r), _uw=uwText(r);
+  if(_ts || _uw){
     var yb=H-52-62;
     s+='<rect x="'+mx+'" y="'+(yb-13)+'" width="4" height="15" fill="#f2b01e"/>';
     s+='<text x="'+(mx+10)+'" y="'+yb+'" font-size="13" font-weight="900" fill="#16181d">スタート・ターン・ゴール</text>';
-    var _l1=turnLines(_ts).map(function(x){ return x[0]+' '+x[1]; }).join('　／　');
-    var _l2=turnRows(_ts).map(function(x){ return x.lbl.replace(/^(スタート|ターン|ゴール) /,'$1')+' '+fmt(x.t); }).join('　');
+    var _l1=(_ts?turnLines(_ts).map(function(x){ return x[0]+' '+x[1]; }):[]).concat(_uw?['スタートの水中　'+_uw]:[]).join('　／　');
+    var _l2=_ts ? turnRows(_ts).map(function(x){ return x.lbl.replace(/^(スタート|ターン|ゴール) /,'$1')+' '+fmt(x.t); }).join('　') : '';
     if(_l2.length>95) _l2=_l2.slice(0,93)+'…';
     s+='<text x="'+mx+'" y="'+(yb+20)+'" font-size="12" font-weight="900" fill="#16181d">'+esc(_l1)+'</text>';
     s+='<text x="'+mx+'" y="'+(yb+38)+'" font-size="10.5" font-weight="700" fill="#5b6270">'+esc(_l2)+'</text>';
@@ -8883,6 +8989,8 @@ function vfOpen(rec){
   $('vfVid').value = rec.videoUrl || '';
   $('vfMemo').value = rec.memo || '';
   $('vfMemo').placeholder = T('memoPh');
+  $('vfKick').value = (rec.uwKick!=null)?String(rec.uwKick):'';
+  $('vfUw').value = (rec.uwDist!=null)?String(rec.uwDist):'';
   vfSplPaint(rec.splits || []);
   fillSwimSelect($('vfSwim'), rec.swimmerId || '');
   /* 一覧に ない 名前は 文字で のこして あるので、そのまま 出します */
@@ -8933,6 +9041,8 @@ $('vfSave').onclick=function(){
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
     rec.videoUrl = ($('vfVid').value||'').trim();
     rec.memo = ($('vfMemo').value||'').trim();
+    rec.uwKick = numOrNull($('vfKick').value,false);
+    rec.uwDist = numOrNull($('vfUw').value,true);
     rec.swimmerId = $('vfSwim').value || '';
     var vfTyped=($('vfName').value||'').trim();
     /* 一覧から えらんで いない ときは、書いた 名前を つかいます */
@@ -9301,6 +9411,9 @@ function viewOpen(r){
     [ T('scAbbr'), (ss.n!=null? ss.n : '--') ]
   ];
   if(r.rt!=null) kp.push([ T('rtOutLbl'), Number(r.rt).toFixed(2) ]);
+  var _ei=raceEI(r); if(_ei!=null) kp.push([ '効率指数', _ei.toFixed(2) ]);
+  if(r.uwDist!=null) kp.push([ '浮き上がり', Number(r.uwDist).toFixed(1)+'m' ]);
+  if(r.uwKick!=null) kp.push([ 'ドルフィン', r.uwKick+'回' ]);
   var h='', i;
   for(i=0;i<kp.length;i++) h+='<div><span>'+esc(kp[i][0])+'</span><b>'+esc(String(kp[i][1]))+'</b></div>';
   $('vwKpi').innerHTML=h;
@@ -9347,6 +9460,19 @@ function viewOpen(r){
     }
     $('vwSeg').innerHTML=h;
   }
+  (function(){
+    var G=srSegs(r), rows=[], k;
+    for(k=0;k<G.length;k++){ var e=eiFor(r, G[k].from, G[k].to, G[k].st); if(e) rows.push({ lbl:G[k].from+'-'+G[k].to+'m', e:e }); }
+    $('vwEiWrap').classList.toggle('hide', !rows.length);
+    if(!rows.length) return;
+    var base=rows[0].e.ei, hh='<div class="vr hd"><span class="c1">区間</span><span class="c2">速さ・DPS</span><span class="c3">効率</span></div>';
+    rows.forEach(function(x,ix){
+      var dr=ix? ((x.e.ei-base)/base*100) : null;
+      hh+='<div class="vr"><span class="c1">'+esc(x.lbl)+'</span><span class="c2">'+x.e.v.toFixed(2)+'m/秒・'+x.e.dps.toFixed(2)+'m</span>'+
+          '<span class="c3">'+x.e.ei.toFixed(2)+(dr!=null?('（'+(dr>=0?'+':'')+dr.toFixed(1)+'%）'):'')+'</span></div>';
+    });
+    $('vwEi').innerHTML=hh;
+  })();
 
   /* ターンを のぞいた しらせ */
   var ints=stInts(r.strokes||[]), tp=tempoStats(ints, wantTurnsOf(r.dist, r.pool));
@@ -9911,6 +10037,37 @@ function cmpFiltered(){
     return raceBest(r)!==null;
   });
 }
+/* 効率指数で 成長を 見る カード */
+function siGrowHtml(list){
+  var rows=list.map(function(r){ return { r:r, q:siSimple(r) }; }).filter(function(x){ return x.q; });
+  var h='<div class="siGrow">';
+  if(!rows.length){
+    h+='<p class="siMsg">ストローク数が入っている記録がありません。ストロークを数えるか、修正でストローク数を入れると効率指数が出ます。</p>';
+  }else{
+    var L=rows[0], P=rows[1]||null, F=rows[rows.length-1];
+    function pct(a,b){ return (a-b)/b*100; }
+    function sg(v){ return (v>=0?'+':'')+v.toFixed(1)+'%'; }
+    var dv = P ? pct(L.q.si, P.q.si) : (rows.length>1 ? pct(L.q.si, F.q.si) : null);
+    var verdict, cls;
+    if(dv==null){ verdict='記録が2本以上そろうと、成長が分かります'; cls=''; }
+    else if(dv>=1){ verdict='成長しています'; cls=' up'; }
+    else if(dv<=-1){ verdict='前回より下がっています'; cls=' dn'; }
+    else { verdict='前回とほぼ同じです'; cls=''; }
+    h+='<div class="siTop"><div><small>最新の効率指数</small><b>'+L.q.si.toFixed(2)+'</b><span>'+esc(new Date(L.r.at).toLocaleDateString('ja-JP'))+'</span></div>'+
+       '<div class="siVer'+cls+'">'+esc(verdict)+'</div></div>';
+    if(P) h+='<div class="siRow"><span>前回 '+P.q.si.toFixed(2)+'</span><b class="'+(dv>=0?'up':'dn')+'">'+sg(dv)+'</b></div>';
+    if(rows.length>2 || (rows.length===2 && !P)){ var df=pct(L.q.si, F.q.si); h+='<div class="siRow"><span>最初（'+esc(new Date(F.r.at).toLocaleDateString('ja-JP'))+'） '+F.q.si.toFixed(2)+'</span><b class="'+(df>=0?'up':'dn')+'">'+sg(df)+'</b></div>'; }
+    if(L.q.halves){
+      var a=L.q.halves[0].si, b=L.q.halves[1].si;
+      h+='<div class="siRow"><span>最新の前半 '+a.toFixed(2)+' ／ 後半 '+b.toFixed(2)+'</span><b class="'+(b>=a?'up':'dn')+'">'+sg(pct(b,a))+'</b></div>';
+      if(P && P.q.halves){ var b2=P.q.halves[1].si; h+='<div class="siRow"><span>後半どうし（前回 '+b2.toFixed(2)+'）</span><b class="'+(b>=b2?'up':'dn')+'">'+sg(pct(b,b2))+'</b></div>'; }
+    }
+  }
+  h+='<p class="siNote">効率指数＝距離×距離÷（合計時間×ストローク数）。速さ×1ストロークで進む距離と同じです。数字が大きいほど、少ないストロークで速く泳げています。合計時間には合図からの時間、スタートとターンの水中も含みます。</p>';
+  h+='<button type="button" class="btn" id="siHalfBtn" style="width:100%;margin-top:6px;">自由形・背泳ぎは半分にする：'+(siHalf?'オン':'オフ')+'</button>';
+  h+='<p class="siNote">片手ずつ数えている場合はオンにします。バタフライ・平泳ぎ（両手で1回）にそろえて計算します。</p>';
+  return h+'</div>';
+}
 function cmpSetN(n){ cmpN=n; paintCompare(); }
 function cmpSetTab(t){ cmpTab=t; paintCompare(); }
 
@@ -9962,14 +10119,15 @@ function paintCompare(){
      '</div>';
 
   h+='<div class="seg" id="cmpSegTab" style="margin-top:8px;">'+
-      [['time',T('cmpTabTime')],['st',T('cmpTabST')],['sc',T('nStr')]].map(function(p){
+      [['time',T('cmpTabTime')],['st',T('cmpTabST')],['sc',T('nStr')],['si','効率']].map(function(p){
         return '<button type="button" data-tab="'+p[0]+'" aria-pressed="'+(cmpTab===p[0]?'true':'false')+'">'+p[1]+'</button>';
       }).join('')+
      '</div>';
 
   if(!mixed){
     h+='<div class="cmpGraphWrap"><canvas id="cmpCanvas" height="220"></canvas></div>';
-    h+='<p class="cmpNote">'+(cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast'))+'</p>';
+    h+='<p class="cmpNote">'+(cmpTab==='si' ? '上ほど効率が良い（数字が大きいほど成長）' : (cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast')))+'</p>';
+    if(cmpTab==='si') h+=siGrowHtml(list);
   }
 
   h+='<div class="gl">'+T('cmpListGl')+'</div>';
@@ -9978,6 +10136,10 @@ function paintCompare(){
 
   body.innerHTML = h;
 
+  if($('siHalfBtn')) $('siHalfBtn').onclick=function(){
+    siHalf=!siHalf; try{ localStorage.setItem('swimiq_sihalf', siHalf?'1':'0'); }catch(e){}
+    paintCompare();
+  };
   $('cmpShare').onclick=function(){ shareText(cmpProgressText(list, bestT, bestRec, avgT), T('cmpShareTitle')); };
 
   var segN=$('cmpSegN').querySelectorAll('button'), i;
@@ -9998,7 +10160,8 @@ function paintCompare(){
         '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>'+
       '<div class="r2">'+new Date(r.at).toLocaleDateString('ja-JP')+'　'+r.title+
         '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
-        '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+'</div>';
+        '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+
+        (function(){ var q=siSimple(r); return q?('　効率 '+q.si.toFixed(2)):''; })()+'</div>';
     (function(rec){
       d.onclick=function(){ cmpToggleSel(rec.id); };
       var eb=d.querySelector('.cmpEdit');
@@ -10318,6 +10481,7 @@ function drawCmpChart(list, tab){
     var r=list[i], v=null;
     if(tab==='time') v=raceBest(r);
     else if(tab==='st') v=raceStroke(r).st;
+    else if(tab==='si'){ var _q=siSimple(r); v=_q?-_q.si:null; }   /* 大きいほど よいので 上下を 逆に */
     else v=raceStroke(r).n;
     if(v!=null) pts.push({ r:r, v:v });
   }
@@ -10352,7 +10516,7 @@ function drawCmpChart(list, tab){
     g.strokeStyle='#2c2c2c'; g.lineWidth=1;
     g.beginPath(); g.moveTo(padL,yy); g.lineTo(cssW-padR,yy); g.stroke();
     g.fillStyle='#b5b5b5'; g.font='700 12px "BIZ UDPGothic",sans-serif'; g.textAlign='right';
-    g.fillText(tab==='sc' ? String(Math.round(vv)) : vv.toFixed(2), padL-8, yy);
+    g.fillText(tab==='sc' ? String(Math.round(vv)) : (tab==='si' ? (-vv).toFixed(2) : vv.toFixed(2)), padL-8, yy);
   }
 
   var bestIdx=-1, worstIdx=-1;
@@ -10374,7 +10538,7 @@ function drawCmpChart(list, tab){
     var x=xAt(idx), y=yAt(p.v);
     g.fillStyle='#ffc400'; g.beginPath(); g.arc(x,y,5,0,Math.PI*2); g.fill();
     if(showAll || idx===bestIdx || idx===worstIdx){
-      var lbl = tab==='time' ? fmt(p.v) : (tab==='sc' ? String(p.v) : p.v.toFixed(2));
+      var lbl = tab==='time' ? fmt(p.v) : (tab==='sc' ? String(p.v) : (tab==='si' ? (-p.v).toFixed(2) : p.v.toFixed(2)));
       var putBelow = (y - padT) < 22;                 /* いちばん上に近いときは 数字を 下に 出す */
       g.fillStyle='#fff'; g.font='900 13px sans-serif'; g.textAlign='center'; g.textBaseline='alphabetic';
       g.fillText(lbl, x, putBelow ? (y+22) : (y-14));

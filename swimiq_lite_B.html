@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.12">
+<meta name="app-ver" content="2026.10.03.13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -743,7 +743,7 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
 #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #admPw.hide, #saveBox.hide{ display:none !important; }
 #saveBox{ z-index:90; }
-#saveBox select, #saveBox input[type=text]{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
+#saveBox select, #saveBox input[type=text], #reFix input[type=text]{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
 #saveBox select{ -webkit-appearance:none; appearance:none; }
 #saveBox .svBtns .btn{ flex:1; min-height:56px; font-size:18px; }
@@ -1737,7 +1737,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.12</p>
+  <p class="ver" id="verBottom">ver 2026.10.03.13</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2573,6 +2573,12 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <h3 id="rfH" data-t="reInfoB"></h3>
     <p class="lead" data-t="rfLead"></p>
     <div class="sq">
+      <p class="q" data-t="sbSwimLbl"></p>
+      <select id="rfSwim"></select>
+      <p class="lead" data-t="nameFreeLbl" style="margin-top:8px;"></p>
+      <input type="text" id="rfName" autocomplete="off" placeholder="例）山田 ゆり">
+    </div>
+    <div class="sq">
       <p class="q" data-t="poolLbl"></p>
       <select id="rfPool"><option value="25">25mプール</option><option value="50">50mプール</option></select>
     </div>
@@ -3280,7 +3286,7 @@ var W={
  reTimeS:['ストロークは そのまま のこします','ストロークはそのまま残します'],
  reStrB:['ストロークだけ 計りなおす','ストロークのみ再度計測'],
  reStrS:['タイムは そのまま。はじめから 数えなおします','タイムはそのまま。最初から数え直します'],
- reInfoB:['プール・きょり・しゅもくを なおす','プールサイズ・距離・種目の修正'],
+ reInfoB:['名前・プール・きょり・しゅもくを なおす','名前・プールサイズ・距離・種目の修正'],
  reInfoS:['計りなおさずに、せっていだけ なおします','計測はせず、設定だけ直します'],
  reAllB:['ぜんぶ やりなおす','すべてやり直す'],
  reAllS:['いまの きろくを 見ながら 分析画面で なおします','今の記録を見ながら分析画面で直します'],
@@ -6349,13 +6355,19 @@ $('reInfo').onclick=function(){
   $('rfPool').value = String(dRec.pool||50);
   distFill($('rfDist'), dRec.dist || last || 100);
   $('rfEvent').value = dRec.event || 'free';
+  fillSwimSelect($('rfSwim'), '');
+  if(dRec.swimmerId && swById(dRec.swimmerId)){ $('rfSwim').value=dRec.swimmerId; $('rfName').value=''; }
+  else { $('rfSwim').value=''; $('rfName').value=dRec.swimmerName||''; }
   $('reFix').classList.remove('hide');
 };
+$('rfSwim').onchange=function(){ if(this.value) $('rfName').value=''; };
+$('rfName').oninput=function(){ if(this.value.trim()) $('rfSwim').value=''; };
 $('rfDist').onchange=function(){ distPick(this); };
 $('rfCancel').onclick=function(){ $('reFix').classList.add('hide'); };
 $('rfSave').onclick=function(){
   if(!dRec) return;
   var pool=Number($('rfPool').value), dist=Number($('rfDist').value), ev=$('rfEvent').value;
+  var swId=$('rfSwim').value||'', swNm=swId ? ((swById(swId)||{}).name||'') : ($('rfName').value||'').trim();
   if(!(dist>0)){ toast(T('distBad')); return; }
   /* 新しい きょりに ない 通過タイムが あれば、けして よいか たしかめます */
   var all=lapDists(dist), ok={}, i, keep=[], bad=[];
@@ -6371,6 +6383,7 @@ $('rfSave').onclick=function(){
     if(!rec){ toast(T('msgNotFound')); return null; }
     var oldDist=rec.dist;
     rec.pool=pool; rec.dist=dist; rec.event=ev; rec.splits=keep;
+    rec.swimmerId=swId; rec.swimmerName=swNm;
     /* 名前が「9/30 25m」のような 自動の 名前なら、きょりも あわせて かえます */
     var m=/^(\d{1,2}\/\d{1,2}) (\d+)m$/.exec(rec.title||'');
     if(m && Number(m[2])===Number(oldDist)) rec.title=m[1]+' '+dist+'m';

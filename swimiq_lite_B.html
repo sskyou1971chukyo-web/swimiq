@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.9">
+<meta name="app-ver" content="2026.10.04.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1604,6 +1604,7 @@ body.grid .gridL{ display:block; }
 .tBand.hide{ display:none; }
 #vwAttach{ display:flex; align-items:center; justify-content:center; text-align:center; }
 .vr.tsSum{ border-top:2px solid #ffc400; } .vr.tsSum span{ color:#ffc400 !important; font-weight:900; }
+.c2badge.dr{ background:#ff8a3d !important; color:#000 !important; }
 .siGrow{ margin:10px 0 14px; padding:12px; border-radius:14px; border:2px solid var(--line2,#3a3f48); background:var(--pane2,#23272e); }
 .siTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
 .siTop small{ display:block; font-size:13px; font-weight:800; color:#ffc400; }
@@ -1765,7 +1766,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.9</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.10</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1865,6 +1866,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob g" id="bStart" type="button" data-t="bStart"></button>
       <button class="ob y" id="bRt" type="button" data-t="rtBtn"></button>
       <button class="ob y" id="bTurn" type="button" aria-pressed="false"></button>
+      <button class="ob r hide" id="bDraftDel" type="button">この未分析を消す</button>
       <button class="ob y" id="anaWave" type="button" data-t="wvOpen"></button>
       <button class="ob" id="anaVid" type="button" data-t="saveVidBtn"></button>
     </div>
@@ -3137,7 +3139,7 @@ var W={
  shVid:['「ビデオを保存」を えらぶと カメラロールに 入ります','「ビデオを保存」を選ぶとカメラロールに保存されます'],
  shImg:['「画像を保存」を えらぶと カメラロールに 入ります','「画像を保存」を選ぶとカメラロールに保存されます'],
  askClear:['とった 数字を ぜんぶ 消しますか。','記録した数値をすべて消去しますか。'],
- askLeave:['ほぞんしていない 数字が あります。もどりますか。','保存していない記録があります。戻りますか。'],
+ askLeave:['ほぞんしていない 数字が あります。「未分析」として のこして もどりますか。','保存していない記録があります。「未分析」として残して戻りますか。'],
  askName:['なまえを つけてください','名前を入力してください'],
  sbH:['だれの きろくですか','誰の記録か選んで保存'],
  sbSwimLbl:['選手','選手'],
@@ -4215,6 +4217,7 @@ function bindVidError(id){
 bindVidError('v'); bindVidError('dv');
 function openAna(blob, opt){
   opt = opt || {};
+  aDraftId = opt.draftId || null; aDraftAt = opt.draftAt || null; aDraftThumb = opt.thumb || ''; aNoDraft=false; aDraftSig='';
   freeVideo('dv');
   aBlob=blob; aId=opt.id||null; aFromCam=false;
   aSplits = opt.splits ? opt.splits.slice() : [];
@@ -4283,7 +4286,54 @@ function openAna(blob, opt){
     setTimeout(function(){ sigRun(false, !!(aPreLaps && aPreLaps.length)); }, 700);
   }
   if(typeof wvAuto==='function') setTimeout(wvAuto, 60);
+  if(aDraftId){ aDraftSig=anaSig(); setTimeout(function(){ toast('途中まで分析した「未分析」の記録を開きました'); }, 400); }
+  draftBtnPaint();
 }
+
+/* ================================================================
+   とちゅうの 分析を 自動で のこす（「未分析」）
+   分析の 画面に いる あいだ、数字が 変わったら 数秒ごとに こっそり 保存します。
+   アプリが とじたり、電池が 切れたり しても、ホームの 一覧に「未分析」として のこります。
+   「保存」を おすと、未分析は ふつうの 記録に 置きかわります。
+   ================================================================ */
+var aDraftId=null, aDraftAt=null, aDraftThumb='', aDraftSig='', aDraftBusy=false, aNoDraft=false;
+function anaSig(){
+  var st=aStrokes||[];
+  return JSON.stringify([aSplits, st.length, st[st.length-1]||0, aT0, aSigT, aRT, $('dist').value, $('pool').value, $('event').value]);
+}
+function anaHasWork(){ return !!((aSplits&&aSplits.length) || (aStrokes&&aStrokes.length) || aT0!=null || aSigT!=null); }
+function draftSave(){
+  if(aNoDraft || !aBlob || !anaHasWork() || aDraftBusy) return Promise.resolve(false);
+  var sig=anaSig(); if(sig===aDraftSig) return Promise.resolve(false);
+  aDraftBusy=true;
+  if(!aDraftId) aDraftId='draft_'+(aId||Date.now());
+  if(!aDraftAt) aDraftAt=Date.now();
+  var d=new Date(aDraftAt);
+  var base=($('anaTitle').dataset.neu==='1') ? ((d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m') : $('anaTitle').textContent;
+  var getTh = aDraftThumb ? Promise.resolve(aDraftThumb) : thumb();
+  return getTh.then(function(th){
+    aDraftThumb=th||'';
+    var rec={ id:aDraftId, draft:true, draftOf:aId||null, at:aDraftAt, title:base,
+      anaTitle:($('anaTitle').dataset.neu==='1'?'':$('anaTitle').textContent),
+      pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value,
+      t0:aT0, sigT:aSigT, rt:aRT, rtMode:(aRT!=null?rtMode:null),
+      splits:aSplits.slice(), strokes:aStrokes.slice(), video:aBlob, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now() };
+    return dbPut(rec).then(function(){ aDraftSig=sig; aDraftBusy=false; draftBtnPaint(); return true; });
+  }).catch(function(){ aDraftBusy=false; return false; });
+}
+function draftDrop(id){ if(id) return dbDel(id).catch(function(){}); return Promise.resolve(); }
+setInterval(function(){ if(!$('ana').classList.contains('hide')) draftSave(); }, 4000);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden' && !$('ana').classList.contains('hide')) draftSave(); });
+window.addEventListener('pagehide', function(){ if(!$('ana').classList.contains('hide')) draftSave(); });
+/* 未分析を 開き直す */
+function draftResume(r){
+  if(!hasVid(r)){ toast('この未分析には動画が入っていません'); viewOpen(r); return; }
+  openAna(r.video, { id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb,
+    splits:r.splits||[], strokes:r.strokes||[], t0:(r.t0!=null?r.t0:null), sigT:r.sigT, rt:r.rt,
+    pool:r.pool, dist:r.dist, event:r.event, title:(r.anaTitle||null) });
+  show('ana');
+}
+function draftBtnPaint(){ var b=$('bDraftDel'); if(b) b.classList.toggle('hide', !aDraftId); }
 
 /* ===== さつえい中の ラップを 一覧で 見て、きょりを チェックする ===== */
 /* ラップに つけられる きょり
@@ -4670,6 +4720,12 @@ $('bTurn').onclick=function(){
   toast(turnOn ? '壁の5m前と15m後も一覧に入りました。通った瞬間に記録を押します' : 'ターンの計測をやめました');
 };
 turnBtnPaint();
+$('bDraftDel').onclick=function(){
+  if(!aDraftId) return;
+  if(!confirm('途中まで分析した「未分析」の記録を消します。よろしいですか。')) return;
+  var id=aDraftId; aNoDraft=true; aDraftId=null;
+  draftDrop(id).then(function(){ toast('未分析を消しました'); hideQ(); stHudHide(); stModeShow(false); $('v').pause(); show('home'); paintList(); });
+};
 $('anaMore').onclick=function(){ anaMoreOpen($('anaMoreBox').classList.contains('hide')); };
 $('anaMoreX').onclick=function(){ anaMoreOpen(false); };
 $('anaVid').onclick=function(){ anaMoreOpen(false); saveVidToPhone(aBlob, aId||('v'+Date.now())); };
@@ -6070,11 +6126,13 @@ function distApply(){
 $('pool').onchange=function(){ selManual=false; aLastSel=''; paintTbl(); };
 $('dist').onchange=function(){ if(!distPick(this)) return; distApply(); };
 $('anaBack').onclick=function(){
-  if(aSplits.length || aStrokes.length){
+  var go=function(){ hideQ(); stHudHide(); stModeShow(false); $('v').pause(); show('home'); paintList(); };
+  if(anaHasWork() && !aNoDraft){
     if(!confirm(T('askLeave'))) return;
+    draftSave().then(function(){ toast('「未分析」として残しました。ホームの一覧から続きができます'); go(); });
+    return;
   }
-  hideQ(); stHudHide(); stModeShow(false);
-  $('v').pause(); show('home'); paintList();
+  go();
 };
 
 /* --- 1コマを 小さな絵に する（一覧のサムネイル） --- */
@@ -6123,6 +6181,8 @@ $('anaSave').onclick=function(){
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
     if(rec) pushOne(rec);
+    if(aDraftId && rec && aDraftId!==rec.id) draftDrop(aDraftId);
+    aDraftId=null; aNoDraft=true;
     toast(T('msgSavedDev'));
     if(rec) setTimeout(function(){ bestCheer(rec); }, 500);
     var savedBlob=aBlob, savedId=(rec?rec.id:null), wasCam=aFromCam;
@@ -6218,7 +6278,8 @@ function recCard(r){
   var c=document.createElement('div'); c.className='card2'+(r.manual?' manual':'');
   var badge = r.manual ? '<span class="c2badge">'+T('mBadge')+'</span>' : '';
   /* この端末に 動画が ない きろくは、ひと目で わかるように します */
-  if(!r.manual && !hasVid(r)) badge += '<span class="c2badge nv">'+T('noVidBadge')+'</span>';
+  if(!r.manual && !hasVid(r) && !r.draft) badge += '<span class="c2badge nv">'+T('noVidBadge')+'</span>';
+  if(r.draft) badge = '<span class="c2badge dr">未分析</span>';
   /* その 選手・種目・きょりの いちばん はやい きろくには 印を つけます */
   if(typeof bestIdx==='object' && bestIdx && bestIdx[r.id])
     badge = '<span class="c2badge bst">'+T('bstTag')+'</span>' + badge;
@@ -6248,6 +6309,7 @@ function recCard(r){
     memoHtml+
     '</div>';
   c.onclick=function(){
+    if(r.draft){ draftResume(r); return; }
     if(hasVid(r)){ openDetail(r.id); return; }   /* 手入力でも 動画を 付けて あれば 再生へ */
     if(r.manual){ viewOpen(r); return; }
     if(!hasVid(r)){                   /* 同期で来た記録：この端末に動画が無い */
@@ -6258,7 +6320,7 @@ function recCard(r){
   };
   if(!r.manual){
     var tb=c.querySelector('.cTimeBtn');
-    if(tb) tb.onclick=function(e){ e.stopPropagation(); vfOpen(r); };
+    if(tb) tb.onclick=function(e){ e.stopPropagation(); if(r.draft) draftResume(r); else vfOpen(r); };
   }
   return c;
 }
@@ -8690,7 +8752,7 @@ function prevRaceOf(all, r){
   var who=whoOf(r), best=null, i;
   for(i=0;i<all.length;i++){
     var x=all[i];
-    if(!x || x.id===r.id || x.deleted) continue;
+    if(!x || x.id===r.id || x.deleted || x.draft) continue;
     if(whoOf(x)!==who || (x.event||'other')!==(r.event||'other') || Number(x.dist)!==Number(r.dist) || Number(x.pool||50)!==Number(r.pool||50)) continue;
     if(!(x.at<r.at)) continue;
     if(raceBest(x)==null) continue;
@@ -9850,6 +9912,8 @@ function cloudRec(r){                       /* 送る用：動画Blobを のぞ�
 }
 function cloudPush(recs){
   if(!SYNC_URL || !recs || !recs.length) return Promise.resolve(null);
+  recs = recs.filter(function(x){ return x && !x.draft; });
+  if(!recs.length) return Promise.resolve(null);
   var body = JSON.stringify({ records: recs.map(cloudRec) });
   return fetch(SYNC_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:body })
     .then(function(r){ return r.json().catch(function(){ return {}; }); })
@@ -10007,7 +10071,8 @@ function blobToB64(blob){
     r.readAsDataURL(blob);
   });
 }
-function needUpload(r){ return !!(SYNC_URL && r.video && !r.videoUrl && !r.vidSkip); }
+function needUpload(r){
+  if(r && r.draft) return false; return !!(SYNC_URL && r.video && !r.videoUrl && !r.vidSkip); }
 function uploadOne(rec){
   if(rec.video.size > MAX_UP){
     rec.vidSkip=true; rec.updatedAt=Date.now();
@@ -10068,6 +10133,7 @@ function buildCsv(all){
 }
 $('exCsv').onclick=function(){
   dbAll().then(function(all){
+    all=all.filter(function(x){ return !x.draft; });
     if(!all.length){ toast(T('exNoData')); return; }
     var csv = '﻿' + buildCsv(all);
     var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
@@ -10077,6 +10143,7 @@ $('exCsv').onclick=function(){
 };
 $('exJson').onclick=function(){
   dbAll().then(function(all){
+    all=all.filter(function(x){ return !x.draft; });
     if(!all.length){ toast(T('exNoData')); return; }
     var records = all.map(function(r){
       return { id:r.id, at:r.at, title:r.title, pool:r.pool, dist:r.dist, event:r.event,
@@ -10145,7 +10212,7 @@ function bestKey(r){ return whoOf(r)+'\u001f'+(r.event||'other')+'\u001f'+(r.dis
 function bestMap(all){
   var m={}, i, r, t;
   for(i=0;i<all.length;i++){
-    r=all[i]; if(!r || r.deleted) continue;
+    r=all[i]; if(!r || r.deleted || r.draft) continue;
     t=raceBest(r); if(t==null) continue;
     var k=bestKey(r);
     if(!m[k] || t < m[k].t) m[k]={ t:t, id:r.id, at:r.at, rec:r };
@@ -10160,6 +10227,7 @@ function bestIdxBuild(all){
 /* いま 保存しようと している きろくが 自己ベストを こえたか しらべます */
 function bestCheck(rec){
   return dbAll().then(function(all){
+    all=all.filter(function(x){ return !x.draft; });
     var k=bestKey(rec), t=raceBest(rec), i, prev=null;
     if(t==null) return null;
     for(i=0;i<all.length;i++){
@@ -10190,7 +10258,7 @@ function bestCheer(rec){
 function cmpOpen(prefill){
   cmpSel = (prefill && prefill.id) ? [prefill.id] : [];
   dbAll().then(function(all){
-    cmpAll = all;
+    cmpAll = all.filter(function(x){ return !x.draft; });
     if(prefill) $('cmpEvent').value = prefill.event || 'other';
     cmpBuildDistOptions();
     if(prefill && prefill.dist) $('cmpDist').value=String(prefill.dist);
@@ -10204,7 +10272,7 @@ $('openCompare').onclick=function(){ cmpOpen(null); };
 /* 比較画面を 開いている間に 記録を 直したら、DBから 読み直して 一覧を 更新する */
 function cmpReload(){
   if($('compare').classList.contains('hide')) return;
-  dbAll().then(function(all){ cmpAll=all; paintCompare(); });
+  dbAll().then(function(all){ cmpAll=all.filter(function(x){ return !x.draft; }); paintCompare(); });
 }
 $('cmpBack').onclick=function(){ show('home'); };
 $('dCompare').onclick=function(){

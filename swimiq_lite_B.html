@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.12">
+<meta name="app-ver" content="2026.10.04.13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -746,6 +746,10 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 #saveBox select, #saveBox input[type=text], #reFix input[type=text], #vFix #vfMeet{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
 #saveBox select{ -webkit-appearance:none; appearance:none; }
+select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px; border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
+.cmpItem .r2.kv{ display:flex; flex-direction:column; gap:1px; font-size:15px; }
+.cmpItem .r2.kv span{ white-space:nowrap; }
+.cmpItem .r2.kv b{ color:var(--dim); font-weight:800; }
 #saveBox .svBtns .btn{ flex:1; min-height:56px; font-size:18px; }
 .uwRow{ display:flex; gap:10px; }
 .uwRow label{ flex:1; display:flex; align-items:center; gap:6px; font-size:15px; font-weight:800; color:#fff; }
@@ -1766,7 +1770,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.12</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.13</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2474,6 +2478,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <p class="q" data-t="sbTitleLbl"></p>
       <input type="text" id="sbTitle" autocomplete="off">
     </div>
+    <div class="sq">
+      <p class="q">予選決勝</p>
+      <select id="sbRound" class="rdSel"></select>
+    </div>
     <div class="svBtns">
       <button class="btn" type="button" id="sbCancel" data-t="dMenuX"></button>
       <button class="btn g" type="button" id="sbOk" data-t="save"></button>
@@ -2498,6 +2506,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sq">
       <p class="q" data-t="mTitleLbl"></p>
       <input type="text" id="mTitle">
+    </div>
+    <div class="sq">
+      <p class="q">予選決勝</p>
+      <select id="mRound" class="rdSel"></select>
     </div>
     <div class="sq">
       <p class="q" data-t="eventLbl"></p>
@@ -2544,6 +2556,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sq">
       <p class="q" data-t="sbTitleLbl"></p>
       <input type="text" id="vfMeet" autocomplete="off">
+    </div>
+    <div class="sq">
+      <p class="q">予選決勝</p>
+      <select id="vfRound" class="rdSel"></select>
     </div>
     <div class="sq">
       <p class="q" data-t="swmSelLbl"></p>
@@ -2640,6 +2656,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sq">
       <p class="q" data-t="sbTitleLbl"></p>
       <input type="text" id="rfMeet" autocomplete="off">
+    </div>
+    <div class="sq">
+      <p class="q">予選決勝</p>
+      <select id="rfRound" class="rdSel"></select>
     </div>
     <div class="sq">
       <p class="q" data-t="sbSwimLbl"></p>
@@ -3326,7 +3346,7 @@ var W={
 
  openManual:['きろくを 手で 入力する<small>動画が なくても のこせます</small>','記録を手入力する<small>動画がなくても記録を残せます</small>'],
  vfTitle:['きろくを なおす','記録を修正'],
- vfLead:['日づけ・種目・きょり・タイム・ストローク数を なおせます。動画は そのまま のこります。','日付・種目・距離・タイム・ストローク数を修正できます。動画はそのまま残ります。'],
+ vfLead:['試合名・予選決勝・日づけ・種目・きょり・タイム・ストローク数を なおせます。動画は そのまま のこります。','試合名・予選決勝・日付・種目・距離・タイム・ストローク数を修正できます。動画はそのまま残ります。'],
  vfNLbl:['ストローク数（数）','ストローク数（数）'],
  vfSTLbl:['テンポ ST（1かきの秒数）','テンポ ST（1かきの秒数）'],
  vfSTHint:['入れると SR も 自動で 計算します。わからなければ 空欄で かまいません。','入れるとSRも自動で計算します。わからなければ空欄で構いません。'],
@@ -3355,7 +3375,7 @@ var W={
  reTimeS:['ストロークは そのまま のこします','ストロークはそのまま残します'],
  reStrB:['ストロークだけ 計りなおす','ストロークのみ再度計測'],
  reStrS:['タイムは そのまま。はじめから 数えなおします','タイムはそのまま。最初から数え直します'],
- reInfoB:['試合名・名前・プール・きょり・しゅもくを なおす','試合名・名前・プールサイズ・距離・種目の修正'],
+ reInfoB:['試合名・予選決勝・名前・プール・きょり・しゅもくを なおす','試合名・予選決勝・名前・プールサイズ・距離・種目の修正'],
  reInfoS:['計りなおさずに、せっていだけ なおします','計測はせず、設定だけ直します'],
  reAllB:['ぜんぶ やりなおす','すべてやり直す'],
  reAllS:['いまの きろくを 見ながら 分析画面で なおします','今の記録を見ながら分析画面で直します'],
@@ -6165,7 +6185,7 @@ $('anaSave').onclick=function(){
   var d=new Date();
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
   var defName = $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent;
-  sbAsk(defName, aId, function(name, swId, swName, uwKick, uwDist){
+  sbAsk(defName, aId, function(name, swId, swName, uwKick, uwDist, round){
   thumb().then(function(th){
     var rec={
       id: aId || ('r'+Date.now()),
@@ -6184,7 +6204,8 @@ $('anaSave').onclick=function(){
       thumb: th,
       swimmerId: swId || '',
       swimmerName: swName || '',
-      uwKick: uwKick, uwDist: uwDist
+      uwKick: uwKick, uwDist: uwDist,
+      round: round||''
     };
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
@@ -6216,7 +6237,8 @@ function sbAsk(defName, recId, cb){
     var id=pre.id||'', nm=pre.name||'';
     if(id && swById(id)){ $('sbSwim').value=id; $('sbName').value=''; }
     else { $('sbSwim').value=''; $('sbName').value=nm; }
-    $('sbTitle').value=defName||'';
+    $('sbTitle').value=autoCut(stripRound(defName||''));
+    roundFill($('sbRound'), pre.round!=null ? pre.round : roundTail(defName||''));
     $('sbKick').value=(pre.kick!=null)?String(pre.kick):'';
     $('sbUw').value=(pre.uw!=null)?String(pre.uw):'';
     $('saveBox').classList.remove('hide');
@@ -6230,12 +6252,12 @@ function sbAsk(defName, recId, cb){
     var nm = id ? ((swById(id)||{}).name||'') : typed;
     try{ localStorage.setItem('swimiq_lastswim', JSON.stringify({id:id, name:id?'':typed})); }catch(e){}
     $('saveBox').classList.add('hide');
-    cb(($('sbTitle').value||'').trim(), id, nm, numOrNull($('sbKick').value,false), numOrNull($('sbUw').value,true));
+    cb(($('sbTitle').value||'').trim(), id, nm, numOrNull($('sbKick').value,false), numOrNull($('sbUw').value,true), $('sbRound').value||'');
   };
   if(recId){
     dbGet(recId).then(function(r){
       var pre = (r && (r.swimmerId || r.swimmerName)) ? {id:r.swimmerId, name:r.swimmerName} : {id:last.id, name:last.name};
-      if(r){ pre.kick=r.uwKick; pre.uw=r.uwDist; }
+      if(r){ pre.kick=r.uwKick; pre.uw=r.uwDist; pre.round=roundOf(r); }
       open(pre);
     }, function(){ open(last); });
   }else open(last);
@@ -6271,8 +6293,63 @@ function dayKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 function dayName(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[d.getDay()]+'）'; }
 function mdShort(at){ var d=new Date(at); return (d.getMonth()+1)+'/'+d.getDate(); }
 /* 試合名。ただの「100m　自由形」など 中身の ない ものは 出しません */
+/* 予選・決勝など。新しい きろくは r.round に 入れます。
+   前の きろくで 試合名の 最後に「予選」などと 書いて あるものも 読みとります */
+var ROUNDS=['予選','準決勝','決勝','B決勝','C決勝','スイムオフ','タイム決勝'];
+var ROUNDS_LONG=ROUNDS.slice().sort(function(a,b){ return b.length-a.length; });
+function roundFill(sel, v){
+  if(!sel) return;
+  sel.innerHTML='<option value="">なし</option>'+ROUNDS.map(function(o){ return '<option value="'+o+'">'+o+'</option>'; }).join('');
+  sel.value = (ROUNDS.indexOf(v)>=0) ? v : '';
+}
+function roundTail(t){                 /* 試合名の 最後に ある 予選・決勝の ことば */
+  t=String(t||'').trim();
+  for(var i=0;i<ROUNDS_LONG.length;i++){
+    var w=ROUNDS_LONG[i];
+    if(t.length>w.length && t.slice(-w.length)===w){
+      if(w==='決勝' && /[準BCＢＣ]$|タイム$/.test(t.slice(0,-2).trim())) continue;
+      return w;
+    }
+  }
+  return '';
+}
+function autoCut(t){                  /* 自動で つく「10/4 50m」を とる */
+  return String(t||'').replace(/^\d{1,2}\/\d{1,2}[\s\u3000]+\d+m(?=[\s\u3000]|$)[\s\u3000]*/,'').trim();
+}
+function autoTitle(at, dist){ var d=new Date(at||Date.now()); return (d.getMonth()+1)+'/'+d.getDate()+' '+dist+'m'; }
+function stripRound(t){
+  t=String(t||'').trim(); var w=roundTail(t);
+  return w ? t.slice(0,-w.length).replace(/[\s\u3000]+$/,'') : t;
+}
+function roundOf(r){
+  if(!r) return '';
+  if(r.round!==undefined && r.round!==null) return String(r.round);
+  return roundTail(r.title);
+}
+/* 見出し用：試合名＋予選・決勝。どちらも なければ もとの 名前 */
+function recLabel(r){
+  if(!r) return '';
+  var a=meetName(r), b=roundOf(r);
+  var s=[a,b].filter(function(x){ return x; }).join('　');
+  return s || stripRound(r.title||'') || (r.title||'');
+}
+/* 一覧で 見せる 項目（日付・距離・試合名・予選決勝・ST・SR・SC・効率） */
+function recFacts(r){
+  var ss=raceStroke(r), q=siSimple(r), last=r.splits&&r.splits.length?r.splits[r.splits.length-1]:null;
+  return [
+    ['日付', new Date(r.at).toLocaleDateString('ja-JP')],
+    ['距離', (r.dist||(last?last.d:'')||'--')+'m'],
+    ['試合名', meetName(r)||'--'],
+    ['予選決勝', roundOf(r)||'なし'],
+    ['ST', ss.st!=null?ss.st.toFixed(2):'--'],
+    ['SR', ss.sr!=null?ss.sr.toFixed(1):'--'],
+    ['SC', ss.n!=null?ss.n:'--'],
+    ['効率', q?q.si.toFixed(2):'--']
+  ];
+}
 function meetName(r){
-  var t=(r&&r.title? String(r.title):'').trim();
+  var t=stripRound((r&&r.title? String(r.title):'').trim());
+  t=autoCut(t);
   if(!t) return '';
   var d=(r.dist||'');
   var junk=[ d+'m　'+evLabel(r.event), d+'m '+evLabel(r.event), d+'m',
@@ -6292,7 +6369,7 @@ function recCard(r){
   if(typeof bestIdx==='object' && bestIdx && bestIdx[r.id])
     badge = '<span class="c2badge bst">'+T('bstTag')+'</span>' + badge;
   var nm = r.swimmerName ? (r.swimmerName+'　') : '';
-  var mt = meetName(r);
+  var mt = recLabel(r); if(!meetName(r) && !roundOf(r)) mt='';
   var info = nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
   /* 試合名が あれば 1行めに 大きく、2行めに 選手・種目・きょり・日づけ */
   var head = mt ? (badge + esc(mt)) : (badge + info);
@@ -6341,7 +6418,7 @@ function qNorm(s){
 }
 function recHay(r){
   var last=r.splits&&r.splits.length?r.splits[r.splits.length-1]:null;
-  return qNorm([r.swimmerName||'', r.title||'', (typeof meetName==='function'?meetName(r):'')||'', r.memo||'',
+  return qNorm([r.swimmerName||'', r.title||'', (typeof meetName==='function'?meetName(r):'')||'', roundOf(r), r.memo||'',
     evLabel(r.event)||'', (r.dist||(last?last.d:''))+'m'].join(' '));
 }
 /* ホームの 一覧は「作業した 順」（さいごに 分析・修正・保存した ものが 上）*/
@@ -6422,7 +6499,7 @@ function openDetail(id){
     });
     spdMark($('dspd'),1);
     if(typeof detZoom!=='undefined' && detZoom) detZoom.reset();
-    $('dTitle').textContent=(r.title||T('dTitle'))+'　'+evLabel(r.event);
+    $('dTitle').textContent=(recLabel(r)||T('dTitle'))+'　'+evLabel(r.event);
     $('dBox').classList.add('fold'); foldLabel($('dBox'));
     document.querySelector('.ov.det').classList.remove('on');
     $('dMenu').textContent=T('dMenu');
@@ -6556,7 +6633,8 @@ $('reInfo').onclick=function(){
   $('rfPool').value = String(dRec.pool||50);
   distFill($('rfDist'), dRec.dist || last || 100);
   $('rfEvent').value = dRec.event || 'free';
-  $('rfMeet').value = dRec.title || '';
+  $('rfMeet').value = meetName(dRec);
+  roundFill($('rfRound'), roundOf(dRec));
   fillSwimSelect($('rfSwim'), '');
   if(dRec.swimmerId && swById(dRec.swimmerId)){ $('rfSwim').value=dRec.swimmerId; $('rfName').value=''; }
   else { $('rfSwim').value=''; $('rfName').value=dRec.swimmerName||''; }
@@ -6587,12 +6665,10 @@ $('rfSave').onclick=function(){
     rec.pool=pool; rec.dist=dist; rec.event=ev; rec.splits=keep;
     rec.swimmerId=swId; rec.swimmerName=swNm;
     /* 試合名を 書きかえた ときは それを、そのままなら 自動の 名前（9/30 25m）の きょりだけ 合わせます */
+    /* 試合名が 空なら 自動の 名前（10/4 50m）に します */
     var _rm=($('rfMeet').value||'').trim();
-    if(_rm && _rm!==(rec.title||'')) rec.title=_rm;
-    else{
-      var m=/^(\d{1,2}\/\d{1,2}) (\d+)m$/.exec(rec.title||'');
-      if(m && Number(m[2])===Number(oldDist)) rec.title=m[1]+' '+dist+'m';
-    }
+    rec.round=$('rfRound').value||'';
+    rec.title = _rm || autoTitle(rec.at, dist);
     rec.updatedAt=Date.now();
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
@@ -6612,7 +6688,7 @@ $('dVid').onclick=function(){
   shareFile(dRec.video, 'swimiq_'+dRec.id+ext, ty, T('shVid'));
 };
 function recText(r){
-  var L=['SwimIQ LITE B', r.title, new Date(r.at).toLocaleString('ja-JP'), ''];
+  var L=['SwimIQ LITE B', recLabel(r), new Date(r.at).toLocaleString('ja-JP'), ''];
   if(r.splits && r.splits.length){
     L.push('['+T('glSplit')+']');
     for(var i=0;i<r.splits.length;i++){
@@ -6652,7 +6728,7 @@ $('dCopy').onclick=function(){
 };
 $('dShare').onclick=function(){
   if(!dRec) return;
-  shareText(recText(dRec), dRec.title||'SwimIQ');
+  shareText(recText(dRec), recLabel(dRec)||'SwimIQ');
 };
 $('dImg').onclick=function(){
   if(!dRec) return;
@@ -6676,7 +6752,7 @@ function sheetImage(r){
   g.fillStyle='#ffc400'; g.fillRect(0,0,W,10);
   var y=88;
   g.fillStyle='#fff'; g.font='900 46px sans-serif'; g.textBaseline='alphabetic';
-  g.fillText('SwimIQ LITE　'+r.title, pad, y); y+=54;
+  g.fillText('SwimIQ LITE　'+recLabel(r), pad, y); y+=54;
   g.fillStyle='#b5b5b5'; g.font='700 26px sans-serif';
   g.fillText(new Date(r.at).toLocaleString('ja-JP')+'　'+r.pool+'mプール　'+r.dist+'m', pad, y); y+=52;
   var cw=(W-pad*2-24)/3;
@@ -8037,7 +8113,8 @@ $('mDist').onchange=function(){ if(!distPick(this)) return; renderMSegs(Number(t
 function manualOpen(rec){
   manualEditId = rec ? rec.id : null;
   $('mDate').value = rec ? new Date(rec.at).toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
-  $('mTitle').value = rec ? (rec.title||'') : '';
+  $('mTitle').value = rec ? meetName(rec) : '';
+  roundFill($('mRound'), rec ? roundOf(rec) : '');
   $('mEvent').value = rec ? (rec.event||'free') : 'free';
   var dist = rec ? (rec.dist||100) : 100;
   distFill($('mDist'), dist);
@@ -8533,7 +8610,7 @@ function buildReport(r){
   var html='<div class="rp">'+
     '<div class="rhd"><div class="rlogo">スイム<span class="iq">IQ</span><span class="rep">レース分析レポート</span></div>'+
       '<div class="rmeta">'+dt+'<br>'+(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m</div></div>'+
-    '<div class="rtitle">'+(r.title||'')+'</div>'+
+    '<div class="rtitle">'+esc(recLabel(r))+'</div>'+
     '<div class="rsub"><span class="chip">'+evLabel(r.event)+'</span><span class="chip">'+(r.dist||'')+'m</span>'+
       (swBits.length?'<span class="chip">'+swBits.join('　')+'</span>':'')+'</div>'+
     '<div class="rkpis">'+kp.map(function(x){ return '<div class="rkpi'+(x.hl?' hl':'')+'"><div class="k">'+x.k+'</div><div class="v">'+x.v+'<span class="u">'+x.u+'</span></div></div>'; }).join('')+'</div>'+
@@ -8582,7 +8659,7 @@ function reportSVG(r, W, H){
   s+='<text x="'+(W-mx)+'" y="62" font-size="11" font-weight="600" fill="#5b6270" text-anchor="end">'+(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m</text>';
   s+='<line x1="'+mx+'" y1="82" x2="'+(W-mx)+'" y2="82" stroke="#111318" stroke-width="3"/>';
   // title
-  s+='<text x="'+mx+'" y="120" font-size="22" font-weight="900" fill="#16181d">'+esc(r.title||'')+'</text>';
+  s+='<text x="'+mx+'" y="120" font-size="22" font-weight="900" fill="#16181d">'+esc(recLabel(r))+'</text>';
   // chips
   var chips=[evLabel(r.event), (r.dist||'')+'m']; if(swName){ chips.push(swName+(ag!=null?(' '+ag+'歳'):'')); }
   var cx=mx, cyT=138, ch=22;
@@ -8831,7 +8908,7 @@ function reportPages(r, prev, W, H){
     s+=T_(W-mx,46,dt+'　'+page,11,600,'#5b6270','end');
     s+=T_(W-mx,62,(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m',11,600,'#5b6270','end');
     s+='<line x1="'+mx+'" y1="82" x2="'+(W-mx)+'" y2="82" stroke="#111318" stroke-width="3"/>';
-    s+=T_(mx,118,r.title||'',21,900);
+    s+=T_(mx,118,recLabel(r),21,900);
     var chips=[evLabel(r.event), (r.dist||'')+'m']; if(swName) chips.push(swName+(ag!=null?(' '+ag+'歳'):''));
     var cx=mx; chips.forEach(function(t){ var wpx=t.length*13+22;
       s+='<rect x="'+cx+'" y="132" width="'+wpx+'" height="22" rx="11" fill="#f4f5f7"/>'+T_(cx+wpx/2,147,t,12.5,800,'#16181d','middle'); cx+=wpx+8; });
@@ -9006,7 +9083,7 @@ function downloadPDF(r){
       place(bare(pages[0]),0,0,W,H)+place(bare(pages[1]),0,H+gap,W,H)+'</svg>';
     Promise.all([svgToJpeg(pages[0],W,H,2), svgToJpeg(pages[1],W,H,2), svgToJpeg(tall,W,H*2+gap,1.5)]).then(function(ims){
       pdfBlobCur = jpegsToPdf([ims[0], ims[1]]);
-      var t=(r.title||'report').replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_').slice(0,40);
+      var t=(recLabel(r)||'report').replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_').slice(0,40);
       pdfNameCur = 'SwimIQ_'+t+'.pdf';
       if(pdfImgURL){ try{ URL.revokeObjectURL(pdfImgURL); }catch(e){} }
       pdfImgURL = URL.createObjectURL(new Blob([ims[2].u8], { type:'image/jpeg' }));
@@ -9191,6 +9268,7 @@ $('mSave').onclick=function(){
     id: manualEditId || ('m'+Date.now()),
     at: dateVal.getTime(),
     title: titleVal,
+    round: $('mRound').value||'',
     pool: 50, dist: dist, event: evv,
     manual: true, t0: null,
     splits: [{ d:dist, t:t }], strokes: [],
@@ -9309,7 +9387,8 @@ function vfOpen(rec){
   $('vfVid').value = rec.videoUrl || '';
   $('vfMemo').value = rec.memo || '';
   $('vfMemo').placeholder = T('memoPh');
-  $('vfMeet').value = rec.title || '';
+  $('vfMeet').value = meetName(rec);
+  roundFill($('vfRound'), roundOf(rec));
   $('vfKick').value = (rec.uwKick!=null)?String(rec.uwKick):'';
   $('vfUw').value = (rec.uwDist!=null)?String(rec.uwDist):'';
   vfSplPaint(rec.splits || []);
@@ -9362,7 +9441,8 @@ $('vfSave').onclick=function(){
     rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
     rec.videoUrl = ($('vfVid').value||'').trim();
     rec.memo = ($('vfMemo').value||'').trim();
-    var _mt=($('vfMeet').value||'').trim(); if(_mt) rec.title=_mt;
+    var _mt=($('vfMeet').value||'').trim(); rec.title = _mt || autoTitle(rec.at, rec.dist);
+    rec.round=$('vfRound').value||'';
     rec.uwKick = numOrNull($('vfKick').value,false);
     rec.uwDist = numOrNull($('vfUw').value,true);
     rec.swimmerId = $('vfSwim').value || '';
@@ -9714,7 +9794,7 @@ function viewOpen(r){
   vwRec=r;
   var last=(r.splits&&r.splits.length)? r.splits[r.splits.length-1] : null;
   var ss=raceStroke(r);
-  $('vwH').textContent = r.title || T('dTitle');
+  $('vwH').textContent = recLabel(r) || T('dTitle');
   var bits=[];
   bits.push(new Date(r.at).toLocaleDateString('ja-JP'));
   if(r.swimmerName) bits.push(r.swimmerName);
@@ -9825,7 +9905,7 @@ function viewOpen(r){
 }
 $('vwClose').onclick=function(){ $('viewBox').classList.add('hide'); };
 $('vwPdf').onclick=function(){ if(vwRec) downloadPDF(vwRec); };
-$('vwCopy').onclick=function(){ if(vwRec) shareText(recText(vwRec), vwRec.title||'SwimIQ'); };
+$('vwCopy').onclick=function(){ if(vwRec) shareText(recText(vwRec), recLabel(vwRec)||'SwimIQ'); };
 $('vwEdit').onclick=function(){
   if(!vwRec) return;
   $('viewBox').classList.add('hide');
@@ -10136,13 +10216,13 @@ function csvCell(s){
   return s;
 }
 function buildCsv(all){
-  var head=['日付','試合名','種目','きょり(m)','記録タイム','平均ST(秒)','平均SR','ストローク数'];
+  var head=['日付','試合名','予選決勝','種目','きょり(m)','記録タイム','平均ST(秒)','平均SR','ストローク数'];
   var lines=[head.map(csvCell).join(',')];
   all.forEach(function(r){
     var t=raceBest(r), ss=raceStroke(r);
     lines.push([
       new Date(r.at).toLocaleDateString('ja-JP'),
-      r.title||'', evLabel(r.event), r.dist||'',
+      meetName(r)||'', roundOf(r)||'', evLabel(r.event), r.dist||'',
       t!=null?fmt(t):'', ss.st!=null?ss.st.toFixed(2):'',
       ss.sr!=null?ss.sr.toFixed(1):'', ss.n!=null?ss.n:''
     ].map(csvCell).join(','));
@@ -10164,7 +10244,7 @@ $('exJson').onclick=function(){
     all=all.filter(function(x){ return !x.draft; });
     if(!all.length){ toast(T('exNoData')); return; }
     var records = all.map(function(r){
-      return { id:r.id, at:r.at, title:r.title, pool:r.pool, dist:r.dist, event:r.event,
+      return { id:r.id, at:r.at, title:r.title, round:roundOf(r), pool:r.pool, dist:r.dist, event:r.event,
                t0:r.t0, splits:r.splits, strokes:r.strokes,
                manual:!!r.manual, manualN:(r.manualN!=null?r.manualN:null), manualST:(r.manualST!=null?r.manualST:null),
                manualSegs:(r.manualSegs||null), videoUrl:(r.videoUrl||''),
@@ -10197,6 +10277,7 @@ $('fImport').onchange=function(){
         id: 'imp'+Date.now()+'_'+i+'_'+Math.floor(Math.random()*10000),
         at: src.at || Date.now(),
         title: src.title || (src.dist+'m'),
+        round: (src.round!=null ? src.round : roundTail(src.title||'')),
         pool: src.pool || 50, dist: src.dist, event: src.event || 'other',
         manual: true, t0: (src.t0!=null?src.t0:null),
         splits: src.splits || [], strokes: src.strokes || [],
@@ -10431,7 +10512,7 @@ function paintCompare(){
   }else{
     h+='<div class="cmpStats">'+
        '<div class="cmpStat"><b>'+T('cmpBest')+'</b><div class="v">'+fmt(bestT)+'</div>'+
-         '<div class="d">'+(bestRec ? (new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+bestRec.title) : '')+'</div></div>'+
+         '<div class="d">'+(bestRec ? (new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+esc(recLabel(bestRec))) : '')+'</div></div>'+
        '<div class="cmpStat"><b>'+T('cmpAvg')+'</b><div class="v">'+(avgT!=null?fmt(avgT):'--')+'</div>'+
          '<div class="d">'+list.length+T('cmpUnit')+'</div></div>'+
      '</div>';
@@ -10486,10 +10567,7 @@ function paintCompare(){
         '<span class="diff'+(diff===0?' best':'')+'">'+(mixed?'':(diff===0?T('cmpBestTag'):(diff!=null?'+'+diff.toFixed(2):'')))+'</span>'+
         '<button class="cmpEdit" type="button">'+T('editBtn')+'</button>'+
         '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>'+
-      '<div class="r2">'+new Date(r.at).toLocaleDateString('ja-JP')+'　'+r.title+
-        '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
-        '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+
-        (function(){ var q=siSimple(r); return q?('　効率 '+q.si.toFixed(2)):''; })()+'</div>';
+      '<div class="r2 kv">'+recFacts(r).map(function(p){ return '<span><b>'+p[0]+'：</b>'+esc(String(p[1]))+'</span>'; }).join('')+'</div>';
     (function(rec){
       d.onclick=function(){ cmpToggleSel(rec.id); };
       var eb=d.querySelector('.cmpEdit');
@@ -10561,8 +10639,9 @@ function paintMeetView(list){
   var body=$('cmpBody'), g={}, order=[], i;
   for(i=0;i<list.length;i++){
     var r=list[i], m=meetName(r) || T('meetNone');
-    if(!g[m]){ g[m]=[]; order.push(m); }
-    g[m].push(r);
+    var gk=m+'\u241e'+new Date(r.at).getFullYear();   /* 同じ 名前でも 年が ちがえば べつの 試合 */
+    if(!g[gk]){ g[gk]=[]; order.push(gk); }
+    g[gk].push(r);
   }
   /* 新しい 大会が 上に くる ように します */
   order.sort(function(a,b){
@@ -10572,7 +10651,7 @@ function paintMeetView(list){
   });
   var h='<p class="cmpNote">'+T('mtNote')+'</p>', k;
   for(k=0;k<order.length;k++){
-    var name=order[k], arr=g[name].slice();
+    var name=order[k].split('\u241e')[0], arr=g[order[k]].slice();
     arr.sort(function(a,b){
       var wa=whoOf(a), wb=whoOf(b);
       if(wa!==wb) return wa<wb ? -1 : 1;
@@ -10584,12 +10663,12 @@ function paintMeetView(list){
     for(i=0;i<arr.length;i++){
       var q=arr[i], t=raceBest(q), ss=raceStroke(q);
       h+='<div class="bstRow" data-id="'+q.id+'">'+
-         '<span class="e">'+esc(whoOf(q)||T('swimNone'))+'　'+esc(evLabel(q.event))+' '+(q.dist||'')+'m</span>'+
+         '<span class="e">'+esc(whoOf(q)||T('swimNone'))+'　'+esc(evLabel(q.event))+' '+(q.dist||'')+'m'+(roundOf(q)?'　'+esc(roundOf(q)):'')+'</span>'+
          '<span class="t">'+fmt(t)+(bestIdx[q.id]?' <i class="bTag">'+T('bstTag')+'</i>':'')+'</span>'+
          '<span class="d">ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　'+T('nStr')+' '+(ss.n!=null?ss.n:'--')+'</span>'+
          '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>';
     }
-    h+='<button class="btn b mtShare" type="button" data-m="'+esc(name)+'" style="width:100%;margin:6px 0 16px;">'+T('mtShare')+'</button>';
+    h+='<button class="btn b mtShare" type="button" data-m="'+esc(order[k])+'" style="width:100%;margin:6px 0 16px;">'+T('mtShare')+'</button>';
   }
   body.innerHTML=h;
   var el=body.querySelectorAll('.bstRow');
@@ -10605,10 +10684,10 @@ function paintMeetView(list){
   for(i=0;i<sb.length;i++){
     (function(btn){
       btn.onclick=function(){
-        var name=btn.dataset.m, arr=g[name]||[], L=['SwimIQ　'+name,''], j;
+        var key=btn.dataset.m, name=key.split('\u241e')[0], arr=g[key]||[], L=['SwimIQ　'+name,''], j;
         for(j=0;j<arr.length;j++){
           var q=arr[j], ss=raceStroke(q);
-          L.push((whoOf(q)||'')+'　'+evLabel(q.event)+' '+(q.dist||'')+'m　'+fmt(raceBest(q))+
+          L.push((whoOf(q)||'')+'　'+evLabel(q.event)+' '+(q.dist||'')+'m'+(roundOf(q)?'　'+roundOf(q):'')+'　'+fmt(raceBest(q))+
                  '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　'+T('nStr')+' '+(ss.n!=null?ss.n:'--'));
         }
         shareText(L.join('\n'), name);
@@ -10696,12 +10775,12 @@ function pairRow(label, av, bv, diff){
 }
 function cmpProgressText(list, bestT, bestRec, avgT){
   var L=['SwimIQ LITE B　記録の比較',''];
-  L.push(T('cmpBest')+'　'+fmt(bestT)+'　'+(bestRec?(new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+bestRec.title):''));
+  L.push(T('cmpBest')+'　'+fmt(bestT)+'　'+(bestRec?(new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+recLabel(bestRec)):''));
   L.push(T('cmpAvg')+'　'+(avgT!=null?fmt(avgT):'--')+'（'+list.length+T('cmpUnit')+'）');
   L.push('');
   list.forEach(function(r){
     var t=raceBest(r), ss=raceStroke(r);
-    L.push(new Date(r.at).toLocaleDateString('ja-JP')+'　'+fmt(t)+'　'+r.dist+'m　'+evLabel(r.event)+'　'+r.title+
+    L.push(new Date(r.at).toLocaleDateString('ja-JP')+'　'+fmt(t)+'　'+r.dist+'m　'+evLabel(r.event)+'　'+recLabel(r)+
       '　ST '+(ss.st!=null?ss.st.toFixed(2):'--')+'　SR '+(ss.sr!=null?ss.sr.toFixed(1):'--')+
       '　'+T('nStr')+' '+(ss.n!=null?ss.n:'--'));
   });
@@ -10709,8 +10788,8 @@ function cmpProgressText(list, bestT, bestRec, avgT){
 }
 function cmpPairText(a,b,ta,tb,sa,sb){
   var L=['SwimIQ LITE B　2件を比較',''];
-  L.push('A：'+a.title+'　'+new Date(a.at).toLocaleDateString('ja-JP'));
-  L.push('B：'+b.title+'　'+new Date(b.at).toLocaleDateString('ja-JP'));
+  L.push('A：'+recLabel(a)+'　'+new Date(a.at).toLocaleDateString('ja-JP'));
+  L.push('B：'+recLabel(b)+'　'+new Date(b.at).toLocaleDateString('ja-JP'));
   L.push('');
   L.push(T('timeLbl')+'　A '+fmt(ta)+'　B '+fmt(tb));
   L.push(T('avgST')+'　A '+(sa.st!=null?sa.st.toFixed(2):'--')+'　B '+(sb.st!=null?sb.st.toFixed(2):'--'));
@@ -10751,7 +10830,7 @@ function cmpPaintPair(){
 
   box.innerHTML =
     '<h3>'+T('cmpPairGl')+'</h3>'+
-    '<div class="cmpPairRow"><span class="lb"></span><span class="a">A：'+a.title+'</span><span class="b">B：'+b.title+'</span><span class="df"></span></div>'+
+    '<div class="cmpPairRow"><span class="lb"></span><span class="a">A：'+esc(recLabel(a))+'</span><span class="b">B：'+esc(recLabel(b))+'</span><span class="df"></span></div>'+
     rows +
     (splitRows ? ('<div class="gl sub2" style="margin-top:10px;">'+T('cmpSplitDiffGl')+'</div>'+splitRows) : '') +
     '<div id="pairChart"></div>'+
@@ -10779,8 +10858,8 @@ function paintPairCharts(a,b){
     sa.push(LA[i].st); sb.push(LB[i].st);
   }
   function some(x){ var k; for(k=0;k<x.length;k++) if(x[k]!=null && !isNaN(x[k])) return true; return false; }
-  var lg = '<p class="pairLg"><i style="background:'+G_A+'"></i>A　'+esc(a.title||'')+
-           '<i style="background:'+G_B+';margin-left:14px;"></i>B　'+esc(b.title||'')+'</p>';
+  var lg = '<p class="pairLg"><i style="background:'+G_A+'"></i>A　'+esc(recLabel(a))+
+           '<i style="background:'+G_B+';margin-left:14px;"></i>B　'+esc(recLabel(b))+'</p>';
   var h='<div class="vwGl" style="margin-top:14px;">'+esc(T('pairGl'))+'</div>'+lg;
   h+=chartBlock(T('chLap'), '', gLine2(labels, ta, tb, 2));
   h+=chartBlock(T('chSpd'), '', gLine2(labels, va, vb, 2));

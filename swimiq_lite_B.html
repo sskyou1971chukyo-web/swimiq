@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.03.13">
+<meta name="app-ver" content="2026.10.04.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1737,7 +1737,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.03.13</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -7947,8 +7947,18 @@ $('swmDelBtn').onclick=function(){
 /* ================================================================
    PDFレポート（アプリ内で 作って、印刷→PDFで保存）
    ================================================================ */
+/* 通過が 多い ときは、25m・50m・100m… ごとに しぼって PDFに おさめます */
+function thinSplits(sp, maxN){
+  if(sp.length<=maxN) return sp;
+  var last=sp[sp.length-1].d, steps=[25,50,100,200,250,500], i;
+  for(i=0;i<steps.length;i++){
+    var st=steps[i], f=sp.filter(function(x){ return x.d%st===0 || x.d===last; });
+    if(f.length<=maxN) return f;
+  }
+  return sp.slice(-maxN);
+}
 function rpSVGsplits(r){
-  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  var sp=thinSplits((r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; }), 10);
   if(!sp.length) return '';
   var _rt=rtSec(r);
   var laps=[]; for(var i=0;i<sp.length;i++){ laps.push({ d:sp[i].d, seg:splitRow(sp,i,_rt).lap, lab:(i>0?sp[i-1].d:0)+'-'+sp[i].d }); }
@@ -7956,7 +7966,8 @@ function rpSVGsplits(r){
   var maxV=Math.max.apply(null,laps.map(function(l){return l.seg;})); var yMax=Math.ceil(maxV/2)*2+2;
   var gap=iw/laps.length, bw=gap*0.56, slow=maxV;
   var s='<svg viewBox="0 0 '+W+' '+H+'">';
-  for(var g=0; g<=yMax; g+=4){ var yy=pad.t+ih-(g/yMax*ih);
+  var _ts = yMax>40 ? Math.ceil(yMax/5/10)*10 : 4;
+  for(var g=0; g<=yMax; g+=_ts){ var yy=pad.t+ih-(g/yMax*ih);
     s+='<line x1="'+pad.l+'" y1="'+yy+'" x2="'+(W-pad.r)+'" y2="'+yy+'" stroke="#eceef1" stroke-width="1"/>';
     s+='<text x="'+(pad.l-6)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9" fill="#9aa0ab">'+g+'</text>'; }
   laps.forEach(function(l,i){ var x=pad.l+gap*i+(gap-bw)/2, h=l.seg/yMax*ih, y=pad.t+ih-h;
@@ -8005,10 +8016,49 @@ function lapTempos(r){
   }
   return out;
 }
+/* ===== 通過タイムで 区切った ストロークの まとまり =====
+   れい：25mの 通過が 12.73秒 なら、12.73秒までの ストロークを 0-25m、
+   のこりを 25-50m に 入れます。
+   200mまでは 25mごと、それより 長い レースは 50mごとに 区切ります
+   （その きょりの 通過が そろって いない ときは、記録の ある 通過で 区切ります）。 */
+function srSegs(r){
+  if(!r || r.manual) return [];
+  var raw=r.strokes||[]; if(raw.length<2) return [];
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  if(!sp.length) return [];
+  var dist=Number(r.dist)||sp[sp.length-1].d, by={0:0}, i;
+  for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  if(by[dist]==null) return [];
+  function full(step){ for(var d=step; d<=dist+0.001; d+=step) if(by[d]==null) return false; return true; }
+  var B=[], step=null, d;
+  if(dist>200) step = full(50) ? 50 : (full(25) ? 25 : null);
+  else         step = full(25) ? 25 : (full(50) ? 50 : null);
+  if(step){ for(d=0; d<=dist+0.001; d+=step) B.push(d); }
+  else{ B=[0]; for(i=0;i<sp.length;i++) if(sp[i].d%25===0 && sp[i].d>0) B.push(sp[i].d); }
+  if(B.length<2) return [];
+  var t0=(r.t0!=null && r.t0>0)?Number(r.t0):0;
+  var iv=tempoTable(raw, wantTurnsOf(dist, r.pool)), out=[], k;
+  for(i=1;i<B.length;i++){
+    var a=by[B[i-1]], b=by[B[i]], n=0, sum=0, num=0, nos=[];
+    for(k=0;k<raw.length;k++){ var tr=raw[k]-t0; if(tr>a && tr<=b) n++; }
+    for(k=0;k<iv.length;k++){
+      var ti=iv[k].t-t0;
+      if(ti>a && ti<=b){ nos.push(iv[k].no); if(iv[k].kind==='ok'){ sum+=iv[k].d; num++; } }
+    }
+    var st=num?sum/num:null;
+    out.push({ from:B[i-1], to:B[i], n:n, st:st, sr:st?60/st:null, nos:nos });
+  }
+  return out;
+}
 /* 画面と PDF で 同じ くぎりを つかう ための まとめ役。
    25mごとが 出せれば それを、だめなら かべ（ターン）ごとに します。 */
 function segRows(r){
   var S=secTempos(r), out=[], i;
+  var G=srSegs(r);
+  if(G.length && G.some(function(g){ return g.st!=null; })){
+    for(i=0;i<G.length;i++) out.push({ lbl:G[i].from+'-'+G[i].to+'m', st:G[i].st, sr:G[i].sr, n:G[i].n });
+    return out.filter(function(x){ return x.st!=null; });
+  }
   if(S.length>1){
     for(i=0;i<S.length;i++) out.push({ lbl:S[i].from+'-'+S[i].to+'m', st:S[i].st, sr:S[i].sr });
     return out.filter(function(x){ return x.st!=null; });
@@ -8016,6 +8066,10 @@ function segRows(r){
   var L=lapTempos(r);
   for(i=0;i<L.length;i++) out.push({ lbl:(L[i].hasD? (L[i].from+'-'+L[i].to+'m') : (L[i].lap+'本目')), st:L[i].st, sr:L[i].sr });
   return out;
+}
+function lapTempoTextShort(r){
+  var L=lapTempoText(r);
+  return L.length>4 ? L.slice(0,4).concat(['…（全'+L.length+'区間）']) : L;
 }
 function lapTempoText(r){
   var L=segRows(r), out=[], i;
@@ -8035,13 +8089,14 @@ function rpSVGsr(r){
   if(!swim.length) return '';
   var srMax=Math.max.apply(null,swim.map(function(p){return p.sr;})), srMin=Math.min.apply(null,swim.map(function(p){return p.sr;}));
   var yLo=Math.floor((srMin-2)/5)*5, yHi=Math.ceil((srMax+2)/5)*5, n=pts.length;
-  var W=900,H=250,pad={l:38,r:16,t:42,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  var _G0=srSegs(r), W=900,H=(_G0.length?270:250),pad={l:38,r:16,t:(_G0.length?72:42),b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
   function X(i){ return pad.l+(i-1)/(n-1)*iw; } function Y(v){ return pad.t+ih-(v-yLo)/(yHi-yLo)*ih; }
   var s='<svg viewBox="0 0 '+W+' '+H+'">';
   for(var g=yLo; g<=yHi; g+=5){ var yy=Y(g);
     s+='<line x1="'+pad.l+'" y1="'+yy+'" x2="'+(W-pad.r)+'" y2="'+yy+'" stroke="#eceef1" stroke-width="1"/>';
     s+='<text x="'+(pad.l-6)+'" y="'+(yy+3.5)+'" text-anchor="end" font-size="9" fill="#9aa0ab">'+g+'</text>'; }
-  for(var k=1;k<=n;k++){ if(k===1||k%5===0) s+='<text x="'+X(k)+'" y="'+(H-pad.b+15)+'" text-anchor="middle" font-size="9" fill="#9aa0ab" font-weight="700">'+k+'</text>'; }
+  var _ks=Math.max(5, Math.ceil(n/20/5)*5);
+  for(var k=1;k<=n;k++){ if(k===1||k%_ks===0) s+='<text x="'+X(k)+'" y="'+(H-pad.b+15)+'" text-anchor="middle" font-size="9" fill="#9aa0ab" font-weight="700">'+k+'</text>'; }
   var ay=Y(tp.sr);
   s+='<line x1="'+pad.l+'" y1="'+ay+'" x2="'+(W-pad.r)+'" y2="'+ay+'" stroke="#c98a00" stroke-width="1.4" stroke-dasharray="5 4"/>';
   s+='<text x="'+(W-pad.r)+'" y="'+(ay-5)+'" text-anchor="end" font-size="9.5" font-weight="800" fill="#c98a00">平均SR '+tp.sr.toFixed(1)+'</text>';
@@ -8057,8 +8112,34 @@ function rpSVGsr(r){
   pts.filter(function(p){return p.out;}).forEach(function(p){
     s+='<circle cx="'+X(p.i)+'" cy="'+ty+'" r="4.2" fill="none" stroke="#b07000" stroke-width="2"/>';
     s+='<text x="'+X(p.i)+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#b07000">'+T('outLbl')+'</text>'; });
-  /* ラップ ごとの 平均テンポを グラフの 上に 出します */
-  var LT=lapTempos(r);
+  /* 通過タイムで 区切った 区間ごとに、ストローク数と 平均テンポを グラフの 上に 出します */
+  var G=srSegs(r), LT=G.length ? [] : lapTempos(r);
+  if(G.length){
+    var nSeg=G.length, big=nSeg<=4, fs=big?15:(nSeg<=10?12:9);
+    G.forEach(function(g, gi){
+      if(!g.nos.length) return;
+      var x1=X(Math.max(1,g.nos[0])), x2=X(g.nos[g.nos.length-1]);
+      /* 区間の さかい目に 点線 */
+      if(gi>0){
+        var prev=G[gi-1], px=(prev.nos.length? X(prev.nos[prev.nos.length-1]) : x1);
+        var bx=(px+x1)/2;
+        s+='<line x1="'+bx+'" y1="'+(pad.t-26)+'" x2="'+bx+'" y2="'+(pad.t+ih)+'" stroke="#e8902c" stroke-width="1.6" stroke-dasharray="4 4"/>';
+      }
+      var cx=(x1+x2)/2, by=pad.t-6;
+      s+='<line x1="'+x1+'" y1="'+by+'" x2="'+x2+'" y2="'+by+'" stroke="#e8902c" stroke-width="2.4"/>';
+      s+='<path d="M'+x2+' '+by+' l-7 -4 v8 z" fill="#e8902c"/>';
+      var lbl=g.from+'-'+g.to+'m', lb2=g.n+'かき'+(g.st!=null?('　'+g.st.toFixed(2)+'秒/かき'):'');
+      if(big){
+        s+='<text x="'+cx+'" y="'+(by-24)+'" text-anchor="middle" font-size="'+fs+'" font-weight="900" fill="#e0501e">'+esc(lbl)+'</text>';
+        s+='<text x="'+cx+'" y="'+(by-7)+'" text-anchor="middle" font-size="'+(fs-2)+'" font-weight="900" fill="#e0501e">'+esc(lb2)+'</text>';
+      }else{
+        /* 区間が 多い ときは 上下 2だんに ずらして かさならない ように します */
+        var oy=(nSeg>10 && gi%2===1)?-26:0;
+        s+='<text x="'+cx+'" y="'+(by-18+oy)+'" text-anchor="middle" font-size="'+fs+'" font-weight="900" fill="#e0501e">'+esc(nSeg<=10 ? (g.from+'-'+g.to+'m') : (g.to+'m'))+'</text>';
+        s+='<text x="'+cx+'" y="'+(by-6+oy)+'" text-anchor="middle" font-size="'+(fs-1)+'" font-weight="800" fill="#e0501e">'+esc(g.n+'/'+(g.st!=null?g.st.toFixed(2):'--'))+'</text>';
+      }
+    });
+  }
   if(LT.length>1){
     LT.forEach(function(L){
       if(!L.idx.length) return;
@@ -8188,7 +8269,7 @@ function reportSVG(r, W, H){
   s+='<text x="'+col2+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="end">通過</text>';
   s+='<text x="'+col3+'" y="'+ty+'" font-size="10" font-weight="800" fill="#5b6270" text-anchor="end">ラップ</text>';
   s+='<line x1="'+tx+'" y1="'+(ty+6)+'" x2="'+col3+'" y2="'+(ty+6)+'" stroke="#e4e6ea" stroke-width="1.5"/>';
-  var spS=(r.splits||[]).slice().sort(function(x,y){ return x.d-y.d; });
+  var spS=thinSplits((r.splits||[]).slice().sort(function(x,y){ return x.d-y.d; }), 7);
   spS.forEach(function(sp,idx){ var ry=ty+28+idx*26, _q=splitRow(spS, idx, _rtR);
     s+='<text x="'+tx+'" y="'+ry+'" font-size="12" font-weight="700" fill="#5b6270">'+sp.d+'m</text>';
     s+='<text x="'+col2+'" y="'+ry+'" font-size="12" font-weight="700" fill="#16181d" text-anchor="end">'+esc(fmt(_q.pass))+'</text>';
@@ -8202,9 +8283,10 @@ function reportSVG(r, W, H){
     // legend
     var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']], lx=mx, ly=srY+20;
     lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(ly-9)+'" width="11" height="11" rx="3" fill="'+g[0]+'"/>'; s+='<text x="'+(lx+16)+'" y="'+ly+'" font-size="10.5" font-weight="800" fill="#5b6270">'+g[1]+'</text>'; lx+=g[1].length*11+40; });
-    s+=place(srSvg, mx, srY+30, cw, cw*250/900);
-    var srBottom=srY+30+cw*250/900;
-    var LTt=lapTempoText(r);
+    var _vbH=(/viewBox="0 0 900 (\d+)"/.exec(srSvg)||[0,250])[1]*1;
+    s+=place(srSvg, mx, srY+30, cw, cw*_vbH/900);
+    var srBottom=srY+30+cw*_vbH/900;
+    var LTt=lapTempoTextShort(r);
     if(LTt.length>1){
       s+='<text x="'+mx+'" y="'+(srBottom+16)+'" font-size="11" font-weight="900" fill="#16181d">区間ごとの平均ST（秒／かき）　'+esc(LTt.join('　／　'))+'</text>';
       s+='<text x="'+mx+'" y="'+(srBottom+32)+'" font-size="10" font-weight="700" fill="#5b6270">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</text>';
@@ -8213,12 +8295,15 @@ function reportSVG(r, W, H){
     }
   }
   // 25mごとの 平均テンポ（長水路でも 前半・後半が 見える ように）
-  var SEC=secTempos(r), secBottom=0;
+  /* 200mまでは 25mごと、それより 長い レースは 50mごと（グラフの 区切りと 同じ） */
+  var _dd=Number(r.dist)||0, _st=25, SEC=secTempos(r), secBottom=0;
+  if(_dd>200){ var _S50=raceLapData(r,50); if(_S50.length>1){ SEC=_S50; _st=50; } }
   if(SEC.length>1){
-    var sy = srSvg ? 800 : 560;
+    var sy = srSvg ? Math.max(800, (srBottom||0)+66) : 560;
     s+='<rect x="'+mx+'" y="'+(sy-13)+'" width="4" height="15" fill="#f2b01e"/>';
-    s+='<text x="'+(mx+10)+'" y="'+sy+'" font-size="13" font-weight="900" fill="#16181d">25mごとの平均テンポ</text>';
-    var rows=SEC.slice(0,10), more=SEC.length-rows.length;
+    s+='<text x="'+(mx+10)+'" y="'+sy+'" font-size="13" font-weight="900" fill="#16181d">'+_st+'mごとの平均テンポ</text>';
+    var _cap=Math.max(1, Math.floor((H-52-46-((tp.turns.length||tp.outs.length)?44:0)-(sy+50))/24)+1);
+    var rows=SEC.slice(0,_cap), more=SEC.length-rows.length;
     var colX=[mx, mx+cw*0.30, mx+cw*0.50, mx+cw*0.72, mx+cw];
     var hy=sy+22;
     var heads=['区間','区間タイム','かき数','平均ST（秒）','平均SR'];
@@ -8256,7 +8341,8 @@ function reportSVG(r, W, H){
   if(tp.turns.length || tp.outs.length){
     var ny=(SEC.length>1 && secBottom) ? (secBottom+14) : (srSvg?800:560);
     s+='<rect x="'+mx+'" y="'+ny+'" width="'+cw+'" height="30" rx="9" fill="#fff8ea" stroke="#f2dfb0" stroke-width="1"/>';
-    s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(turnNote(tp.turns, tp.outs))+'</text>';
+    var _tn=turnNote(tp.turns, tp.outs); if(_tn.length>70) _tn=_tn.slice(0,68)+'…';
+    s+='<text x="'+(mx+12)+'" y="'+(ny+20)+'" font-size="11" font-weight="700" fill="#c98a00">※ '+esc(_tn)+'</text>';
   }
   // footer
   s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>';
@@ -8572,6 +8658,29 @@ function vfSplRead(){
   out.sort(function(a,b){ return a.d-b.d; });
   return out;
 }
+/* 「記録」の らんと、一覧の さいごの きょりの らんは 同じ タイムです。
+   どちらを 直しても、もう 片方も そろうように します
+   （前は 上の らんが 優先されて、一覧で 直した さいごの タイムが もどって いました） */
+function vfLastRowInput(){
+  var dist=Number($('vfDist').value), rows=$('vfSplWrap').querySelectorAll('.vfSplRow'), i;
+  for(i=0;i<rows.length;i++) if(Number(rows[i].querySelector('.vfSplD').value)===dist) return rows[i].querySelector('.vfSplT');
+  return null;
+}
+$('vfSplWrap').addEventListener('input', function(e){
+  var row=e.target.closest ? e.target.closest('.vfSplRow') : null; if(!row) return;
+  if(Number(row.querySelector('.vfSplD').value)!==Number($('vfDist').value)) return;
+  $('vfTime').value=row.querySelector('.vfSplT').value;
+});
+$('vfSplWrap').addEventListener('change', function(e){
+  var row=e.target.closest ? e.target.closest('.vfSplRow') : null; if(!row) return;
+  if(Number(row.querySelector('.vfSplD').value)!==Number($('vfDist').value)) return;
+  var v=row.querySelector('.vfSplT').value; if(v) $('vfTime').value=v;
+});
+$('vfTime').addEventListener('input', function(){
+  var self=this;
+  /* 数字の 形を ととのえた あとで うつします */
+  setTimeout(function(){ var inp=vfLastRowInput(); if(inp) inp.value=self.value; }, 0);
+});
 $('vfSplAdd').onclick=function(){
   $('vfSplWrap').appendChild(vfSplRow(null, null, Number($('vfDist').value)||100));
 };

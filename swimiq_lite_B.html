@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.04.4">
+<meta name="app-ver" content="2026.10.04.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1597,6 +1597,7 @@ body.grid .gridL{ display:block; }
   padding:4px 14px; border-radius:999px; border:2px solid #ffc400;
   background:rgba(0,0,0,.55); color:#fff; font-size:13px; font-weight:800; line-height:1.4; }
 .tBand.hide{ display:none; }
+#vwAttach{ display:flex; align-items:center; justify-content:center; text-align:center; }
 .tsBlk{ margin:0 0 8px; padding:6px 10px; border-radius:10px; border:2px solid #ffc400; background:rgba(255,196,0,.08); }
 .tsRow{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:14px; font-weight:800; }
 .tsRow span{ color:#ffc400; } .tsRow b{ color:#fff; font-variant-numeric:tabular-nums; }
@@ -1748,7 +1749,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.04.4</p>
+  <p class="ver" id="verBottom">ver 2026.10.04.5</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2139,6 +2140,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <button class="btn b hide" id="swSave" type="button" data-t="swSave"></button>
 </div>
 
+<input type="file" id="fAttach" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 <input type="file" id="fPick" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 
 <div id="cam" class="hide" role="dialog" aria-modal="true" data-ta="camLbl">
@@ -2397,7 +2399,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="btn b" type="button" id="vwCopy" data-t="copyTx"></button>
       <button class="btn b" type="button" id="vwEdit" data-t="editBtn"></button>
       <button class="btn b hide" type="button" id="vwVid" data-t="vidOpen"></button>
+      <button class="btn y hide" type="button" id="vwPlay">動画を見る</button>
+      <label class="btn y hide" id="vwAttach" for="fAttach">動画を登録する</label>
     </div>
+    <p class="vwNote hide" id="vwAttachNote">この記録には動画がありません。〈動画を登録する〉で、携帯にある動画をあとから付けられます。付けた動画は、ほかの記録と同じように再生や分析ができます。</p>
   </div>
 </div>
 
@@ -6204,6 +6209,7 @@ function recCard(r){
     memoHtml+
     '</div>';
   c.onclick=function(){
+    if(hasVid(r)){ openDetail(r.id); return; }   /* 手入力でも 動画を 付けて あれば 再生へ */
     if(r.manual){ viewOpen(r); return; }
     if(!hasVid(r)){                   /* 同期で来た記録：この端末に動画が無い */
       viewOpen(r);                    /* 動画は なくても ないようは 見られます */
@@ -9362,6 +9368,11 @@ function viewOpen(r){
     mo.classList.toggle('hide', !mm);
   }
   $('vwVid').classList.toggle('hide', !r.videoUrl);
+  var _hv=hasVid(r);
+  $('vwPlay').classList.toggle('hide', !_hv);
+  $('vwAttach').classList.toggle('hide', _hv);
+  $('vwAttachNote').classList.toggle('hide', _hv);
+  $('vwAttach').textContent='動画を登録する';
   $('viewBox').classList.remove('hide');
 }
 $('vwClose').onclick=function(){ $('viewBox').classList.add('hide'); };
@@ -9373,6 +9384,54 @@ $('vwEdit').onclick=function(){
   openEditRace(vwRec);
 };
 $('vwVid').onclick=function(){ if(vwRec && vwRec.videoUrl) openVid(vwRec.videoUrl); };
+$('vwPlay').onclick=function(){ if(!vwRec) return; $('viewBox').classList.add('hide'); openDetail(vwRec.id); };
+/* ===== あとから 動画を 付ける（手入力の 記録・動画の ない 記録）===== */
+function vidThumb(file){
+  return new Promise(function(res){
+    var u, v=document.createElement('video'), done=false;
+    function fin(x){ if(done) return; done=true; try{ URL.revokeObjectURL(u); }catch(e){} try{ v.removeAttribute('src'); v.load(); }catch(e){} res(x||''); }
+    try{ u=URL.createObjectURL(file); }catch(e){ res(''); return; }
+    v.muted=true; v.playsInline=true; v.preload='auto';
+    v.onloadeddata=function(){ try{ v.currentTime=Math.min(0.5, (v.duration||1)/2); }catch(e){ fin(''); } };
+    v.onseeked=function(){
+      try{
+        var W=240, H=Math.round(240*v.videoHeight/(v.videoWidth||1))||135;
+        var c=document.createElement('canvas'); c.width=W; c.height=H;
+        c.getContext('2d').drawImage(v,0,0,W,H);
+        fin(c.toDataURL('image/jpeg',0.7));
+      }catch(e){ fin(''); }
+    };
+    v.onerror=function(){ fin(''); };
+    setTimeout(function(){ fin(''); }, 6000);
+    v.src=u;
+  });
+}
+$('fAttach').addEventListener('change', function(){
+  var f=this.files && this.files[0]; this.value='';
+  if(!f || !vwRec) return;
+  var id=vwRec.id;
+  $('vwAttach').textContent='登録しています…';
+  /* 動画の 読みこみと ぶつからない ように、再生中の 動画を 止めて おきます */
+  try{ $('v').pause(); $('dv').pause(); }catch(e){}
+  vidThumb(f).then(function(th){
+    return dbGet(id).then(function(rec){
+      if(!rec){ toast(T('msgNotFound')); return null; }
+      rec.video=f;
+      if(th) rec.thumb=th;
+      rec.vidSkip=false;
+      rec.updatedAt=Date.now();
+      return dbPut(rec).then(function(){ return rec; });
+    });
+  }).then(function(rec){
+    $('vwAttach').textContent='動画を登録する';
+    if(!rec) return;
+    pushOne(rec);
+    toast('動画を登録しました');
+    paintList(); cmpReload();
+    $('viewBox').classList.add('hide');
+    openDetail(rec.id);
+  }).catch(function(){ $('vwAttach').textContent='動画を登録する'; toast(T('msgSaveNG')); });
+});
 
 /* レース一覧から「修正」を おしたとき、記録の種類に合わせて 編集画面を ひらく
    手入力の記録 … 手入力の画面（区間ごとの本数まで直せる）
@@ -9459,6 +9518,7 @@ function syncNow(opts){
       if(cr.deleted){ if(lr) chain=chain.then(function(){ return dbDel(cr.id); }); return; }
       if(!lr || cu>lu){
         if(lr && lr.video && !cr.video) cr.video=lr.video;   /* ローカルの動画は のこす */
+        if(lr && lr.thumb && !cr.thumb) cr.thumb=lr.thumb;
         chain=chain.then(function(){ return dbPut(cr); });
       }
     });
@@ -9944,7 +10004,7 @@ function paintCompare(){
       var eb=d.querySelector('.cmpEdit');
       if(eb) eb.onclick=function(e){ e.stopPropagation(); openEditRace(rec); };
       var vb=d.querySelector('.cmpView');
-      if(vb) vb.onclick=function(e){ e.stopPropagation(); if(!rec.manual && hasVid(rec)) openDetail(rec.id); else viewOpen(rec); };
+      if(vb) vb.onclick=function(e){ e.stopPropagation(); if(hasVid(rec)) openDetail(rec.id); else viewOpen(rec); };
     })(r);
     lb.appendChild(d);
   }

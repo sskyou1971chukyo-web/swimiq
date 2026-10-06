@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.05.1">
+<meta name="app-ver" content="2026.10.06.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1001,6 +1001,27 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
   border-radius:6px; padding:10px 12px; margin:0 0 8px; }
 .cmpItem.sel{ border-color:var(--am); box-shadow:0 0 0 2px var(--am) inset; }
+.cmpGrid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+.cmpCell{ position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:0; min-height:84px;
+  padding:9px 10px; border-radius:10px; border:2px solid var(--line2); border-top:5px solid var(--am); background:var(--pane);
+  color:#fff; font:inherit; text-align:left; cursor:pointer; }
+.cmpCell .t{ font-size:21px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1.15; }
+.cmpCell .m{ font-size:12.5px; font-weight:800; color:var(--dim); line-height:1.35; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; }
+.cmpCell .bd{ font-size:11px; font-weight:900; color:var(--go); }
+.cmpCell .bd.s{ color:var(--am); }
+.cmpCell.sel{ border-color:var(--am); box-shadow:0 0 0 2px var(--am) inset; }
+.cmpCell.open{ background:#2a2611; border-color:var(--am); }
+.cmpPanel{ grid-column:1 / -1; background:var(--pane); border:2px solid var(--am); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; }
+.cmpPanel .r1{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.cmpPanel .r1 .t{ font-size:24px; font-weight:900; font-variant-numeric:tabular-nums; }
+.cmpPanel .r1 .tag{ font-size:13px; font-weight:800; color:var(--dim); }
+.cmpPanel .r1 .diff{ margin-left:auto; font-size:13px; font-weight:800; color:var(--am); }
+.cmpPanel .r1 .diff.best{ color:var(--go); }
+.cmpPanel .r2.kv{ display:grid; grid-template-columns:1fr 1fr; gap:2px 12px; font-size:15px; font-weight:700; color:#fff; }
+.cmpPanel .r2.kv span{ min-width:0; overflow-wrap:anywhere; }
+.cmpPanel .r2.kv b{ color:var(--dim); font-weight:800; }
+.cmpPanel .pb{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.cmpPanel .pb .btn{ flex:1 1 30%; min-height:46px; font-size:15px; padding:4px 8px; }
 .cmpItem .r1{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
 .cmpItem .r1 .t{ font-size:23px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
 .cmpItem .r1 .tag{ font-size:12px; font-weight:800; color:var(--dim); }
@@ -1874,7 +1895,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.05.1</p>
+  <p class="ver" id="verBottom">ver 2026.10.06.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -3528,7 +3549,7 @@ var W={
  cmpNoteSC:['上に いくほど かきが すくない（よい きろく）','上ほど少ない（良い記録）'],
  cmpNoGraph:['グラフに できる きろくが ありません','グラフにできる記録がありません'],
  cmpListGl:['ならんだ きろく','レース一覧'],
- cmpPickHint:['2つ タップすると ならべて くらべられます','2件タップすると並べて比較できます'],
+ cmpPickHint:['おすと くわしく 見られます。「比べる」を 2つ えらぶと ならべて くらべられます','押すと詳しく見られます。「比べる」を2件選ぶと並べて比較できます'],
  cmpBestTag:['ベスト','ベスト'],
  cmpPairGl:['ならべて くらべる','2件を比較'],
  cmpPairClear:['くらべるのを やめる','比較を解除'],
@@ -11185,27 +11206,8 @@ function paintCompare(){
   var segT=$('cmpSegTab').querySelectorAll('button');
   for(i=0;i<segT.length;i++) segT[i].onclick=function(){ cmpSetTab(this.dataset.tab); };
 
-  var lb=$('cmpList');
-  for(i=0;i<list.length;i++){
-    var r=list[i], t=raceBest(r), ss=raceStroke(r);
-    var d=document.createElement('div'); d.className='cmpItem'+(cmpSel.indexOf(r.id)>=0?' sel':'');
-    var diff = (t!=null && bestT!=null) ? (t-bestT) : null;
-    d.innerHTML =
-      '<div class="r1"><span class="t">'+fmt(t)+'</span>'+
-        '<span class="tag">'+r.dist+'m　'+evLabel(r.event)+'</span>'+
-        '<span class="diff'+(diff===0?' best':'')+'">'+(mixed?'':(diff===0?T('cmpBestTag'):(diff!=null?'+'+diff.toFixed(2):'')))+'</span>'+
-        '<button class="cmpEdit" type="button">'+T('editBtn')+'</button>'+
-        '<button class="cmpView" type="button">'+T('vwBtn')+'</button></div>'+
-      '<div class="r2 kv">'+recFacts(r).map(function(p){ return '<span><b>'+p[0]+'：</b>'+esc(String(p[1]))+'</span>'; }).join('')+'</div>';
-    (function(rec){
-      d.onclick=function(){ cmpToggleSel(rec.id); };
-      var eb=d.querySelector('.cmpEdit');
-      if(eb) eb.onclick=function(e){ e.stopPropagation(); openEditRace(rec); };
-      var vb=d.querySelector('.cmpView');
-      if(vb) vb.onclick=function(e){ e.stopPropagation(); if(hasVid(rec)) openDetail(rec.id); else viewOpen(rec); };
-    })(r);
-    lb.appendChild(d);
-  }
+  cmpListCtx={ list:list, bestT:bestT, mixed:mixed };
+  cmpPaintList();
 
   cmpPaintPair();
   if(!mixed) drawCmpChart(list.slice().reverse(), cmpTab);   /* 古い→新しい じゅんに */
@@ -11388,6 +11390,56 @@ function paintGrowView(list){
   }
 }
 
+/* レース一覧：3列に ならべて、タイムと 試合名だけ 出します。
+   押すと その段の 下に くわしい 中身が ひらきます（もう一度 押すと とじます） */
+var cmpListCtx=null, cmpOpenId=null;
+function cmpPaintList(){
+  var lb=$('cmpList'); if(!lb || !cmpListCtx) return;
+  var list=cmpListCtx.list, bestT=cmpListCtx.bestT, mixed=cmpListCtx.mixed, i, open=-1;
+  lb.className='cmpGrid'; lb.innerHTML='';
+  for(i=0;i<list.length;i++){
+    var r=list[i], t=raceBest(r);
+    if(r.id===cmpOpenId) open=i;
+    var diff=(t!=null && bestT!=null) ? (t-bestT) : null;
+    var sel=cmpSel.indexOf(r.id)>=0;
+    var lab=recLabel(r); if(!meetName(r) && !roundOf(r)) lab=mdShort(r.at)+'　'+(r.dist||'')+'m';
+    var c=document.createElement('button'); c.type='button';
+    c.className='cmpCell'+(sel?' sel':'')+(r.id===cmpOpenId?' open':'');
+    c.dataset.id=r.id;
+    c.setAttribute('aria-expanded', r.id===cmpOpenId?'true':'false');
+    c.innerHTML='<span class="t">'+fmt(t)+'</span>'+
+      '<span class="m">'+esc(lab)+'</span>'+
+      (!mixed && diff===0 ? '<span class="bd">'+T('cmpBestTag')+'</span>' : '')+
+      (sel ? '<span class="bd s">比較中</span>' : '');
+    lb.appendChild(c);
+  }
+  if(open>=0){
+    var rec=list[open], tt=raceBest(rec), df=(tt!=null && bestT!=null) ? (tt-bestT) : null, isSel=cmpSel.indexOf(rec.id)>=0;
+    var pn=document.createElement('div'); pn.className='cmpPanel';
+    pn.innerHTML='<div class="r1"><span class="t">'+fmt(tt)+'</span><span class="tag">'+(rec.dist||'')+'m　'+evLabel(rec.event)+'</span>'+
+      '<span class="diff'+(df===0?' best':'')+'">'+(mixed?'':(df===0?T('cmpBestTag'):(df!=null?'+'+df.toFixed(2):'')))+'</span></div>'+
+      '<div class="r2 kv">'+recFacts(rec).map(function(p){ return '<span><b>'+p[0]+'：</b>'+esc(String(p[1]))+'</span>'; }).join('')+'</div>'+
+      '<div class="pb"><button class="btn y" type="button" data-a="edit">'+T('editBtn')+'</button>'+
+      '<button class="btn y" type="button" data-a="view">'+T('vwBtn')+'</button>'+
+      '<button class="btn'+(isSel?'':' y')+'" type="button" data-a="sel">'+(isSel?'比べるのをやめる':'比べる')+'</button></div>';
+    pn.onclick=function(e){
+      var b=e.target.closest('[data-a]'); if(!b) return;
+      if(b.dataset.a==='edit') openEditRace(rec);
+      else if(b.dataset.a==='view'){ if(hasVid(rec)) openDetail(rec.id); else viewOpen(rec); }
+      else cmpToggleSel(rec.id);
+    };
+    var after=Math.min(Math.floor(open/3)*3+2, list.length-1);
+    var ref=lb.children[after];
+    if(ref.nextSibling) lb.insertBefore(pn, ref.nextSibling); else lb.appendChild(pn);
+  }
+  lb.onclick=function(e){
+    var c=e.target.closest('.cmpCell'); if(!c) return;
+    cmpOpenId = (cmpOpenId===c.dataset.id) ? null : c.dataset.id;
+    cmpPaintList();
+    var me=lb.querySelector('.cmpCell[data-id="'+(cmpOpenId||c.dataset.id)+'"]');
+    if(me) try{ me.focus(); }catch(x){}
+  };
+}
 function cmpToggleSel(id){
   var at=cmpSel.indexOf(id);
   if(at>=0){ cmpSel.splice(at,1); }

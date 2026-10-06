@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.06.2">
+<meta name="app-ver" content="2026.10.06.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -672,14 +672,22 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
   font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15; }
 .spdItem + .spdItem{ border-top:1px solid rgba(0,0,0,.10); }
 .spdItem.on{ background:rgba(255,196,0,.60); color:#000; font-weight:900; }
-/* ストロークを 数えて いる あいだの しるし（小さく 画面の 上） */
+/* 動画を 10分の7の 大きさに する（上と 下の ボタンに 重ならない ように） */
+body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width:70%; top:11%; height:70%; }
+.vSizeB[aria-pressed="true"]{ border-color:var(--am) !important; color:var(--am); }
+/* ストローク分析中の しるしは「測定終了」ボタンの 中に 出します（動画の 上には 出しません） */
+#ana.stroke #bStroke::before, #detail.stroke #dStroke::before{ content:"● ストローク分析中"; display:block;
+  font-size:11px; font-weight:900; letter-spacing:.02em; line-height:1.2; color:#000 !important; }
+@keyframes stBlink2{ 0%,100%{ opacity:1; } 50%{ opacity:.55; } }
+.strokeTag{ white-space:nowrap; }
+/* ストロークを 数えて いる あいだの しるし（今は 使いません） */
 #stMode{ position:fixed; left:50%; top:calc(env(safe-area-inset-top) + 62px);
   transform:translateX(-50%); z-index:92; pointer-events:none;
   display:flex; align-items:center; gap:7px;
   padding:5px 13px; border-radius:999px;
   background:rgba(0,0,0,.55); border:1.5px solid rgba(255,196,0,.65);
   -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
-#stMode.hide{ display:none !important; }
+#stMode, #stMode.hide{ display:none !important; }
 #stMode i{ width:8px; height:8px; border-radius:999px; background:var(--am);
   animation:stBlink 1.1s ease-in-out infinite; }
 #stMode b{ font-size:13px; font-weight:900; color:var(--am); letter-spacing:.03em;
@@ -1719,8 +1727,8 @@ body.grid .gridL{ display:block; }
 .turnNote{ font-size:14px; }
 /* 押しまちがい・ターンの おしらせ：画面の 上に 1行の 細い 帯で 出します（動画を ふさがない） */
 .tBand{ position:absolute; z-index:6; pointer-events:none;
-  top:calc(env(safe-area-inset-top) + 14px); left:50%; transform:translateX(-50%);
-  max-width:min(46vw, 640px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  top:auto; bottom:calc(env(safe-area-inset-bottom) + 104px); left:50%; transform:translateX(-50%);
+  max-width:min(70vw, 760px); transition:opacity .4s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   padding:4px 14px; border-radius:999px; border:2px solid #ffc400;
   background:rgba(0,0,0,.55); color:#fff; font-size:13px; font-weight:800; line-height:1.4; }
 .tBand.hide{ display:none; }
@@ -1740,7 +1748,8 @@ body.grid .gridL{ display:block; }
 .tsBlk{ margin:0 0 8px; padding:6px 10px; border-radius:10px; border:2px solid #ffc400; background:rgba(255,196,0,.08); }
 .tsRow{ display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:14px; font-weight:800; }
 .tsRow span{ color:#ffc400; } .tsRow b{ color:#fff; font-variant-numeric:tabular-nums; }
-@media (orientation:portrait){ .tBand{ top:calc(env(safe-area-inset-top) + 64px); max-width:92vw; } }
+@media (orientation:portrait){ .tBand{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 150px); max-width:92vw; } }
+.tBand.fade{ opacity:0; }
 .boxH button{ font-size:14px; }
 
 /* 黄色は「いま おす もの」だけに します。
@@ -1895,7 +1904,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.06.2</p>
+  <p class="ver" id="verBottom">ver 2026.10.06.3</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1949,6 +1958,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob pl ic" id="bPlay" type="button" data-t="playI" data-ta="play"></button>
       <button class="ob ic" id="bFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="spd" type="button" data-r="1"></button>
+      <button class="ob vSizeB" type="button" aria-pressed="false">画面 小</button>
       <div class="seg modeSeg" id="modeSeg">
         <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
         <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
@@ -2066,6 +2076,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob pl ic" id="dPlay" type="button" data-t="playI" data-ta="play"></button>
       <button class="ob ic" id="dFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="dspd" type="button" data-r="1"></button>
+      <button class="ob vSizeB" type="button" aria-pressed="false">画面 小</button>
       <button class="ob y" id="dAna" type="button" data-t="mAna" data-ta="again"></button>
       <span class="pos" id="dpos">0:00</span>
       <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
@@ -4289,7 +4300,13 @@ function sumLine(last, ss, rt){
   if(rt!=null) p.push(Number(rt).toFixed(2)+'RT');
   return p.join('　');
 }
-function bandSet(id, tx){ var b=$(id); if(!b) return; b.textContent=tx||''; b.classList.toggle('hide', !tx); }
+function bandSet(id, tx){ var b=$(id); if(!b) return;
+  if((b.textContent||'')===(tx||'') && !b.classList.contains('hide')) return;
+  b.textContent=tx||''; b.classList.toggle('hide', !tx); b.classList.remove('fade');
+  /* 分析の じゃまに ならない ように、4秒で 消します（同じ ことは 結果の 表にも 出ています） */
+  if(b._tm) clearTimeout(b._tm);
+  if(tx) b._tm=setTimeout(function(){ b.classList.add('fade'); }, 4000);
+}
 function turnNote(turns, outs){
   var L=[];
   if(turns && turns.length) L.push(turns.join('・')+T('turnExHint'));
@@ -6245,8 +6262,9 @@ function makeZoomable(vid, tap, undo){
   var px=0, py=0, ptx=0, pty=0, lastTap=0;
   vid.style.transformOrigin='0 0';
   function apply(){ vid.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')'; }
+  function box(){ var r=tap.getBoundingClientRect(); return { left:r.left+vid.offsetLeft-tap.offsetLeft, top:r.top+vid.offsetTop-tap.offsetTop }; }
   function clamp(){
-    var w=tap.clientWidth||1, h=tap.clientHeight||1;
+    var w=vid.clientWidth||tap.clientWidth||1, h=vid.clientHeight||tap.clientHeight||1;
     if(sc<=1){ tx=0; ty=0; return; }
     var mnx=w-w*sc, mny=h-h*sc;
     if(tx>0) tx=0; if(tx<mnx) tx=mnx;
@@ -6258,7 +6276,7 @@ function makeZoomable(vid, tap, undo){
   function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
   tap.addEventListener('touchstart', function(e){
     if(e.touches.length===2){
-      var r=tap.getBoundingClientRect();
+      var r=box();
       pinch=true; panning=false; mark();
       sd=dist(e.touches); ssc=sc; stx=tx; sty=ty;
       smx=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
@@ -6272,7 +6290,7 @@ function makeZoomable(vid, tap, undo){
   tap.addEventListener('touchmove', function(e){
     if(pinch && e.touches.length===2){
       if(sd<=0) return;
-      var r=tap.getBoundingClientRect();
+      var r=box();
       var ns=Math.max(1, Math.min(5, ssc*(dist(e.touches)/sd)));
       var mx=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
       var my=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
@@ -6306,6 +6324,21 @@ function makeZoomable(vid, tap, undo){
 }
 var anaZoom = makeZoomable($('v'), $('tapZone'), addStrokeUndo);
 var detZoom = makeZoomable($('dv'), $('dTap'), dAddStrokeUndo);
+/* 動画の 大きさ：全画面 か 10分の7 か（えらんだ ほうを 覚えて おきます） */
+function vSizeSet(small, save){
+  document.body.classList.toggle('vsm', !!small);
+  Array.prototype.forEach.call(document.querySelectorAll('.vSizeB'), function(b){
+    b.textContent = small ? '画面 大' : '画面 小';
+    b.setAttribute('aria-pressed', small ? 'true':'false');
+    b.setAttribute('aria-label', small ? '動画を全画面にする' : '動画を10分の7の大きさにする');
+  });
+  try{ if(anaZoom) anaZoom.reset(); if(detZoom) detZoom.reset(); }catch(e){}
+  if(save){ try{ localStorage.setItem('swimiq_vsize', small?'s':'f'); }catch(e){} }
+}
+Array.prototype.forEach.call(document.querySelectorAll('.vSizeB'), function(b){
+  b.onclick=function(e){ e.stopPropagation(); vSizeSet(!document.body.classList.contains('vsm'), true); };
+});
+(function(){ var v=''; try{ v=localStorage.getItem('swimiq_vsize')||''; }catch(e){} vSizeSet(v==='s', false); })();
 $('dStroke').onclick=function(){
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');

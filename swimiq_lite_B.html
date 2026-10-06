@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.06.1">
+<meta name="app-ver" content="2026.10.06.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1895,7 +1895,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.06.1</p>
+  <p class="ver" id="verBottom">ver 2026.10.06.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -6399,6 +6399,16 @@ $('anaSave').onclick=function(){
   if(!aBlob){ toast(T('msgNoVid')); return; }
   /* ほぞんの まえに、きょりに あわない きろくが のこって いないか たしかめます */
   if(outOfRange().length){ distApply(); if(outOfRange().length) return; }
+  /* ゴールが 入って いない まま 保存しない ように たしかめます */
+  (function(){
+    var dist=Number($('dist').value); if(!aSplits.length || !dist) return;
+    var has=aSplits.some(function(x){ return Number(x.d)===dist; }); if(has) return;
+    var lastS=aSplits.slice().sort(function(a,b){ return a.d-b.d; }).pop();
+    if(!lastS || lastS.d>=dist) return;
+    if(confirm('ゴール（'+dist+'m）のタイムが入っていません。\n最後に計った '+lastS.d+'m（'+fmt(totalT(lastS.t, aRTsec()))+'）をゴールの'+dist+'mにしますか？\n\n途中の通過を1つ飛ばしたときは、そのあとの距離が1つずつずれています。保存したあと「記録の修正」の通過タイムで直してください。\n\n「キャンセル」を押すと、そのまま保存します。')){
+      lastS.d=dist; paintTbl();
+    }
+  })();
   var d=new Date();
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
   var defName = $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent;
@@ -8845,8 +8855,10 @@ function turnStats(r){
   var sp=(r.splits||[]), by={}, i;
   for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
   var dist=Number(r.dist)||0, pool=Number(r.pool)||50;
-  if(!dist || by[dist]==null || by[15]==null) return null;
-  var rt=rtSec(r)||0, total=by[dist]+rt, startT=by[15]+rt;
+  if(!dist || by[15]==null) return null;
+  /* ゴールが 入って いなくても、スタートと ターンは 出します（泳ぎ区間だけは ゴールが ないと 出せません） */
+  var rt=rtSec(r)||0, total=(by[dist]!=null) ? by[dist]+rt : null, startT=by[15]+rt;
+  var spS=sp.slice().sort(function(a,b){ return a.d-b.d; }), lastS=spS[spS.length-1];
   var walls=[], w, turns=[], sum=0;
   for(w=pool; w<dist-0.001; w+=pool) walls.push(w);
   for(i=0;i<walls.length;i++){
@@ -8856,10 +8868,14 @@ function turnStats(r){
   }
   if(walls.length && !turns.length) return null;          /* ターンを 1つも 計って いない */
   var res={ dist:dist, pool:pool, total:total, start:startT, turns:turns, nWalls:walls.length,
-            turnAvg: turns.length ? sum/turns.length : null, turnSum:sum, full:(turns.length===walls.length) };
-  if(res.full){
+            turnAvg: turns.length ? sum/turns.length : null, turnSum:sum,
+            allTurns:(turns.length===walls.length), full:(turns.length===walls.length && total!=null),
+            noGoal:(total==null), lastD:(lastS?lastS.d:null), lastT:(lastS?lastS.t+rt:null) };
+  if(res.allTurns){
     res.nonD = 15; turns.forEach(function(x){ res.nonD += (x.b-x.a); });
     res.nonT = startT + sum;
+  }
+  if(res.full){
     res.swimD = dist - res.nonD;
     res.swimT = total - res.nonT;
     res.v = (res.swimT>0 && res.swimD>0) ? res.swimD/res.swimT : null;
@@ -8874,7 +8890,10 @@ function turnLines(ts){
   if(ts.full && ts.swimT>0){
     L.push(['泳ぎ区間 '+ts.swimD+'m', fmt(ts.swimT)+'　'+(ts.v!=null?ts.v.toFixed(2)+'m/秒':'')]);
     L.push(['非泳区間 '+ts.nonD+'m', fmt(ts.nonT)+'　'+ts.pct.toFixed(0)+'%']);
+  }else if(ts.allTurns){
+    L.push(['非泳区間 '+ts.nonD+'m', fmt(ts.nonT)]);
   }
+  if(ts.noGoal) L.push(['ゴール（'+ts.dist+'m）のタイムが入っていません', '最後は'+ts.lastD+'m '+fmt(ts.lastT)]);
   if(ts.nWalls) L.push(['ターン平均（'+ts.turns.length+'/'+ts.nWalls+'）', (ts.turnAvg!=null?ts.turnAvg.toFixed(2)+'秒':'--')]);
   return L;
 }
@@ -8883,7 +8902,7 @@ function turnRows(ts){
   if(!ts) return [];
   var R=[{ lbl:'スタート 0-15m', t:ts.start, v:15/ts.start }], i;
   for(i=0;i<ts.turns.length;i++){ var x=ts.turns[i]; R.push({ lbl:'ターン'+(i+1)+' '+x.a+'-'+x.b+'m', t:x.t, v:(x.b-x.a)/x.t }); }
-  if(ts.full) R.push({ lbl:'非泳区間 合計 '+ts.nonD+'m', t:ts.nonT, v:ts.nonD/ts.nonT, sum:true });
+  if(ts.allTurns) R.push({ lbl:'非泳区間 合計 '+ts.nonD+'m', t:ts.nonT, v:ts.nonD/ts.nonT, sum:true });
   else R.push({ lbl:'合計（計れた分）', t:ts.start+ts.turnSum, v:null, sum:true });
   return R;
 }
@@ -9483,6 +9502,10 @@ function reportPages(r, prev, W, H){
   var tr=TBL(rx,y2+22,colW,[{h:'局面',w:0},{h:'タイム',w:0.6},{h:'速さ m/秒',w:0.4}],R,22);
   s2+=tr.s; var ry2=tr.y+18;
   if(ts && ts.full){ s2+=T_(rx,ry2,'泳ぎ区間 '+ts.swimD+'m '+fmt(ts.swimT)+'　非泳区間 '+ts.nonD+'m '+fmt(ts.nonT)+'（'+ts.pct.toFixed(0)+'%）',10.5,800,'#3d4450'); ry2+=16; }
+  if(ts && ts.noGoal){
+    s2+=T_(rx,ry2,'ゴール（'+ts.dist+'m）のタイムが入っていません。最後の通過は '+ts.lastD+'m '+fmt(ts.lastT)+'。',10.5,900,'#c0392b'); ry2+=15;
+    s2+=T_(rx,ry2,'記録の修正で最後の通過を'+ts.dist+'mに直すと、泳ぎ区間と効率指数も出ます。',10,700,'#c0392b'); ry2+=16;
+  }
   if(ts && ts.nWalls) { s2+=T_(rx,ry2,'ターン平均（'+ts.turns.length+'/'+ts.nWalls+'）'+(ts.turnAvg!=null?ts.turnAvg.toFixed(2)+'秒':'--'),10.5,800,'#3d4450'); ry2+=16; }
   s2+=T_(rx,ry2,'スタートの水中　ドルフィン '+(r.uwKick!=null?r.uwKick+'回':'—（未入力）')+'　浮き上がり '+(r.uwDist!=null?Number(r.uwDist).toFixed(1)+'m':'—（未入力）'),10.5,800,'#3d4450'); ry2+=16;
   if(!ts) { s2+=T_(rx,ry2,'ターンも計ると、各ターンの時間がここに出ます。',10,700,'#9aa0ab'); ry2+=14; }

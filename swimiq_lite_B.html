@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.07.2">
+<meta name="app-ver" content="2026.10.07.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -26,7 +26,7 @@
    黄色は「いま効いているもの」だけに使い、増やしません。
    ========================================================= */
 :root{
-  --sideW:clamp(196px,25vw,300px);
+  --sideW:clamp(147px,18.75vw,225px);   /* 右の ボタンの 列（前の 4分の3） */
   --bk:#000000; --pane:#17181a; --pane2:#202124;
   --line:#4a4a4a; --line2:#3a3b3d;
   --am:#ffc400; --am2:#ffdb63; --amd:#5a4300; --go:#35e06a;
@@ -674,8 +674,28 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .spdItem.on{ background:rgba(255,196,0,.60); color:#000; font-weight:900; }
 /* 動画を 10分の7の 大きさに する（上と 下の ボタンに 重ならない ように） */
 body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width:70%; top:11%; height:70%; }
-.pStabB[aria-pressed="true"]{ border-color:var(--am) !important; color:var(--am); }
-.vSizeB[aria-pressed="true"]{ border-color:var(--am) !important; color:var(--am); }
+/* 下の バーは 1段の まま。ボタンを 小さめに して、つまみを 長く します（映像を 広く 見せる ため） */
+@media (orientation:landscape){
+  .oBar{ flex-wrap:nowrap; gap:5px; padding:6px 8px; }
+  .oBar .sk{ flex:1 1 auto; min-width:60px; }
+  .oBar .ic{ min-width:46px; }
+  .oBar .pl{ min-width:52px; }
+  .oBar .spdB{ min-width:52px; }
+  .oBar .modeSeg button{ padding:0 9px; }
+  .oBar .pos{ font-size:12px; margin-left:2px; }
+}
+@media (orientation:landscape) and (max-width:720px){
+  .oBar{ gap:4px; padding:5px 6px; }
+  .oBar .ic{ min-width:40px; padding:4px 3px; }
+  .oBar .pl{ min-width:44px; }
+  .oBar .spdB{ min-width:44px; padding:4px 5px; }
+  .oBar .modeSeg button{ padding:0 7px; font-size:13px; }
+  .oBar .pos{ display:none; }   /* せまい 画面では 時間の 文字を はずして、つまみを 残します */
+}
+/* 「画面」「補正」は 小さな ボタン。オンは 黄色、オフは 色なし */
+.oBar .vSizeB, .oBar .pStabB{ min-width:0; padding:4px 7px; font-size:13px; }
+.oBar .vSizeB[aria-pressed="true"], .oBar .pStabB[aria-pressed="true"]{ background:var(--am) !important; border-color:var(--am) !important; color:#000 !important; text-shadow:none; }
+
 /* ストローク分析中の しるしは「測定終了」ボタンの 中に 出します（動画の 上には 出しません） */
 #ana.stroke #bStroke::before, #detail.stroke #dStroke::before{ content:"● ストローク分析中"; display:block;
   font-size:11px; font-weight:900; letter-spacing:.02em; line-height:1.2; color:#000 !important; }
@@ -1653,7 +1673,7 @@ body.grid .gridL{ display:block; }
 .oSteps i.dots{ padding:0 8px; background:transparent; color:#7f8b99; }
 @media (orientation:landscape){
   .ov.ana:not(.play) .oSteps{ left:calc(env(safe-area-inset-left) + 10px);
-    right:calc(var(--sideW) + 10px); bottom:calc(env(safe-area-inset-bottom) + 78px); }
+    right:calc(var(--sideW) + 10px); bottom:calc(env(safe-area-inset-bottom) + var(--barH, 70px) + 8px); }
 }
 .ov.ana.play .oSteps{ display:none !important; }
 /* 音の 波形（動画の 上の はしに うすく かさねます。
@@ -1737,7 +1757,7 @@ body.grid .gridL{ display:block; }
 .turnNote{ font-size:14px; }
 /* 押しまちがい・ターンの おしらせ：画面の 上に 1行の 細い 帯で 出します（動画を ふさがない） */
 .tBand{ position:absolute; z-index:6; pointer-events:none;
-  top:auto; bottom:calc(env(safe-area-inset-bottom) + 104px); left:50%; transform:translateX(-50%);
+  top:auto; bottom:calc(env(safe-area-inset-bottom) + var(--barH, 70px) + 30px); left:50%; transform:translateX(-50%);
   max-width:min(70vw, 760px); transition:opacity .4s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   padding:4px 14px; border-radius:999px; border:2px solid #ffc400;
   background:rgba(0,0,0,.55); color:#fff; font-size:13px; font-weight:800; line-height:1.4; }
@@ -1838,6 +1858,17 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 #cZbtn:active{ background:var(--am); color:#000; }
 #cv{ transform-origin:center center; }
 @media (orientation:portrait){ #camZoom, #cZbtn{ display:none; } }
+/* 右の 列を せまく した ぶん、中の 文字も 列の はばに 合わせます */
+@media (orientation:landscape){
+  .ov.ana:not(.play) .oAct{ padding:calc(env(safe-area-inset-top) + 10px) 8px calc(env(safe-area-inset-bottom) + 10px) 8px; gap:6px; }
+  .ov.ana:not(.play) .sideHd{ font-size:13px; letter-spacing:.02em; }
+  .ov.ana:not(.play) #nextSel{ font-size:clamp(22px, 3.6vw, 36px) !important; padding:0 22px 0 4px; }
+  .ov.ana:not(.play) #bPass{ font-size:clamp(26px, 4vw, 34px) !important; }
+  .ov.ana:not(.play) #bStroke, .ov.ana:not(.play) #bUndo, .ov.ana:not(.play) #anaMore{ font-size:clamp(12px, 1.7vw, 15px); padding:4px 4px; }
+  .ov.ana:not(.play) .oTop .osel{ min-width:0; flex:0 1 auto; }
+  .ov.ana:not(.play) .oTop #dist{ flex:1 1 60px; }
+  .ov.ana:not(.play) .oTop .tt{ flex:0 1 auto; }
+}
 </style>
 </head>
 <body>
@@ -1914,7 +1945,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.07.2</p>
+  <p class="ver" id="verBottom">ver 2026.10.07.4</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1968,8 +1999,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob pl ic" id="bPlay" type="button" data-t="playI" data-ta="play"></button>
       <button class="ob ic" id="bFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="spd" type="button" data-r="1"></button>
-      <button class="ob vSizeB" type="button" aria-pressed="false">画面 小</button>
-      <button class="ob pStabB" type="button" aria-pressed="false">補正 切</button>
+      <button class="ob vSizeB" type="button" aria-pressed="false">画面</button>
+      <button class="ob pStabB" type="button" aria-pressed="false">補正</button>
       <div class="seg modeSeg" id="modeSeg">
         <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
         <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
@@ -2087,8 +2118,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob pl ic" id="dPlay" type="button" data-t="playI" data-ta="play"></button>
       <button class="ob ic" id="dFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="dspd" type="button" data-r="1"></button>
-      <button class="ob vSizeB" type="button" aria-pressed="false">画面 小</button>
-      <button class="ob pStabB" type="button" aria-pressed="false">補正 切</button>
+      <button class="ob vSizeB" type="button" aria-pressed="false">画面</button>
+      <button class="ob pStabB" type="button" aria-pressed="false">補正</button>
       <button class="ob y" id="dAna" type="button" data-t="mAna" data-ta="again"></button>
       <span class="pos" id="dpos">0:00</span>
       <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
@@ -4900,24 +4931,30 @@ function bindPlayer(o){
     var t=v.currentTime + dir*(1/30);
     v.currentTime = Math.max(0, Math.min(v.duration||0, t));
   }
-  /* ながおし すると、おして いる あいだ 1秒に 1秒ずつ すすみます
-     （1秒 おせば 1秒、2秒 おせば 2秒、3秒 おせば 3秒） */
+  /* 早送り・巻き戻しの きまり
+     ・1回 タップ … 1コマ
+     ・0.5秒 おしつづける … 0.5秒 すすむ。そのあと 3秒までは 0.5秒ごとに 0.5秒ずつ
+     ・3秒を こえて おしつづける … 0.5秒ごとに 5秒ずつ */
   function bindStep(id, dir){
-    var btn=$(id), timer=null, rep=null, held=false;
+    var btn=$(id), timer=null, rep=null, held=false, t0=0;
     function stop(){
       if(timer){ clearTimeout(timer); timer=null; }
       if(rep){ clearInterval(rep); rep=null; }
     }
+    function jump(){
+      var el=(performance.now()-t0)/1000, amt = el>3.05 ? 5 : 0.5;
+      var t=v.currentTime + dir*amt;
+      v.currentTime = Math.max(0, Math.min(v.duration||0, t));
+      try{ if(navigator.vibrate) navigator.vibrate(amt>=5?20:8); }catch(e){}
+    }
     function start(){
-      held=false; stop();
+      held=false; stop(); t0=performance.now();
       timer=setTimeout(function(){
         held=true;
         v.pause();
-        rep=setInterval(function(){
-          var t=v.currentTime + dir*0.1;      /* 0.1秒 ごとに 0.1秒 ぶん */
-          v.currentTime = Math.max(0, Math.min(v.duration||0, t));
-        }, 100);
-      }, 420);
+        jump();
+        rep=setInterval(jump, 500);
+      }, 500);
     }
     btn.addEventListener('pointerdown', function(e){
       if(e && e.isPrimary===false) return;
@@ -6370,9 +6407,9 @@ var detZoom = makeZoomable($('dv'), $('dTap'), dAddStrokeUndo);
 function vSizeSet(small, save){
   document.body.classList.toggle('vsm', !!small);
   Array.prototype.forEach.call(document.querySelectorAll('.vSizeB'), function(b){
-    b.textContent = small ? '画面 大' : '画面 小';
+    b.textContent = '画面';
     b.setAttribute('aria-pressed', small ? 'true':'false');
-    b.setAttribute('aria-label', small ? '動画を全画面にする' : '動画を10分の7の大きさにする');
+    b.setAttribute('aria-label', small ? '画面は小さくなっています。押すと全画面に戻します' : '画面は全画面です。押すと10分の7の大きさにします');
   });
   try{ if(anaZoom) anaZoom.reset(); if(detZoom) detZoom.reset(); }catch(e){}
   if(save){ try{ localStorage.setItem('swimiq_vsize', small?'s':'f'); }catch(e){} }
@@ -6476,7 +6513,7 @@ var pStabA=pStabMake($('v')), pStabD=pStabMake($('dv'));
 function pStabSet(on, save){
   pStabOn=!!on;
   Array.prototype.forEach.call(document.querySelectorAll('.pStabB'), function(b){
-    b.textContent = on ? '補正 入' : '補正 切';
+    b.textContent = '補正';
     b.setAttribute('aria-pressed', on?'true':'false');
     b.setAttribute('aria-label', on ? '手ぶれ補正は入っています。押すと切ります' : '手ぶれ補正は切れています。押すと入れます');
   });
@@ -6487,6 +6524,15 @@ Array.prototype.forEach.call(document.querySelectorAll('.pStabB'), function(b){
   b.onclick=function(e){ e.stopPropagation(); pStabSet(!pStabOn, true); toast(pStabOn ? '手ぶれ補正を入れました（動画を少し大きく映します）' : '手ぶれ補正を切りました'); };
 });
 pStabSet(pStabOn, false);
+/* 下の バーの 高さ（2段に なった ときも）に 合わせて、距離の ならびや おしらせを その上に 置きます */
+(function(){
+  ['ana','detail'].forEach(function(id){
+    var sc=$(id), bar=sc && sc.querySelector('.oBar'); if(!bar) return;
+    var set=function(){ var h=bar.getBoundingClientRect().height; if(h>0) sc.style.setProperty('--barH', Math.round(h)+'px'); };
+    if(window.ResizeObserver){ try{ new ResizeObserver(set).observe(bar); }catch(e){} }
+    window.addEventListener('resize', set); setTimeout(set, 300);
+  });
+})();
 $('dStroke').onclick=function(){
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');

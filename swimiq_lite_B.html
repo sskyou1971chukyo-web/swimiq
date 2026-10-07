@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.06.3">
+<meta name="app-ver" content="2026.10.07.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -674,6 +674,7 @@ body.vs #toast{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 124px); }
 .spdItem.on{ background:rgba(255,196,0,.60); color:#000; font-weight:900; }
 /* 動画を 10分の7の 大きさに する（上と 下の ボタンに 重ならない ように） */
 body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width:70%; top:11%; height:70%; }
+.pStabB[aria-pressed="true"]{ border-color:var(--am) !important; color:var(--am); }
 .vSizeB[aria-pressed="true"]{ border-color:var(--am) !important; color:var(--am); }
 /* ストローク分析中の しるしは「測定終了」ボタンの 中に 出します（動画の 上には 出しません） */
 #ana.stroke #bStroke::before, #detail.stroke #dStroke::before{ content:"● ストローク分析中"; display:block;
@@ -782,6 +783,15 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
   #qwBody .qwSub{ margin:8px 0 4px; }
 }
 #syncWiz{ z-index:69; }
+#fixAsk{ position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:16px;
+  background:rgba(0,0,0,.82); }
+#fixAsk.hide{ display:none !important; }
+.faWrap{ width:100%; max-width:640px; background:var(--bk); border:4px solid var(--am); border-radius:16px; padding:18px 20px; }
+.faWrap h3{ margin:0 0 8px; font-size:24px; color:var(--am); }
+#faMsg{ margin:0; font-size:28px; font-weight:900; line-height:1.5; color:#fff; outline:none; }
+#faMsg b{ color:var(--am); font-variant-numeric:tabular-nums; }
+.faBtns{ display:flex; gap:12px; margin-top:16px; }
+.faBtns .btn{ flex:1; min-height:64px; font-size:22px; }
 .colHd{ display:flex; align-items:center; gap:8px; }
 .colHd .colHint{ margin-left:auto; font-size:12px; color:var(--dim); font-weight:700; }
 .colTot{ display:flex; align-items:flex-end; gap:10px; border:2px solid var(--line2); background:var(--pane); border-radius:16px; padding:12px 16px; }
@@ -1904,7 +1914,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.06.3</p>
+  <p class="ver" id="verBottom">ver 2026.10.07.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -1959,6 +1969,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob ic" id="bFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="spd" type="button" data-r="1"></button>
       <button class="ob vSizeB" type="button" aria-pressed="false">画面 小</button>
+      <button class="ob pStabB" type="button" aria-pressed="false">補正 切</button>
       <div class="seg modeSeg" id="modeSeg">
         <button type="button" data-m="ana" aria-pressed="true" data-t="mAna"></button>
         <button type="button" data-m="play" aria-pressed="false" data-t="mPlay"></button>
@@ -2077,6 +2088,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob ic" id="dFwd1" type="button" data-t="frFwdI" data-ta="frFwd"></button>
       <button class="ob spdB" id="dspd" type="button" data-r="1"></button>
       <button class="ob vSizeB" type="button" aria-pressed="false">画面 小</button>
+      <button class="ob pStabB" type="button" aria-pressed="false">補正 切</button>
       <button class="ob y" id="dAna" type="button" data-t="mAna" data-ta="again"></button>
       <span class="pos" id="dpos">0:00</span>
       <input class="sk" id="dsk" type="range" min="0" max="1000" value="0" data-ta="seekLbl">
@@ -2613,6 +2625,17 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="btn" type="button" id="qwSkip">スキップ</button>
       <button class="btn" type="button" id="qwAll">すべてスキップ</button>
       <button class="btn g" type="button" id="qwNext">次へ</button>
+    </div>
+  </div>
+</div>
+
+<div id="fixAsk" class="hide" role="alertdialog" aria-modal="true" aria-labelledby="faH" aria-describedby="faMsg">
+  <div class="faWrap">
+    <h3 id="faH">記録を直しますか</h3>
+    <p id="faMsg" tabindex="-1" aria-live="assertive"></p>
+    <div class="faBtns">
+      <button class="btn" type="button" id="faNo">いいえ（前のまま）</button>
+      <button class="btn g" type="button" id="faYes">はい（直す）</button>
     </div>
   </div>
 </div>
@@ -5106,9 +5129,11 @@ $('bPass').onclick=function(){
     }
   }
   passWarnD=null;
-  /* おなじ きょりを えらび直した ときは 上書きします */
-  if(hit>=0){ aSplits[hit].t=tt; toast(T('msgOver')+n+'m'); }
-  else aSplits.push({ d:n, t:tt });
+  /* すでに 入って いる きょりに もう一度 打った ときは、前と 新しいの タイムを 出して たずねます。
+     はい … 新しい タイムに 置きかえ（区間タイムは 表で 計り直されます）
+     いいえ … 前の まま。どちらでも、つぎに 計る きょりは 動かしません */
+  if(hit>=0){ fixAskOpen(n, hit, tt); return; }
+  aSplits.push({ d:n, t:tt });
   aSplits.sort(function(x,y){ return x.d-y.d; });   /* きょりの 順に ならべます */
   selManual=false; aLastSel=String(n); $('nextSel').value='';
   paintTbl();
@@ -5118,6 +5143,23 @@ $('bPass').onclick=function(){
   bigLap(n+'m', fmt(totalT(tt,_rt)),
          (pvT>0 ? segT(tt-pvT) : (_rt!=null ? ('\u8DB3\u96E2\u308C '+fmt(tt)) : '')));
 };
+function fixAskOpen(n, idx, tt){
+  var _rt=aRTsec(), oldT=aSplits[idx].t;
+  $('faMsg').innerHTML=n+'mは、前の記録が <b>'+fmt(totalT(oldT,_rt))+'秒</b>、新しい記録が <b>'+fmt(totalT(tt,_rt))+'秒</b> です。これで良いですか。';
+  try{ $('v').pause(); }catch(e){}
+  var bl=$('bigLap'); if(bl){ bl.classList.remove('on'); if(bigLapTm){ clearTimeout(bigLapTm); bigLapTm=null; } }
+  var box=$('fixAsk'); box.classList.remove('hide');
+  var keepSel=String(n);
+  var close=function(){ box.classList.add('hide'); selManual=true; $('nextSel').value=keepSel; paintTbl(); $('nextSel').value=keepSel; try{ $('bPass').focus(); }catch(e){} };
+  $('faYes').onclick=function(){
+    var j; for(j=0;j<aSplits.length;j++) if(aSplits[j].d===n){ aSplits[j].t=tt; break; }
+    aSplits.sort(function(x,y){ return x.d-y.d; });
+    close();
+    toast(n+'mを '+fmt(totalT(tt,_rt))+'秒に直しました');
+  };
+  $('faNo').onclick=function(){ close(); toast(n+'mは前の記録のままです'); };
+  setTimeout(function(){ try{ $('faMsg').focus(); }catch(e){} }, 30);
+}
 $('bUndo').onclick=function(){
   if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
   /* 1つ もどしたら、あいた ところから やり直せる ように めじるしを けします */
@@ -5317,7 +5359,7 @@ function gridToggle(){
 }
 $('cStab').onclick=function(){
   cStabOn=!cStabOn;
-  try{ localStorage.setItem('swimiq_stab', cStabOn?'1':'0'); }catch(e){}
+  try{ localStorage.setItem('swimiq_stab2', cStabOn?'1':'0'); }catch(e){}
   cStabPaint();
   if(!cStabOn) $('cam').classList.remove('stab');
 };
@@ -6339,6 +6381,112 @@ Array.prototype.forEach.call(document.querySelectorAll('.vSizeB'), function(b){
   b.onclick=function(e){ e.stopPropagation(); vSizeSet(!document.body.classList.contains('vsm'), true); };
 });
 (function(){ var v=''; try{ v=localStorage.getItem('swimiq_vsize')||''; }catch(e){} vSizeSet(v==='s', false); })();
+/* ================================================================
+   見るときの 手ぶれ補正（走りながら 撮った 動画 むけ）
+   録画は ふつうに 撮って、見るときに 1コマずつ ずれを はかり、
+   動画を 逆に ずらして 止まって 見える ように します。
+   ・選手を 追いかける 横の 動きは 残し、走って はねる 上下の ゆれを 強く 消します
+   ・はしの ゆれが 見えない ように、動画を 少しだけ 大きく 映します
+   ・1度 見た コマの ずれは 覚えて おくので、コマ送り・コマ戻しでも 同じに 見えます
+   ================================================================ */
+var PS_W=96, PS_H=54, PS_R=8, PS_ZOOM=1.12, PS_TX=0.25, PS_TY=0.6;
+var pStabOn=false;
+try{ pStabOn=(localStorage.getItem('swimiq_pstab')!=='0'); }catch(e){ pStabOn=true; }
+function pStabMake(vid){
+  var cv=document.createElement('canvas'); cv.width=PS_W; cv.height=PS_H;
+  var cx=cv.getContext('2d', { willReadFrequently:true });
+  var st={ prev:null, ref:null, rx:0, ry:0, lastT:null, cx:0, cy:0, sx:0, sy:0, cache:{}, src:'' };
+  function gray(){
+    try{ cx.drawImage(vid,0,0,PS_W,PS_H); }catch(e){ return null; }
+    var d; try{ d=cx.getImageData(0,0,PS_W,PS_H).data; }catch(e){ return null; }
+    var g=new Uint8Array(PS_W*PS_H), i, j;
+    for(i=0,j=0;i<g.length;i++,j+=4) g[i]=(d[j]*77+d[j+1]*150+d[j+2]*29)>>8;
+    return g;
+  }
+  function shift(a,b){
+    var best=1e18, bx=0, by=0, dx, dy, x, y, m=PS_R+2, N=2*PS_R+1, S=new Float64Array(N*N);
+    for(dy=-PS_R;dy<=PS_R;dy++) for(dx=-PS_R;dx<=PS_R;dx++){
+      var sum=0;
+      for(y=m;y<PS_H-m;y+=2) for(x=m;x<PS_W-m;x+=2){ var q=a[y*PS_W+x]-b[(y+dy)*PS_W+(x+dx)]; sum+= q<0?-q:q; }
+      S[(dy+PS_R)*N+(dx+PS_R)]=sum;
+      if(sum<best){ best=sum; bx=dx; by=dy; }
+    }
+    /* となりとの くらべで 1目より こまかく 求めます */
+    function sub(l,c,r){ var d=l-2*c+r; return d>0 ? Math.max(-0.5, Math.min(0.5, (l-r)/(2*d))) : 0; }
+    var fx=bx, fy=by, ix=bx+PS_R, iy=by+PS_R;
+    if(ix>0 && ix<N-1) fx=bx+sub(S[iy*N+ix-1], S[iy*N+ix], S[iy*N+ix+1]);
+    if(iy>0 && iy<N-1) fy=by+sub(S[(iy-1)*N+ix], S[iy*N+ix], S[(iy+1)*N+ix]);
+    return { x:fx, y:fy };
+  }
+  function key(t){ return Math.round(t*60); }
+  function apply(ox, oy){
+    if(!pStabOn){ vid.style.translate=''; vid.style.scale=''; return; }
+    /* 動画が 実際に 映って いる 大きさ（左右や 上下の 黒い 帯を のぞく） */
+    var W=vid.clientWidth||1, H=vid.clientHeight||1, vw=vid.videoWidth||16, vh=vid.videoHeight||9;
+    var k=Math.min(W/vw, H/vh), dw=vw*k, dh=vh*k;
+    var px=ox*dw/PS_W, py=oy*dh/PS_H;
+    var lx=dw*(PS_ZOOM-1)/2, ly=dh*(PS_ZOOM-1)/2;
+    px=Math.max(-lx, Math.min(lx, px)); py=Math.max(-ly, Math.min(ly, py));
+    /* まん中を 中心に 少し 大きく して、ずれの 分だけ 動かします（拡大の しくみと 重ねて 使えます） */
+    vid.style.scale=String(PS_ZOOM);
+    vid.style.translate=((1-PS_ZOOM)*W/2+px*PS_ZOOM)+'px '+((1-PS_ZOOM)*H/2+py*PS_ZOOM)+'px';
+  }
+  var gen=0;
+  function frame(now, meta, my){
+    if(my!==undefined){ if(my!==gen) return; if(pStabOn) loop(); }
+    if(!pStabOn) return;
+    var t=(meta && meta.mediaTime!=null) ? meta.mediaTime : vid.currentTime;
+    var src=vid.currentSrc||vid.getAttribute('src')||'';
+    if(src!==st.src){ st.src=src; st.cache={}; st.prev=null; st.ref=null; st.lastT=null; }
+    var kk=key(t), c=st.cache[kk];
+    var dt=(st.lastT==null) ? -1 : t-st.lastT;
+    var g=gray(); if(!g) return;
+    if(c){
+      /* 前に 見た コマ … 覚えて いる ずれを そのまま 使います */
+      st.cx=c.cx; st.cy=c.cy; st.sx=c.sx; st.sy=c.sy;
+      st.ref=g; st.rx=c.cx; st.ry=c.cy;
+    }else if(st.ref && dt>0 && dt<0.25){
+      /* 1つ前の コマでは なく、基準の コマと くらべます（小さな ずれの 取りこぼしが たまらない） */
+      var d=shift(st.ref, g);
+      st.cx=st.rx+d.x; st.cy=st.ry+d.y;
+      if(Math.abs(d.x)>PS_R-3 || Math.abs(d.y)>PS_R-3){ st.ref=g; st.rx=st.cx; st.ry=st.cy; }
+      var ax=1-Math.exp(-dt/PS_TX), ay=1-Math.exp(-dt/PS_TY);
+      st.sx+=(st.cx-st.sx)*ax; st.sy+=(st.cy-st.sy)*ay;
+      st.cache[kk]={ cx:st.cx, cy:st.cy, sx:st.sx, sy:st.sy };
+    }else{
+      /* とんだ ところ … そこから はかり直します */
+      st.cx=0; st.cy=0; st.sx=0; st.sy=0; st.ref=g; st.rx=0; st.ry=0;
+      st.cache[kk]={ cx:0, cy:0, sx:0, sy:0 };
+    }
+    st.prev=g; st.lastT=t;
+    apply(st.sx-st.cx, st.sy-st.cy);   /* 動いた 向きと 逆に ずらします */
+  }
+  function loop(){
+    var g0=gen;
+    if(vid.requestVideoFrameCallback){ vid.requestVideoFrameCallback(function(n,m){ frame(n,m,g0); }); }
+    else { requestAnimationFrame(function(){ if(g0!==gen) return; var t=vid.currentTime; if(t!==st._rt){ st._rt=t; frame(0,{ mediaTime:t },g0); } else loop(); }); }
+  }
+  return {
+    off:function(){ gen++; apply(0,0); },
+    on:function(){ gen++; loop(); try{ frame(0,{ mediaTime:vid.currentTime }); }catch(e){} },
+    st:st
+  };
+}
+var pStabA=pStabMake($('v')), pStabD=pStabMake($('dv'));
+function pStabSet(on, save){
+  pStabOn=!!on;
+  Array.prototype.forEach.call(document.querySelectorAll('.pStabB'), function(b){
+    b.textContent = on ? '補正 入' : '補正 切';
+    b.setAttribute('aria-pressed', on?'true':'false');
+    b.setAttribute('aria-label', on ? '手ぶれ補正は入っています。押すと切ります' : '手ぶれ補正は切れています。押すと入れます');
+  });
+  if(on){ pStabA.on(); pStabD.on(); } else { pStabA.off(); pStabD.off(); }
+  if(save){ try{ localStorage.setItem('swimiq_pstab', on?'1':'0'); }catch(e){} }
+}
+Array.prototype.forEach.call(document.querySelectorAll('.pStabB'), function(b){
+  b.onclick=function(e){ e.stopPropagation(); pStabSet(!pStabOn, true); toast(pStabOn ? '手ぶれ補正を入れました（動画を少し大きく映します）' : '手ぶれ補正を切りました'); };
+});
+pStabSet(pStabOn, false);
 $('dStroke').onclick=function(){
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
@@ -7606,7 +7754,8 @@ function cZoomSet(z){
    こまかい ふるえだけを 打ち消して うつします。
    そのぶん まわりを すこし 切りますので、画は 6パーセントほど 大きく なります。 */
 var cStabOn=false;
-try{ cStabOn=(localStorage.getItem('swimiq_stab')!=='0'); }catch(e){ cStabOn=true; }
+/* 録画しながらの 手ぶれ補正は 重く、映像が 止まる 原因に なるので、ふだんは 切って おきます（見るときに 補正します） */
+try{ cStabOn=(localStorage.getItem('swimiq_stab2')==='1'); }catch(e){ cStabOn=false; }
 var SGW=48, SGH=27, S_MAX=5, S_CROP=1.06;
 var sCan=null, sCtx=null, sPrev=null, sCur=null;
 var sCx=0, sCy=0, sSx=0, sSy=0;            /* たまった ずれ と、なめらかに した ずれ */
@@ -7710,7 +7859,7 @@ function cRecSource(){
           if(t-sFpsT>2000){
             sFps=sFpsN/((t-sFpsT)/1000); sFpsT=t; sFpsN=0;
             if(sFps>0 && sFps<24){
-              cStabOn=false; try{ localStorage.setItem('swimiq_stab','0'); }catch(e){}
+              cStabOn=false; try{ localStorage.setItem('swimiq_stab2','0'); }catch(e){}
               cStabPaint(); $('cam').classList.remove('stab');
               try{ cSay(T('stabHeavy')); }catch(e){}
             }

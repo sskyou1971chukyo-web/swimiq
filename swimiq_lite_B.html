@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.07.4">
+<meta name="app-ver" content="2026.10.07.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>SwimIQ LITE B</title>
@@ -1945,7 +1945,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.07.4</p>
+  <p class="ver" id="verBottom">ver 2026.10.07.5</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -4530,6 +4530,7 @@ bindVidError('v'); bindVidError('dv');
 function openAna(blob, opt){
   opt = opt || {};
   aDraftId = opt.draftId || null; aDraftAt = opt.draftAt || null; aDraftThumb = opt.thumb || ''; aNoDraft=false; aDraftSig='';
+  aDraftVidFor = opt.vidStored ? (opt.draftId||'') : '';
   freeVideo('dv');
   aBlob=blob; aId=opt.id||null; aFromCam=false;
   aSplits = opt.splits ? opt.splits.slice() : [];
@@ -4610,7 +4611,7 @@ function openAna(blob, opt){
    アプリが とじたり、電池が 切れたり しても、ホームの 一覧に「未分析」として のこります。
    「保存」を おすと、未分析は ふつうの 記録に 置きかわります。
    ================================================================ */
-var aDraftId=null, aDraftAt=null, aDraftThumb='', aDraftSig='', aDraftBusy=false, aNoDraft=false;
+var aDraftId=null, aDraftAt=null, aDraftThumb='', aDraftSig='', aDraftBusy=false, aNoDraft=false, aDraftVidFor='';
 function anaSig(){
   var st=aStrokes||[];
   return JSON.stringify([aSplits, st.length, st[st.length-1]||0, aT0, aSigT, aRT, $('dist').value, $('pool').value, $('event').value, aPre, $('anaTitle').textContent]);
@@ -4625,25 +4626,46 @@ function draftSave(){
   var d=new Date(aDraftAt);
   var base=($('anaTitle').dataset.neu==='1') ? ((d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m') : $('anaTitle').textContent;
   var getTh = aDraftThumb ? Promise.resolve(aDraftThumb) : thumb();
-  return getTh.then(function(th){
+  /* 動画は 重いので、未分析の 中に 何度も 書きこまない ように します。
+     ・保存ずみの 記録を やり直す ときは、もとの 記録の 動画を 使う（書かない）
+     ・新しい 動画は、最初の 1回だけ 別の 入れものに 書く
+     （分析中に 何度も 書くと、動画の 再生が 止まる 原因に なって いました） */
+  var vidRef='', vidJob=Promise.resolve();
+  if(!aId){
+    vidRef=aDraftId+'_v';
+    if(aDraftVidFor!==aDraftId){
+      vidJob=dbPut({ id:vidRef, draft:true, vidOnly:true, at:aDraftAt, updatedAt:Date.now(), video:aBlob, splits:[], strokes:[] })
+        .then(function(){ aDraftVidFor=aDraftId; });
+    }
+  }
+  return vidJob.then(function(){ return getTh; }).then(function(th){
     aDraftThumb=th||'';
     var rec={ id:aDraftId, draft:true, draftOf:aId||null, at:aDraftAt, title:base,
       anaTitle:($('anaTitle').dataset.neu==='1'?'':$('anaTitle').textContent),
       pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value,
       t0:aT0, sigT:aSigT, rt:aRT, rtMode:(aRT!=null?rtMode:null),
-      splits:aSplits.slice(), strokes:aStrokes.slice(), video:aBlob, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now(),
+      splits:aSplits.slice(), strokes:aStrokes.slice(), video:null, vidRef:vidRef, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now(),
       preSwId:(aPre.id||''), preSwName:(aPre.name||'') };
     return dbPut(rec).then(function(){ aDraftSig=sig; aDraftBusy=false; draftBtnPaint(); return true; });
   }).catch(function(){ aDraftBusy=false; return false; });
 }
-function draftDrop(id){ if(id) return dbDel(id).catch(function(){}); return Promise.resolve(); }
+function draftDrop(id){ if(id) return Promise.all([dbDel(id).catch(function(){}), dbDel(id+'_v').catch(function(){})]); return Promise.resolve(); }
 setInterval(function(){ if(!$('ana').classList.contains('hide')) draftSave(); }, 4000);
 document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden' && !$('ana').classList.contains('hide')) draftSave(); });
 window.addEventListener('pagehide', function(){ if(!$('ana').classList.contains('hide')) draftSave(); });
 /* 未分析を 開き直す */
 function draftResume(r){
-  if(!hasVid(r)){ toast('この未分析には動画が入っていません'); viewOpen(r); return; }
-  openAna(r.video, { id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb,
+  /* 動画は 未分析の 中、別の 入れもの、もとの 記録 の どれかに あります */
+  if(!r.video){
+    var ref = r.vidRef || r.draftOf;
+    if(!ref){ toast('この未分析には動画が入っていません'); viewOpen(r); return; }
+    dbGet(ref).then(function(x){
+      if(x && x.video){ var c={}; for(var k in r) c[k]=r[k]; c.video=x.video; draftResume(c); }
+      else { toast('この未分析には動画が入っていません'); viewOpen(r); }
+    }, function(){ toast('この未分析には動画が入っていません'); });
+    return;
+  }
+  openAna(r.video, { id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb, vidStored:!!r.vidRef,
     splits:r.splits||[], strokes:r.strokes||[], t0:(r.t0!=null?r.t0:null), sigT:r.sigT, rt:r.rt,
     pool:r.pool, dist:r.dist, event:r.event, title:(r.anaTitle||null),
     pre:{ id:(r.preSwId||''), name:(r.preSwName||'') } });
@@ -6475,6 +6497,7 @@ function pStabMake(vid){
     var t=(meta && meta.mediaTime!=null) ? meta.mediaTime : vid.currentTime;
     var src=vid.currentSrc||vid.getAttribute('src')||'';
     if(src!==st.src){ st.src=src; st.cache={}; st.prev=null; st.ref=null; st.lastT=null; }
+    var _p0=performance.now();
     var kk=key(t), c=st.cache[kk];
     var dt=(st.lastT==null) ? -1 : t-st.lastT;
     var g=gray(); if(!g) return;
@@ -6496,7 +6519,10 @@ function pStabMake(vid){
       st.cache[kk]={ cx:0, cy:0, sx:0, sy:0 };
     }
     st.prev=g; st.lastT=t;
-    apply(st.sx-st.cx, st.sy-st.cy);   /* 動いた 向きと 逆に ずらします */
+    apply(st.sx-st.cx, st.sy-st.cy);
+    /* 重すぎる 端末では、再生が 止まらない ように 補正を 自分で 切ります */
+    var _ms=performance.now()-_p0; st.cost = st.cost==null ? _ms : st.cost*0.9+_ms*0.1; st.nf=(st.nf||0)+1;
+    if(st.nf>30 && st.cost>16 && !vid.paused){ st.nf=0; st.cost=null; pStabSet(false, true); toast('この端末では手ぶれ補正が重いので切りました'); }   /* 動いた 向きと 逆に ずらします */
   }
   function loop(){
     var g0=gen;
@@ -7075,7 +7101,7 @@ $('colBack').onclick=function(){ $('colBox').classList.add('hide'); };
 function paintList(){
   var box=$('list');
   dbAll().then(function(all){
-    all = all.slice().sort(function(a,b){ return workAt(b)-workAt(a); });
+    all = all.filter(function(r){ return r && !r.vidOnly; }).sort(function(a,b){ return workAt(b)-workAt(a); });
     try{ bestIdxBuild(all); }catch(e){}
     try{ pastBuild(all); }catch(e){}
     try{ colPaint(all); }catch(e){}

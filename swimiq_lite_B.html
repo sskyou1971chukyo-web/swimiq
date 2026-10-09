@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.09.1">
+<meta name="app-ver" content="2026.10.09.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -1951,7 +1951,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.09.1</p>
+  <p class="ver" id="verBottom">ver 2026.10.09.2</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -11648,8 +11648,8 @@ $('dCompare').onclick=function(){
   if(!dRec) return;
   cmpOpen({ id:dRec.id, event:dRec.event, dist:dRec.dist });
 };
-$('cmpEvent').onchange=function(){ cmpBuildDistOptions(); paintCompare(); };
-$('cmpDist').onchange=function(){ paintCompare(); };
+$('cmpEvent').onchange=function(){ cmpBuildDistOptions(); cmpBuildSwimOptions(); paintCompare(); };
+$('cmpDist').onchange=function(){ cmpBuildSwimOptions(); paintCompare(); };
 $('cmpSwim').onchange=function(){ paintCompare(); };
 $('cmpQ').oninput=function(){ paintCompare(); };
 $('cmpQClear').onclick=function(){ $('cmpQ').value=''; paintCompare(); };
@@ -11674,8 +11674,16 @@ function cmpTabsPaint(){
 /* 選手の 一覧を きろくから つくります */
 function cmpBuildSwimOptions(){
   var sel=$('cmpSwim'); if(!sel) return;
+  /* いま 選んで いる 種目・距離に 出て いる 選手だけを 一覧に します
+     （例：100m平泳ぎの 世界記録保持者は、平泳ぎ・100mの ときだけ 出ます） */
+  var ev=($('cmpEvent')||{}).value||'all', ds=($('cmpDist')||{}).value||'all';
   var names={}, i, n;
-  for(i=0;i<cmpAll.length;i++){ n=whoOf(cmpAll[i]); if(n) names[n]=1; }
+  for(i=0;i<cmpAll.length;i++){
+    var r=cmpAll[i];
+    if(ev!=='all' && (r.event||'other')!==ev) continue;
+    if(ds!=='all' && String(r.dist)!==ds) continue;
+    n=whoOf(r); if(n) names[n]=1;
+  }
   var arr=Object.keys(names).sort();
   var keep=sel.value||'all';
   var h='<option value="all">'+T('swimAll')+'</option>';

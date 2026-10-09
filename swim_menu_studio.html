@@ -82,6 +82,13 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 .libPaste{margin-top:8px}
 .libPaste summary{cursor:pointer;font-weight:700;padding:6px 0}
 .libPaste textarea{width:100%}
+.libPick select{font-size:17px;max-width:100%}
+.libCard{display:flex;gap:16px;align-items:flex-start;border:2px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.libThumb{flex-shrink:0;width:180px;padding:0;border:2px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;cursor:pointer;line-height:0}
+.libThumb img{width:100%;height:auto;display:block}
+.libThumb:hover{border-color:#3d7fc4}
+.libInfo{flex:1;min-width:0}
+@media (max-width:700px){.libCard{flex-direction:column}.libThumb{width:150px;align-self:center}}
 .libUl{list-style:none;padding:0;margin:0}
 .libItem{border:2px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
 .libT{font-size:17px}
@@ -447,6 +454,44 @@ details.more[open]>summary{background:#e3eefa}
   .pp-page{margin:0!important;page-break-after:always;break-after:page}
   .pp-page:last-child{page-break-after:auto;break-after:auto}
 }
+
+/* ===== パソコンの画面：上の部分をそろえる ===== */
+@media (min-width:701px){
+  :root{--ctl:46px}
+  #menuTop{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;gap:14px}
+  #menuTop input,#menuTop select,#menuTop .btn{height:var(--ctl);box-sizing:border-box}
+  #menuTop label.fld{font-size:14px}
+  #menuTop label.fld input,#menuTop label.fld select{font-size:18px}
+  #mDateJp{display:inline-flex;align-items:center;height:var(--ctl);font-size:19px!important}
+  #btnToday{font-size:16px;padding:0 16px}
+  #toolRow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #gOut{grid-column:1/-1}
+  .tgroup{padding:8px 12px 10px}
+  .tglabel{font-size:14px}
+  .tgbody{flex-wrap:nowrap;gap:8px}
+  .tgbody>.btn,.tgbody>.perSel,.tgbody>.printCount{flex:1 0 auto;height:var(--ctl);box-sizing:border-box}
+  .tgbody>.btn,.tgbody>.btn.big{font-size:16px;padding:0 10px;white-space:nowrap}
+  #gOut .perSel{font-size:14px;color:var(--text);white-space:nowrap}
+  #gOut .tgbody>.perSel{flex:0 0 auto}
+  #gOut .perSel select{width:150px;height:var(--ctl);font-size:16px!important}
+  .tgbody>.printCount{display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:10px;white-space:nowrap}
+  #makeBand .bandTop{gap:8px}
+  #makeBand .bandTop .btn{height:var(--ctl);font-size:16px;padding:0 18px;box-sizing:border-box}
+  #makeBand .bandLabel{font-size:18px;min-width:120px}
+  #makeBand .syncLbl{font-size:15px}
+  .weekRow{flex-wrap:nowrap;gap:6px;margin-bottom:8px}
+  .weekRow .symLabel,#symRow .symLabel{width:44px;flex-shrink:0;color:#fff;font-size:15px;font-weight:700;margin:0}
+  .wkDay{flex:1 1 auto;justify-content:center;gap:5px;padding:4px 6px;min-height:42px;box-sizing:border-box}
+  .wkD{font-size:15px}
+  .wkBtn{font-size:15px;padding:4px 9px}
+  #symRow{gap:8px;flex-wrap:nowrap}
+  #symRow button{height:var(--ctl);min-width:58px;font-size:19px;padding:0 14px}
+  #symRow #btnSet{min-width:auto}
+}
+@media (min-width:701px) and (max-width:1100px){
+  .wkDate{display:none}
+  .wkPool{display:none}
+}
 </style>
 <style id="pageStyle"></style>
 </head>
@@ -470,7 +515,7 @@ details.more[open]>summary{background:#e3eefa}
   <div id="menuTop">
     <label class="fld">日付<input type="date" id="mDate"></label>
     <div class="fld" style="font-size:13px;color:var(--muted);font-weight:700">&nbsp;<span id="mDateJp" style="font-size:18px;color:var(--text)"></span></div>
-    <button class="btn small" id="btnToday">今日にする</button>
+    <button class="btn" id="btnToday">今日にする</button>
     <label class="fld">開始時刻（24時間）<input type="text" id="mStart" inputmode="numeric" placeholder="6:00" style="width:110px" aria-describedby="mStartHelp"></label><span id="mStartHelp" class="sr">6:00 や 1830 のように入れます</span>
     <label class="fld">水路<select id="mPool"><option>長水路</option><option>短水路</option></select></label>
     <label class="fld" style="flex:1;min-width:200px">メニューの題名（任意）<input type="text" id="mTitle" placeholder="例：閾値の日"></label>
@@ -509,6 +554,7 @@ details.more[open]>summary{background:#e3eefa}
       <button class="btn big mk" id="btnCalc">計算ボタンで入力</button>
       <button class="btn mk msec" id="btnAddPanel">アレンジの列を追加</button>
       <button class="btn mk msec" id="btnNew">新しいメニュー</button>
+      <button class="btn mk pcOnly" id="wsEdit2" aria-label="週間スケジュールの設定">週間の設定</button>
       <label class="row pcOnly syncLbl"><input type="checkbox" id="chkSync"> 列のスクロールをそろえる</label>
     </div>
     <div id="weekRow" class="weekRow" role="group" aria-label="週間スケジュール。押すとその曜日のメニューに切りかわります"></div>
@@ -544,7 +590,6 @@ details.more[open]>summary{background:#e3eefa}
         </div>
         <div id="advBtns2" class="row" style="margin-top:6px">
           <button class="btn" id="advEvidence">根拠をくわしく見る</button>
-          <button class="btn ghost" id="advAsk">Claudeに相談する文章をコピー</button>
         </div>
         <div class="coachRow" aria-label="表示するコーチの考え方">
           <label><input type="checkbox" id="cOlb" checked> オルブレヒト博士</label>
@@ -691,7 +736,7 @@ details.more[open]>summary{background:#e3eefa}
     <h2>判断のしかた</h2>
     <p>セットの行にカーソルを置くと、アプリはまずそのセットの強度を判定します。次に、登録資料の中からその強度について書かれた段落を探します。距離や休息、キックやプルなど、そのセットと同じことにふれている段落ほど上に出します。信頼度の高い資料ほど優先し、コーチが「根拠として正しい」と確認した段落はいちばん優先します。</p>
     <p>確実さは3段階です。高いのは、信頼度が中くらい以上の資料2つ以上が説明していて、距離や休息にもふれているときか、コーチが確認した根拠があるときです。中くらいは、説明している資料が1つだけのときや、一般的な説明だけのときです。不確実は、登録資料に説明が見つからないときです。同じ距離の練習を別の強度として説明している資料があるときは、食い違いの可能性として知らせます。</p>
-    <p>このアプリはことばの一致で資料を探しています。文の意味を深く理解しているわけではありません。くわしい判断がほしいときは、アドバイスメモの「Claudeに相談する文章をコピー」を使ってください。資料の抜粋だけを根拠に答えるよう指示した文章ができます。</p>
+    <p>このアプリはことばの一致で資料を探しています。文の意味を深く理解しているわけではありません。</p>
   </div>
 </section>
 
@@ -3994,26 +4039,28 @@ function renderWeekRow(){
     });
     h += '</div>';
   });
-  h += '<button type="button" class="btn small ghost wkEdit" id="wsEdit" title="週間スケジュールを設定" aria-label="週間スケジュールを設定"><span class="pcOnly">週間スケジュールを設定</span><span class="phoneOnly">⚙</span></button>';
+  h += '<button type="button" class="btn small ghost wkEdit phoneOnly" id="wsEdit" title="週間スケジュールを設定" aria-label="週間スケジュールを設定"><span class="pcOnly">週間スケジュールを設定</span><span class="phoneOnly">⚙</span></button>';
   box.innerHTML = h;
 }
-/* 曜日ボタン：その週のその日・その時刻のメニューへ（なければ新しく作る） */
+/* 曜日ボタン：今のメニューの中身はそのままで、日付・開始時刻・水路だけを変える */
 function goWeekSlot(d, k){
   const s = weekSched()[d][k]; if(!s) return;
   const date = addDays(mondayOf(M.date), d), start = fmtClock(s.start);
-  const ex = Object.values(S.menus).find(m => m.date === date && fmtClock(m.start) === start);
-  if(ex){ openMenu(date, ex.session); }
-  else {
+  if(saveTimer) saveNow();
+  if(M.date !== date){
+    // 移す先の日の、空いている枠を使う
     const free = SESSIONS.find(x => !S.menus[menuId(date, x)]);
-    if(!free){ toast('この日のメニューは4つまでです'); return; }
-    const panels = M.panels;
-    openMenu(date, free);
-    if(!S.menus[M.id]) M.panels = panels.map(p => ({team:p.team, stroke:p.stroke || '', text:'', print:p.print}));
-    M.start = start; M.pool = s.pool;
-    renderMenuView();
+    if(!free){ toast('この日にはメニューが4つあるので、移せません'); return; }
+    const had = !!S.menus[M.id];
+    delete S.menus[M.id];
+    M.date = date; M.session = free; M.id = menuId(date, free);
+    if(had || menuHasContent(M)) S.menus[M.id] = M;
   }
-  if(fmtClock(M.start) !== start || M.pool !== s.pool){ M.start = start; M.pool = s.pool; if(menuHasContent(M)) commitMenu(); renderMenuView(); }
-  toast(WS_DAYS[d] + '曜 ' + jpDate(date) + '　' + start + '開始　' + s.pool + 'に切りかえました');
+  M.start = start; M.pool = s.pool;
+  S.settings.lastStart = start; S.settings.lastPool = s.pool;
+  commitMenu(); renderMenuView();
+  const others = Object.values(S.menus).filter(m => m !== M && m.date === date && menuHasContent(m)).length;
+  toast('日時を ' + WS_DAYS[d] + '曜 ' + jpDate(date) + '　' + start + '開始　' + s.pool + ' に変えました。メニューの中身はそのままです' + (others ? '（この日にはほかのメニューも' + others + 'つあります）' : ''), 5000);
 }
 /* 設定の画面 */
 function openWeekSched(){
@@ -4180,7 +4227,23 @@ function loadInlineLib(id){
   el.dataset.loaded = '1'; el.textContent = '';
 }
 function isCjk(ch){ return /[　-ヿ㐀-鿿＀-￯]/.test(ch || ''); }
-async function readPdf(buf, onProg){
+/* 1ページ目を小さな画像にする（サムネイル） */
+async function pdfThumb(pdf){
+  const pg = await pdf.getPage(1);
+  const v1 = pg.getViewport({scale:1});
+  const vp = pg.getViewport({scale:Math.min(2, 300 / v1.width)});
+  const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+  const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+  await pg.render({canvasContext:cx, viewport:vp}).promise;
+  return cv.toDataURL('image/jpeg', 0.72);
+}
+function zipThumb(z){
+  const k = ['docProps/thumbnail.jpeg', 'docProps/thumbnail.jpg', 'docProps/thumbnail.png'].find(n => z[n]);
+  if(!k) return '';
+  let b = ''; const u = z[k]; for(let i = 0; i < u.length; i += 8192) b += String.fromCharCode.apply(null, u.subarray(i, i + 8192));
+  return 'data:image/' + (/png$/.test(k) ? 'png' : 'jpeg') + ';base64,' + btoa(b);
+}
+async function readPdf(buf, onProg, opt){
   loadInlineLib('srcPdfWorker'); loadInlineLib('srcPdf');
   const lib = window.pdfjsLib;
   if(!window.__cmaps){ try { window.__cmaps = JSON.parse($('srcCmaps').textContent); } catch(e){ window.__cmaps = {}; } }
@@ -4195,6 +4258,8 @@ async function readPdf(buf, onProg){
   }
   const pdf = await lib.getDocument({data:new Uint8Array(buf), isEvalSupported:false, useSystemFonts:true, useWorkerFetch:false, CMapReaderFactory:InlineCMapFactory, cMapUrl:'inline/', cMapPacked:true}).promise;
   const pages = [];
+  try { pages.thumb = await pdfThumb(pdf); } catch(e){ console.warn(e); }
+  if(opt && opt.thumbOnly) return pages;
   for(let n = 1; n <= pdf.numPages; n++){
     const pg = await pdf.getPage(n);
     const tc = await pg.getTextContent();
@@ -4238,16 +4303,19 @@ function readDocx(buf){
     if(cur.length > 1500) flush();
   });
   flush();
+  pages.thumb = '';   // ワードの埋め込みの画像は白紙のことが多いので、文字で作った表紙を使う
   return pages;
 }
 function readPptx(buf){
   const z = fflate.unzipSync(new Uint8Array(buf));
   const names = Object.keys(z).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => +a.match(/\d+/)[0] - +b.match(/\d+/)[0]);
-  return names.map(n => {
+  const out = names.map(n => {
     const d = xmlDoc(z[n]);
     const t = [...d.getElementsByTagName('a:p')].map(p => [...p.getElementsByTagName('a:t')].map(x => x.textContent).join('')).filter(Boolean).join('\n');
     return {label:'スライド' + n.match(/\d+/)[0], text:t};
   }).filter(p => p.text.trim());
+  out.thumb = zipThumb(z);
+  return out;
 }
 function chunkPlain(text){
   const paras = String(text).replace(/\r/g, '').split(/\n/);
@@ -4282,12 +4350,12 @@ async function libAddFiles(files){
       libStatus('「' + name + '」からは文字がほとんど読み取れませんでした。紙をスキャンした画像のPDFだと、このアプリでは文字を読めません。文字を選んでコピーできる資料にするか、本文を貼りつけて登録してください。', true);
       continue;
     }
-    await libAddDoc({title:name.replace(/\.[^.]+$/, ''), kind, trust, pages, file:name});
+    await libAddDoc({title:name.replace(/\.[^.]+$/, ''), kind, trust, pages, file:name, thumb:pages.thumb || ''});
   }
 }
 async function libAddDoc(o){
-  const doc = {id:'d' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title:o.title, kind:o.kind, trust:o.trust || 'B', added:new Date().toISOString(), pages:o.pages, file:o.file || '', chars:o.pages.reduce((a, p) => a + p.text.length, 0)};
-  LIB.push(doc);
+  const doc = {id:'d' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title:o.title, kind:o.kind, trust:o.trust || 'B', added:new Date().toISOString(), pages:o.pages, file:o.file || '', thumb:o.thumb || '', chars:o.pages.reduce((a, p) => a + p.text.length, 0)};
+  LIB.push(doc); S.settings.libSel = doc.id;
   if(!(await libSaveDoc(doc))){ LIB.pop(); return; }
   libIndex(); renderLib();
   const np = LIBP.filter(p => p.doc === doc).length;
@@ -4438,57 +4506,70 @@ function hlConcept(t, k){
   parts.forEach(p => { s = s.replace(new RegExp(p.re.source, p.re.flags + 'g'), m => '<mark>' + m + '</mark>'); });
   return s;
 }
-/* Claudeに相談する文章（登録資料の抜粋だけを根拠にしてもらう） */
-function libPrompt(){
-  const tot = panelTots[curPanel]; const info = tot && tot.lines[curLine];
-  const p = M.panels[curPanel];
-  const L = [];
-  L.push('水泳の練習メニューについて相談です。次の「登録資料の抜粋」だけを根拠に答えてください。抜粋に書かれていないことは推測せず、「資料に根拠がないので不確実」とはっきり書いてください。インターネットの情報や一般論は使わないでください。');
-  L.push('');
-  L.push('【チーム】' + p.team + (p.stroke ? '　種目 ' + strokeName(p.stroke) : '') + '　基準ペース ' + paceText(teamPace(p.team)) + '/100m');
-  L.push('【メニュー】');
-  L.push(p.text);
-  let pass = [];
-  if(info && info.type === 'set'){
-    const j = judgeSet(info);
-    L.push('');
-    L.push('【とくに相談したいセット】' + normalize(info.raw).trim() + '（アプリの判定：' + zoneLabel(j.zone) + '、確実さ ' + LEVEL_TXT[j.level] + '）');
-    pass = j.top.concat(j.conflicts);
-  } else {
-    ZK.filter(k => tot && tot.zones[k] > 0).forEach(k => {
-      LIBP.filter(x => x.cs.has('z_' + k) && (votes()[passKey(x, k)] || 0) >= 0).sort((a, b) => TRUST[b.doc.trust].w - TRUST[a.doc.trust].w).slice(0, 3).forEach(x => pass.push({p:x}));
-    });
-  }
-  L.push('');
-  L.push('【登録資料の抜粋】');
-  if(!pass.length) L.push('（関係する抜粋が見つかりませんでした）');
-  pass.slice(0, 12).forEach((x, i) => L.push('[' + (i + 1) + '] 『' + x.p.doc.title + '』' + x.p.label + '（信頼度' + TRUST[x.p.doc.trust].short + '）：' + x.p.t));
-  L.push('');
-  L.push('【答えてほしいこと】1. このセット（またはメニュー）が持つ意味と、生理学的なねらい。2. 抜粋の番号を示した根拠。3. 資料どうしで食い違う点。4. 資料に根拠がなく不確実な点。');
-  return L.join('\n');
-}
 
 /* ---------- 資料の画面 ---------- */
+/* 文字だけの資料のサムネイル（題名と最初の数行を描いた画像） */
+const textThumbCache = {};
+function textThumb(d){
+  if(textThumbCache[d.id]) return textThumbCache[d.id];
+  const W = 240, H = 320, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);
+  const col = {'PDF':'#b81c22', 'ワード':'#1f5fb2', 'パワーポイント':'#c8541f', 'テキスト':'#4a5a6a', '貼りつけ':'#2e7d4f', 'ウェブページ':'#6b3fa0'}[d.kind] || '#4a5a6a';
+  cx.fillStyle = col; cx.fillRect(0, 0, W, 40);
+  cx.fillStyle = '#fff'; cx.font = 'bold 18px sans-serif'; cx.fillText(d.kind, 12, 27);
+  const wrap = (t, font, lh, y, maxLines, color) => {
+    cx.font = font; cx.fillStyle = color; let line = '', n = 0;
+    for(const ch of t){
+      if(ch === '\n' || cx.measureText(line + ch).width > W - 24){ cx.fillText(line, 12, y); y += lh; n++; line = ch === '\n' ? '' : ch; if(n >= maxLines) return y; }
+      else line += ch;
+    }
+    if(line && n < maxLines){ cx.fillText(line, 12, y); y += lh; }
+    return y;
+  };
+  let y = wrap(d.title, 'bold 17px sans-serif', 22, 68, 3, '#16202e');
+  const body = (d.pages[0] ? d.pages[0].text : '').slice(0, 400);
+  wrap(body, '12px sans-serif', 17, y + 8, Math.floor((H - y - 16) / 17), '#555');
+  cx.strokeStyle = '#c9d2dd'; cx.lineWidth = 2; cx.strokeRect(1, 1, W - 2, H - 2);
+  return (textThumbCache[d.id] = cv.toDataURL('image/png'));
+}
 function renderLib(){
   const box = $('libList'); if(!box) return;
   $('libMode').textContent = libMode === 'idb' ? '' : '（このブラウザでは大きな資料を保存できないため、小さな資料だけ登録できます）';
   if(!LIB.length){ box.innerHTML = '<p class="muted">まだ資料は登録されていません。</p>'; $('libCount').textContent = ''; return; }
   $('libCount').textContent = LIB.length + '件　' + fmtNum(LIB.reduce((a, d) => a + d.chars, 0)) + '文字';
-  box.innerHTML = '<ul class="libUl">' + LIB.map(d => {
-    const np = LIBP.filter(p => p.doc === d).length;
-    const zs = ZK.filter(k => LIBP.some(p => p.doc === d && p.cs.has('z_' + k)));
-    return '<li class="libItem"><div class="libT"><b>' + esc(d.title) + '</b><span class="muted">　' + esc(d.kind) + '　' + d.pages.length + (d.kind === 'PDF' ? 'ページ' : d.kind === 'パワーポイント' ? '枚' : '部分') + '　' + fmtNum(d.chars) + '文字　' + np + '段落　登録 ' + esc(String(d.added).slice(0, 10)) + '</span></div>' +
+  let d = LIB.find(x => x.id === S.settings.libSel) || LIB[LIB.length - 1];
+  const np = LIBP.filter(p => p.doc === d).length;
+  const zs = ZK.filter(k => LIBP.some(p => p.doc === d && p.cs.has('z_' + k)));
+  const unit = d.kind === 'PDF' ? 'ページ' : d.kind === 'パワーポイント' ? '枚' : '部分';
+  box.innerHTML =
+    '<label class="fld libPick">資料を選ぶ<select id="libSel">' + LIB.map((x, i) => '<option value="' + x.id + '"' + (x === d ? ' selected' : '') + '>' + (i + 1) + '．' + esc(x.title) + '（' + esc(x.kind) + '・信頼度' + TRUST[x.trust].short + '）</option>').join('') + '</select></label>' +
+    '<div class="libCard">' +
+      '<button type="button" class="libThumb" data-view-doc="' + d.id + '" aria-label="' + esc(d.title) + 'の中身を見る"><img src="' + (d.thumb || textThumb(d)) + '" alt=""></button>' +
+      '<div class="libInfo"><div class="libT"><b>' + esc(d.title) + '</b></div>' +
+      '<div class="muted">' + esc(d.kind) + '　' + d.pages.length + unit + '　' + fmtNum(d.chars) + '文字　' + np + '段落　登録 ' + esc(String(d.added).slice(0, 10)) + '</div>' +
       '<div class="muted libZ">説明している強度：' + (zs.length ? zs.map(k => ZMAP[k].name).join('、') : '見つかりません') + '</div>' +
-      '<div class="row"><label class="fld">信頼度<select data-trust="' + d.id + '">' + Object.keys(TRUST).map(t => '<option value="' + t + '"' + (d.trust === t ? ' selected' : '') + '>' + TRUST[t].name + '</option>').join('') + '</select></label>' +
-      '<button class="btn small" data-ren="' + d.id + '">名前を変える</button><button class="btn small" data-view-doc="' + d.id + '">中身を見る</button><button class="btn small red" data-deldoc="' + d.id + '">削除</button></div></li>';
-  }).join('') + '</ul>';
+      '<label class="fld">信頼度<select data-trust="' + d.id + '">' + Object.keys(TRUST).map(t => '<option value="' + t + '"' + (d.trust === t ? ' selected' : '') + '>' + TRUST[t].name + '</option>').join('') + '</select></label>' +
+      '<div class="row" style="margin-top:8px"><button class="btn small" data-view-doc="' + d.id + '">中身を見る</button><button class="btn small" data-ren="' + d.id + '">名前を変える</button>' +
+      (!d.thumb && /PDF|パワーポイント/.test(d.kind) ? '<label class="btn small" style="display:inline-block">表紙の画像を付ける<input type="file" class="sr" data-thumbfile="' + d.id + '" accept=".pdf,.pptx"></label>' : '') +
+      '<button class="btn small red" data-deldoc="' + d.id + '">削除</button></div></div></div>';
+}
+async function libSetThumb(d, f){
+  const ext = (f.name.match(/\.([a-z0-9]+)$/i) || [,''])[1].toLowerCase();
+  try {
+    let th = '';
+    if(ext === 'pdf'){ const r = await readPdf(await readAsBuf(f), null, {thumbOnly:true}); th = r.thumb || ''; }
+    else if(ext === 'docx' || ext === 'pptx') th = zipThumb(fflate.unzipSync(new Uint8Array(await readAsBuf(f))));
+    if(!th){ toast('このファイルには表紙の画像がありません。文字で作った表紙のままにします', 5000); return; }
+    d.thumb = th; await libSaveDoc(d); renderLib(); toast('表紙の画像を付けました');
+  } catch(e){ toast('ファイルを読み取れませんでした', 5000); }
 }
 function libListClick(e){
   const b = e.target.closest('button'); if(!b) return;
   const id = b.dataset.deldoc || b.dataset.ren || b.dataset.viewDoc; const d = LIB.find(x => x.id === id); if(!d) return;
   if(b.dataset.deldoc){
     if(!confirm('「' + d.title + '」を削除しますか。元に戻せません。')) return;
-    LIB = LIB.filter(x => x !== d); libDeleteDoc(d.id); libIndex(); renderLib(); renderAdvice(true); toast('削除しました');
+    LIB = LIB.filter(x => x !== d); libDeleteDoc(d.id); S.settings.libSel = ''; libIndex(); renderLib(); renderAdvice(true); toast('削除しました');
   } else if(b.dataset.ren){
     const t = prompt('資料の名前', d.title); if(t == null || !t.trim()) return;
     d.title = t.trim(); libSaveDoc(d); renderLib(); renderAdvice(true);
@@ -4542,14 +4623,16 @@ function libBind(){
   $('libFile').addEventListener('change', e => { const fs = [...e.target.files]; e.target.value = ''; if(fs.length) libAddFiles(fs); });
   $('libPAdd').addEventListener('click', libPasteAdd);
   $('libList').addEventListener('click', libListClick);
-  $('libList').addEventListener('change', e => { const s = e.target.closest('[data-trust]'); if(!s) return; const d = LIB.find(x => x.id === s.dataset.trust); if(d){ d.trust = s.value; libSaveDoc(d); renderAdvice(true); toast('信頼度を変えました'); } });
+  $('libList').addEventListener('change', e => {
+    if(e.target.id === 'libSel'){ S.settings.libSel = e.target.value; saveNow(); renderLib(); const sel = $('libSel'); if(sel) sel.focus(); return; }
+    const tf = e.target.closest('[data-thumbfile]'); if(tf){ const d = LIB.find(x => x.id === tf.dataset.thumbfile); const f = tf.files[0]; if(d && f) libSetThumb(d, f); return; }
+    const s = e.target.closest('[data-trust]'); if(!s) return; const d = LIB.find(x => x.id === s.dataset.trust); if(d){ d.trust = s.value; libSaveDoc(d); renderAdvice(true); toast('信頼度を変えました'); } });
   $('libQ').addEventListener('keydown', e => { if(isRealEnter(e)){ e.preventDefault(); libSearch(); } });
   $('libQBtn').addEventListener('click', libSearch);
   $('libResults').addEventListener('click', e => { const b = e.target.closest('[data-open]'); if(b){ const d = LIB.find(x => x.id === b.dataset.open); if(d) openDocView(d, $('libQ').value); } });
   $('libExport').addEventListener('click', libExport);
   $('libImport').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if(f) libImport(f); });
   $('advEvidence').addEventListener('click', openEvidence);
-  $('advAsk').addEventListener('click', () => { copyText(libPrompt()); toast('Claudeに相談する文章をコピーしました。Claudeの画面に貼りつけてください', 5000); });
   const dz = $('libDrop');
   ['dragover','dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
   ['dragleave','drop'].forEach(ev => dz.addEventListener(ev, () => dz.classList.remove('over')));
@@ -4816,7 +4899,11 @@ function init(){
   document.addEventListener('click', e => { if(document.body.classList.contains('moreOpen') && e.target.closest('.tgroup.sec button, button.msec')) setMore(false); });
   $('panelTabs').addEventListener('click', e => { const b = e.target.closest('[data-pt]'); if(b) selectPanel(+b.dataset.pt); });
   $('btnPlanned').addEventListener('click', openPlanned);
+  $('wsEdit2').addEventListener('click', openWeekSched);
   libBind(); libInit();
+  /* 取りやめたClaude相談機能の名残りを消す */
+  ['prompts','promptSel','consults','apiModel','apiToolset','apiAutoFix','apiSpent'].forEach(k => delete S.settings[k]);
+  try { localStorage.removeItem('cust_menu_apikey'); } catch(e){}
   $('weekRow').addEventListener('click', e => { if(e.target.closest('#wsEdit')){ openWeekSched(); return; } const b = e.target.closest('[data-wd]'); if(b) goWeekSlot(+b.dataset.wd, +b.dataset.wk); });
   $('wsSave').addEventListener('click', saveWeekSched);
   $('printPer').value = String(S.settings.printPerSheet || 2);

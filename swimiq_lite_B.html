@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.08.3">
+<meta name="app-ver" content="2026.10.09.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -808,9 +808,9 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
   #qwBody .qwSub{ margin:8px 0 4px; }
 }
 #syncWiz{ z-index:69; }
-#fixAsk{ position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:16px;
+#fixAsk,#refAsk{ position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:16px;
   background:rgba(0,0,0,.82); }
-#fixAsk.hide{ display:none !important; }
+#fixAsk.hide,#refAsk.hide{ display:none !important; }
 .faWrap{ width:100%; max-width:640px; background:var(--bk); border:4px solid var(--am); border-radius:16px; padding:18px 20px; }
 .faWrap h3{ margin:0 0 8px; font-size:24px; color:var(--am); }
 #faMsg{ margin:0; font-size:28px; font-weight:900; line-height:1.5; color:#fff; outline:none; }
@@ -1064,6 +1064,7 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 .cmpPanel .r2.kv span{ min-width:0; overflow-wrap:anywhere; }
 .cmpPanel .r2.kv b{ color:var(--dim); font-weight:800; }
 .cmpPanel .pb{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.cmpCell .bd.r{ background:#1f5fd1; color:#fff; padding:1px 6px; border-radius:8px; }
 .cmpPanel .pb .btn{ flex:1 1 30%; min-height:46px; font-size:15px; padding:4px 8px; }
 .cmpItem .r1{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
 .cmpItem .r1 .t{ font-size:23px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
@@ -1950,7 +1951,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.08.3</p>
+  <p class="ver" id="verBottom">ver 2026.10.09.1</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2175,6 +2176,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <button type="button" id="cmpQClear" data-t="cmpClearQ"></button>
   </div>
   <p class="cmpCount" id="cmpCount"></p>
+  <button class="btn y" type="button" id="cmpRefBtn" aria-pressed="false" style="width:100%;margin:0 0 8px;">世界記録・日本記録の保持者も出す</button>
 
   <div class="seg cmpTabs" id="cmpSegView">
     <button type="button" data-v="cmp"  data-t="tabCmp"></button>
@@ -2226,6 +2228,13 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <button class="btn y" id="wzOpen" type="button">同期の設定（順番に進める）</button>
     <button class="btn g" id="wzSyncNow" type="button">今すぐ同期する</button>
     <p class="hint" id="syncState2" style="margin:6px 2px 0;" aria-live="polite"></p>
+  </div>
+
+  <div class="gl">世界記録・日本記録のデータ</div>
+  <div class="take">
+    <p class="hint" style="margin:0 2px 4px;">つながっているときに自動で最新を取りこみます。オフラインでも、前に取りこんだ記録でくらべられます。</p>
+    <button class="btn" id="recNow" type="button">今すぐ取りこむ</button>
+    <p class="hint" id="recState" style="margin:6px 2px 0;" aria-live="polite"></p>
   </div>
 
   <div class="gl" data-t="glOther"></div>
@@ -2616,6 +2625,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="vwBtns">
       <button class="btn g" type="button" id="vwPdf" data-t="pdfBtn"></button>
+      <button class="btn y" type="button" id="vwWR">世界記録とくらべる</button>
+      <button class="btn y" type="button" id="vwJR">日本記録とくらべる</button>
       <button class="btn b" type="button" id="vwCopy" data-t="copyTx"></button>
       <button class="btn y" type="button" id="vwEdit" data-t="editBtn"></button>
       <button class="btn y hide" type="button" id="vwVid" data-t="vidOpen"></button>
@@ -2665,6 +2676,17 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 </div>
 
+<div id="refAsk" class="hide" role="alertdialog" aria-modal="true" aria-labelledby="raH" aria-describedby="raMsg">
+  <div class="faWrap">
+    <h3 id="raH">男子ですか、女子ですか</h3>
+    <p id="raMsg" tabindex="-1" aria-live="assertive"></p>
+    <div class="faBtns">
+      <button class="btn" type="button" id="raNo">やめる</button>
+      <button class="btn g" type="button" id="raM">男子</button>
+      <button class="btn g" type="button" id="raF">女子</button>
+    </div>
+  </div>
+</div>
 <div id="fixAsk" class="hide" role="alertdialog" aria-modal="true" aria-labelledby="faH" aria-describedby="faMsg">
   <div class="faWrap">
     <h3 id="faH">記録を直しますか</h3>
@@ -9705,6 +9727,8 @@ function reportPages(r, prev, W, H, nP){
     s+=T_(mx+14,vy+23,'この選手・種目・距離ではじめての記録です。2本目から前回とのくらべを出します。',12,800,'#3d4450');
   }
   var y=vy+36+34;
+  var _rl=refLine(r);
+  if(_rl){ s+=T_(mx+2,vy+36+18,_rl,10.5,800,'#5b6270'); y+=10; }
   /* レースの内わけ */
   if(PO){
     s+=SEC(y,'レースの内わけ'); y+=12;
@@ -9838,27 +9862,29 @@ function cmpSegTimes(r, step){
 }
 function cmpPage(r, b, W, H, opt){
   opt=opt||{};
-  var pair=(opt.mode==='pair'), pg=opt.page||'';
+  var pair=(opt.mode==='pair'), isRefM=(opt.mode==='ref'), pg=opt.page||'';
   var mx=54, cw=W-mx*2, Y='#f2b01e', K='#16181d', GR='#9aa0ab', GOOD='#1a8f4a', BAD='#d64545', i;
   var FF='font-family="Noto Sans CJK JP, Hiragino Kaku Gothic ProN, sans-serif"';
   function T_(x,y,str,sz,wt,fill,anc){ return '<text x="'+x+'" y="'+y+'" font-size="'+sz+'" font-weight="'+(wt||700)+'" fill="'+(fill||K)+'"'+(anc?(' text-anchor="'+anc+'"'):'')+'>'+esc(str)+'</text>'; }
   function SEC(y,t){ return '<rect x="'+mx+'" y="'+(y-13)+'" width="4" height="15" fill="'+Y+'"/>'+T_(mx+10,y,t,13.5,900); }
   function sg(v,d){ v=Number(v.toFixed(d)); return (v>0?'+':(v<0?'−':'±'))+Math.abs(v).toFixed(d); }
   function cut(t,n){ t=String(t||''); return t.length>n ? t.slice(0,n-1)+'…' : t; }
-  var nmB=pair?'前の記録':'ベスト';
+  var nmB=isRefM?(opt.refName||'記録'):(pair?'前の記録':'ベスト');
   var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" '+FF+'><rect width="'+W+'" height="'+H+'" fill="#ffffff"/>';
-  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="'+K+'">スイム<tspan fill="#c98a00">IQ</tspan></text>'+T_(mx+150,60,pair?'記録のくらべ':'ベストとのくらべ',13,800,'#5b6270');
+  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="'+K+'">スイム<tspan fill="#c98a00">IQ</tspan></text>'+T_(mx+150,60,isRefM?(nmB+'とのくらべ'):(pair?'記録のくらべ':'ベストとのくらべ'),13,800,'#5b6270');
   s+=T_(W-mx,46,new Date().toLocaleString('ja-JP')+(pg?'　'+pg:''),11,600,'#5b6270','end');
   s+=T_(W-mx,62,(r.pool||50)+'mプール　'+(r.dist||'')+'m　'+evLabel(r.event),11,600,'#5b6270','end');
   s+='<line x1="'+mx+'" y1="82" x2="'+(W-mx)+'" y2="82" stroke="#111318" stroke-width="3"/>';
   var tA=raceBest(r), tB=raceBest(b), dT=(tA!=null&&tB!=null)?tA-tB:null;
   function tag(x,dark,lbl,rec,t){
-    var sub=new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(recLabel(rec),14)+(pair&&whoOf(rec)?('　'+cut(whoOf(rec),6)):'');
+    var sub=isRefM ? (new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(whoOf(rec),14))
+                   : (new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(recLabel(rec),14)+(pair&&whoOf(rec)?('　'+cut(whoOf(rec),6)):''));
+    if(t!=null && fmt(t).length>=7 && sub.length>18) sub=cut(sub,18);
     return '<rect x="'+x+'" y="98" width="'+(cw/2-6)+'" height="58" rx="12" fill="'+(dark?K:Y)+'"/>'+
       T_(x+14,120,lbl,11,800,dark?'#ffd24a':'#5b3c00')+T_(x+14,146,t!=null?fmt(t):'--',24,900,dark?'#ffffff':K)+
       T_(x+cw/2-20,146,sub,11,700,dark?'#d0d4da':'#5b3c00','end'); }
-  s+=tag(mx,false,pair?'新しい記録':'今回',r,tA);
-  s+=tag(mx+cw/2+6,true,pair?'前の記録':((dT!=null&&dT<=0)?'これまでのベスト':'ベスト'),b,tB);
+  s+=tag(mx,false,pair?'新しい記録':(isRefM?(whoOf(r)||'今回'):'今回'),r,tA);
+  s+=tag(mx+cw/2+6,true,isRefM?nmB+(b.nation?'（'+b.nation+'）':''):(pair?'前の記録':((dT!=null&&dT<=0)?'これまでのベスト':'ベスト')),b,tB);
   /* 区間ごとの 差（あとで バーにも 使います） */
   var step=(Number(r.dist)>200)?50:25, SA=cmpSegTimes(r,step), SB=cmpSegTimes(b,step), segs=[], d;
   function mkSegs(){ segs=[]; for(d=step; d<=Number(r.dist)+0.001; d+=step) if(SA[d]!=null && SB[d]!=null) segs.push({ l:(d-step)+'-'+d+'m', d:SA[d]-SB[d] }); }
@@ -9869,7 +9895,8 @@ function cmpPage(r, b, W, H, opt){
   /* ひとこと */
   var msg='';
   if(dT!=null){
-    if(pair) msg = (dT<=0 ? '前の記録より '+Math.abs(dT).toFixed(2)+'秒 速くなりました' : '前の記録より '+dT.toFixed(2)+'秒 おそい記録です');
+    if(isRefM) msg = (dT<=0 ? nmB+'を '+Math.abs(dT).toFixed(2)+'秒 上回っています' : nmB+'まで あと '+dT.toFixed(2)+'秒（'+((dT/tB)*100).toFixed(1)+'%）');
+    else if(pair) msg = (dT<=0 ? '前の記録より '+Math.abs(dT).toFixed(2)+'秒 速くなりました' : '前の記録より '+dT.toFixed(2)+'秒 おそい記録です');
     else     msg = (dT<=0 ? 'ベストを '+Math.abs(dT).toFixed(2)+'秒 更新しました' : 'ベストまで あと '+dT.toFixed(2)+'秒');
     if(worst && worst.d>0.005) msg+='。差がいちばん大きいのは '+worst.l+'（+'+worst.d.toFixed(2)+'秒）';
   }
@@ -9911,7 +9938,7 @@ function cmpPage(r, b, W, H, opt){
   if(PA && PB){
     s+=SEC(y,'レースの内わけのくらべ'); y+=14;
     var mxT=Math.max(PA.total,PB.total), LW=60, bw=cw-LW;
-    [[PA,pair?'新':'今回'],[PB,pair?'前':'ベスト']].forEach(function(z,zi){
+    [[PA,pair?'新':'今回'],[PB,isRefM?'記録':(pair?'前':'ベスト')]].forEach(function(z,zi){
       var P=z[0], bx=mx+LW, yy=y+zi*44;
       s+=T_(mx,yy+24,z[1],12,900,zi?K:'#b07800');
       P.parts.forEach(function(p){ var w=p.t/mxT*bw;
@@ -9929,6 +9956,9 @@ function cmpPage(r, b, W, H, opt){
       s+='<rect x="'+cx2+'" y="'+y+'" width="'+wpx+'" height="26" rx="13" fill="#f4f5f7"/><rect x="'+(cx2+8)+'" y="'+(y+8)+'" width="10" height="10" rx="3" fill="'+p.c+'"/>'+T_(cx2+24,y+18,t,11.5,900,col);
       cx2+=wpx+8; });
     y+=56;
+  }
+  if(isRefM && !(PA&&PB) && !segs.length){
+    s+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="30" rx="9" fill="#f4f6f8"/>'+T_(mx+12,y+20,'この'+nmB+'はラップ・ストロークのデータが未収集のため、記録タイムと平均ラップだけをくらべています。',10.5,800,'#5b6270'); y+=44;
   }
   /* 3 区間ごとの 差（左＝速い、右＝おそい） */
   if(segs.length){
@@ -9949,9 +9979,124 @@ function cmpPage(r, b, W, H, opt){
     if(every>1) s+=T_(mx,y,'区間が多いので、文字は'+every+'区間ごとに出しています。バーはすべての区間です。',10,700,'#5b6270');
   }
   s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>'+
-     T_(mx,H-36,'SwimIQ — '+(pair?'記録のくらべ':'ベストとのくらべ')+(pg?'　'+pg:''),9.5,700,GR)+'</svg>';
+     T_(mx,H-36,'SwimIQ — '+(isRefM?nmB+'とのくらべ':(pair?'記録のくらべ':'ベストとのくらべ'))+(pg?'　'+pg:''),9.5,700,GR)+
+     (isRefM ? T_(W-mx,H-36,cut('出どころ：'+((b.srcs||[])[0]||''),80),8.5,600,GR,'end') : '')+'</svg>';
   return s;
 }
+/* ================================================================
+   世界記録・日本記録（records.json）
+   ・アプリと 同じ 場所の records.json を、つながって いる ときに 読んで 端末に とって おきます（オフラインでも 使えます）
+   ・records.json は GitHub の Actions が 週に 1回 公式の 一覧から 作り直します
+   ・取りこんだ 記録は「保持者の 記録」として 比較の 画面に 出ます。記録が 破られても 古い ものは 残ります
+   ================================================================ */
+var REC_URL='records.json', REC={ updated:'', records:[] }, REC_EMBED=null;
+function recLoadLocal(){
+  try{ var s=localStorage.getItem('swimiq_records'); if(s){ var j=JSON.parse(s); if(j && j.records) REC=j; } }catch(e){}
+  if(!REC.records.length && REC_EMBED) REC=REC_EMBED;
+}
+var recFetching=false;
+function recFetch(quiet){
+  if(recFetching) return Promise.resolve(false);
+  if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve(false);
+  recFetching=true;
+  return fetch(REC_URL+'?t='+Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }).then(function(j){
+    recFetching=false;
+    if(!j || !j.records || !j.records.length) return false;
+    var changed = (j.updated!==REC.updated) || (j.records.length!==REC.records.length);
+    if(changed){
+      REC=j;
+      try{ localStorage.setItem('swimiq_records', JSON.stringify(j)); }catch(e){}
+      if(!quiet) toast('世界記録・日本記録のデータを更新しました（'+j.updated+'）');
+    }
+    recStatePaint();
+    return changed;
+  }).catch(function(){ recFetching=false; recStatePaint(); return false; });
+}
+function recStatePaint(){
+  var el=$('recState'); if(!el) return;
+  el.textContent = REC.records.length ? ('記録データ '+REC.updated+'　'+REC.records.length+'件（世界記録・日本記録）'+(navigator.onLine===false?'　いまはオフライン':'')) : '記録データはまだ読みこめていません。つながったときに自動で取りこみます。';
+}
+function recScopeName(s){ return s==='WR' ? '世界記録' : (s==='JR' ? '日本記録' : s); }
+/* records.json の 1件を、アプリの 記録と 同じ 形に します */
+function recToRec(o){
+  /* 公式の 通過タイムは 合図から。アプリの 通過は 足離れからなので、反応時間（rt）が あれば 引いて そろえます */
+  var rt=(o.rt!=null && Number(o.rt)>0) ? Number(o.rt) : null, rt0=rt||0;
+  var sp = (o.splits && o.splits.length) ? o.splits.map(function(x){ return { d:Number(x.d), t:Math.round((Number(x.t)-rt0)*100)/100 }; }) : [{ d:o.dist, t:Math.round((o.sec-rt0)*100)/100 }];
+  var r={ id:'ref_'+o.id, ref:o.scope, refCur:!!o.current, refPending:!!o.pending, at:Date.parse(o.date+'T12:00:00')||0,
+    title:(o.sex==='F'?'女子':'男子')+' '+(o.course==='SCM'?'短水路':'長水路')+' '+recScopeName(o.scope)+(o.current?'':'（当時）')+'　'+(o.meetJa||o.meet||''), round:'', event:o.event, dist:o.dist, pool:(o.course==='SCM'?25:50),
+    manual:true, splits:sp, swimmerName:(o.nameJa||o.name), nation:o.nation, sex:o.sex, note:o.note||'', srcs:o.sources||[], splitSource:o.splitSource||'' };
+  if(rt!=null) r.rt=rt;
+  if(o.strokes){ if(o.strokes.n!=null) r.manualN=o.strokes.n; if(o.strokes.st!=null) r.manualST=o.strokes.st; }
+  return r;
+}
+function recAll(){ return (REC.records||[]).map(recToRec); }
+function isRef(r){ return !!(r && r.ref); }
+/* いまの 記録（公認）を さがします。sex は 'M' か 'F' */
+function recFind(scope, r, sex){
+  var pool=Number(r.pool)||50, course=(pool===25?'SCM':'LCM'), ev=r.event||'free', dist=Number(r.dist), best=null, i;
+  var list=REC.records||[];
+  for(i=0;i<list.length;i++){
+    var o=list[i];
+    if(o.scope!==scope || o.course!==course || o.sex!==sex || o.event!==ev || Number(o.dist)!==dist || !o.current) continue;
+    if(!best || o.sec<best.sec || (o.sec===best.sec && o.date<best.date)) best=o;
+  }
+  return best ? recToRec(best) : null;
+}
+/* 選手の 性別。プロフィールに あれば それ、なければ 前に 答えた もの */
+function refSexOf(r){
+  var sw=r.swimmerId?swById(r.swimmerId):null;
+  if(sw && sw.sex==='m') return 'M';
+  if(sw && sw.sex==='f') return 'F';
+  try{ var v=localStorage.getItem('swimiq_refsex_'+whoOf(r)); if(v==='M'||v==='F') return v; }catch(e){}
+  return null;
+}
+function refSexAsk(r){
+  return new Promise(function(res){
+    var box=$('refAsk'); if(!box){ res(null); return; }
+    $('raMsg').textContent=(whoOf(r)||'この選手')+'は 男子ですか、女子ですか。世界記録・日本記録は男女で分かれているため、一度だけ教えてください。';
+    box.classList.remove('hide');
+    function pick(v){ box.classList.add('hide'); if(v){ try{ localStorage.setItem('swimiq_refsex_'+whoOf(r), v); }catch(e){} } res(v); }
+    $('raM').onclick=function(){ pick('M'); };
+    $('raF').onclick=function(){ pick('F'); };
+    $('raNo').onclick=function(){ pick(null); };
+    try{ $('raM').focus(); }catch(e){}
+  });
+}
+/* 記録の 画面の「世界記録とくらべる」「日本記録とくらべる」 */
+function refCompare(r, scope){
+  if(!r) return;
+  if(!REC.records.length){ toast('記録データがまだありません。つながっているときにもう一度開いてください。'); recFetch(true); return; }
+  var sex=refSexOf(r);
+  (sex ? Promise.resolve(sex) : refSexAsk(r)).then(function(sx){
+    if(!sx) return;
+    var b=recFind(scope, r, sx);
+    if(!b){ toast('この種目・距離・プールの'+recScopeName(scope)+'はデータにありません'); return; }
+    if(raceBest(r)==null){ toast('記録タイムが入っていないのでくらべられません'); return; }
+    toast(T('pdfMaking'));
+    var pg;
+    try{ pg=cmpPage(r, b, 794, 1123, { mode:'ref', refName:recScopeName(scope), page:'1/1' }); }catch(e){ toast(T('pdfHint')); return; }
+    pdfShow([pg], recScopeName(scope)+'_'+recLabel(r), function(){ toast(T('pdfHint')); });
+  });
+}
+/* PDFの 1ページ目に 出す 1行：世界記録 46.40（あと +6.21秒）　日本記録 47.83（あと +4.78秒） */
+function refLine(r){
+  if(!r || !REC.records.length) return '';
+  var sx=refSexOf(r), t=raceBest(r); if(!sx || t==null) return '';
+  var bits=[];
+  ['WR','JR'].forEach(function(sc){
+    var b=recFind(sc, r, sx); if(!b) return;
+    var tb=raceBest(b), d=t-tb;
+    bits.push(recScopeName(sc)+' '+fmt(tb)+'（'+whoOf(b)+'　'+(d>=0?'あと +':'')+d.toFixed(2)+'秒）');
+  });
+  return bits.join('　');
+}
+recLoadLocal();
+window.addEventListener('online', function(){ recFetch(false); });
+/* オフラインでも 開けるように、画面と records.json を 端末に とって おきます（つながっている ときは いつも 最新を 取ります） */
+if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
+  try{ navigator.serviceWorker.register('sw.js').catch(function(){}); }catch(e){}
+}
+setTimeout(function(){ recFetch(true); }, 1500);
 function jpegsToPdf(list){
   var pw=595.28, ph=841.89, n=list.length;
   var enc=new TextEncoder(), chunks=[], off=[], pos=0, i;
@@ -10838,6 +10983,10 @@ function viewOpen(r){
 }
 $('vwClose').onclick=function(){ $('viewBox').classList.add('hide'); };
 $('vwPdf').onclick=function(){ if(vwRec) downloadPDF(vwRec); };
+$('recNow').onclick=function(){ recFetch(false).then(function(c){ if(!c) toast(REC.records.length?'記録データは最新です':'取りこめませんでした。つながっているか確かめてください'); }); };
+recStatePaint();
+$('vwWR').onclick=function(){ if(vwRec) refCompare(vwRec,'WR'); };
+$('vwJR').onclick=function(){ if(vwRec) refCompare(vwRec,'JR'); };
 $('vwCopy').onclick=function(){ if(vwRec) shareText(recText(vwRec), recLabel(vwRec)||'SwimIQ'); };
 $('vwEdit').onclick=function(){
   if(!vwRec) return;
@@ -11410,6 +11559,9 @@ $('fImport').onchange=function(){
 };
 
 var cmpAll=[], cmpSel=[], cmpN=5, cmpTab='time';
+/* 世界記録・日本記録の 保持者を 比較の 一覧に 出すか（ふだんは 出さない） */
+var cmpRefOn=false; try{ cmpRefOn = localStorage.getItem('swimiq_cmpref')==='1'; }catch(e){}
+function cmpRefPaint(){ var b=$('cmpRefBtn'); if(!b) return; b.setAttribute('aria-pressed', cmpRefOn?'true':'false'); b.classList.toggle('g', cmpRefOn); b.classList.toggle('y', !cmpRefOn); b.textContent = cmpRefOn ? '世界記録・日本記録の保持者を出しています（押すと消す）' : '世界記録・日本記録の保持者も出す'; }
 /* ================================================================
    くらべる画面の 道具
    選手・自己ベスト・大会・のびた順を ここで まとめて あつかいます。
@@ -11468,7 +11620,7 @@ function bestCheer(rec){
 function cmpOpen(prefill){
   cmpSel = (prefill && prefill.id) ? [prefill.id] : [];
   dbAll().then(function(all){
-    cmpAll = all.filter(function(x){ return !x.draft; });
+    cmpAll = all.filter(function(x){ return !x.draft; }).concat(cmpRefOn?recAll():[]);
     if(prefill) $('cmpEvent').value = prefill.event || 'other';
     cmpBuildDistOptions();
     if(prefill && prefill.dist) $('cmpDist').value=String(prefill.dist);
@@ -11482,9 +11634,16 @@ $('openCompare').onclick=function(){ cmpOpen(null); };
 /* 比較画面を 開いている間に 記録を 直したら、DBから 読み直して 一覧を 更新する */
 function cmpReload(){
   if($('compare').classList.contains('hide')) return;
-  dbAll().then(function(all){ cmpAll=all.filter(function(x){ return !x.draft; }); paintCompare(); });
+  dbAll().then(function(all){ cmpAll=all.filter(function(x){ return !x.draft; }).concat(cmpRefOn?recAll():[]); paintCompare(); });
 }
 $('cmpBack').onclick=function(){ show('home'); };
+$('cmpRefBtn').onclick=function(){
+  cmpRefOn=!cmpRefOn; try{ localStorage.setItem('swimiq_cmpref', cmpRefOn?'1':'0'); }catch(e){}
+  cmpRefPaint();
+  if(!REC.records.length && cmpRefOn) toast('記録データがまだありません。つながっているときに取りこまれます。');
+  dbAll().then(function(all){ cmpAll=all.filter(function(x){ return !x.draft; }).concat(cmpRefOn?recAll():[]); cmpBuildSwimOptions(); paintCompare(); });
+};
+cmpRefPaint();
 $('dCompare').onclick=function(){
   if(!dRec) return;
   cmpOpen({ id:dRec.id, event:dRec.event, dist:dRec.dist });
@@ -11871,6 +12030,7 @@ function cmpPaintList(){
     c.innerHTML='<span class="t">'+fmt(t)+'</span>'+
       '<span class="m">'+esc(lab)+'</span>'+
       (!mixed && diff===0 ? '<span class="bd">'+T('cmpBestTag')+'</span>' : '')+
+      (isRef(r) ? '<span class="bd r">'+recScopeName(r.ref)+(r.refCur?'':'（当時）')+'</span>' : '')+
       (sel ? '<span class="bd s">比較中</span>' : '');
     lb.appendChild(c);
   }
@@ -11880,8 +12040,9 @@ function cmpPaintList(){
     pn.innerHTML='<div class="r1"><span class="t">'+fmt(tt)+'</span><span class="tag">'+(rec.dist||'')+'m　'+evLabel(rec.event)+'</span>'+
       '<span class="diff'+(df===0?' best':'')+'">'+(mixed?'':(df===0?T('cmpBestTag'):(df!=null?'+'+df.toFixed(2):'')))+'</span></div>'+
       '<div class="r2 kv">'+recFacts(rec).map(function(p){ return '<span><b>'+p[0]+'：</b>'+esc(String(p[1]))+'</span>'; }).join('')+'</div>'+
-      '<div class="pb"><button class="btn y" type="button" data-a="edit">'+T('editBtn')+'</button>'+
-      '<button class="btn y" type="button" data-a="view">'+T('vwBtn')+'</button>'+
+      (isRef(rec) ? ('<p class="hint" style="margin:2px 0 0;">'+esc(whoOf(rec)+(rec.nation?'（'+rec.nation+'）':'')+'　'+new Date(rec.at).toLocaleDateString('ja-JP')+(rec.note?'　'+rec.note:''))+(rec.splits.length>1?'':'　ラップは未収集')+'</p>') : '')+
+      '<div class="pb">'+(isRef(rec) ? '' : ('<button class="btn y" type="button" data-a="edit">'+T('editBtn')+'</button>'+
+      '<button class="btn y" type="button" data-a="view">'+T('vwBtn')+'</button>'))+
       '<button class="btn'+(isSel?'':' y')+'" type="button" data-a="sel">'+(isSel?'比べるのをやめる':'比べる')+'</button></div>';
     pn.onclick=function(e){
       var b=e.target.closest('[data-a]'); if(!b) return;

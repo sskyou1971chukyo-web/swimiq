@@ -1,4 +1,4 @@
-// SwimIQ サービスワーカー v3
+// SwimIQ サービスワーカー v4（v3 に records.json の扱いを足したもの）
 // 役割：画像などをたくわえて表示を速くする。
 // 大事な作り：.html で終わるもの（記録アプリ・分析アプリの両方）は
 //             「ネット優先」＋「古い写しは使わず必ず取り直す」。
@@ -7,7 +7,7 @@
 // 新しい版が出たら、次にひらいたときに ちゃんと新しいほうが届く。
 // 電波が無いときだけ、たくわえてあった写しをつかう。
 
-var CACHE = 'swimiq-v3';  // ← 名前を変えると、古いたくわえ(v2まで)がまとめて片付く
+var CACHE = 'swimiq-v4';  // ← 名前を変えると、古いたくわえ(v2まで)がまとめて片付く
 
 self.addEventListener('install', function(e){
   self.skipWaiting();  // 新しいサービスワーカーは すぐ交代する
@@ -28,7 +28,8 @@ self.addEventListener('fetch', function(e){
   if(e.request.method !== 'GET' || url.origin !== location.origin) return;
 
   // 終わりが / か .html のものは、どれもアプリ本体としてあつかう
-  var isApp = url.pathname.endsWith('/') || url.pathname.endsWith('.html');
+  // records.json（世界記録・日本記録）も アプリ本体と 同じ「ネット優先」に します
+  var isApp = url.pathname.endsWith('/') || url.pathname.endsWith('.html') || url.pathname.endsWith('.json');
   if(isApp){
     // アプリ本体：まずネットへ。ここで {cache:'no-store'} を付けて、
     // 「古い写しは使わず、必ず新しいのを取ってくる」ようにする（iPhone対策）。

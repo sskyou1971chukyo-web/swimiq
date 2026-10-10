@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.11.1">
+<meta name="app-ver" content="2026.10.11.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -9391,6 +9391,44 @@ function numOrNull(v, dec){
   var n=Number(v.replace(/[^0-9.]/g,'')); if(!(n>=0)) return null;
   return dec ? Math.round(n*10)/10 : Math.round(n);
 }
+/* ===== 短水路（25mプール）の ラップ表の もとデータ =====
+   行＝記録した 通過（きょりの 順）。ラップは 1つ前からの 区間タイム（最初の 区間は 合図から）。
+   泳速は 区間の きょり÷ラップ（壁の 手前 5m＝ターンイン・タッチは 出さない）。
+   Sタイムは その 区間に 2回いじょう かきが 入って いる ときの 平均（ターンの かきは のぞく）。
+   laps25 … 25mごとの 区間タイムと ストローク数、laps50 … 50mごとの 区間タイム */
+function scTable(r){
+  var pool=25, sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+  var rt=rtSec(r), rtv=rt||0, dist=Number(r.dist)||(sp.length?sp[sp.length-1].d:0);
+  var arr=strokeRel(r), iv=tempoTable(arr, wantTurnsOf(dist,pool));
+  var rows=[], pd=0, pt=0, i, k;
+  for(i=0;i<sp.length;i++){
+    var d=sp[i].d, t=sp[i].t, lap=(t-pt)+(i===0?rtv:0), seg=d-pd;
+    var turnIn=(d%pool===0), wall=(d%pool===0);
+    var v=(!turnIn && lap>0) ? seg/lap : null;
+    var sum=0, num=0;
+    for(k=0;k<iv.length;k++) if(iv[k].t>pt && iv[k].t<=t && (iv[k].t-iv[k].d)>=pt && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+    rows.push({ d:d, cum:t+rtv, lap:lap, seg:seg, v:v, st:((!turnIn && num>=2)?sum/num:null), wall:wall });   /* 壁の 手前 5m には Sタイムを 出さない */
+    pd=d; pt=t;
+  }
+  var by={}; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
+  function span(d0,d1){ var ks=[]; rows.forEach(function(g,kk){ if(g.d>d0 && g.d<=d1) ks.push(kk); }); return ks.length?[ks[0],ks[ks.length-1]]:null; }
+  var laps25=[], laps50=[], w, p25=0, pt25=0;
+  for(w=pool; w<=dist+0.001; w+=pool){
+    if(by[w]==null) continue;
+    var sx=span(p25,w); if(!sx) continue;
+    var n=0; for(k=0;k<arr.length;k++) if(arr[k]>pt25 && arr[k]<=by[w]) n++;
+    laps25.push({ d:w, t:(by[w]-pt25)+(p25===0?rtv:0), n:(n||null), k0:sx[0], k1:sx[1] });
+    p25=w; pt25=by[w];
+  }
+  var p50=0, pt50=0;
+  for(w=50; w<=dist+0.001; w+=50){
+    if(by[w]==null) continue;
+    var sy=span(p50,w); if(!sy) continue;
+    laps50.push({ d:w, t:(by[w]-pt50)+(p50===0?rtv:0), k0:sy[0], k1:sy[1] });
+    p50=w; pt50=by[w];
+  }
+  return { rt:rt, rows:rows, laps25:laps25, laps50:laps50 };
+}
 /* ===== ターン区間・非泳区間 =====
    非泳区間 ＝ スタート（0〜15m）＋ 各ターン（かべの 5m前〜15m後の 20m）。
    25mプールの 200mなら 15m＋20m×7＝155m、50mプールの 200mなら 15m＋20m×3＝75m。
@@ -10073,17 +10111,70 @@ function reportPages(r, prev, W, H, nP){
   /* ---------- 2ページ目 ---------- */
   var s2=head('2/'+nP), y2=192;
   var colW=(cw-24)/2;
-  /* 通過タイム */
-  s2+=SEC(y2,'通過タイム');
-  var spS=thinSplits((r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; }), 24);
-  var pv=0, pd=0, rows2=spS.map(function(sp,idx){
-    var q=splitRow(spS, idx, _rtR), v=(sp.d-pd)/q.lap; pd=sp.d;
-    return [sp.d+'m', fmt(q.pass), '+'+fmt(q.lap), v.toFixed(2)];
-  });
-  var tl=TBL(mx,y2+22,colW,[{h:'距離',w:0},{h:'通過',w:0.38},{h:'ラップ',w:0.30},{h:'速さ m/秒',w:0.32}],rows2,22);
-  s2+=tl.s;
+  var isSC = (Number(r.pool)===25) && ((r.splits||[]).length<=36);   /* 短水路（25mプール）は ラップ表を 大会の 表の 形に（行が 多すぎる ときは 今までの 表） */
+  var tl, rx, tableBottom;
+  if(isSC){
+    /* ===== 短水路の ラップ表 =====
+       左：きょり・合図からの 累計（Startの 行は 反応時間）
+       右：50mごと・25mごと・ｶｳﾝﾄ（その 25mの ストローク数）・ラップ・泳速・Sタイム・S長 */
+    s2+=SEC(y2,'通過タイム（25mごと）');
+    var sc=scTable(r);
+    var cols9=[['距離',58],['通過',64],['50m',58],['25m',58],['ｶｳﾝﾄ',52],['ラップ',60],['泳速',56],['Sタイム',60],['S長',56]];
+    var tw=0, xs=[mx], k9; for(k9=0;k9<cols9.length;k9++){ tw+=cols9[k9][1]; xs.push(xs[xs.length-1]+cols9[k9][1]); }
+    var rowH=(sc.rows.length>26)?15:(sc.rows.length>18?18:21), hh=22, fs=(rowH<18)?9.5:11, ty=y2+12;
+    s2+='<rect x="'+mx+'" y="'+ty+'" width="'+tw+'" height="'+hh+'" rx="4" fill="#16181d"/>';
+    for(k9=0;k9<cols9.length;k9++) s2+=T_((xs[k9]+xs[k9+1])/2,ty+15,cols9[k9][0],10.5,800,'#f2b01e','middle');
+    ty+=hh;
+    if(sc.rt!=null){
+      s2+='<rect x="'+mx+'" y="'+ty+'" width="'+tw+'" height="'+rowH+'" fill="#fff7df"/>';
+      s2+=T_(xs[1]-6,ty+rowH-6,'Start',fs,900,'#16181d','end')+T_(xs[2]-6,ty+rowH-6,fmt(sc.rt),fs,900,'#16181d','end')+T_((xs[5]+xs[6])/2,ty+rowH-6,'反応時間',9.5,700,'#5b6270','middle');
+      ty+=rowH;
+    }
+    var y0=ty;
+    sc.rows.forEach(function(g,k){
+      var yy=ty+k*rowH;
+      if(g.wall) s2+='<rect x="'+mx+'" y="'+yy+'" width="'+tw+'" height="'+rowH+'" fill="#fff7df"/>';
+      else if(k%2===0) s2+='<rect x="'+mx+'" y="'+yy+'" width="'+tw+'" height="'+rowH+'" fill="#fafbfc"/>';
+      s2+=T_(xs[1]-6,yy+rowH-6,g.d+'m',fs,g.wall?900:400,'#16181d','end')+T_(xs[2]-6,yy+rowH-6,fmt(g.cum),fs,g.wall?900:400,'#16181d','end');
+      s2+=T_((xs[5]+xs[6])/2,yy+rowH-6,g.lap.toFixed(2),fs,400,'#16181d','middle');
+      if(g.v!=null) s2+=T_((xs[6]+xs[7])/2,yy+rowH-6,g.v.toFixed(2),fs,400,'#16181d','middle');
+      if(g.st!=null){ s2+=T_((xs[7]+xs[8])/2,yy+rowH-6,g.st.toFixed(2),fs,400,'#16181d','middle'); if(g.v!=null) s2+=T_((xs[8]+xs[9])/2,yy+rowH-6,(g.v*g.st).toFixed(2),fs,400,'#16181d','middle'); }
+      s2+='<line x1="'+xs[5]+'" y1="'+(yy+rowH)+'" x2="'+xs[9]+'" y2="'+(yy+rowH)+'" stroke="#e3e5e9"/>';
+      s2+='<line x1="'+mx+'" y1="'+(yy+rowH)+'" x2="'+xs[2]+'" y2="'+(yy+rowH)+'" stroke="#e3e5e9"/>';
+    });
+    var yEnd=ty+sc.rows.length*rowH;
+    /* 25mごと・50mごと の まとめ（行を またいで 中央に）。壁の 線は 黒、50mは 太く */
+    sc.laps25.forEach(function(L25){
+      var ya=ty+L25.k0*rowH, yb=ty+(L25.k1+1)*rowH, ym=(ya+yb)/2+4;
+      s2+=T_((xs[3]+xs[4])/2,ym,L25.t.toFixed(2),fs+0.5,800,'#16181d','middle');
+      if(L25.n!=null) s2+=T_((xs[4]+xs[5])/2,ym,String(L25.n),fs+0.5,800,'#16181d','middle');
+      if(L25.d%50===0) s2+='<line x1="'+mx+'" y1="'+yb+'" x2="'+xs[9]+'" y2="'+yb+'" stroke="#16181d" stroke-width="2.4"/>';
+      else s2+='<line x1="'+mx+'" y1="'+yb+'" x2="'+xs[2]+'" y2="'+yb+'" stroke="#16181d" stroke-width="1.2"/><line x1="'+xs[3]+'" y1="'+yb+'" x2="'+xs[9]+'" y2="'+yb+'" stroke="#16181d" stroke-width="1.2"/>';
+    });
+    sc.laps50.forEach(function(L50){
+      var ya=ty+L50.k0*rowH, yb=ty+(L50.k1+1)*rowH, ym=(ya+yb)/2+4;
+      s2+=T_((xs[2]+xs[3])/2,ym,L50.t.toFixed(2),fs+0.5,800,'#16181d','middle');
+    });
+    for(k9=2;k9<xs.length;k9++) s2+='<line x1="'+xs[k9]+'" y1="'+y0+'" x2="'+xs[k9]+'" y2="'+yEnd+'" stroke="#c9ccd2"/>';
+    s2+='<line x1="'+mx+'" y1="'+y0+'" x2="'+xs[9]+'" y2="'+y0+'" stroke="#16181d" stroke-width="1.2"/>';
+    s2+=T_(mx,yEnd+15,'通過は合図から（Startは反応時間）。50m・25mは区間タイム、ｶｳﾝﾄはその25mのストローク数。壁の手前5mは泳速を出しません。S長＝泳速×Sタイム。',9.5,700,'#5b6270');
+    tableBottom=yEnd+24;
+    /* 非泳区間は 表の 下に（左半分に 表、右に 補足） */
+    y2=tableBottom+30; rx=mx;
+    tl={ y:y2 };
+  }else{
+    /* 通過タイム（50mプールは 今まで どおり） */
+    s2+=SEC(y2,'通過タイム');
+    var spS=thinSplits((r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; }), 24);
+    var pv=0, pd=0, rows2=spS.map(function(sp,idx){
+      var q=splitRow(spS, idx, _rtR), v=(sp.d-pd)/q.lap; pd=sp.d;
+      return [sp.d+'m', fmt(q.pass), '+'+fmt(q.lap), v.toFixed(2)];
+    });
+    tl=TBL(mx,y2+22,colW,[{h:'距離',w:0},{h:'通過',w:0.38},{h:'ラップ',w:0.30},{h:'速さ m/秒',w:0.32}],rows2,22);
+    s2+=tl.s;
+    rx=mx+colW+24;
+  }
   /* スタート・泳ぎ・ターン・ゴール */
-  var rx=mx+colW+24;
   s2+='<rect x="'+rx+'" y="'+(y2-13)+'" width="4" height="15" fill="#1f5fd1"/>'+T_(rx+10,y2,'非泳区間（スタート・ターン・タッチ）',13.5,900);
   var R=[];
   var ts=turnStats(r);
@@ -10092,9 +10183,15 @@ function reportPages(r, prev, W, H, nP){
     if(ts.full && ts.swimT>0) R.push(['泳ぎ区間 '+ts.swimD+'m', fmt(ts.swimT), (ts.v!=null?ts.v.toFixed(2):'')]);
   }
   else if(PO){ PO.parts.forEach(function(p){ R.push([p.k+' '+p.sub, fmt(p.t), '']); }); }
-  var rhT=Math.max(15, Math.min(22, Math.floor(600/Math.max(1,R.length))));
+  var rhT=Math.max(15, Math.min(isSC?19:22, Math.floor(600/Math.max(1,R.length))));
   var tr=TBL(rx,y2+22,colW,[{h:'局面',w:0},{h:'タイム',w:0.6},{h:'速さ m/秒',w:0.4}],R,rhT);
-  s2+=tr.s; var ry2=tr.y+18;
+  /* 「非泳区間 合計」の 行は 黄色の 帯 */
+  (function(){
+    var idx=-1; R.forEach(function(row,i){ if(String(row[0]).indexOf('非泳区間 合計')===0) idx=i; });
+    if(idx>=0){ var yb=y2+22+6+idx*rhT; s2+='<rect x="'+rx+'" y="'+yb+'" width="'+colW+'" height="'+rhT+'" fill="#f2b01e"/>'; }
+  })();
+  s2+=tr.s; var ry2=isSC ? (y2+22+6) : (tr.y+18);
+  if(isSC) rx=mx+colW+24;                       /* 短水路は 補足を 右側に */
   if(ts && ts.full){ s2+=T_(rx,ry2,'泳ぎ区間 '+ts.swimD+'m '+fmt(ts.swimT)+'　非泳区間 '+ts.nonD+'m '+fmt(ts.nonT)+'（'+ts.pct.toFixed(0)+'%）',10.5,800,'#3d4450'); ry2+=16; }
   if(ts && ts.noGoal){
     s2+=T_(rx,ry2,'ゴール（'+ts.dist+'m）のタイムが入っていません。最後の通過は '+ts.lastD+'m '+fmt(ts.lastT)+'。',10.5,900,'#c0392b'); ry2+=15;
@@ -10103,6 +10200,7 @@ function reportPages(r, prev, W, H, nP){
   if(ts && ts.nWalls) { s2+=T_(rx,ry2,'ターン平均（'+ts.turns.length+'/'+ts.nWalls+'）'+(ts.turnAvg!=null?ts.turnAvg.toFixed(2)+'秒':'--'),10.5,800,'#3d4450'); ry2+=16; }
   s2+=T_(rx,ry2,'スタートの水中　ドルフィン '+(r.uwKick!=null?r.uwKick+'回':'—（未入力）')+'　浮き上がり '+(r.uwDist!=null?Number(r.uwDist).toFixed(1)+'m':'—（未入力）'),10.5,800,'#3d4450'); ry2+=16;
   if(!ts) { s2+=T_(rx,ry2,'ターンも計ると、各ターンの時間がここに出ます。',10,700,'#9aa0ab'); ry2+=14; }
+  if(isSC) tl.y=tr.y;
   y2=Math.max(tl.y, ry2)+34;
   /* 効率指数の 計算 */
   if(G.length && EIs.some(function(e){ return e; }) && Math.floor((H-52-150-(y2+22))/22)>=2){

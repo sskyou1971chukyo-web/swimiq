@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.10.8">
+<meta name="app-ver" content="2026.10.10.9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -772,10 +772,10 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #admPw, #saveBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #admPw, #saveBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #admPw.hide, #saveBox.hide{ display:none !important; }
+#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #admPw.hide, #saveBox.hide{ display:none !important; }
 #saveBox{ z-index:90; }
 #saveBox select, #saveBox input[type=text], #reFix input[type=text], #vFix #vfMeet{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
@@ -3071,6 +3071,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <p class="lead" data-t="reLead"></p>
     <div class="reList">
       <button class="btn y" type="button" id="reTime"><span data-t="reTimeB"></span><small data-t="reTimeS"></small></button>
+      <button class="btn y" type="button" id="rePart"><span data-t="rePartB"></span><small data-t="rePartS"></small></button>
       <button class="btn y" type="button" id="reStroke"><span data-t="reStrB"></span><small data-t="reStrS"></small></button>
       <button class="btn y" type="button" id="reInfo"><span data-t="reInfoB"></span><small data-t="reInfoS"></small></button>
       <button class="btn y" type="button" id="reAll"><span data-t="reAllB"></span><small data-t="reAllS"></small></button>
@@ -3081,6 +3082,16 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 </div>
 
+<div id="rpDlg" class="hide" role="dialog" aria-modal="true" aria-labelledby="rpH">
+  <div class="svWrap">
+    <h3 id="rpH" data-t="rpTitle"></h3>
+    <p class="lead" data-t="rpLead"></p>
+    <div class="reList" id="rpList"></div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="rpCancel" data-t="dMenuX"></button>
+    </div>
+  </div>
+</div>
 <div id="reFix" class="hide" role="dialog" aria-modal="true" aria-labelledby="rfH">
   <div class="svWrap">
     <h3 id="rfH" data-t="reInfoB"></h3>
@@ -3838,8 +3849,13 @@ var W={
  mSaved:['きろくを ほぞんしました','記録を保存しました'],
  reTitle:['なにを やりなおしますか','何をやり直しますか'],
  reLead:['やりなおしたい ところだけ えらべます。ほかの きろくは そのまま のこります。','やり直したい部分だけ選べます。ほかの記録はそのまま残ります。'],
- reTimeB:['タイムだけ 計りなおす','記録のみ再度計測'],
- reTimeS:['ストロークは そのまま のこします','ストロークはそのまま残します'],
+ reTimeB:['タイムを ぜんぶ 計りなおす（はじめから）','記録を全部計り直す（初めから）'],
+ reTimeS:['通過タイムを 空にして はじめから。ストロークは のこします','通過タイムを空にして初めから。ストロークは残します'],
+ rePartB:['タイムを 一部だけ なおす','記録を一部だけ直す'],
+ rePartS:['なおしたい ところを えらぶと、動画が そこへ うごきます。ほかは そのまま','直したい場所を選ぶと、動画がそこへ移動します。ほかはそのまま'],
+ rpTitle:['どこを なおしますか','どこを直しますか'],
+ rpLead:['えらぶと 動画が その ところへ うごきます。動画を 動かして〈記録〉を おすと、その ところだけ 上書きされます。','選ぶと動画がその場所へ移動します。動画を動かして〈記録〉を押すと、その場所だけ上書きされます。'],
+ rpGo:['動画を うごかして、正しい ところで〈記録〉を おしてください','動画を動かして、正しい場所で〈記録〉を押してください'],
  reStrB:['ストロークだけ 計りなおす','ストロークのみ再度計測'],
  reStrS:['タイムは そのまま。はじめから 数えなおします','タイムはそのまま。最初から数え直します'],
  reInfoB:['試合名・予選決勝・名前・プール・きょり・しゅもくを なおす','試合名・予選決勝・名前・プールサイズ・距離・種目の修正'],
@@ -7519,6 +7535,50 @@ $('reTime').onclick=function(){
                         sigT:null, rt:null });
   setTimeout(function(){ toast(T('reTimeGo')); }, 400);
 };
+/* 一部だけ なおす：いまの きろくを ぜんぶ のせて 分析画面を ひらき、なおす ところを えらばせます */
+$('rePart').onclick=function(){
+  reClose();
+  if(!dRec) return;
+  if(!hasVid(dRec)){ noVidGo(dRec); return; }
+  $('dv').pause();
+  openAna(dRec.video, { turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+                        event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
+                        sigT:dRec.sigT, rt:dRec.rt });
+  setTimeout(rpOpen, 500);
+};
+/* なおす ところの 一覧（合図・足離れ・各通過）。えらぶと 動画が そこへ うごき、つぎに 計る ところも そこに なります */
+function rpOpen(){
+  var box=$('rpDlg'), list=$('rpList'); if(!box||!list) return;
+  list.innerHTML='';
+  var items=[], rt=aRTsec();
+  if(aSigT!=null) items.push({ k:'sig', lbl:T('rtSigLbl'), t:aSigT, sub:fmt(aSigT)+'（動画の時刻）' });
+  if(aT0!=null)   items.push({ k:'t0',  lbl:T('rtFootLbl'), t:aT0, sub:fmt(aT0)+'（動画の時刻）' });
+  aSplits.slice().sort(function(a,b){ return a.d-b.d; }).forEach(function(sp){
+    if(aT0==null) return;
+    items.push({ k:String(sp.d), lbl:sp.d+'m', t:aT0+sp.t, sub:fmt(totalT(sp.t, rt)) });
+  });
+  if(!items.length){ toast(T('anaNone')); return; }
+  items.forEach(function(it){
+    var b=document.createElement('button'); b.type='button'; b.className='btn y';
+    b.innerHTML='<span>'+esc(it.lbl)+'</span><small>'+esc(it.sub)+'</small>';
+    b.onclick=function(){ rpGo(it); };
+    list.appendChild(b);
+  });
+  box.classList.remove('hide');
+}
+function rpGo(it){
+  $('rpDlg').classList.add('hide');
+  var v=$('v');
+  var go=function(){
+    try{ if(!v.paused){ v.pause(); $('bPlay').innerHTML=T('playI'); } }catch(e){}
+    try{ v.currentTime=Math.max(0, it.t-1.5); }catch(e){}     /* 1.5秒 手前から 見られる ように */
+    selManual=true; $('nextSel').value=it.k; paintNext();
+    toast(it.lbl+'：'+T('rpGo'));
+  };
+  if(v.readyState>=1) go();
+  else v.addEventListener('loadedmetadata', function once(){ v.removeEventListener('loadedmetadata', once); setTimeout(go, 80); });
+}
+$('rpCancel').onclick=function(){ $('rpDlg').classList.add('hide'); };
 $('reStroke').onclick=function(){
   reClose();
   if(!dRec) return;

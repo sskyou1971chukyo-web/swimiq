@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.09.5">
+<meta name="app-ver" content="2026.10.10.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -4439,11 +4439,13 @@ var HELP=[
    'メニューの <b>PDFで表示</b>で 1枚の レポートに なります。'
  ]],
  ['ターンを 計る',[
-   '分析の 画面の <b>その他</b> →<b>ターンも計る</b>を おして オンに します。',
+   '25mプールは かならず 計ります。壁の 5m前と 15m後を 1回ずつ 記録します（ボタンは 切りかえられません）。',
+   '50mプールは 分析の 画面の <b>その他</b> →<b>ターンも計る</b>を おして オンに すると 計れます。',
    '一覧に、かべの 5m前と 15m後が そろいます（25mプールの 200mなら 20・40・45・65・70・90…m）。50mプールは もともと 45m・65mなどが あるので そのまま 使えます。',
    '動画を 見ながら、頭が その 線を 通った 瞬間に <b>記録</b>を おします。ほかの 通過と 同じです。',
    'そろうと、結果の 一番上に <b>泳ぎ区間</b>・<b>非泳区間</b>（スタート15m＋ターン20m×回数＋タッチ5m）・<b>ターン平均</b>が 出ます。25mプールの 200mは 15m＋20m×7＋5m＝160m、50mプールの 200mは 15m＋20m×3＋5m＝80mです。タッチは ゴールの 5m前を 計った ときに 入ります。',
-   '25mプールは ターンが 多く、押す 場所も 多く なります。まずは 50mプールか、100mから ためして ください。'
+   '25mプールは ターンが 多く、押す 場所も 多く なります。まずは 50mプールか、100mから ためして ください。',
+   'PDFの グラフでは、非泳区間を 青、泳ぎ区間を 黄色で わけて 出します。'
  ]],
  ['動画を 携帯に 保存する',[
    'アプリで とった 動画は、<b>動画を携帯に保存</b>を おすと 携帯の 写真（カメラロール）に 入ります。',
@@ -4920,7 +4922,9 @@ function lapDists(dist, pool){
   /* オフでも、すでに ターンの 点を 計って ある 記録は その まま 出します */
   var has=false, k;
   if(typeof aSplits!=='undefined' && aSplits) for(k=0;k<aSplits.length;k++) if(out.indexOf(aSplits[k].d)<0) has=true;
-  if(!turnOn && !has) return out;
+  /* 25mプール（短水路）は ターンが 多いので、必ず 計ります。50mは 「ターンも計る」で 選びます */
+  var forced = (pool===25);
+  if(!turnOn && !has && !forced) return out;
   var add=[], w;
   for(w=pool; w<dist-0.001; w+=pool){ add.push(w-5); add.push(Math.min(w+15, dist)); }
   add.push(dist-5);                 /* タッチ（ゴール前 5m） */
@@ -5229,13 +5233,17 @@ function setSig(t){
   paintTbl(); anaP.paint();
 }
 $('bStart').onclick=function(){ selManual=false; aLastSel='t0'; setFoot($('v').currentTime); anaMoreOpen(false); };
+function turnIsForced(){ return Number(($('pool')||{}).value)===25; }
 function turnBtnPaint(){
   var b=$('bTurn'); if(!b) return;
-  b.textContent = 'ターンも計る：'+(turnOn?'オン':'オフ');
-  b.setAttribute('aria-pressed', turnOn?'true':'false');
-  b.classList.toggle('g', turnOn);
+  var f=turnIsForced();
+  b.textContent = f ? 'ターンも計る：オン（25mは必ず計ります）' : 'ターンも計る：'+(turnOn?'オン':'オフ');
+  b.setAttribute('aria-pressed', (turnOn||f)?'true':'false');
+  b.disabled = f;
+  b.classList.toggle('g', turnOn||f);
 }
 $('bTurn').onclick=function(){
+  if(turnIsForced()){ toast('25mプールは、壁の5m前と15m後を必ず計ります'); return; }
   turnOn=!turnOn;
   try{ localStorage.setItem('swimiq_turn5', turnOn?'1':'0'); }catch(e){}
   turnBtnPaint();
@@ -6801,7 +6809,7 @@ function distApply(){
   selManual=false; aLastSel='';
   paintTbl();
 }
-$('pool').onchange=function(){ selManual=false; aLastSel=''; paintTbl(); };
+$('pool').onchange=function(){ selManual=false; aLastSel=''; turnBtnPaint(); paintTbl(); };
 $('dist').onchange=function(){ if(!distPick(this)) return; distApply(); };
 $('anaBack').onclick=function(){
   var go=function(){ hideQ(); stHudHide(); stModeShow(false); $('v').pause(); show('home'); paintList(); };
@@ -9787,16 +9795,21 @@ function partsOf(r){
   var sp=r.splits||[], by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
   var dist=Number(r.dist)||0; if(!dist || by[dist]==null || by[15]==null) return null;
   var rt=rtSec(r)||0, total=by[dist]+rt, start=by[15]+rt;
-  var ts=turnStats(r), P=[];
-  P.push({ k:'スタート', sub:'0-15m', t:start, c:'#7bd88f' });
+  var ts=turnStats(r), P=[], nonT, nonSub, swimT, swimSub;
+  /* グラフは かならず 2つ（非泳＝青、泳ぎ＝黄）に わけます */
   if(ts && ts.full){
-    P.push({ k:'泳ぎ', sub:ts.swimD+'m', t:ts.swimT, c:'#f2b01e' });
-    if(ts.turns.length) P.push({ k:'ターン', sub:ts.turns.length+'回', t:ts.turnSum, c:'#5ab0ff' });
-    if(ts.touch) P.push({ k:'タッチ', sub:ts.touch.a+'-'+ts.touch.b+'m', t:ts.touch.t, c:'#1f5fd1', fc:'#ffffff' });
+    nonT=ts.nonT; nonSub=ts.nonD+'m（スタート・ターン・タッチ）';
+    swimT=ts.swimT; swimSub=ts.swimD+'m';
+  }else if(ts){
+    nonT=start+ts.turnSum+(ts.touch?ts.touch.t:0);
+    nonSub='計れた ぶん（一部）';
+    swimT=total-nonT; swimSub='15-'+dist+'m（ターン未計測を含む）';
   }else{
-    var walls=Math.max(0, Math.round(dist/(Number(r.pool)||50))-1);
-    P.push({ k: walls ? '泳ぎ＋ターン' : '泳ぎ', sub:'15-'+dist+'m', t:total-start, c:'#f2b01e' });
+    nonT=start; nonSub='スタート 0-15m';
+    swimT=total-start; swimSub='15-'+dist+'m（ターン未計測）';
   }
+  P.push({ k:'非泳', sub:nonSub, t:nonT, c:'#1f5fd1', fc:'#ffffff' });
+  P.push({ k:'泳ぎ', sub:swimSub, t:swimT, c:'#f2b01e' });
   return { parts:P, total:total, ts:ts };
 }
 function reportPages(r, prev, W, H, nP){
@@ -9941,7 +9954,7 @@ function reportPages(r, prev, W, H, nP){
   s2+=tl.s;
   /* スタート・泳ぎ・ターン・ゴール */
   var rx=mx+colW+24;
-  s2+='<rect x="'+rx+'" y="'+(y2-13)+'" width="4" height="15" fill="#f2b01e"/>'+T_(rx+10,y2,'非泳区間（スタート・ターン・タッチ）',13.5,900);
+  s2+='<rect x="'+rx+'" y="'+(y2-13)+'" width="4" height="15" fill="#1f5fd1"/>'+T_(rx+10,y2,'非泳区間（スタート・ターン・タッチ）',13.5,900);
   var R=[];
   var ts=turnStats(r);
   if(ts){

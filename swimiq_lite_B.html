@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.10.3">
+<meta name="app-ver" content="2026.10.10.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -9815,30 +9815,27 @@ function prevRaceOf(all, r){
 function partsOf(r){
   var sp=r.splits||[], by={}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
   var dist=Number(r.dist)||0; if(!dist || by[dist]==null || by[15]==null) return null;
-  var rt=rtSec(r)||0, total=by[dist]+rt, start=by[15]+rt;
-  var ts=turnStats(r), P=[], nonT, nonSub, swimT, swimSub, segs=[];
-  /* 非泳（青）の中を 3つに わけます：スタート15m（薄い青）・ターンイン合計（濃い青）・ターンアウト合計（もっと濃い青） */
-  segs.push({ k:'スタート', sub:'0-15m', t:start, c:'#9fd3ff', fc:'#0b1f3a' });
-  if(ts && ts.full){
-    nonT=ts.nonT; nonSub=ts.nonD+'m（スタート・ターン・タッチ）';
-    swimT=ts.swimT; swimSub=ts.swimD+'m';
-    if(ts.midOK){
-      segs.push({ k:'ターンイン', sub:'5m×'+ts.turns.length+(ts.touch?'＋タッチ':''), t:ts.inSum, c:'#1f5fd1', fc:'#ffffff' });
-      segs.push({ k:'ターンアウト', sub:'15m×'+ts.turns.length, t:ts.outSum, c:'#0b3d91', fc:'#ffffff' });
-    }else{
-      segs.push({ k:'ターン', sub:'壁の時間なし', t:nonT-start, c:'#1f5fd1', fc:'#ffffff' });
-    }
-  }else if(ts){
-    nonT=start+ts.turnSum+(ts.touch?ts.touch.t:0);
-    nonSub='計れた ぶん（一部）';
-    swimT=total-nonT; swimSub='15-'+dist+'m（ターン未計測を含む）';
-    segs.push({ k:'ターン', sub:'計れた分', t:nonT-start, c:'#1f5fd1', fc:'#ffffff' });
-  }else{
-    nonT=start; nonSub='スタート 0-15m';
-    swimT=total-start; swimSub='15-'+dist+'m（ターン未計測）';
+  var rt=rtSec(r), rtv=rt||0, total=by[dist]+rtv;
+  var ts=turnStats(r), P=[];
+  /* 横の バーは 5つを 色分けします：R.T・スタート15m・ターンイン＋タッチ・ターンアウト・泳区間
+     測って いない ものは、いちばん 近い ところに まとめます
+       R.T なし      … スタート15mに 入れる（ぜんぶ スタート）
+       ターンイン なし … 泳区間に まとめる
+       ターンアウト なし … 泳区間に まとめる */
+  var startT=by[15];                       /* 反応時間を のぞいた 15m までの タイム */
+  var inT=0, outT=0, inD=0, outD=0, n=0, touch=(ts && ts.touch) ? ts.touch : null;
+  if(ts && ts.midOK){
+    n=ts.turns.length;
+    inT=ts.inSum; outT=ts.outSum; inD=5*n+(touch?5:0); outD=15*n;
+  }else if(touch){
+    inT=touch.t; inD=5;                    /* 壁の時間は なくても、タッチだけは ターンイン側に 入れます */
   }
-  P.push({ k:'非泳', sub:nonSub, t:nonT, c:'#1f5fd1', fc:'#ffffff', segs:segs });
-  P.push({ k:'泳ぎ', sub:swimSub, t:swimT, c:'#f2b01e' });
+  var swimT=total-rtv-startT-inT-outT, swimD=dist-15-inD-outD;
+  if(rt) P.push({ k:'R.T', sub:'合図から', t:rt, c:'#b9a7f5', fc:'#1b1140' });
+  P.push({ k:'スタート', sub:'0-15m', t:startT, c:'#9fd3ff', fc:'#0b1f3a' });
+  if(inT>0) P.push({ k:'ターンイン', sub:(n?'5m×'+n+(touch?'＋タッチ':''):'タッチ 5m'), t:inT, c:'#1f5fd1', fc:'#ffffff' });
+  if(outT>0) P.push({ k:'ターンアウト', sub:'15m×'+n, t:outT, c:'#0b3d91', fc:'#ffffff' });
+  P.push({ k:'泳ぎ', sub:swimD+'m'+(n?'':'（ターン含む）'), t:swimT, c:'#f2b01e', fc:'#16181d' });
   return { parts:P, total:total, ts:ts };
 }
 function reportPages(r, prev, W, H, nP){

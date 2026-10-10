@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.10.2">
+<meta name="app-ver" content="2026.10.10.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -3007,6 +3007,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <input type="text" id="vfTime" inputmode="decimal">
     </div>
     <div class="sq">
+      <p class="q">R.T（反応時間・秒）</p>
+      <p class="lead">合図から 飛びこみまでの 時間です。分析して いない 記録は 「ー」の ままで 大丈夫です。</p>
+      <input type="text" id="vfRT" inputmode="decimal" placeholder="ー" autocomplete="off">
+    </div>
+    <div class="sq">
       <p class="q" data-t="vfSplLbl"></p>
       <p class="lead" data-t="vfSplHint"></p>
       <div id="vfSplWrap"></div>
@@ -5398,14 +5403,20 @@ function fixAskOpen(n, idx, tt){
   var bl=$('bigLap'); if(bl){ bl.classList.remove('on'); if(bigLapTm){ clearTimeout(bigLapTm); bigLapTm=null; } }
   var box=$('fixAsk'); box.classList.remove('hide');
   var keepSel=String(n);
-  var close=function(){ box.classList.add('hide'); selManual=true; $('nextSel').value=keepSel; paintTbl(); $('nextSel').value=keepSel; try{ $('bPass').focus(); }catch(e){} };
+  /* adv=true（はい・直す）のときは、直した きょりの つぎへ 自動で すすみます（例：15mの つぎは 20m） */
+  var close=function(adv){
+    box.classList.add('hide');
+    if(adv){ selManual=false; aLastSel=String(n); paintTbl(); $('nextSel').value=''; paintTbl(); }
+    else { selManual=true; $('nextSel').value=keepSel; paintTbl(); $('nextSel').value=keepSel; }
+    try{ $('bPass').focus(); }catch(e){}
+  };
   $('faYes').onclick=function(){
     var j; for(j=0;j<aSplits.length;j++) if(aSplits[j].d===n){ aSplits[j].t=tt; break; }
     aSplits.sort(function(x,y){ return x.d-y.d; });
-    close();
+    close(true);
     toast(n+'mを '+fmt(totalT(tt,_rt))+'秒に直しました');
   };
-  $('faNo').onclick=function(){ close(); toast(n+'mは前の記録のままです'); };
+  $('faNo').onclick=function(){ close(false); toast(n+'mは前の記録のままです'); };
   setTimeout(function(){ try{ $('faMsg').focus(); }catch(e){} }, 30);
 }
 $('bUndo').onclick=function(){
@@ -10632,13 +10643,20 @@ function vfSplRow(d, t, dist){
   };
   return row;
 }
+/* 入っている R.T（秒）。空や 変な 数は「なし（null）」にします */
+function vfRTRead(){
+  var el=$('vfRT'); if(!el) return null;
+  var s=(el.value||'').trim().replace(',', '.');
+  var v=Number(s);
+  return (s!=='' && v>0 && v<10) ? v : null;
+}
 function vfSplPaint(sp){
   var w=$('vfSplWrap'); if(!w) return;
   w.innerHTML='';
   var dist=Number($('vfDist').value)||100, i;
   var list=(sp||[]).slice().sort(function(a,b){ return a.d-b.d; });
   /* 画面では 合図からの 合計時間で 出し入れします */
-  for(i=0;i<list.length;i++) w.appendChild(vfSplRow(list[i].d, totalT(list[i].t, vfRT), dist));
+  for(i=0;i<list.length;i++) w.appendChild(vfSplRow(list[i].d, totalT(list[i].t, vfRTRead()), dist));
 }
 function vfSplRead(){
   var rows=$('vfSplWrap').querySelectorAll('.vfSplRow'), out=[], seen={}, i;
@@ -10647,7 +10665,7 @@ function vfSplRead(){
     var tt=parseTimeStr(rows[i].querySelector('.vfSplT').value);
     if(!dd || tt==null || tt<=0) continue;
     if(seen[dd]) continue;
-    seen[dd]=1; out.push({ d:dd, t:(vfRT!=null ? (tt-vfRT) : tt) });
+    seen[dd]=1; out.push({ d:dd, t:(vfRTRead()!=null ? (tt-vfRTRead()) : tt) });
   }
   out.sort(function(a,b){ return a.d-b.d; });
   return out;
@@ -10684,6 +10702,7 @@ function vfOpen(rec){
   if(!rec || rec.manual) return;
   vfEditId = rec.id;
   vfRT = rtSec(rec);
+  if($('vfRT')) $('vfRT').value = (vfRT!=null) ? vfRT.toFixed(2) : '';
   var last = (rec.splits && rec.splits.length) ? rec.splits[rec.splits.length-1] : null;
   var ss = raceStroke(rec);
   $('vfDate').value = new Date(rec.at).toISOString().slice(0,10);
@@ -10745,8 +10764,10 @@ $('vfSave').onclick=function(){
     /* 通過タイムの らんを そのまま つかい、さいごの きょり・タイムは 上の らんを ゆうせん */
     var sp=vfSplRead(), k=-1, i2;
     for(i2=0;i2<sp.length;i2++) if(sp[i2].d===dist) k=i2;
-    var tIn = (vfRT!=null) ? (t-vfRT) : t;
+    var rtN = vfRTRead();
+    var tIn = (rtN!=null) ? (t-rtN) : t;
     if(k>=0) sp[k].t=tIn; else sp.push({ d:dist, t:tIn });
+    rec.rt = rtN;
     sp.sort(function(x,y){ return x.d-y.d; });
     rec.splits=sp;
     rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));

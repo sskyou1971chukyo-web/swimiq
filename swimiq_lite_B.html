@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.10.4">
+<meta name="app-ver" content="2026.10.10.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -808,9 +808,9 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
   #qwBody .qwSub{ margin:8px 0 4px; }
 }
 #syncWiz{ z-index:69; }
-#fixAsk,#refAsk{ position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:16px;
+#fixAsk,#refAsk,#toDlg{ position:fixed; inset:0; z-index:97; display:flex; align-items:center; justify-content:center; padding:16px;
   background:rgba(0,0,0,.82); }
-#fixAsk.hide,#refAsk.hide{ display:none !important; }
+#fixAsk.hide,#refAsk.hide,#toDlg.hide{ display:none !important; }
 .faWrap{ width:100%; max-width:640px; background:var(--bk); border:4px solid var(--am); border-radius:16px; padding:18px 20px; }
 .faWrap h3{ margin:0 0 8px; font-size:24px; color:var(--am); }
 #faMsg{ margin:0; font-size:28px; font-weight:900; line-height:1.5; color:#fff; outline:none; }
@@ -2802,6 +2802,18 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
   </div>
 </div>
+<div id="toDlg" class="hide" role="alertdialog" aria-modal="true" aria-labelledby="toH">
+  <div class="faWrap">
+    <h3 id="toH">ターンアウトの 距離</h3>
+    <p class="lead">選手を えらぶと、前に 決めた 距離を 出します。</p>
+    <select id="toSwim" class="rdSel" aria-label="選手"></select>
+    <p id="toMsg" aria-live="assertive" style="margin-top:12px;font-weight:800;"></p>
+    <div class="faBtns">
+      <button class="btn" type="button" id="toNo"></button>
+      <button class="btn g" type="button" id="toYes"></button>
+    </div>
+  </div>
+</div>
 <div id="fixAsk" class="hide" role="alertdialog" aria-modal="true" aria-labelledby="faH" aria-describedby="faMsg">
   <div class="faWrap">
     <h3 id="faH">記録を直しますか</h3>
@@ -3165,6 +3177,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sq">
       <p class="q" data-t="swmSpec"></p>
       <input type="text" id="swSpec">
+    </div>
+    <div class="sq">
+      <p class="q">ターンアウトの 距離</p>
+      <p class="lead">水中ドルフィンが 速い 人は 15m、苦手な 人は 10m。分析の とき に 聞かれます。</p>
+      <select id="swTurnOut"><option value="">まだ 決めていない</option><option value="15">15m</option><option value="10">10m</option></select>
     </div>
     <div class="svBtns">
       <button class="btn" type="button" id="swmCancel" data-t="dMenuX"></button>
@@ -4725,6 +4742,8 @@ function openAna(blob, opt){
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
   aSigT = (opt.sigT!=null) ? opt.sigT : null;
   sigAuto=false;
+  turnOutM = turnOutOf(opt);
+  turnOutAsked = (opt.turnOut===10 || opt.turnOut===15);
   if(typeof wvShow==='function'){ wvShow(false); wvSel=null; wvClosed=false; wvPinned=false; wvData=null; wvBlob=null; }
   aRT   = (opt.rt!=null)   ? opt.rt   : null;
   aPreLaps = opt.laps || null;
@@ -4790,6 +4809,7 @@ function openAna(blob, opt){
   if(aDraftId){ aDraftSig=anaSig(); setTimeout(function(){ toast('途中まで分析した「未分析」の記録を開きました'); }, 400); }
   draftBtnPaint();
   if(opt.ask) setTimeout(function(){ qwOpen(opt.ask); }, 80);
+  setTimeout(function(){ turnOutAsk(); }, opt.ask ? 900 : 350);
 }
 
 /* ================================================================
@@ -4829,7 +4849,7 @@ function draftSave(){
     aDraftThumb=th||'';
     var rec={ id:aDraftId, draft:true, draftOf:aId||null, at:aDraftAt, title:base,
       anaTitle:($('anaTitle').dataset.neu==='1'?'':$('anaTitle').textContent),
-      pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value,
+      pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value, turnOut:turnOutM,
       t0:aT0, sigT:aSigT, rt:aRT, rtMode:(aRT!=null?rtMode:null),
       splits:aSplits.slice(), strokes:aStrokes.slice(), video:null, vidRef:vidRef, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now(),
       preSwId:(aPre.id||''), preSwName:(aPre.name||'') };
@@ -4852,7 +4872,7 @@ function draftResume(r){
     }, function(){ toast('この未分析には動画が入っていません'); });
     return;
   }
-  openAna(r.video, { id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb, vidStored:!!r.vidRef,
+  openAna(r.video, { turnOut:r.turnOut, id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb, vidStored:!!r.vidRef,
     splits:r.splits||[], strokes:r.strokes||[], t0:(r.t0!=null?r.t0:null), sigT:r.sigT, rt:r.rt,
     pool:r.pool, dist:r.dist, event:r.event, title:(r.anaTitle||null),
     pre:{ id:(r.preSwId||''), name:(r.preSwName||'') } });
@@ -4921,6 +4941,9 @@ function distInitAll(){
 }
 /* 「ターンも計る」：オンに すると、かべの 5m前と 15m後も 記録できます */
 var turnOn=false; try{ turnOn = localStorage.getItem('swimiq_turn5')==='1'; }catch(e){}
+/* ターンアウト（壁のあと 何mまでを 非泳にするか）。10 か 15。今の 分析で つかう 値 */
+var turnOutM=15, turnOutAsked=false, anaSwimId='';
+function turnOutOf(r){ var v=Number(r && r.turnOut); return (v===10 || v===15) ? v : 15; }
 function lapDists(dist, pool){
   var out=lapDistsBase(dist);
   dist=Number(dist)||0; if(!(dist>0)) return out;
@@ -4932,7 +4955,7 @@ function lapDists(dist, pool){
   var forced = (pool===25);
   if(!turnOn && !has && !forced) return out;
   var add=[], w;
-  for(w=pool; w<dist-0.001; w+=pool){ add.push(w-5); add.push(w); add.push(Math.min(w+15, dist)); }
+  for(w=pool; w<dist-0.001; w+=pool){ add.push(w-5); add.push(w); add.push(Math.min(w+turnOutM, dist)); }
   add.push(dist-5);                 /* タッチ（ゴール前 5m） */
   for(k=0;k<add.length;k++) if(add[k]>0 && add[k]<dist && out.indexOf(add[k])<0) out.push(add[k]);
   out.sort(function(a,b){ return a-b; });
@@ -5256,6 +5279,7 @@ $('bTurn').onclick=function(){
   selManual=false;
   try{ paintTbl(); anaP.paint(); }catch(e){}
   toast(turnOn ? '壁の5m前と15m後も一覧に入りました。通った瞬間に記録を押します' : 'ターンの計測をやめました');
+  if(turnOn) turnOutAsk();
 };
 turnBtnPaint();
 $('bDraftDel').onclick=function(){
@@ -6821,7 +6845,7 @@ function distApply(){
   selManual=false; aLastSel='';
   paintTbl();
 }
-$('pool').onchange=function(){ selManual=false; aLastSel=''; turnBtnPaint(); paintTbl(); };
+$('pool').onchange=function(){ selManual=false; aLastSel=''; turnBtnPaint(); paintTbl(); turnOutAsk(); };
 $('dist').onchange=function(){ if(!distPick(this)) return; distApply(); };
 $('anaBack').onclick=function(){
   var go=function(){ hideQ(); stHudHide(); stModeShow(false); $('v').pause(); show('home'); paintList(); };
@@ -6866,10 +6890,11 @@ $('anaSave').onclick=function(){
   var def = (d.getMonth()+1)+'/'+d.getDate()+' '+$('dist').value+'m';
   var defName = $('anaTitle').dataset.neu==='1' ? def : $('anaTitle').textContent;
   sbAsk(defName, aId, function(name, swId, swName, uwKick, uwDist, round){
+  if(!swId && anaSwimId && swById(anaSwimId)){ swId=anaSwimId; swName=(swById(anaSwimId)||{}).name||swName; }
   thumb().then(function(th){
     var rec={
       id: aId || ('r'+Date.now()),
-      at: Date.now(),
+      at: Date.now(), turnOut: turnOutM,
       title: (name||def).trim() || def,
       pool: Number($('pool').value),
       dist: Number($('dist').value),
@@ -7478,7 +7503,7 @@ $('reAll').onclick=function(){
   if(!dRec) return;
   if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
-  openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+  openAna(dRec.video, { turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
                         sigT:dRec.sigT, rt:dRec.rt });
 };
@@ -7488,7 +7513,7 @@ $('reTime').onclick=function(){
   if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
   /* タイムに かかわる もの（スタート・通過・合図・RT）だけ 空に して ひらきます */
-  openAna(dRec.video, { id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+  openAna(dRec.video, { turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:null, splits:[], strokes:dRec.strokes,
                         sigT:null, rt:null });
   setTimeout(function(){ toast(T('reTimeGo')); }, 400);
@@ -9127,6 +9152,7 @@ function swmOpen(id){
   $('swHist').value  = s ? (s.hist||'') : '';
   $('swTeam').value  = s ? (s.team||'') : '';
   $('swSpec').value  = s ? (s.spec||'') : '';
+  $('swTurnOut').value = (s && (s.turnOut===10 || s.turnOut===15)) ? String(s.turnOut) : '';
   $('swmDelBtn').classList.toggle('hide', !s);
   $('swmBox').classList.remove('hide');
 }
@@ -9146,7 +9172,8 @@ $('swmSave').onclick=function(){
     weight:($('swWeight').value||'').trim(),
     hist:($('swHist').value||'').trim(),
     team:($('swTeam').value||'').trim(),
-    spec:($('swSpec').value||'').trim()
+    spec:($('swSpec').value||'').trim(),
+    turnOut: ($('swTurnOut').value==='10') ? 10 : (($('swTurnOut').value==='15') ? 15 : null)
   };
   var found=false;
   for(var i=0;i<a.length;i++){ if(a[i].id===rec.id){ a[i]=rec; found=true; break; } }
@@ -9318,7 +9345,7 @@ function turnStats(r){
   for(w=pool; w<dist-0.001; w+=pool) walls.push(w);
   for(i=0;i<walls.length;i++){
     w=walls[i];
-    var b=Math.min(w+15, dist);
+    var b=Math.min(w+turnOutOf(r), dist);
     if(by[w-5]!=null && by[b]!=null && by[b]>by[w-5]){
       var t=by[b]-by[w-5], tin=(by[w]!=null && by[w]>by[w-5]) ? by[w]-by[w-5] : null;
       turns.push({ w:w, a:w-5, b:b, t:t, tin:tin, tout:(tin!=null ? t-tin : null) }); sum+=t;
@@ -9328,7 +9355,7 @@ function turnStats(r){
   /* タッチ区間（ゴール前 5m）：dist-5m と ゴールの 両方が あり、最後の ターンと 重ならない とき */
   var touch=null, tA=dist-5, lastB=turns.length?turns[turns.length-1].b:15;
   if(by[dist]!=null && by[tA]!=null && tA>=lastB && by[dist]>by[tA]) touch={ a:tA, b:dist, t:by[dist]-by[tA] };
-  var res={ dist:dist, pool:pool, total:total, start:startT, turns:turns, nWalls:walls.length,
+  var res={ dist:dist, pool:pool, turnOut:turnOutOf(r), total:total, start:startT, turns:turns, nWalls:walls.length,
             turnAvg: turns.length ? sum/turns.length : null, turnSum:sum, touch:touch,
             allTurns:(turns.length===walls.length), full:(turns.length===walls.length && total!=null),
             noGoal:(total==null), lastD:(lastS?lastS.d:null), lastT:(lastS?lastS.t+rt:null) };
@@ -9817,6 +9844,7 @@ function partsOf(r){
   var dist=Number(r.dist)||0; if(!dist || by[dist]==null || by[15]==null) return null;
   var rt=rtSec(r), rtv=rt||0, total=by[dist]+rtv;
   var ts=turnStats(r), P=[];
+  var outM=(ts && ts.turnOut)||15;
   /* 横の バーは 5つを 色分けします：R.T・スタート15m・ターンイン＋タッチ・ターンアウト・泳区間
      測って いない ものは、いちばん 近い ところに まとめます
        R.T なし      … スタート15mに 入れる（ぜんぶ スタート）
@@ -9826,7 +9854,7 @@ function partsOf(r){
   var inT=0, outT=0, inD=0, outD=0, n=0, touch=(ts && ts.touch) ? ts.touch : null;
   if(ts && ts.midOK){
     n=ts.turns.length;
-    inT=ts.inSum; outT=ts.outSum; inD=5*n+(touch?5:0); outD=15*n;
+    inT=ts.inSum; outT=ts.outSum; inD=5*n+(touch?5:0); outD=outM*n;
   }else if(touch){
     inT=touch.t; inD=5;                    /* 壁の時間は なくても、タッチだけは ターンイン側に 入れます */
   }
@@ -9834,7 +9862,7 @@ function partsOf(r){
   if(rt) P.push({ k:'R.T', sub:'合図から', t:rt, c:'#b9a7f5', fc:'#1b1140' });
   P.push({ k:'スタート', sub:'0-15m', t:startT, c:'#9fd3ff', fc:'#0b1f3a' });
   if(inT>0) P.push({ k:'ターンイン', sub:(n?'5m×'+n+(touch?'＋タッチ':''):'タッチ 5m'), t:inT, c:'#1f5fd1', fc:'#ffffff' });
-  if(outT>0) P.push({ k:'ターンアウト', sub:'15m×'+n, t:outT, c:'#0b3d91', fc:'#ffffff' });
+  if(outT>0) P.push({ k:'ターンアウト', sub:outM+'m×'+n, t:outT, c:'#0b3d91', fc:'#ffffff' });
   P.push({ k:'泳ぎ', sub:swimD+'m'+(n?'':'（ターン含む）'), t:swimT, c:'#f2b01e', fc:'#16181d' });
   return { parts:P, total:total, ts:ts };
 }
@@ -10629,6 +10657,7 @@ var vfEditId=null, vfRT=null;
 /* 通過タイムを 1行ずつ 直せる らん */
 function vfSplRow(d, t, dist){
   var all=lapDists(dist), opt='', i;
+  if(d!=null && all.indexOf(d)<0){ all.push(d); all.sort(function(a,b){ return a-b; }); }
   opt+='<option value="">--</option>';
   for(i=0;i<all.length;i++) opt+='<option value="'+all[i]+'"'+(all[i]===d?' selected':'')+'>'+all[i]+'m</option>';
   var row=document.createElement('div'); row.className='vfSplRow';
@@ -10695,6 +10724,53 @@ $('vfSplAdd').onclick=function(){
 };
 /* きょりを 変えたら 一覧も 作り直します（入れた タイムは のこします） */
 $('vfDist').onchange=function(){ if(!distPick(this)) return; vfSplPaint(vfSplRead()); };
+/* ===== ターンアウトを 10m か 15m か 聞く =====
+   登録した 選手が 10m と 決めて いれば「10m（ターンアウト）で測定しますか？」。
+   まだ 決めて いなければ 15m か 10m を えらびます。15m と 決めて いれば 聞かずに 15m にします。 */
+function turnOutAsk(){
+  if(turnOutAsked) return;
+  var on=(Number(($('pool')||{}).value)===25) || turnOn;
+  if(!on) return;
+  var box=$('toDlg'), sel=$('toSwim'); if(!box || !sel) return;
+  if(!anaSwimId){ try{ anaSwimId=localStorage.getItem('swimiq_lastswim')||''; }catch(e){} }
+  var a=loadSwimmers();
+  sel.innerHTML='<option value="">えらばない</option>';
+  a.forEach(function(x){ var o=document.createElement('option'); o.value=x.id; o.textContent=x.name; sel.appendChild(o); });
+  sel.value = (anaSwimId && swById(anaSwimId)) ? anaSwimId : '';
+  anaSwimId = sel.value;
+  sel.onchange=function(){ anaSwimId=sel.value; turnOutPaint(); };
+  turnOutPaint();
+}
+function turnOutPaint(){
+  var box=$('toDlg'), msg=$('toMsg'), yes=$('toYes'), no=$('toNo');
+  var sw=anaSwimId ? swById(anaSwimId) : null;
+  var stored=(sw && (sw.turnOut===10 || sw.turnOut===15)) ? sw.turnOut : null;
+  if(stored===15){ turnOutSet(15, sw); return; }
+  if(stored===10){
+    msg.textContent=(sw.name||'')+'さんは 10m（ターンアウト）で測定しますか？';
+    yes.textContent='はい（10m）'; no.textContent='いいえ（15m）';
+    yes.onclick=function(){ turnOutSet(10, sw); };
+    no.onclick=function(){ turnOutSet(15, sw); };
+  }else{
+    msg.textContent='ターンアウトは どこまで 計りますか？';
+    yes.textContent='15m（水中ドルフィンが速い）'; no.textContent='10m（水中ドルフィンが苦手）';
+    yes.onclick=function(){ turnOutSet(15, sw); };
+    no.onclick=function(){ turnOutSet(10, sw); };
+  }
+  box.classList.remove('hide');
+}
+function turnOutSet(v, sw){
+  turnOutM=v; turnOutAsked=true;
+  if(sw){
+    var a=loadSwimmers();
+    for(var i=0;i<a.length;i++) if(a[i].id===sw.id){ a[i].turnOut=v; break; }
+    saveSwimmers(a);
+    try{ localStorage.setItem('swimiq_lastswim', sw.id); }catch(e){}
+  }
+  $('toDlg').classList.add('hide');
+  try{ paintTbl(); anaP.paint(); }catch(e){}
+  toast('ターンアウトは '+v+'m で測定します');
+}
 function vfOpen(rec){
   if(!rec || rec.manual) return;
   vfEditId = rec.id;
@@ -10860,12 +10936,12 @@ function raceParts(r){
   var start=by[15]+rt, turn=0, tn=0, w;
   var pl=Number(r.pool)||50;
   for(w=pl; w<dist-0.001; w+=pl){
-    var a=by[w-5], b=by[Math.min(w+15,dist)];
+    var a=by[w-5], b=by[Math.min(w+turnOutOf(r),dist)];
     if(a==null || b==null) return null;
     turn += (b-a); tn++;
   }
   /* タッチ（ゴール前 5m）は 非泳区間です。turnStats と 同じ 決まりで 出します */
-  var lastB = (w>pl) ? Math.min(w-pl+15, dist) : 15;
+  var lastB = (w>pl) ? Math.min(w-pl+turnOutOf(r), dist) : 15;
   var fin = (by[dist-5]!=null && dist-5>=lastB && by[dist]>by[dist-5]) ? by[dist]-by[dist-5] : 0;
   var clean = total - start - turn - fin;
   if(clean<0) return null;

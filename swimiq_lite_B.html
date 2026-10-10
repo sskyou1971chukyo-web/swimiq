@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.09.3">
+<meta name="app-ver" content="2026.10.09.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -1321,7 +1321,7 @@ body, button, select, input, textarea{
    それ以上は スクロールで 見られます。
    ========================================================= */
 #sw{ position:fixed; inset:0; z-index:55; background:var(--bk); color:#fff;
-  display:flex; flex-direction:column; gap:12px;
+  display:flex; flex-direction:column; gap:9px;
   padding:calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 16px)
           calc(env(safe-area-inset-bottom) + 16px) calc(env(safe-area-inset-left) + 16px);
   font-family:"Zen Kaku Gothic New","BIZ UDPGothic",sans-serif; }
@@ -1333,7 +1333,7 @@ body, button, select, input, textarea{
 #swBack{ flex:0 0 auto; }
 #swTimeWrap{ text-align:center; padding:6px 0 0; }
 #swTime{ font-family:"Zen Maru Gothic",sans-serif; font-weight:900;
-  font-size:clamp(64px,21vw,112px); line-height:1.0; color:var(--am);
+  font-size:clamp(52px,17vw,96px); line-height:1.0; color:var(--am);
   font-variant-numeric:tabular-nums; letter-spacing:0; white-space:nowrap; }
 /* 1文字ずつ 同じ幅の わく（よこ揺れ ぼうし） */
 #swTime .dg{ display:inline-block; width:.60em; text-align:center; }
@@ -1348,15 +1348,34 @@ body, button, select, input, textarea{
 .swModeRow{ display:flex; align-items:center; gap:10px; }
 .swModeLbl{ flex:0 0 auto; font-size:15px; font-weight:800; color:var(--dim); }
 .swModeRow .seg{ flex:1; }
+.swModeRow #swDist{ flex:0 0 auto; }
+#swTimeWrap{ padding:0; }
+#swState{ margin-top:0; font-size:13px; }
 .swListHd{ display:flex; align-items:center; padding:9px 16px; border-radius:var(--rM);
   background:var(--am); }
 .swListHd span{ font-size:14px; font-weight:900; color:#000; }
 .swListHd .swLZ{ flex:0 0 92px; }
 .swListHd .swLL{ flex:1; text-align:right; }
 .swListHd .swLS{ flex:1; text-align:right; }
-#swLaps{ flex:0 1 auto; min-height:0; max-height:calc(64px * 10); overflow-y:auto;
+#swPanes{ flex:1 1 auto; min-height:120px; display:flex; overflow:hidden; border-radius:var(--rL); }
+.swPane{ flex:0 0 100%; min-width:0; display:flex; flex-direction:column; gap:8px;
+  transition:transform .22s ease; }
+#swPanes[data-p="1"] .swPane{ transform:translateX(-100%); }
+.swTabs{ margin:0; }
+.swSwipeHint{ margin:-6px 2px -4px; font-size:11px; text-align:center; }
+.swStSum{ display:flex; gap:8px; }
+.swStSum > div{ flex:1; border:2px solid var(--line2); border-radius:var(--rM); background:var(--pane); padding:6px 8px; text-align:center; }
+.swStSum .k{ font-size:11px; line-height:1.2; font-weight:800; color:var(--dim); }
+.swStSum .v{ font-size:24px; font-weight:900; color:var(--am); font-variant-numeric:tabular-nums; line-height:1.1; }
+.swStSum .u{ font-size:12px; font-weight:800; color:var(--dim); }
+.swList{ flex:1 1 auto; min-height:0; overflow-y:auto;
   border:2px solid var(--line2); border-radius:var(--rL); background:var(--pane);
   display:flex; flex-direction:column; -webkit-overflow-scrolling:touch; }
+.swRow.hi{ background:rgba(214,69,69,.14); }
+.swRow.lo{ background:rgba(123,216,143,.14); }
+.swCtrl.sm .btn{ min-height:52px; font-size:17px; }
+.swCtrl .btn:disabled{ opacity:.35; }
+#swStrokeBtn{ min-height:84px; font-size:26px; }
 .swRow{ display:flex; align-items:center; padding:0 16px; min-height:64px; }
 .swRow + .swRow{ border-top:1px solid var(--line2); }
 .swRow.new{ background:rgba(255,196,0,.12); }
@@ -1368,8 +1387,8 @@ body, button, select, input, textarea{
   font-variant-numeric:tabular-nums; }
 .swEmpty{ margin:auto; padding:26px 16px; text-align:center; font-size:16px;
   font-weight:800; color:var(--dim); line-height:1.9; white-space:pre-line; }
-.swCtrl{ display:flex; gap:10px; margin-top:auto; }
-.swCtrl .btn{ flex:1; min-height:72px; font-size:24px; border-radius:var(--rL); }
+.swCtrl{ display:flex; gap:10px; }
+.swCtrl .btn{ flex:1; min-height:76px; font-size:24px; border-radius:var(--rL); }
 #swSave{ min-height:56px; font-size:18px; }
 
 /* =========================================================
@@ -1970,7 +1989,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
-  <p class="ver" id="verBottom">ver 2026.10.09.3</p>
+  <p class="ver" id="verBottom">ver 2026.10.09.5</p>
 </div>
 
 <!-- ================= 分析 ================= -->
@@ -2170,10 +2189,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 <div id="vs" class="cmp hide">
   <div class="cmpHd">
     <button class="btn" id="vsBack" type="button">戻る</button>
-    <h2 id="vsTitle">くらべる</h2>
+    <h2 id="vsTitle" data-t="vsTitle"></h2>
   </div>
   <div id="vsMain">
-    <div class="gl">種目と距離</div>
+    <div class="gl" data-t="vsGl1"></div>
     <div class="cmpFRow">
       <select id="vsEvent" aria-label="種目">
         <option value="free">自由形</option>
@@ -2185,27 +2204,27 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       </select>
       <select id="vsDist" aria-label="距離"></select>
     </div>
-    <div class="gl">だれと だれを くらべる？</div>
+    <div class="gl" data-t="vsGl2"></div>
     <div class="vsRow">
       <div class="vsCard l" id="vsL">
-        <div class="lb">こちら（自分の選手）</div>
+        <div class="lb" data-t="vsLlb"></div>
         <div class="nm" id="vsLn">—</div>
         <div class="t" id="vsLt">—</div>
         <div class="sub" id="vsLs"></div>
-        <button class="btn y" type="button" id="vsLchg">選手・記録を変える</button>
+        <button class="btn y" type="button" id="vsLchg" data-t="vsLchg"></button>
       </div>
       <div class="vsMid" aria-hidden="true">VS</div>
       <div class="vsCard r" id="vsR">
-        <div class="lb">くらべる相手</div>
+        <div class="lb" data-t="vsRlb"></div>
         <div class="nm" id="vsRn">—</div>
         <div class="t" id="vsRt">—</div>
         <div class="sub" id="vsRs"></div>
-        <button class="btn b" type="button" id="vsRchg">相手を変える</button>
+        <button class="btn b" type="button" id="vsRchg" data-t="vsRchg"></button>
       </div>
     </div>
-    <button class="btn g vsGo" type="button" id="vsGo">くらべる（PDFで見る）</button>
-    <p class="hint" style="margin:8px 2px;">押すと、数字のくらべ・内わけのバー・区間ごとの差の1枚が出ます。保存・共有もそこからできます。</p>
-    <button class="btn" type="button" id="vsMore" style="width:100%;">くわしい一覧・グラフを見る</button>
+    <button class="btn g vsGo" type="button" id="vsGo" data-t="vsGo"></button>
+    <p class="hint" style="margin:8px 2px;" data-t="vsHint"></p>
+    <button class="btn" type="button" id="vsMore" style="width:100%;" data-t="vsMore"></button>
   </div>
   <div id="vsPickL" class="hide">
     <p class="hint" id="vsPickLh" style="margin:0 2px 6px;"></p>
@@ -2253,7 +2272,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <button type="button" id="cmpQClear" data-t="cmpClearQ"></button>
   </div>
   <p class="cmpCount" id="cmpCount"></p>
-  <button class="btn y" type="button" id="cmpRefBtn" aria-pressed="false" style="width:100%;margin:0 0 8px;">世界記録・日本記録の保持者も出す</button>
+  <button class="btn y" type="button" id="cmpRefBtn" aria-pressed="false" style="width:100%;margin:0 0 8px;"></button>
 
   <div class="seg cmpTabs" id="cmpSegView">
     <button type="button" data-v="cmp"  data-t="tabCmp"></button>
@@ -2307,10 +2326,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <p class="hint" id="syncState2" style="margin:6px 2px 0;" aria-live="polite"></p>
   </div>
 
-  <div class="gl">世界記録・日本記録のデータ</div>
+  <div class="gl" data-t="recGl"></div>
   <div class="take">
-    <p class="hint" style="margin:0 2px 4px;">つながっているときに自動で最新を取りこみます。オフラインでも、前に取りこんだ記録でくらべられます。</p>
-    <button class="btn" id="recNow" type="button">今すぐ取りこむ</button>
+    <p class="hint" style="margin:0 2px 4px;" data-t="recHint"></p>
+    <button class="btn" id="recNow" type="button" data-t="recNow"></button>
     <p class="hint" id="recState" style="margin:6px 2px 0;" aria-live="polite"></p>
   </div>
 
@@ -2412,33 +2431,52 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div id="swTime">0:00.00</div>
     <div id="swState" data-t="swReady"></div>
   </div>
-  <div class="swDistRow">
-    <span data-t="swLapDist"></span>
+  <div class="swModeRow">
     <select id="swDist" data-ta="swLapDist">
       <option value="25">25m</option>
       <option value="50" selected>50m</option>
       <option value="100">100m</option>
     </select>
-  </div>
-  <div class="swModeRow">
-    <span class="swModeLbl" data-t="swModeLbl"></span>
     <div class="seg" id="swModeSeg">
       <button type="button" data-sm="dist" aria-pressed="true" data-t="swModeDist"></button>
       <button type="button" data-sm="num" aria-pressed="false" data-t="swModeNum"></button>
     </div>
   </div>
-  <div class="swListHd">
-    <span class="swLZ" data-t="swHDist"></span>
-    <span class="swLL" data-t="swHSplit"></span>
-    <span class="swLS" data-t="swHLap"></span>
+  <div class="seg swTabs" id="swTabs">
+    <button type="button" data-p="0" aria-pressed="false" data-t="swTabSt"></button>
+    <button type="button" data-p="1" aria-pressed="true" data-t="swTabLap"></button>
   </div>
-  <div id="swLaps"><div class="swEmpty" data-t="swEmpty"></div></div>
+  <p class="hint swSwipeHint" data-t="swSwipeHint"></p>
+  <div id="swPanes">
+    <div class="swPane" id="swPaneSt">
+      <div class="swStSum" id="swStSum"></div>
+      <div class="swListHd">
+        <span class="swLZ" data-t="swHNo"></span>
+        <span class="swLL" data-t="swHSt"></span>
+        <span class="swLS" data-t="swHAt"></span>
+      </div>
+      <div id="swStList" class="swList"><div class="swEmpty" data-t="swStEmpty"></div></div>
+    </div>
+    <div class="swPane" id="swPaneLap">
+      <div class="swListHd">
+        <span class="swLZ" data-t="swHDist"></span>
+        <span class="swLL" data-t="swHSplit"></span>
+        <span class="swLS" data-t="swHLap"></span>
+      </div>
+      <div id="swLaps" class="swList"><div class="swEmpty" data-t="swEmpty"></div></div>
+    </div>
+  </div>
   <div class="swCtrl">
-    <button class="btn y big hide" id="swLapBtn" type="button" data-t="swLap"></button>
-    <button class="btn g big" id="swMain" type="button" data-t="swStart"></button>
-    <button class="btn hide" id="swReset" type="button" data-t="swReset"></button>
+    <button class="btn b big" id="swStrokeBtn" type="button" disabled></button>
   </div>
-  <button class="btn g hide" id="swSave" type="button" data-t="swSave"></button>
+  <div class="swCtrl">
+    <button class="btn g big" id="swMain" type="button" data-t="swStart"></button>
+    <button class="btn y big" id="swLapBtn" type="button" data-t="swLap" disabled></button>
+  </div>
+  <div class="swCtrl sm">
+    <button class="btn hide" id="swReset" type="button" data-t="swReset"></button>
+    <button class="btn g hide" id="swSave" type="button" data-t="swSave"></button>
+  </div>
 </div>
 
 <input type="file" id="fAttach" accept="video/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -2702,8 +2740,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div class="vwBtns">
       <button class="btn g" type="button" id="vwPdf" data-t="pdfBtn"></button>
-      <button class="btn y" type="button" id="vwWR">世界記録とくらべる</button>
-      <button class="btn y" type="button" id="vwJR">日本記録とくらべる</button>
+      <button class="btn y" type="button" id="vwWR" data-t="vwWR"></button>
+      <button class="btn y" type="button" id="vwJR" data-t="vwJR"></button>
       <button class="btn b" type="button" id="vwCopy" data-t="copyTx"></button>
       <button class="btn y" type="button" id="vwEdit" data-t="editBtn"></button>
       <button class="btn y hide" type="button" id="vwVid" data-t="vidOpen"></button>
@@ -3455,7 +3493,7 @@ var W={
  rtNote:['タイムは 合図から 数えて います。足離れからは ','タイムは合図から数えています。足離れからは '],
  rtNote2:[' です',' です'],
  vfTimeNote:['合図を 計って ある ので、合図からの タイムで 入れて ください','合図を計ってあるので、合図からのタイムで入力してください'],
- tabCmp:['くらべる','くらべる'],
+ tabCmp:['くらべる','比較'],
  tabBest:['ベスト表','ベスト表'],
  tabMeet:['試合ごと','試合ごと'],
  tabGrow:['のびた順','のびた順'],
@@ -3581,7 +3619,30 @@ var W={
  outExHint:['は おしまちがいの うたがいが あるため 平均から のぞいています','は押し間違いの疑いがあるため平均から除外しています'],
 
  pdfBtn:['PDFで 表示','PDFで表示'],
- cmpPdfBtn:['2本の くらべを PDFで 表示','2本のくらべをPDFで表示'],
+ cmpPdfBtn:['2本を くらべて PDFで 見る','2本の比較をPDFで表示'],
+ cmpRefOn:['世界記録・日本記録の 人も 出す','世界記録・日本記録の保持者も出す'],
+ cmpRefOff:['世界記録・日本記録の 人を 出しています（おすと 消す）','世界記録・日本記録の保持者を出しています（押すと消す）'],
+ vwWR:['世界記録と くらべる','世界記録と比較'],
+ vwJR:['日本記録と くらべる','日本記録と比較'],
+ recGl:['世界記録・日本記録の データ','世界記録・日本記録のデータ'],
+ recHint:['つながって いる ときに 自動で 新しい 記録を 取りこみます。オフラインでも、前に 取りこんだ 記録で くらべられます。','つながっているときに自動で最新を取り込みます。オフラインでも、前に取り込んだ記録で比較できます。'],
+ recNow:['今すぐ 取りこむ','今すぐ取り込む'],
+ vsTitle:['くらべる','比較'],
+ vsGl1:['しゅもくと きょり','種目と距離'],
+ vsGl2:['だれと だれを くらべる？','誰と誰を比較する？'],
+ vsLlb:['こちら（自分の 選手）','こちら（自分の選手）'],
+ vsRlb:['くらべる 相手','比較する相手'],
+ vsLchg:['選手・記録を かえる','選手・記録を変える'],
+ vsRchg:['相手を かえる','相手を変える'],
+ vsGo:['くらべる（PDFで 見る）','比較する（PDFで見る）'],
+ vsHint:['おすと、数字の くらべ・内わけの ぼう・区間ごとの 差の 1まいが 出ます。ほぞん・きょうゆうも そこから できます。','押すと、数字の比較・内訳のバー・区間ごとの差の1枚が出ます。保存・共有もそこからできます。'],
+ vsMore:['くわしい 一覧・グラフを 見る','詳しい一覧・グラフを見る'],
+ vsPickL:['こちらの 記録','こちらの記録'],
+ vsPickR:['くらべる 相手','比較する相手'],
+ vsKbest:['自分の ベスト','自己ベスト'],
+ vsKprev:['前の 記録','前の記録'],
+ vsKteam:['チームの 選手','チームの選手'],
+ vsKref:['記録を 持って いる 人','記録保持者'],
  pdfHint:['印刷の まどが 出たら「PDFで保存」や「ファイルに保存」を えらんでください','印刷ウィンドウが出たら「PDFで保存」や「ファイルに保存」を選んでください'],
  pdfMaking:['PDFを つくっています…','PDFを作成中…'],
  pdfShareHint:['共有メニューで「ファイルに保存」を えらぶと PDFが のこせます','共有メニューで「ファイルに保存」を選ぶとPDFが保存できます'],
@@ -3832,6 +3893,17 @@ var W={
 
  swOpen:['ストップウォッチ<small>タイムと ラップを はかる</small>','ストップウォッチ<small>タイム・ラップ計測</small>'],
  swTitle:['ストップウォッチ','ストップウォッチ'],
+ swTabSt:['ストロークタイム','ストロークタイム'],
+ swTabLap:['きろくの 一覧','記録一覧'],
+ swSwipeHint:['左に スワイプで きろくの 一覧、右に スワイプで ストロークタイム','左スワイプで記録一覧、右スワイプでストロークタイム'],
+ swHNo:['番号','番号'],
+ swHSt:['1かきの 時間','ストロークタイム'],
+ swHAt:['おした 時間','押した時刻'],
+ swStEmpty:['はかって いる あいだに\n「ストローク」を かくたびに おすと\nここに 1かきの 時間が ならびます','計測中に「ストローク」を\n1かきごとに押すと\nここにストロークタイムが並びます'],
+ swStroke:['ストローク','ストローク'],
+ swStAvg:['平均（最高・最低をのぞく）','平均（最高・最低を除く）'],
+ swStSR:['SR（1分あたり）','SR（1分あたり）'],
+ swStN:['かいすう','回数'],
  swStart:['スタート','スタート'],
  swStop:['ストップ','ストップ'],
  swResume:['つづける','再スタート'],
@@ -3854,6 +3926,8 @@ var W={
 var MODE = 'a';
 try{ MODE = localStorage.getItem('swimiq_word')==='k' ? 'k' : 'a'; }catch(e){}
 function T(k){ var v=W[k]; if(!v) return k; return MODE==='k' ? v[0] : v[1]; }
+/* 小学生むけ（ひらがな多め）と 高校生以上（常用漢字）で 言いかえます */
+function KA(k,a){ return MODE==='k' ? k : a; }
 function applyWords(){
   var n=document.querySelectorAll('[data-t]'), i;
   for(i=0;i<n.length;i++) n[i].innerHTML=T(n[i].getAttribute('data-t'));
@@ -9799,16 +9873,16 @@ function reportPages(r, prev, W, H, nP){
     if(tA!=null && tB!=null){ var dtm=tA-tB; bits.push('記録 '+(dtm<=0?'':'+')+dtm.toFixed(2)+'秒'); }
     if(eA!=null && eB!=null){ var de=(eA-eB)/eB*100; bits.push('効率指数 '+(de>=0?'+':'')+de.toFixed(1)+'%'); }
     var good=(tA!=null&&tB!=null&&tA<tB) || (eA!=null&&eB!=null&&eA>eB);
-    s+=T_(mx+14,vy+23,'前回（'+new Date(prev.at).toLocaleDateString('ja-JP')+'　'+fmt(tB)+'）とくらべて　'+bits.join('　'),12.5,900,(good?'#1a8f4a':'#16181d'));
+    s+=T_(mx+14,vy+23,'前回（'+new Date(prev.at).toLocaleDateString('ja-JP')+'　'+fmt(tB)+KA('）とくらべて　','）と比較して　')+bits.join('　'),12.5,900,(good?'#1a8f4a':'#16181d'));
   }else{
-    s+=T_(mx+14,vy+23,'この選手・種目・距離ではじめての記録です。2本目から前回とのくらべを出します。',12,800,'#3d4450');
+    s+=T_(mx+14,vy+23,KA('この 選手・しゅもく・きょりでは はじめての 記録です。2本目から 前回との くらべを 出します。','この選手・種目・距離では初めての記録です。2本目から前回との比較を出します。'),12,800,'#3d4450');
   }
   var y=vy+36+34;
   var _rl=refLine(r);
   if(_rl){ s+=T_(mx+2,vy+36+18,_rl,10.5,800,'#5b6270'); y+=10; }
   /* レースの内わけ */
   if(PO){
-    s+=SEC(y,'レースの内わけ'); y+=12;
+    s+=SEC(y,KA('レースの内わけ','レースの内訳')); y+=12;
     var MINW=58, ws=PO.parts.map(function(p){ return p.t/PO.total*cw; }), add=0, big=-1, k2;
     for(k2=0;k2<ws.length;k2++){ if(PO.parts[k2].k.indexOf('泳ぎ')===0){ if(big<0||ws[k2]>ws[big]) big=k2; continue; } if(ws[k2]<MINW){ add+=MINW-ws[k2]; ws[k2]=MINW; } }
     if(big>=0) ws[big]=Math.max(MINW, ws[big]-add);
@@ -9889,7 +9963,7 @@ function reportPages(r, prev, W, H, nP){
   y2=Math.max(tl.y, ry2)+34;
   /* 効率指数の 計算 */
   if(G.length && EIs.some(function(e){ return e; }) && Math.floor((H-52-150-(y2+22))/22)>=2){
-    s2+=SEC(y2,'効率指数のくわしい計算');
+    s2+=SEC(y2,KA('効率指数のくわしい計算','効率指数の詳しい計算'));
     var maxE=Math.floor((H-52-150-(y2+22))/22);
     var rows3=[];
     G.forEach(function(g,ix){ var e=EIs[ix]; if(!e || rows3.length>=maxE) return;
@@ -9946,20 +10020,21 @@ function cmpPage(r, b, W, H, opt){
   function SEC(y,t){ return '<rect x="'+mx+'" y="'+(y-13)+'" width="4" height="15" fill="'+Y+'"/>'+T_(mx+10,y,t,13.5,900); }
   function sg(v,d){ v=Number(v.toFixed(d)); return (v>0?'+':(v<0?'−':'±'))+Math.abs(v).toFixed(d); }
   function cut(t,n){ t=String(t||''); return t.length>n ? t.slice(0,n-1)+'…' : t; }
-  var nmB=isRefM?(opt.refName||'記録'):(pair?'前の記録':'ベスト');
+  var nmB=isRefM?(opt.refName||'記録'):(pair?'前の記録':KA('ベスト','ベスト'));
   var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" '+FF+'><rect width="'+W+'" height="'+H+'" fill="#ffffff"/>';
-  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="'+K+'">スイム<tspan fill="#c98a00">IQ</tspan></text>'+T_(mx+150,60,isRefM?(nmB+'とのくらべ'):(pair?'記録のくらべ':'ベストとのくらべ'),13,800,'#5b6270');
+  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="'+K+'">スイム<tspan fill="#c98a00">IQ</tspan></text>'+T_(mx+150,60,isRefM?(nmB+KA('とのくらべ','との比較')):(pair?KA('記録のくらべ','記録の比較'):KA('ベストとのくらべ','ベストとの比較')),13,800,'#5b6270');
   s+=T_(W-mx,46,new Date().toLocaleString('ja-JP')+(pg?'　'+pg:''),11,600,'#5b6270','end');
   s+=T_(W-mx,62,(r.pool||50)+'mプール　'+(r.dist||'')+'m　'+evLabel(r.event),11,600,'#5b6270','end');
   s+='<line x1="'+mx+'" y1="82" x2="'+(W-mx)+'" y2="82" stroke="#111318" stroke-width="3"/>';
   var tA=raceBest(r), tB=raceBest(b), dT=(tA!=null&&tB!=null)?tA-tB:null;
+  /* 札：1行目 見出し、2行目 タイム、3行目 日付・大会・名前（かさならない ように 行を 分けます） */
   function tag(x,dark,lbl,rec,t){
-    var sub=isRefM ? (new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(whoOf(rec),14))
-                   : (new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(recLabel(rec),14)+(pair&&whoOf(rec)?('　'+cut(whoOf(rec),6)):''));
-    if(t!=null && fmt(t).length>=7 && sub.length>18) sub=cut(sub,18);
-    return '<rect x="'+x+'" y="98" width="'+(cw/2-6)+'" height="58" rx="12" fill="'+(dark?K:Y)+'"/>'+
-      T_(x+14,120,lbl,11,800,dark?'#ffd24a':'#5b3c00')+T_(x+14,146,t!=null?fmt(t):'--',24,900,dark?'#ffffff':K)+
-      T_(x+cw/2-20,146,sub,11,700,dark?'#d0d4da':'#5b3c00','end'); }
+    var sub=isRefM ? (new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(whoOf(rec),16))
+                   : (new Date(rec.at).toLocaleDateString('ja-JP')+'　'+cut(recLabel(rec),16)+(pair&&whoOf(rec)?('　'+cut(whoOf(rec),8)):''));
+    sub=cut(sub,30);
+    return '<rect x="'+x+'" y="98" width="'+(cw/2-6)+'" height="74" rx="12" fill="'+(dark?K:Y)+'"/>'+
+      T_(x+14,118,lbl,11,800,dark?'#ffd24a':'#5b3c00')+T_(x+14,145,t!=null?fmt(t):'--',24,900,dark?'#ffffff':K)+
+      T_(x+14,164,sub,10.5,700,dark?'#d0d4da':'#5b3c00'); }
   s+=tag(mx,false,pair?'新しい記録':(isRefM?(whoOf(r)||'今回'):'今回'),r,tA);
   s+=tag(mx+cw/2+6,true,isRefM?nmB+(b.nation?'（'+b.nation+'）':''):(pair?'前の記録':((dT!=null&&dT<=0)?'これまでのベスト':'ベスト')),b,tB);
   /* 区間ごとの 差（あとで バーにも 使います） */
@@ -9973,13 +10048,13 @@ function cmpPage(r, b, W, H, opt){
   var msg='';
   if(dT!=null){
     if(isRefM) msg = (dT<=0 ? nmB+'を '+Math.abs(dT).toFixed(2)+'秒 上回っています' : nmB+'まで あと '+dT.toFixed(2)+'秒（'+((dT/tB)*100).toFixed(1)+'%）');
-    else if(pair) msg = (dT<=0 ? '前の記録より '+Math.abs(dT).toFixed(2)+'秒 速くなりました' : '前の記録より '+dT.toFixed(2)+'秒 おそい記録です');
-    else     msg = (dT<=0 ? 'ベストを '+Math.abs(dT).toFixed(2)+'秒 更新しました' : 'ベストまで あと '+dT.toFixed(2)+'秒');
+    else if(pair) msg = (dT<=0 ? '前の記録より '+Math.abs(dT).toFixed(2)+'秒 速くなりました' : '前の記録より '+dT.toFixed(2)+KA('秒 おそい記録です','秒 遅い記録です'));
+    else     msg = (dT<=0 ? KA('ベストを ','ベストを ')+Math.abs(dT).toFixed(2)+'秒 更新しました' : 'ベストまで あと '+dT.toFixed(2)+'秒');
     if(worst && worst.d>0.005) msg+='。差がいちばん大きいのは '+worst.l+'（+'+worst.d.toFixed(2)+'秒）';
   }
-  s+='<rect x="'+mx+'" y="168" width="'+cw+'" height="36" rx="10" fill="'+(dT!=null&&dT<=0?'#eaf7ef':'#fff4f2')+'"/>'+T_(mx+14,191,msg||'記録タイムがそろっていません',13,900,(dT!=null&&dT<=0)?GOOD:BAD);
+  s+='<rect x="'+mx+'" y="184" width="'+cw+'" height="36" rx="10" fill="'+(dT!=null&&dT<=0?'#eaf7ef':'#fff4f2')+'"/>'+T_(mx+14,207,msg||'記録タイムがそろっていません',13,900,(dT!=null&&dT<=0)?GOOD:BAD);
   /* 1 数字の くらべ */
-  var y=236; s+=SEC(y,'数字のくらべ'); y+=14;
+  var y=252; s+=SEC(y,KA('数字のくらべ','数字の比較')); y+=14;
   var TA=turnStats(r), TB=turnStats(b), sA=raceStroke(r), sB=raceStroke(b), eA=raceEI(r), eB=raceEI(b);
   var nSeg=Number(r.dist)/step;
   function num(v,dc){ return v!=null&&!isNaN(v) ? Number(v).toFixed(dc) : null; }
@@ -10009,11 +10084,11 @@ function cmpPage(r, b, W, H, opt){
     }
   });
   y+=2*(cH+8)+8;
-  s+=T_(mx,y,'緑は'+nmB+'より良い、赤は'+nmB+'より悪い。ストローク数とテンポは良い悪いを決めず、ちがいだけを出します。',10,700,'#5b6270'); y+=34;
+  s+=T_(mx,y,'緑は'+nmB+'より良い、赤は'+nmB+'より悪い。ストローク数とテンポは良い悪いを決めず、'+KA('ちがいだけを出します。','違いだけを出します。'),10,700,'#5b6270'); y+=34;
   /* 2 内わけの くらべ（同じ ものさし） */
   var PA=partsOf(r), PB=partsOf(b);
   if(PA && PB){
-    s+=SEC(y,'レースの内わけのくらべ'); y+=14;
+    s+=SEC(y,KA('レースの内わけのくらべ','レースの内訳の比較')); y+=14;
     var mxT=Math.max(PA.total,PB.total), LW=60, bw=cw-LW;
     [[PA,pair?'新':'今回'],[PB,isRefM?'記録':(pair?'前':'ベスト')]].forEach(function(z,zi){
       var P=z[0], bx=mx+LW, yy=y+zi*44;
@@ -10035,14 +10110,14 @@ function cmpPage(r, b, W, H, opt){
     y+=56;
   }
   if(isRefM && !(PA&&PB) && !segs.length){
-    s+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="30" rx="9" fill="#f4f6f8"/>'+T_(mx+12,y+20,'この'+nmB+'はラップ・ストロークのデータが未収集のため、記録タイムと平均ラップだけをくらべています。',10.5,800,'#5b6270'); y+=44;
+    s+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="30" rx="9" fill="#f4f6f8"/>'+T_(mx+12,y+20,'この'+nmB+'はラップ・ストロークのデータが未収集のため、記録タイムと平均ラップだけを'+KA('くらべています。','比較しています。'),10.5,800,'#5b6270'); y+=44;
   }
   /* 3 区間ごとの 差（左＝速い、右＝おそい） */
   if(segs.length){
-    s+=SEC(y,step+'mごとの差（'+nmB+'とくらべて）'); y+=12;
+    s+=SEC(y,step+'mごとの差（'+nmB+KA('とくらべて','と比較')+'）'); y+=12;
     var n=segs.length, rowH=Math.max(11, Math.min(26, Math.floor((H-52-60-y)/n))), mid=mx+cw/2+30, half=cw/2-120, mxD=0.3;
     segs.forEach(function(g){ mxD=Math.max(mxD, Math.abs(g.d)); });
-    s+=T_(mid-8,y+12,'← '+nmB+'より速い',10,800,GOOD,'end')+T_(mid+8,y+12,nmB+'よりおそい →',10,800,BAD); y+=20;
+    s+=T_(mid-8,y+12,'← '+nmB+'より速い',10,800,GOOD,'end')+T_(mid+8,y+12,nmB+KA('よりおそい →','より遅い →'),10,800,BAD); y+=20;
     s+='<line x1="'+mid+'" y1="'+y+'" x2="'+mid+'" y2="'+(y+n*rowH)+'" stroke="'+K+'" stroke-width="1.5"/>';
     var every=n>16?Math.ceil(n/15):1;
     segs.forEach(function(g,ix){
@@ -10053,10 +10128,10 @@ function cmpPage(r, b, W, H, opt){
       if(lab) s+=T_(fast?mid-w2-5:mid+w2+5,yy+rowH/2+4,sg(g.d,2),fs,900,fast?GOOD:BAD,fast?'end':'start');
     });
     y+=n*rowH+18;
-    if(every>1) s+=T_(mx,y,'区間が多いので、文字は'+every+'区間ごとに出しています。バーはすべての区間です。',10,700,'#5b6270');
+    if(every>1) s+=T_(mx,y,'区間が多いので、文字は'+every+'区間ごとに出しています。バーは'+KA('すべて','全て')+'の区間です。',10,700,'#5b6270');
   }
   s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>'+
-     T_(mx,H-36,'SwimIQ — '+(isRefM?nmB+'とのくらべ':(pair?'記録のくらべ':'ベストとのくらべ'))+(pg?'　'+pg:''),9.5,700,GR)+
+     T_(mx,H-36,'SwimIQ — '+(isRefM?nmB+KA('とのくらべ','との比較'):(pair?KA('記録のくらべ','記録の比較'):KA('ベストとのくらべ','ベストとの比較')))+(pg?'　'+pg:''),9.5,700,GR)+
      (isRefM ? T_(W-mx,H-36,cut('出どころ：'+((b.srcs||[])[0]||''),80),8.5,600,GR,'end') : '')+'</svg>';
   return s;
 }
@@ -10152,7 +10227,7 @@ function refCompare(r, scope){
     toast(T('pdfMaking'));
     var pg;
     try{ pg=cmpPage(r, b, 794, 1123, { mode:'ref', refName:recScopeName(scope), page:'1/1' }); }catch(e){ toast(T('pdfHint')); return; }
-    pdfShow([pg], recScopeName(scope)+'_'+recLabel(r), function(){ toast(T('pdfHint')); });
+    pdfShow([pg], recScopeName(scope)+KA('とのくらべ_','との比較_')+recLabel(r), function(){ toast(T('pdfHint')); });
   });
 }
 /* PDFの 1ページ目に 出す 1行：世界記録 46.40（あと +6.21秒）　日本記録 47.83（あと +4.78秒） */
@@ -10220,7 +10295,7 @@ function downloadPairPDF(a, b){
   toast(T('pdfMaking'));
   var W=794, H=1123, pg;
   try{ pg=cmpPage(a, b, W, H, { mode:'pair', page:'1/1' }); }catch(e){ toast(T('pdfHint')); return; }
-  pdfShow([pg], 'くらべ_'+recLabel(a), function(){ toast(T('pdfHint')); });
+  pdfShow([pg], KA('くらべ_','比較_')+recLabel(a), function(){ toast(T('pdfHint')); });
 }
 /* ページの SVGを JPEGに して PDFに まとめ、画面に たてに ならべて 見せます */
 function pdfShow(pages, label, onFail){
@@ -10257,7 +10332,7 @@ $('mPdf').onclick=function(){ if(manualEditId){ dbGet(manualEditId).then(functio
    時計は 実際の時刻(performance.now)を もとに計算するので、
    画面を とじても タイムは ずれません。
    ================================================================ */
-var swRunning=false, swElapsed=0, swStartTs=0, swRaf=null, swLaps=[];
+var swRunning=false, swElapsed=0, swStartTs=0, swRaf=null, swLaps=[], swStrokes=[], swPane=1;
 var swMode='dist';
 try{ swMode = localStorage.getItem('swimiq_swmode')==='num' ? 'num' : 'dist'; }catch(e){}
 function swVib(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
@@ -10300,20 +10375,45 @@ function swRenderLaps(){
   }
   box.innerHTML=html; box.scrollTop=0;
 }
-function swBtns(){
-  var main=$('swMain'), lap=$('swLapBtn'), rst=$('swReset'), sav=$('swSave');
-  main.className='btn big';
-  if(swRunning){
-    main.classList.add('g'); main.setAttribute('data-t','swStop');   /* 赤は 削除だけに 使います */
-    lap.classList.remove('hide'); rst.classList.add('hide');
-  }else{
-    main.classList.add('g');
-    main.setAttribute('data-t', swElapsed>0 ? 'swResume' : 'swStart');
-    lap.classList.add('hide');
-    rst.classList.toggle('hide', !(swElapsed>0 || swLaps.length>0));
+/* ストロークタイム：1かきごとの 間かくの 一覧と、最高・最低を のぞいた 平均（4回以上の とき） */
+function swStStats(){
+  var iv=[], i; for(i=1;i<swStrokes.length;i++) iv.push(swStrokes[i]-swStrokes[i-1]);
+  if(!iv.length) return { iv:iv, avg:null, hi:-1, lo:-1 };
+  var hi=0, lo=0; for(i=1;i<iv.length;i++){ if(iv[i]>iv[hi]) hi=i; if(iv[i]<iv[lo]) lo=i; }
+  var sum=0, n=0;
+  for(i=0;i<iv.length;i++){ if(iv.length>=4 && (i===hi||i===lo)) continue; sum+=iv[i]; n++; }
+  return { iv:iv, avg:n?sum/n:null, hi:(iv.length>=4?hi:-1), lo:(iv.length>=4?lo:-1) };
+}
+function swRenderStrokes(){
+  var st=swStStats(), box=$('swStList'), sum=$('swStSum'), i;
+  sum.innerHTML='<div><div class="k">'+T('swStN')+'</div><div class="v">'+swStrokes.length+'</div><div class="u">'+KA('かき','回')+'</div></div>'+
+    '<div><div class="k">'+T('swStAvg')+'</div><div class="v">'+(st.avg!=null?st.avg.toFixed(2):'--')+'</div><div class="u">'+KA('びょう／かき','秒／かき')+'</div></div>'+
+    '<div><div class="k">'+T('swStSR')+'</div><div class="v">'+(st.avg?(60/st.avg).toFixed(1):'--')+'</div><div class="u">'+KA('かい／分','回／分')+'</div></div>';
+  if(!st.iv.length){ box.innerHTML='<div class="swEmpty">'+T('swStEmpty')+'</div>'; return; }
+  var h='';
+  for(i=st.iv.length-1;i>=0;i--){
+    h+='<div class="swRow'+(i===st.hi?' hi':(i===st.lo?' lo':''))+(i===st.iv.length-1?' new':'')+'"><span class="z">'+(i+1)+'</span>'+
+       '<span class="l">'+st.iv[i].toFixed(2)+'</span><span class="s">'+swFmt(swStrokes[i+1])+'</span></div>';
   }
+  box.innerHTML=h; box.scrollTop=0;
+}
+function swStroke(){
+  if(!swRunning) return;
+  swStrokes.push(swNow());
+  swRenderStrokes(); swBtns(); swVib(12);
+}
+function swPaneSet(p){
+  swPane=p; $('swPanes').dataset.p=String(p);
+  var b=$('swTabs').querySelectorAll('button'); for(var i=0;i<b.length;i++) b[i].setAttribute('aria-pressed', Number(b[i].dataset.p)===p?'true':'false');
+}
+function swBtns(){
+  var main=$('swMain'), lap=$('swLapBtn'), rst=$('swReset'), sav=$('swSave'), stb=$('swStrokeBtn');
+  main.className='btn big g';
+  main.setAttribute('data-t', swRunning ? 'swStop' : (swElapsed>0 ? 'swResume' : 'swStart'));
   main.textContent=T(main.getAttribute('data-t'));
-  lap.textContent=T('swLap');
+  lap.textContent=T('swLap'); lap.disabled=!swRunning;
+  stb.textContent=T('swStroke')+(swStrokes.length?('　'+swStrokes.length):''); stb.disabled=!swRunning;
+  rst.classList.toggle('hide', swRunning || !(swElapsed>0 || swLaps.length>0 || swStrokes.length>0));
   rst.textContent=T('swReset');
   sav.classList.toggle('hide', !(!swRunning && swLaps.length>0));
   sav.textContent=T('swSave');
@@ -10337,8 +10437,8 @@ function swLap(){
 function swReset(){
   swRunning=false;
   if(swRaf){ cancelAnimationFrame(swRaf); swRaf=null; }
-  swElapsed=0; swLaps=[]; swLastStr='';
-  swPaint(); swRenderLaps(); swBtns();
+  swElapsed=0; swLaps=[]; swStrokes=[]; swLastStr='';
+  swPaint(); swRenderLaps(); swRenderStrokes(); swBtns();
 }
 function swModePaint(){
   var b=$('swModeSeg').querySelectorAll('button');
@@ -10346,7 +10446,7 @@ function swModePaint(){
 }
 function swOpen(){
   $('sw').classList.remove('hide');
-  swModePaint(); swRenderLaps(); swBtns(); swPaint();
+  swModePaint(); swRenderLaps(); swRenderStrokes(); swBtns(); swPaint(); swPaneSet(swPane);
   if(swRunning && !swRaf) swLoop();
 }
 function swClose(){
@@ -10357,6 +10457,19 @@ $('openStopwatch').onclick=function(){ swOpen(); };
 $('swBack').onclick=function(){ swClose(); };
 $('swMain').onclick=function(){ if(swRunning) swStop(); else swStart(); };
 $('swLapBtn').onclick=function(){ swLap(); };
+$('swStrokeBtn').onclick=function(){ swStroke(); };
+(function(){
+  var b=$('swTabs').querySelectorAll('button'), i;
+  for(i=0;i<b.length;i++) b[i].onclick=function(){ swPaneSet(Number(this.dataset.p)); };
+  /* 左右の スワイプで 切りかえ（右に スワイプ → ストロークタイム、左に スワイプ → 記録一覧） */
+  var sx=null, sy=null, el=$('swPanes');
+  el.addEventListener('touchstart', function(e){ var t=e.touches[0]; sx=t.clientX; sy=t.clientY; }, { passive:true });
+  el.addEventListener('touchend', function(e){
+    if(sx==null) return; var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy; sx=null;
+    if(Math.abs(dx)<50 || Math.abs(dx)<Math.abs(dy)*1.2) return;
+    swPaneSet(dx>0 ? 0 : 1);
+  }, { passive:true });
+})();
 $('swReset').onclick=function(){ swReset(); };
 $('swDist').onchange=function(){ swRenderLaps(); };
 (function(){
@@ -10376,6 +10489,9 @@ $('swSave').onclick=function(){
     title:total+'m　'+evLabel('free'),
     pool:(d===25?25:50), dist:total, event:'free',
     splits:splits, strokes:[], manual:true, manualSegs:null, videoUrl:'', thumb:'' };
+  /* ストロークも 計って いれば、回数と 平均テンポ（最高・最低を 除く）を 記録に 入れます */
+  var st=swStStats();
+  if(swStrokes.length){ rec.manualN=swStrokes.length; if(st.avg!=null) rec.manualST=Math.round(st.avg*100)/100; rec.swStrokes=swStrokes.slice(); }
   dbPut(rec).then(function(){
     pushOne(rec);
     toast(T('swSaved'));
@@ -11638,7 +11754,7 @@ $('fImport').onchange=function(){
 var cmpAll=[], cmpSel=[], cmpN=5, cmpTab='time';
 /* 世界記録・日本記録の 保持者を 比較の 一覧に 出すか（ふだんは 出さない） */
 var cmpRefOn=false; try{ cmpRefOn = localStorage.getItem('swimiq_cmpref')==='1'; }catch(e){}
-function cmpRefPaint(){ var b=$('cmpRefBtn'); if(!b) return; b.setAttribute('aria-pressed', cmpRefOn?'true':'false'); b.classList.toggle('g', cmpRefOn); b.classList.toggle('y', !cmpRefOn); b.textContent = cmpRefOn ? '世界記録・日本記録の保持者を出しています（押すと消す）' : '世界記録・日本記録の保持者も出す'; }
+function cmpRefPaint(){ var b=$('cmpRefBtn'); if(!b) return; b.setAttribute('aria-pressed', cmpRefOn?'true':'false'); b.classList.toggle('g', cmpRefOn); b.classList.toggle('y', !cmpRefOn); b.textContent = cmpRefOn ? T('cmpRefOff') : T('cmpRefOn'); }
 /* ================================================================
    くらべる画面の 道具
    選手・自己ベスト・大会・のびた順を ここで まとめて あつかいます。
@@ -11746,7 +11862,7 @@ function vsOpp(kind, sex){
   if(kind==='prev') return prevRaceOf(vsAll, vsL);
   return vsR.rec || null;
 }
-function vsKindName(k){ return { WR:'世界記録', JR:'日本記録', best:'自分のベスト', prev:'前の記録', team:'チームの選手', ref:'記録保持者' }[k] || ''; }
+function vsKindName(k){ return { WR:'世界記録', JR:'日本記録', best:T('vsKbest'), prev:T('vsKprev'), team:T('vsKteam'), ref:T('vsKref') }[k] || ''; }
 function vsPaint(){
   var L=vsL;
   $('vsLn').textContent = L ? (whoOf(L)||'名前なし') : 'この種目・距離の記録がありません';
@@ -11761,7 +11877,7 @@ function vsPaint(){
   }else{
     $('vsRn').textContent = kn;
     $('vsRt').textContent = '—';
-    $('vsRs').textContent = (vsR.kind==='WR'||vsR.kind==='JR') ? (sx ? 'この種目・距離・プールの記録がありません' : '性別が未登録です。「くらべる」を押すと一度だけ聞きます') : '当てはまる記録がありません';
+    $('vsRs').textContent = (vsR.kind==='WR'||vsR.kind==='JR') ? (sx ? KA('この しゅもく・きょり・プールの 記録が ありません','この種目・距離・プールの記録がありません') : KA('男子か 女子かが 未登録です。「くらべる」を おすと 1回だけ 聞きます','性別が未登録です。「比較する」を押すと一度だけ聞きます')) : KA('あてはまる 記録が ありません','当てはまる記録がありません');
   }
   $('vsGo').disabled = !L;
 }
@@ -11769,7 +11885,7 @@ function vsPanel(which){
   $('vsMain').classList.toggle('hide', which!=='main');
   $('vsPickL').classList.toggle('hide', which!=='L');
   $('vsPickR').classList.toggle('hide', which!=='R');
-  $('vsTitle').textContent = which==='L' ? 'こちらの記録' : (which==='R' ? 'くらべる相手' : 'くらべる');
+  $('vsTitle').textContent = which==='L' ? T('vsPickL') : (which==='R' ? T('vsPickR') : T('vsTitle'));
   window.scrollTo(0,0);
 }
 /* 左の 札：選手 → 記録 */
@@ -11778,7 +11894,7 @@ function vsPaintL(){
   var recs=vsRecs(), names=[], seen={}, i;
   recs.forEach(function(r){ var n=whoOf(r)||'名前なし'; if(!seen[n]){ seen[n]=1; names.push(n); } });
   if(vsPickSw==null || names.indexOf(vsPickSw)<0) vsPickSw = vsL ? (whoOf(vsL)||'名前なし') : (names[0]||null);
-  $('vsPickLh').textContent = evLabel(vsEv)+' '+vsDist+'m の記録から選びます';
+  $('vsPickLh').textContent = evLabel(vsEv)+' '+vsDist+'m '+KA('の 記録から えらびます','の記録から選びます');
   var h='';
   for(i=0;i<names.length;i++) h+='<button class="btn '+(names[i]===vsPickSw?'g':'y')+'" type="button" data-n="'+esc(names[i])+'">'+esc(names[i])+'</button>';
   $('vsSwChips').innerHTML = h || '<p class="hint">この種目・距離の記録がまだありません</p>';
@@ -11792,7 +11908,7 @@ function vsPaintL(){
 /* 右の 札：6つの 選びかた */
 function vsPaintR(){
   var sx=vsL?refSexOf(vsL):null, h='', kinds=['WR','JR','best','prev','team','ref'], i;
-  $('vsPickRh').textContent = evLabel(vsEv)+' '+vsDist+'m　'+(vsL?(whoOf(vsL)+'（'+fmt(raceBest(vsL))+'）'):'')+' とくらべる相手を1つ選びます';
+  $('vsPickRh').textContent = evLabel(vsEv)+' '+vsDist+'m　'+(vsL?(whoOf(vsL)+'（'+fmt(raceBest(vsL))+'）'):'')+KA(' と くらべる 相手を 1つ えらびます',' と比較する相手を1つ選びます');
   for(i=0;i<kinds.length;i++){
     var k=kinds[i], sub='', dis=false;
     if(k==='team'||k==='ref'){ sub='⌄'; }
@@ -11807,7 +11923,7 @@ function vsPaintRsub(kind){
   if(kind==='team') pool=vsRecs().filter(function(r){ return !vsL || r.id!==vsL.id; });
   else pool=recAll().filter(function(r){ return (r.event||'other')===vsEv && Number(r.dist)===vsDist; }).sort(function(a,b){ return b.at-a.at; });
   var names=[], seen={}; pool.forEach(function(r){ var n=whoOf(r)||'名前なし'; if(!seen[n]){ seen[n]=1; names.push(n); } });
-  $('vsOppSubGl').textContent = kind==='team' ? 'チームの選手' : '記録保持者（世界記録・日本記録、当時の記録も）';
+  $('vsOppSubGl').textContent = kind==='team' ? T('vsKteam') : T('vsKref')+KA('（世界記録・日本記録、むかしの 記録も）','（世界記録・日本記録、当時の記録も）');
   var h='';
   for(i=0;i<names.length;i++) h+='<button class="btn y" type="button" data-n="'+esc(names[i])+'">'+esc(names[i])+'</button>';
   $('vsOppChips').innerHTML = h || '<p class="hint">当てはまる記録がありません</p>';
@@ -11840,7 +11956,7 @@ $('vsGo').onclick=function(){
   var k=vsR.kind;
   var go=function(sx){
     var R=vsOpp(k, sx);
-    if(!R){ toast('くらべる相手の記録がありません。「相手を変える」で選んでください'); return; }
+    if(!R){ toast(KA('くらべる 相手の 記録が ありません。「相手を かえる」で えらんで ください','比較する相手の記録がありません。「相手を変える」で選んでください')); return; }
     var opt;
     if(k==='WR'||k==='JR') opt={ mode:'ref', refName:recScopeName(k), page:'1/1' };
     else if(k==='best') opt={ mode:'best', page:'1/1' };
@@ -11849,7 +11965,7 @@ $('vsGo').onclick=function(){
     if(opt.mode==='pair' && b.at>a.at && !b.ref){ var t=a; a=b; b=t; }
     toast(T('pdfMaking'));
     var pg; try{ pg=cmpPage(a, b, 794, 1123, opt); }catch(e){ toast(T('pdfHint')); return; }
-    pdfShow([pg], 'くらべ_'+(whoOf(vsL)||'')+'_'+recLabel(vsL), function(){ toast(T('pdfHint')); });
+    pdfShow([pg], KA('くらべ_','比較_')+(whoOf(vsL)||'')+'_'+recLabel(vsL), function(){ toast(T('pdfHint')); });
   };
   if(k==='WR'||k==='JR'){
     if(!REC.records.length){ toast('記録データがまだありません。つながっているときにもう一度開いてください。'); recFetch(true); return; }

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.11.5">
+<meta name="app-ver" content="2026.10.11.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -937,6 +937,8 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   background:var(--pane); border:2px solid var(--line2); border-radius:10px; padding:7px 4px; }
 .vwKpi span{ order:1; font-size:11px; font-weight:800; color:var(--am); letter-spacing:.04em; }
 .vwKpi b{ order:2; font-size:23px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; }
+.vwKpi .naS{ order:3; font-size:11px; font-weight:700; color:var(--dim); line-height:1.2; }
+#report .rkpi .s{ margin-top:4px; font-size:10px; font-weight:700; color:#5b6270; }
 .vwGl{ margin:14px 0 6px; padding-left:9px; border-left:5px solid var(--am);
   font-size:15px; font-weight:900; color:#fff; }
 .vwTbl{ border:2px solid var(--line2); border-radius:10px; overflow:hidden; }
@@ -7213,10 +7215,10 @@ function recFacts(r){
     ['距離', (r.dist||(last?last.d:'')||'--')+'m'],
     ['試合名', meetName(r)||'--'],
     ['予選決勝', roundOf(r)||'なし'],
-    ['ST', ss.st!=null?ss.st.toFixed(2):NA],
-    ['SR', ss.sr!=null?ss.sr.toFixed(1):NA],
-    ['SC', ss.n!=null?ss.n:'--'],
-    ['効率', q?q.si.toFixed(2):NA]
+    ['ST', ss.st!=null?ss.st.toFixed(2):NAL],
+    ['SR', ss.sr!=null?ss.sr.toFixed(1):NAL],
+    ['SC', ss.n!=null?ss.n:NAL],
+    ['効率', q?q.si.toFixed(2):NAL]
   ];
 }
 function meetName(r){
@@ -9411,7 +9413,9 @@ function lapTempos(r){
    泳速 … 区間の きょり ÷ 時間
    S長 … 泳速 × ST、効率指数 … 泳速 × S長
    境目の 通過を 計って いない ときは null（画面では「ー（測定なし）」） */
-var NA='ー（測定なし）';
+var NA='ー', NAL='ー（測定なし）', NAS='測定なし';
+/* 数字の 札（カード）で 値が ないときは、大きく「ー」、下に 小さく「測定なし」 */
+function naCards(kp){ (kp||[]).forEach(function(x){ if(x && x.v===NA){ x.u=''; x.sub=NAS; } }); return kp; }
 function cleanSeg(r, from, to){
   if(!r || r.manual) return null;
   var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
@@ -9786,8 +9790,9 @@ function buildReport(r){
     {k:'記録タイム', v:(last?twoT(last.t, rtSec(r)):'--'), u:'', hl:true},
     {k:'平均ST', v:(ss.st!=null?ss.st.toFixed(2):NA), u:'秒'},
     {k:'平均SR', v:(ss.sr!=null?ss.sr.toFixed(1):NA), u:''},
-    {k:T('nStr'), v:(ss.n!=null?ss.n:'--'), u:''}
+    {k:T('nStr'), v:(ss.n!=null?ss.n:NA), u:''}
   ];
+  naCards(kp);
   if(r.rt!=null) kp.push({ k:T('rtOutLbl'), v:Number(r.rt).toFixed(2), u:'秒' });
   var _eiH=raceEI(r); if(_eiH!=null) kp.push({ k:'効率指数', v:_eiH.toFixed(2), u:'m²/秒' });
   var spSorted=(r.splits||[]).slice().sort(function(x,y){ return x.d-y.d; });
@@ -9802,7 +9807,7 @@ function buildReport(r){
     '<div class="rtitle">'+esc(recLabel(r))+'</div>'+
     '<div class="rsub"><span class="chip">'+evLabel(r.event)+'</span><span class="chip">'+(r.dist||'')+'m</span>'+
       (swBits.length?'<span class="chip">'+swBits.join('　')+'</span>':'')+'</div>'+
-    '<div class="rkpis">'+kp.map(function(x){ return '<div class="rkpi'+(x.hl?' hl':'')+'"><div class="k">'+x.k+'</div><div class="v">'+x.v+'<span class="u">'+x.u+'</span></div></div>'; }).join('')+'</div>'+
+    '<div class="rkpis">'+kp.map(function(x){ return '<div class="rkpi'+(x.hl?' hl':'')+'"><div class="k">'+x.k+'</div><div class="v">'+x.v+'<span class="u">'+x.u+'</span></div>'+(x.sub?'<div class="s">'+x.sub+'</div>':'')+'</div>'; }).join('')+'</div>'+
     '<div class="rgrid">'+
       '<div class="rsec"><h3>区間タイム</h3>'+(splSvg||'<div class="rcap">通過データがありません</div>')+'<div class="rcap">棒は各区間タイム（短いほど速い）</div></div>'+
       '<div class="rsec"><h3>通過記録</h3><table>'+spTbl+'</table></div>'+
@@ -9862,8 +9867,9 @@ function reportSVG(r, W, H){
            sub:((last&&_rtR!=null)?('足離れから '+fmt(last.t)):'')},
           {k:'平均ST',v:(ss.st!=null?ss.st.toFixed(2):NA),u:'秒'},
           {k:'平均SR',v:(ss.sr!=null?ss.sr.toFixed(1):NA),u:''},
-          {k:T('nStr'),v:(ss.n!=null?ss.n:'--'),u:''}];
+          {k:T('nStr'),v:(ss.n!=null?ss.n:NA),u:''}];
   if(r.rt!=null) kp.push({k:T('rtOutLbl'),v:Number(r.rt).toFixed(2),u:'秒'});
+  naCards(kp);
   var _eiR=raceEI(r); if(_eiR!=null) kp.push({k:'効率指数',v:_eiR.toFixed(2),u:'m²/秒'});
   var kW=(cw-10*(kp.length-1))/kp.length, kY=178, kH=76;
   kp.forEach(function(x,idx){ var kx=mx+idx*(kW+10);
@@ -10127,9 +10133,10 @@ function reportPages(r, prev, W, H, nP){
   var kp=[{k:'記録タイム',v:(last?fmt(totalT(last.t,_rtR)):'--'),u:'',hl:true,sub:((last&&_rtR!=null)?('足離れから '+fmt(last.t)):'')},
           {k:'反応時間（RT）',v:(_rtR!=null?_rtR.toFixed(2):'--'),u:'秒',sub:''},
           {k:'効率指数',v:(eiR!=null?eiR.toFixed(2):NA),u:'m²/秒',sub:'泳ぎ区間だけで計算'},
-          {k:'ストローク数',v:(ss.n!=null?String(ss.n):'--'),u:'回',sub:''},
+          {k:'ストローク数',v:(ss.n!=null?String(ss.n):NA),u:'回',sub:''},
           {k:'平均テンポ',v:(ss.st!=null?ss.st.toFixed(2):NA),u:'秒',sub:(ss.sr!=null?('SR '+ss.sr.toFixed(1)):'')}];
   var kW=(cw-8*(kp.length-1))/kp.length, kY=168, kH=82;
+  naCards(kp);
   kp.forEach(function(x,idx){ var kx=mx+idx*(kW+8);
     s+='<rect x="'+kx+'" y="'+kY+'" width="'+kW+'" height="'+kH+'" rx="12" fill="'+(x.hl?'#fffaf0':'#ffffff')+'" stroke="'+(x.hl?'#f2b01e':'#e4e6ea')+'" stroke-width="1.5"/>';
     s+=T_(kx+11,kY+21,x.k,10.5,800,'#5b6270');
@@ -10197,7 +10204,7 @@ function reportPages(r, prev, W, H, nP){
     var tb=TBL(mx,y,cw,[{h:'区間',w:0},{h:'区間タイム',w:0.25},{h:'かき数',w:0.14},{h:'ST（秒）',w:0.16},{h:'SR',w:0.15},{h:'効率指数',w:0.30,hl:true}],rows,24);
     s+=tb.s; y=tb.y+16;
     if(G.length>maxR){ s+=T_(mx,y,'ほか '+(G.length-maxR)+' 区間は2ページ目の表にあります',10,700,'#5b6270'); y+=14; }
-    s+=T_(mx,y,'区間タイムは合図から（最初の区間に反応時間を含みます）。',10,700,'#5b6270');
+    s+=T_(mx,y,'区間タイムは合図から（最初の区間に反応時間を含みます）。「ー」は測定なし。',10,700,'#5b6270');
   }
   /* ストロークレート（表の すぐ 下に つづけます） */
   if(srSvg){
@@ -10418,8 +10425,9 @@ function cmpPage(r, b, W, H, opt){
     s+='<rect x="'+cx+'" y="'+cy+'" width="'+cWd+'" height="'+cH+'" rx="12" fill="#ffffff" stroke="#e4e6ea" stroke-width="1.5"/>';
     s+=T_(cx+12,cy+20,c.k,10.5,800,'#5b6270');
     if(c.sub2) s+=T_(cx+cWd-12,cy+20,c.sub2,10,800,'#5b6270','end');
-    s+=T_(cx+12,cy+52,c.a!=null?c.a:'--',25,900);
-    s+=T_(cx+12,cy+74,c.note||(nmB+' '+(c.b!=null?c.b:'--')),10.5,800,c.note?BAD:GR);
+    s+=T_(cx+12,cy+52,c.a!=null?c.a:NA,25,900);
+    if(c.a==null) s+=T_(cx+40,cy+52,NAS,10,700,GR);
+    s+=T_(cx+12,cy+74,c.note||(nmB+' '+(c.b!=null?c.b:NAL)),10.5,800,c.note?BAD:GR);
     if(dv!=null){
       s+='<rect x="'+(cx+cWd-86)+'" y="'+(cy+32)+'" width="74" height="26" rx="13" fill="'+(col===GOOD?'#eaf7ef':(col===BAD?'#fff0ee':'#f4f5f7'))+'"/>';
       s+=T_(cx+cWd-49,cy+50,sg(dv,c.dec)+c.u,12.5,900,col,'middle');
@@ -11555,14 +11563,14 @@ function viewOpen(r){
     [ (last? last.d+'m' : T('timeLbl')), (last? fmt(totalT(last.t, rtSec(r))) : '--') ],
     [ T('avgST'), (ss.st!=null? ss.st.toFixed(2):NA) ],
     [ T('avgSR'), (ss.sr!=null? ss.sr.toFixed(1):NA) ],
-    [ T('scAbbr'), (ss.n!=null? ss.n : '--') ]
+    [ T('scAbbr'), (ss.n!=null? ss.n : NA) ]
   ];
   if(r.rt!=null) kp.push([ T('rtOutLbl'), Number(r.rt).toFixed(2) ]);
   var _ei=raceEI(r); if(_ei!=null) kp.push([ '効率指数', _ei.toFixed(2) ]);
   if(r.uwDist!=null) kp.push([ '浮き上がり', Number(r.uwDist).toFixed(1)+'m' ]);
   if(r.uwKick!=null) kp.push([ 'ドルフィン', r.uwKick+'回' ]);
   var h='', i;
-  for(i=0;i<kp.length;i++) h+='<div><span>'+esc(kp[i][0])+'</span><b>'+esc(String(kp[i][1]))+'</b></div>';
+  for(i=0;i<kp.length;i++) h+='<div><span>'+esc(kp[i][0])+'</span><b>'+esc(String(kp[i][1]))+'</b>'+(kp[i][1]===NA?'<small class="naS">'+NAS+'</small>':'')+'</div>';
   $('vwKpi').innerHTML=h;
 
   /* 通過タイム */

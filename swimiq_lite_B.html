@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.11.6">
+<meta name="app-ver" content="2026.10.11.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -9408,31 +9408,36 @@ function lapTempos(r){
    泳ぐ速さは、スタートと ターンの あとの 15mまで（水中の 部分）を 除いて 計算します。
    1ストロークで 進む距離 ＝ 泳ぐ速さ × 1かきの 時間（ST）。 */
 /* ===== ストロークの 数字は ここ 1か所で 計算します =====
-   ラップ［from→to］の「泳ぎ区間」＝ スタートまたは ターンアウトの 終わり（from=0なら 15m、それ以外は from＋ターンアウト）から 次の 壁の 5m手前（to−5）まで。
-   ST  … この 区間に 入っている かきの 間かくの 平均（ターン・おしまちがいは のぞく）。2回 未満なら 測定なし
-   泳速 … 区間の きょり ÷ 時間
+   ST  … その ラップ（from→to）の 中で 終わった かきの 間かくの 平均。
+         グラフの 青い 点（泳ぎの SR）と 同じ もの。ターンと 押し間違いは のぞく
+   泳速 … 泳ぎ区間（スタート・ターンアウトの 終わりから 次の 壁の 5m手前まで）の きょり ÷ 時間
    S長 … 泳速 × ST、効率指数 … 泳速 × S長
-   境目の 通過を 計って いない ときは null（画面では「ー（測定なし）」） */
+   計って いない ものは null（画面では「ー」「測定なし」） */
 var NA='ー', NAL='ー（測定なし）', NAS='測定なし';
 /* 数字の 札（カード）で 値が ないときは、大きく「ー」、下に 小さく「測定なし」 */
 function naCards(kp){ (kp||[]).forEach(function(x){ if(x && x.v===NA){ x.u=''; x.sub=NAS; } }); return kp; }
 function cleanSeg(r, from, to){
   if(!r || r.manual) return null;
   var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
-  var a = (from===0) ? 15 : from+turnOutOf(r), b = to-5;
-  if(!(b>a) || by[a]==null || by[b]==null) return null;
-  var dt=by[b]-by[a]; if(!(dt>0)) return null;
+  if(by[from]==null || by[to]==null) return null;
+  /* ST：ラップの 中の 青い 点 */
   var iv=tempoTable(strokeRel(r), wantTurnsOf(Number(r.dist)||to, r.pool)), sum=0, num=0, k;
   for(k=0;k<iv.length;k++){
-    var t1=iv[k].t, t0=t1-iv[k].d;
-    if(t0>=by[a] && t1<=by[b] && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+    var t1=iv[k].t;
+    if(t1>by[from] && t1<=by[to] && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
   }
-  if(num<2) return null;
-  var st=sum/num, v=(b-a)/dt;
-  return { a:a, b:b, st:st, sr:60/st, v:v, dps:v*st, ei:v*v*st, n:num, swimD:b-a };
+  if(!num) return null;
+  var st=sum/num, out={ st:st, sr:60/st, n:num, v:null, dps:null, ei:null, swimD:null, a:null, b:null };
+  /* 泳速：泳ぎ区間の 境目を 計って いる ときだけ */
+  var a = (from===0) ? 15 : from+turnOutOf(r), b = to-5;
+  if(b>a && by[a]!=null && by[b]!=null && by[b]>by[a]){
+    var v=(b-a)/(by[b]-by[a]);
+    out.a=a; out.b=b; out.v=v; out.dps=v*st; out.ei=v*v*st; out.swimD=b-a;
+  }
+  return out;
 }
 function eiFor(r, from, to, st){
-  var c=cleanSeg(r, from, to); if(!c) return null;
+  var c=cleanSeg(r, from, to); if(!c || c.v==null) return null;
   return { ei:c.ei, v:c.v, dps:c.dps, swimD:c.swimD };
 }
 function eiForOld(r, from, to, st){
@@ -9507,7 +9512,7 @@ function scTable(r){
     var turnIn=(d%pool===0), wall=(d%pool===0);
     var v=(!turnIn && lap>0) ? seg/lap : null;
     var lapFrom=Math.floor((d-0.001)/pool)*pool, cs=cleanSeg(r, lapFrom, lapFrom+pool);
-    var isClean = !!(cs && cs.b===d);
+    var isClean = !!(cs && (cs.b!=null ? cs.b===d : d===lapFrom+pool));
     rows.push({ d:d, cum:t+rtv, lap:lap, seg:seg, v:v, st:(isClean?cs.st:null), dps:(isClean?cs.dps:null), wall:wall });
     pd=d; pt=t;
   }
@@ -10246,7 +10251,7 @@ function reportPages(r, prev, W, H, nP){
       s2+=T_(xs[1]-6,yy+rowH-6,g.d+'m',fs,g.wall?900:400,'#16181d','end')+T_(xs[2]-6,yy+rowH-6,fmt(g.cum),fs,g.wall?900:400,'#16181d','end');
       s2+=T_((xs[5]+xs[6])/2,yy+rowH-6,g.lap.toFixed(2),fs,400,'#16181d','middle');
       if(g.v!=null) s2+=T_((xs[6]+xs[7])/2,yy+rowH-6,g.v.toFixed(2),fs,400,'#16181d','middle');
-      if(g.st!=null){ s2+=T_((xs[7]+xs[8])/2,yy+rowH-6,g.st.toFixed(2),fs,400,'#16181d','middle')+T_((xs[8]+xs[9])/2,yy+rowH-6,g.dps.toFixed(2),fs,400,'#16181d','middle'); }
+      if(g.st!=null){ s2+=T_((xs[7]+xs[8])/2,yy+rowH-6,g.st.toFixed(2),fs,400,'#16181d','middle')+T_((xs[8]+xs[9])/2,yy+rowH-6,(g.dps!=null?g.dps.toFixed(2):NA),fs,400,'#16181d','middle'); }
       s2+='<line x1="'+xs[5]+'" y1="'+(yy+rowH)+'" x2="'+xs[9]+'" y2="'+(yy+rowH)+'" stroke="#e3e5e9"/>';
       s2+='<line x1="'+mx+'" y1="'+(yy+rowH)+'" x2="'+xs[2]+'" y2="'+(yy+rowH)+'" stroke="#e3e5e9"/>';
     });
@@ -10265,7 +10270,7 @@ function reportPages(r, prev, W, H, nP){
     });
     for(k9=2;k9<xs.length;k9++) s2+='<line x1="'+xs[k9]+'" y1="'+y0+'" x2="'+xs[k9]+'" y2="'+yEnd+'" stroke="#c9ccd2"/>';
     s2+='<line x1="'+mx+'" y1="'+y0+'" x2="'+xs[9]+'" y2="'+y0+'" stroke="#16181d" stroke-width="1.2"/>';
-    s2+=T_(mx,yEnd+15,'通過は合図から（Startは反応時間）。50m・25mは区間タイム、ｶｳﾝﾄはその25mのストローク数。壁の手前5mは泳速なし。Sタイム・S長は泳ぎ区間の値、空欄は測定なし。',9.5,700,'#5b6270');
+    s2+=T_(mx,yEnd+15,'通過は合図から（Startは反応時間）。50m・25mは区間タイム、ｶｳﾝﾄはその25mのストローク数。壁の手前5mは泳速なし。Sタイムはその25mの平均、S長は泳ぎ区間の泳速×Sタイム。',9.5,700,'#5b6270');
     tableBottom=yEnd+24;
     /* 非泳区間は 表の 下に（左半分に 表、右に 補足） */
     y2=tableBottom+30; rx=mx;
@@ -10323,7 +10328,7 @@ function reportPages(r, prev, W, H, nP){
   }
   /* 式と 注意 */
   var box=['効率指数＝泳ぐ速さ×1ストロークで進む距離（m²/秒）。大きいほど、少ないストロークで速く進めています。',
-           '泳ぐ速さ＝泳ぎ区間（スタート・ターン後の15mから壁の5m手前まで）の距離÷時間。1ストロークで進む距離＝泳ぐ速さ×その区間のST。',
+           '泳ぐ速さ＝泳ぎ区間（スタート・ターン後の15mから壁の5m手前まで）の距離÷時間。STはその区間のかき（グラフの青い点）の平均。1ストロークで進む距離＝泳ぐ速さ×ST。',
            'レース全体の効率指数は、区間の長さで重みをつけた平均です（Costillら 1985 のStroke Indexと同じ式）。',
            'ストロークの数え方：研究では1サイクル（同じ手が入水するたび）で数えます。平泳ぎ・バタフライは両手で1回です。'];
   s2+='<rect x="'+mx+'" y="'+y2+'" width="'+cw+'" height="'+(box.length*18+16)+'" rx="10" fill="#f4f6f8"/>';

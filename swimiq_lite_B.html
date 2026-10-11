@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.11.4">
+<meta name="app-ver" content="2026.10.11.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -6854,8 +6854,9 @@ $('dStroke').onclick=function(){
     $('dv').pause();
     if(dRec){
       dRec.strokes=dStrokes.slice();
-      dRec.updatedAt=Date.now();
-      dbPut(dRec).then(function(){ pushOne(dRec); toast(T('msgStrSaved')); paintList(); });
+      dRec.updatedAt=Date.now(); dRec.strokesAt=Date.now();
+      dRec.manualN=null; dRec.manualST=null; dRec.manualAt=null;     /* 計り直した 値を 使う */
+      dbPut(dRec).then(function(){ afterSave(dRec); toast(T('msgStrSaved')); });
     }
   }
   dPaintSR();
@@ -6864,8 +6865,9 @@ $('dUndo').onclick=function(){
   if(!dStrokes.length) return;
   dStrokes.pop(); dPaintSR();
   if(dRec){
-    dRec.strokes=dStrokes.slice(); dRec.updatedAt=Date.now();
-    dbPut(dRec).then(function(){ pushOne(dRec); });
+    dRec.strokes=dStrokes.slice(); dRec.updatedAt=Date.now(); dRec.strokesAt=Date.now();
+    dRec.manualN=null; dRec.manualST=null; dRec.manualAt=null;
+    dbPut(dRec).then(function(){ afterSave(dRec); });
   }
 };
 /* ===== きょりを かえた ときの つじつま合わせ =====
@@ -6946,9 +6948,12 @@ $('anaSave').onclick=function(){
   sbAsk(defName, aId, function(name, swId, swName, uwKick, uwDist, round){
   if(!swId && anaSwimId && swById(anaSwimId)){ swId=anaSwimId; swName=(swById(anaSwimId)||{}).name||swName; }
   thumb().then(function(th){
+    return (aId ? dbGet(aId).catch(function(){ return null; }) : Promise.resolve(null)).then(function(old){ return { th:th, old:old }; });
+  }).then(function(o){
+    var th=o.th, old=o.old;
     var rec={
       id: aId || ('r'+Date.now()),
-      at: Date.now(), turnOut: turnOutM,
+      at: (old && old.at) ? old.at : Date.now(), turnOut: turnOutM,
       title: (name||def).trim() || def,
       pool: Number($('pool').value),
       dist: Number($('dist').value),
@@ -6966,9 +6971,21 @@ $('anaSave').onclick=function(){
       uwKick: uwKick, uwDist: uwDist,
       round: round||''
     };
+    if(old){
+      /* 分析で 決めない もの（メモ・動画リンク・手入力の しるし など）は もとの まま のこす */
+      var k; for(k in old){ if(!(k in rec)) rec[k]=old[k]; }
+      if(old.videoUrl) rec.videoUrl=old.videoUrl;
+      if(!th && old.thumb) rec.thumb=old.thumb;
+      if(uwKick==null && old.uwKick!=null) rec.uwKick=old.uwKick;
+      if(uwDist==null && old.uwDist!=null) rec.uwDist=old.uwDist;
+      var sameStr = JSON.stringify(old.strokes||[])===JSON.stringify(rec.strokes||[]);
+      if(!sameStr){ rec.strokesAt=Date.now(); rec.manualN=null; rec.manualST=null; rec.manualAt=null; }
+    }else{
+      rec.strokesAt = (rec.strokes && rec.strokes.length) ? Date.now() : null;
+    }
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
-    if(rec) pushOne(rec);
+    if(rec) afterSave(rec);
     if(aDraftId && rec && aDraftId!==rec.id) draftDrop(aDraftId);
     aDraftId=null; aNoDraft=true;
     toast(T('msgSavedDev'));
@@ -7524,6 +7541,11 @@ function openDetail(id){
   });
 }
 $('dBack').onclick=function(){
+  /* ストロークを 計っている 途中なら、ここまでの 分を 保存するか たずねます（キャンセルは 前の 記録の まま） */
+  if($('detail').classList.contains('stroke')){
+    if(dStrokes.length && confirm('ストロークの計測中です。ここまでの'+dStrokes.length+'回を保存しますか？\n\n「キャンセル」を押すと、前の記録のままにします。')) $('dStroke').click();
+    else { $('detail').classList.remove('stroke'); $('dStroke').setAttribute('aria-pressed','false'); $('dStroke').textContent=T('bStroke'); if(dRec) dStrokes=(dRec.strokes||[]).slice(); }
+  }
   stHudHide(); stModeShow(false);
   $('dv').pause(); show('home'); paintList();
 };
@@ -7651,10 +7673,9 @@ $('rfSave').onclick=function(){
   var swId=swSelId('rfSwim'), swNm=swId ? ((swById(swId)||{}).name||'') : ($('rfName').value||'').trim();
   if(!(dist>0)){ toast(T('distBad')); return; }
   /* 新しい きょりに ない 通過タイムが あれば、けして よいか たしかめます */
-  var all=lapDists(dist), ok={}, i, keep=[], bad=[];
-  for(i=0;i<all.length;i++) ok[all[i]]=1;
+  var i, keep=[], bad=[];
   var sp=dRec.splits||[];
-  for(i=0;i<sp.length;i++){ if(ok[sp[i].d]) keep.push(sp[i]); else bad.push(sp[i].d); }
+  for(i=0;i<sp.length;i++){ if(sp[i].d>0 && sp[i].d<=dist) keep.push(sp[i]); else bad.push(sp[i].d); }
   if(bad.length){
     var list=bad.join('m・')+'m';
     if(!confirm(T('askTrim1')+dist+T('askTrim2')+list+T('askTrim3'))) return;
@@ -7674,7 +7695,7 @@ $('rfSave').onclick=function(){
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
     if(!rec) return;
-    pushOne(rec);
+    afterSave(rec);
     $('reFix').classList.add('hide');
     toast(T('mSaved'));
     paintList();
@@ -9010,11 +9031,20 @@ function raceBest(r){
 function raceFoot(r){
   return (r && r.splits && r.splits.length) ? r.splits[r.splits.length-1].t : null;
 }
-function raceStroke(r){
-  /* 修正で入れた ストローク数・テンポ(manualN/manualST)が あれば 優先する
-     （手入力の記録でも、動画の記録でも どちらでも 上書きできる） */
-  var nOv  = (r.manualN!=null) ? r.manualN : null;
-  var stOv = (r.manualST!=null && r.manualST>0) ? r.manualST : null;
+/* 修正画面で 入れた ストローク数・テンポを 使うか どうか。
+   手入力・ストップウォッチの 記録 … いつも 使う（かきの 時刻が ないので）
+   動画の 記録 … 修正画面で 計った 値と ちがう 数を 入れて 保存した とき（manualAt）だけ。
+   そのあと ストロークを 計り直したら（strokesAt が 新しい）、計り直した 値を 使う */
+function strokeOvOn(r){
+  if(!r) return false;
+  if(r.manual || !(r.strokes && r.strokes.length)) return (r.manualN!=null || (r.manualST!=null && r.manualST>0));
+  if(!r.manualAt) return false;
+  return !(r.strokesAt && r.strokesAt > r.manualAt);
+}
+function raceStroke(r, measuredOnly){
+  var ov = !measuredOnly && strokeOvOn(r);
+  var nOv  = (ov && r.manualN!=null) ? r.manualN : null;
+  var stOv = (ov && r.manualST!=null && r.manualST>0) ? r.manualST : null;
   if(nOv!=null || stOv!=null){
     var st1=stOv, n1=nOv, j;
     if((st1==null || n1==null) && !r.manual){   /* 上書きされていない側は 動画のtapから 計算 */
@@ -10805,9 +10835,9 @@ $('swSave').onclick=function(){
   var st=swStStats();
   if(swStrokes.length){ rec.manualN=swStrokes.length; if(st.avg!=null) rec.manualST=Math.round(st.avg*100)/100; rec.swStrokes=swStrokes.slice(); }
   dbPut(rec).then(function(){
-    pushOne(rec);
+    afterSave(rec);
     toast(T('swSaved'));
-    swReset(); swClose(); paintList();
+    swReset(); swClose();
     bestCheer(rec);
   });
 };
@@ -10861,12 +10891,26 @@ $('mSave').onclick=function(){
     updatedAt: Date.now(),
     thumb: ''
   };
-  dbPut(rec).then(function(){
-    pushOne(rec);
+  (manualEditId ? dbGet(manualEditId).catch(function(){ return null; }) : Promise.resolve(null)).then(function(old){
+    if(old){
+      var k; for(k in old){ if(!(k in rec)) rec[k]=old[k]; }
+      rec.pool = old.pool || rec.pool;
+      if(old.thumb) rec.thumb=old.thumb;
+      if(old.videoUrl && !rec.videoUrl) rec.videoUrl=old.videoUrl;
+      /* 距離が 同じなら ラップは のこし、ゴールの タイムだけ 入れかえる */
+      var os=(old.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+      if(os.length>1 && Number(old.dist)===dist && os[os.length-1].d===dist){
+        os[os.length-1]={ d:dist, t:t }; rec.splits=os.filter(function(x){ return x.d===dist || x.t<t; });
+      }
+      /* 区間ごとに 入れて いない ときは、もとの ストローク数・テンポ（ストップウォッチ）を のこす */
+      if(!hasN && old.manualN!=null) rec.manualN=old.manualN;
+      if(!cntST && old.manualST!=null) rec.manualST=old.manualST;
+    }
+    return dbPut(rec);
+  }).then(function(){
+    afterSave(rec);
     $('manualBox').classList.add('hide');
     toast(T('mSaved'));
-    paintList();
-    cmpReload();
     bestCheer(rec);
   });
 };
@@ -10991,7 +11035,10 @@ function turnOutAsk(){
   var on=(Number(($('pool')||{}).value)===25) || turnOn;
   if(!on) return;
   var box=$('toDlg'), sel=$('toSwim'); if(!box || !sel) return;
-  if(!anaSwimId){ try{ anaSwimId=localStorage.getItem('swimiq_lastswim')||''; }catch(e){} }
+  if(!anaSwimId){
+    try{ anaSwimId=localStorage.getItem('swimiq_toswim')||''; }catch(e){}
+    if(!anaSwimId){ try{ anaSwimId=(JSON.parse(localStorage.getItem('swimiq_lastswim')||'{}')||{}).id||''; }catch(e){} }
+  }
   var a=loadSwimmers();
   sel.innerHTML='<option value="">えらばない</option>';
   a.forEach(function(x){ var o=document.createElement('option'); o.value=x.id; o.textContent=x.name; sel.appendChild(o); });
@@ -11024,7 +11071,7 @@ function turnOutSet(v, sw){
     var a=loadSwimmers();
     for(var i=0;i<a.length;i++) if(a[i].id===sw.id){ a[i].turnOut=v; break; }
     saveSwimmers(a);
-    try{ localStorage.setItem('swimiq_lastswim', sw.id); }catch(e){}
+    try{ localStorage.setItem('swimiq_toswim', sw.id); }catch(e){}
   }
   $('toDlg').classList.add('hide');
   try{ paintTbl(); anaP.paint(); }catch(e){}
@@ -11123,8 +11170,14 @@ $('vfSave').onclick=function(){
     if(rec.rt!=null && rec.sigT!=null && rec.t0!=null){ rec.sigT = rec.t0 - rec.rt; }   /* 合図の 時刻も 同じ R.T に そろえる */
     sp.sort(function(x,y){ return x.d-y.d; });
     rec.splits=sp;
-    rec.manualN  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
-    rec.manualST = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
+    var _nIn  = (nv==='')  ? null : Math.max(0, Math.round(Number(nv)));
+    var _stIn = (stv==='') ? null : (Number(stv)>0 ? Number(stv) : null);
+    var _ms = raceStroke(rec, true);       /* 計った 値 */
+    var _nCh  = (_nIn!=null)  && !(_ms.n!=null  && _ms.n===_nIn);
+    var _stCh = (_stIn!=null) && !(_ms.st!=null && Math.abs(_ms.st-_stIn)<0.005);
+    if(rec.manual || !(rec.strokes && rec.strokes.length)){ rec.manualN=_nIn; rec.manualST=_stIn; }
+    else if(_nCh || _stCh){ rec.manualN=_nIn; rec.manualST=_stIn; rec.manualAt=Date.now(); }
+    else { rec.manualN=null; rec.manualST=null; rec.manualAt=null; }   /* 計った 値の まま → 計った 値を 使う */
     rec.videoUrl = ($('vfVid').value||'').trim();
     rec.memo = ($('vfMemo').value||'').trim();
     var _mt=($('vfMeet').value||'').trim(); rec.title = _mt || autoTitle(rec.at, rec.dist);
@@ -11140,7 +11193,7 @@ $('vfSave').onclick=function(){
     if(bad.length) setTimeout(function(){ toast('確認：'+bad[0]); }, 900);
     return dbPut(rec).then(function(){ return rec; });
   }).then(function(rec){
-    if(rec) pushOne(rec);
+    if(rec) afterSave(rec);
     $('vFix').classList.add('hide');
     toast(T('mSaved'));
     vfRefresh();
@@ -11825,6 +11878,14 @@ window.addEventListener('focus', function(){ syncAuto(); });
 syncTimer();
 /* 保存した記録を すぐ クラウドへ（うまくいかなくても 画面は そのまま） */
 function pushOne(rec){ if(SYNC_URL && rec) cloudPush([rec]); }
+/* 保存した あとは かならず これを 通します：同期・一覧・比較・くらべる画面を 同じ 記録に そろえる */
+function afterSave(rec){
+  if(!rec) return;
+  pushOne(rec);
+  try{ paintList(); }catch(e){}
+  try{ if(typeof cmpReload==='function') cmpReload(); }catch(e){}
+  try{ if(dRec && dRec.id===rec.id){ var v=dRec.video; dRec=rec; if(!dRec.video && v) dRec.video=v; dPaintSR(); } }catch(e){}
+}
 
 /* 設定：同期アドレスの ほぞんと 同期ボタン */
 $('syncUrl').value = SYNC_URL || SYNC_BAD;
@@ -12124,6 +12185,8 @@ $('exJson').onclick=function(){
                manualSegs:(r.manualSegs||null), videoUrl:(r.videoUrl||''),
                swimmerId:(r.swimmerId||''), swimmerName:(r.swimmerName||''),
                sigT:(r.sigT!=null?r.sigT:null), rt:(r.rt!=null?r.rt:null), rtMode:(r.rtMode||null),
+               turnOut:(r.turnOut||null), memo:(r.memo||''), uwKick:(r.uwKick!=null?r.uwKick:null), uwDist:(r.uwDist!=null?r.uwDist:null),
+               manualAt:(r.manualAt||null), strokesAt:(r.strokesAt||null),
                updatedAt:(r.updatedAt||r.at) };
     });
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
@@ -12161,6 +12224,8 @@ $('fImport').onchange=function(){
         videoUrl: (src.videoUrl||''),
         swimmerId: (src.swimmerId||''), swimmerName: (src.swimmerName||''),
         sigT: (src.sigT!=null?src.sigT:null), rt: (src.rt!=null?src.rt:null), rtMode: (src.rtMode||null),
+        turnOut: (src.turnOut||null), memo: (src.memo||''), uwKick: (src.uwKick!=null?src.uwKick:null), uwDist: (src.uwDist!=null?src.uwDist:null),
+        manualAt: (src.manualAt||null), strokesAt: (src.strokesAt||null),
         updatedAt: (src.updatedAt || src.at || Date.now()),
         thumb: ''
       };

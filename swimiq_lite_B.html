@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.8">
+<meta name="app-ver" content="2026.10.12.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -151,6 +151,7 @@ button, select, input{ font-family:inherit; }
 #msrSvg.hide, #msrBox.hide{ display:none; }
 #msrBox{ position:absolute; z-index:7; top:calc(env(safe-area-inset-top) + 62px); left:50%; transform:translateX(-50%);
   width:min(560px,72vw); background:rgba(0,0,0,.72); pointer-events:none; border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; }
+#msrBox.chk{ pointer-events:auto; max-height:calc(100% - 80px); overflow-y:auto; }
 #msrBox.low{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 96px); }
 #msrT{ display:block; color:var(--am); font-size:17px; font-weight:900; }
 #msrM{ margin:4px 0 8px; font-size:14px; font-weight:700; line-height:1.5; }
@@ -159,7 +160,11 @@ button, select, input{ font-family:inherit; }
 /* 説明の 板の 上を 押しても 下の 動画（ロープ）を 押せるように。ボタンだけ 押せます */
 .msrBtns .btn{ pointer-events:auto; }
 .msrLaps{ margin-bottom:8px; }
-.msrLaps.hide{ display:none; }
+.msrLaps .btn{ min-height:34px; padding:2px 10px; font-size:13px; }
+.msrLaps.hide, #msrMap.hide{ display:none; }
+#msrMap{ margin:0 0 6px; }
+#msrMap svg{ display:block; width:100%; max-width:420px; height:auto; }
+.msrLaps .msrGl{ flex:0 0 100%; margin:2px 0 0; font-size:13px; font-weight:900; color:#fff; }
 .msrLaps .btn small{ display:block; font-size:11.5px; font-weight:700; opacity:.85; }
 /* 距離を計る 間は 左上の 結果の 板を かくして、動画を 押しやすく します */
 #ana.msring .oInfo, #detail.msring .oInfo{ visibility:hidden; }
@@ -2031,8 +2036,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <div id="msrBox" class="hide" role="dialog" aria-live="polite">
     <b id="msrT"></b>
     <p id="msrM"></p>
+    <div id="msrMap" class="hide"></div>
     <div class="msrBtns msrLaps hide" id="msrLaps"></div>
     <div class="msrBtns">
+      <button class="btn hide" type="button" id="msrNoRope">ロープも写っていない</button>
       <button class="btn y" type="button" id="msrRedo">合わせ直す</button>
       <button class="btn" type="button" id="msrClose">閉じる</button>
       <button class="btn" type="button" id="msrMove">この板を下へ</button>
@@ -4579,7 +4586,7 @@ var HELP=[
  ]],
  ['距離を計る（浮き上がりを 測る）',[
    '分析の 画面の <b>その他</b> →<b>距離を計る</b>、または 記録を 開いた 再生の 画面の <b>メニュー</b> →<b>距離を計る</b>を おします。再生の 画面で 入れた 浮き上がりは、その 記録に すぐ 保存されます。',
-   '動画を 止めたまま、泳いでいる レーンの 両側の コースロープを 4か所 押します。1点目は 手前の ロープの 10m（赤から 黄色に 変わる所）、2点目は 奥の ロープの 10m、3点目は 手前の ロープの 15m（黄色の 中の 赤い玉）、4点目は 奥の ロープの 15mです。',
+   '動画を 止めたまま、泳いでいる レーンの 両側の コースロープを 4か所 押します。はじめに 使う 目印（10mと15m、5mと10m、壁と10m など）を 選びます。1点目は 手前の ロープの 近い方の 目印、2点目は 奥の ロープの 近い方、3点目は 手前の ロープの 遠い方、4点目は 奥の ロープの 遠い方です。はじめに 図の 1から4の 点が 動画に 写って いるかを 確かめて、見切れて いる 点が あれば その 点を 選びます（1点まで）。見切れた 点の 番に なったら、同じ ロープの 写って いる 所を どこか 押すと、その 点を 予測します。',
    '4点 そろうと、レーンの 中に 1mごとの 白い 線が 出ます。浮き上がりの 瞬間で 止めて 頭を 押すと（5点目）、壁からの 距離が 出ます。つづけて「0〜25m」「25〜50m」のような 区間の ボタンから、登録したい 区間を 押します。同じ 区間に もう一度 登録すると 上書きされます。',
    'ターンの 浮き上がりは、ターンの 壁の 側で もう一度 4点を 合わせます。一度 合わせた 目もりは 記録に 残るので、次からは 頭を 押すだけです。',
    '浮き上がりを 入れた ラップは、浮き上がりから 泳ぎ区間として 泳効率を 計算します。入れて いない ラップは、今まで どおり 15m（ターンアウト）で 計算します。',
@@ -9492,6 +9499,35 @@ function naCards(kp){ (kp||[]).forEach(function(x){ if(x && x.v===NA){ x.u=''; x
    なければ スタートは 15m、ターンは ターンアウト（15m か 10m）の 通過。 */
 function lapCount(r){ var p=Number(r.pool)||50, d=Number(r.dist)||0; return d ? Math.max(1,Math.round(d/p)) : 0; }
 function splitBy(r){ var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t; return by; }
+/* かき数を ラップに 分ける ための さかい目（足離れからの 秒）。
+   ふだんは 通過タイム そのもの。ただし ターンの 壁では、壁に さわる 最後の かきを
+   タッチと 同時か 少し あとに 押す ことが あるので、通過の 1秒 以内の あとに 押した かきで、
+   その 次が ターンの 長い 間かく なら、その かきは 前の ラップに 入れます。
+   れい：25mの 通過 11.18秒、6かき目を 11.30秒に 押し、7かき目が 14.5秒 → 6かき目は 0-25m */
+var CUT_LATE=1.0;
+function splitCut(r){
+  var by=splitBy(r), cut={}, d, pool=Number(r&&r.pool)||50, dist=Number(r&&r.dist)||0;
+  for(d in by) cut[d]=by[d];
+  var a=strokeRel(r); if(a.length<3) return cut;
+  var iv=tempoTable(a, wantTurnsOf(dist||null, pool)), kindAt={};
+  iv.forEach(function(x){ kindAt[x.t]=x.kind; });
+  for(d in by){
+    var dn=Number(d); if(!(dn>0) || dn%pool!==0 || (dist && dn>=dist)) continue;
+    var t=by[d], j=-1, i;
+    for(i=0;i<a.length;i++) if(a[i]>t){ j=i; break; }
+    if(j<1 || j+1>=a.length) continue;
+    if(a[j]-t>CUT_LATE) continue;
+    var gapAfter=a[j+1]-a[j], gapBefore=a[j]-a[j-1];
+    var isTurn = kindAt[a[j+1]]==='turn' || gapAfter>=2*gapBefore;
+    if(isTurn) cut[d]=a[j];
+  }
+  /* ゴールの タッチも 同じ：通過の 1秒 以内の あとに 押した 最後の かきは 最後の ラップに 入れます */
+  if(dist && by[dist]!=null){
+    var last=a[a.length-1];
+    if(last>by[dist] && last-by[dist]<=CUT_LATE) cut[dist]=last;
+  }
+  return cut;
+}
 function boOf(r, lap){
   var p=Number(r.pool)||50, u=null;
   if(r.uw && r.uw[lap] && Number(r.uw[lap].d)>0) u=r.uw[lap];
@@ -9525,10 +9561,10 @@ function cleanSeg(r, from, to){
   var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
   if(by[from]==null || by[to]==null) return null;
   /* ST：ラップの 中の 青い 点 */
-  var iv=tempoTable(strokeRel(r), wantTurnsOf(Number(r.dist)||to, r.pool)), sum=0, num=0, k;
+  var iv=tempoTable(strokeRel(r), wantTurnsOf(Number(r.dist)||to, r.pool)), sum=0, num=0, k, cut=splitCut(r);
   for(k=0;k<iv.length;k++){
     var t1=iv[k].t;
-    if(t1>by[from] && t1<=by[to] && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+    if(t1>cut[from] && t1<=cut[to] && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
   }
   if(!num) return null;
   var st=sum/num, out={ st:st, sr:60/st, n:num, v:null, dps:null, ei:null, swimD:null, a:null, b:null };
@@ -9583,7 +9619,7 @@ function siSimple(r){
       var ms=r.manualSegs||[];
       if(ms.length===2 && ms[0] && ms[1] && ms[0].n!=null && ms[1].n!=null){ n1=ms[0].n; n2=ms[1].n; }
     }else{
-      var a=strokeRel(r); if(a.length){ n1=0; n2=0; for(i=0;i<a.length;i++){ if(a[i]<=by[h]) n1++; else if(a[i]<=by[d]) n2++; } }
+      var a=strokeRel(r), cH=splitCut(r); if(a.length){ n1=0; n2=0; for(i=0;i<a.length;i++){ if(a[i]<=cH[h]) n1++; else if(a[i]<=cH[d]) n2++; } }
     }
     var t1=by[h]+rt, t2=by[d]-by[h], c1=siCyc(r,n1), c2=siCyc(r,n2);
     if(c1>0 && c2>0) out.halves=[ { lbl:'前半', si:h*h/(t1*c1), t:t1, n:n1 }, { lbl:'後半', si:h*h/(t2*c2), t:t2, n:n2 } ];
@@ -9628,7 +9664,7 @@ function scTable(r){
   for(w=pool; w<=dist+0.001; w+=pool){
     if(by[w]==null) continue;
     var sx=span(p25,w); if(!sx) continue;
-    var n=0; for(k=0;k<arr.length;k++) if(arr[k]>pt25 && arr[k]<=by[w]) n++;
+    var cw=splitCut(r), n=0; for(k=0;k<arr.length;k++) if(arr[k]>(p25===0?0:cw[p25]) && arr[k]<=cw[w]) n++;
     laps25.push({ d:w, t:(by[w]-pt25)+(p25===0?rtv:0), n:(n||null), k0:sx[0], k1:sx[1] });
     p25=w; pt25=by[w];
   }
@@ -9766,13 +9802,13 @@ function srSegs(r){
   if(B.length<2) return [];
   var rtS=rtSec(r)||0;
   var t0=(r.t0!=null && r.t0>0)?Number(r.t0):0;
-  var iv=tempoTable(raw, wantTurnsOf(dist, r.pool)), out=[], k;
+  var iv=tempoTable(raw, wantTurnsOf(dist, r.pool)), out=[], k, cut=splitCut(r);
   for(i=1;i<B.length;i++){
-    var a=by[B[i-1]], b=by[B[i]], n=0, sum=0, num=0, nos=[];
-    for(k=0;k<raw.length;k++){ var tr=raw[k]-t0; if(tr>a && tr<=b) n++; }
+    var a=by[B[i-1]], b=by[B[i]], n=0, sum=0, num=0, nos=[], ca=cut[B[i-1]], cb=cut[B[i]];
+    for(k=0;k<raw.length;k++){ var tr=raw[k]-t0; if(tr>ca && tr<=cb) n++; }
     for(k=0;k<iv.length;k++){
       var ti=iv[k].t-t0;
-      if(ti>a && ti<=b){ nos.push(iv[k].no); if(iv[k].kind==='ok'){ sum+=iv[k].d; num++; } }
+      if(ti>ca && ti<=cb){ nos.push(iv[k].no); if(iv[k].kind==='ok'){ sum+=iv[k].d; num++; } }
     }
     var cs=cleanSeg(r, B[i-1], B[i]), st=cs?cs.st:null;
     out.push({ from:B[i-1], to:B[i], n:n, st:st, sr:st?60/st:null, nos:nos, clean:cs,
@@ -11208,7 +11244,40 @@ function vfUwRead(){
 var aMeas=null, aUw=[], msrOn=false, msrPick=null, msrDone=null;
 /* 分析の 画面（ana）と 再生の 画面（det）の どちらでも 使えるように、今 どちらで 使って いるかを おぼえます */
 var msrCtx='ana', dMeas=null;
-var MSR_W=[[10,0],[10,1],[15,0],[15,1]];   /* 1点目〜4点目の 場所（壁からの m、手前0・奥1） */
+/* 使う 目印の 組み合わせ（壁からの m）。1点目・2点目は 近い方、3点目・4点目は 遠い方 */
+var MSR_PATS=[[10,15],[5,10],[5,15],[0,5],[0,10],[0,15]];
+var msrPatLast=[10,15];
+try{ var _mp=JSON.parse(localStorage.getItem('swimiq_msrpat')||'null'); if(_mp && _mp.length===2) msrPatLast=_mp; }catch(e){}
+function msrPatOf(M, sd){ M.pat=M.pat||{}; if(!M.pat[sd]) M.pat[sd]=msrPatLast.slice(); return M.pat[sd]; }
+/* はじめの 確認：見切れて いる 点（-1＝4点とも 写って いる）を 側ごとに おぼえます */
+function msrChk(M, sd){ M.chk=M.chk||{}; return M.chk[sd]; }
+function msrAsk(M, sd){ M.ask=M.ask||{}; return M.ask[sd]||0; }
+function msrMissOf(M, sd){ M.miss=M.miss||{}; return (M.miss[sd]==null ? -1 : M.miss[sd]); }
+/* 次に 押す 点が 見切れた 点なら、予測の ための しるしを 入れて「同じ ロープの 写って いる 所」を 聞きます */
+function msrAdvance(M, sd){
+  var pts=M[sd]||(M[sd]=[]), mk=msrMissOf(M, sd);
+  if(pts.length<4 && pts.length===mk && !pts.some(function(q){ return q.miss; })){
+    var sp=msrSpot(msrPatOf(M, sd), pts.length);
+    pts.push({ miss:true, m:sp[0], s:sp[1], hint:null, hintWait:true });
+  }
+}
+/* 4つの 点の 場所を 小さな 図で 出します（見切れて いる 点は 点線） */
+function msrMapSvg(pat, mk, cur){
+  var W=440, H=70, xs=[170,350], ys=[52,18], h='<svg viewBox="0 0 '+W+' '+H+'" aria-hidden="true">';
+  h+='<text x="0" y="'+(ys[1]+5)+'" font-size="13" font-weight="900" fill="#fff">奥のロープ</text><text x="0" y="'+(ys[0]+5)+'" font-size="13" font-weight="900" fill="#fff">手前のロープ</text>';
+  h+='<line x1="100" y1="'+ys[0]+'" x2="436" y2="'+ys[0]+'" stroke="#f2b01e" stroke-width="5"/><line x1="100" y1="'+ys[1]+'" x2="436" y2="'+ys[1]+'" stroke="#f2b01e" stroke-width="5"/>';
+  for(var i=0;i<4;i++){
+    var sp=msrSpot(pat,i), x=xs[i<2?0:1], y=ys[sp[1]], miss=(i===mk);
+    if(i===cur) h+='<circle cx="'+x+'" cy="'+y+'" r="17" fill="none" stroke="#fff" stroke-width="3"/>';   /* 今 聞いて いる・押す 点 */
+    h+='<circle cx="'+x+'" cy="'+y+'" r="12" fill="'+(miss?'#000':'#f2b01e')+'" stroke="#f2b01e" stroke-width="3"'+(miss?' stroke-dasharray="4 3"':'')+'/>';
+    h+='<text x="'+x+'" y="'+(y+5)+'" font-size="14" font-weight="900" text-anchor="middle" fill="'+(miss?'#f2b01e':'#000')+'">'+(i+1)+'</text>';
+    h+='<text x="'+(x+22)+'" y="'+(y+5)+'" font-size="13" font-weight="900" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke">'+(sp[0]===0?'壁':sp[0]+'m')+(miss?' 見切れ':'')+'</text>';
+  }
+  return h+'</svg>';
+}
+function msrPatName(pt){ return pt.map(function(m){ return m===0 ? '壁' : m+'m'; }).join('と'); }
+/* i点目（0から）の 場所：壁からの m と 手前0・奥1 */
+function msrSpot(pat, i){ return [pat[i<2?0:1], i%2]; }
 function msrDet(){ return msrCtx==='det' && !!dRec; }
 function msrVid(){ return $(msrDet()?'dv':'v'); }
 function msrHost(){ return $(msrDet()?'detail':'ana'); }
@@ -11254,10 +11323,36 @@ function msrHom(src, dst){
   return function(x,y){ var w=h[6]*x+h[7]*y+1; return [(h[0]*x+h[1]*y+h[2])/w, (h[3]*x+h[4]*y+h[5])/w]; };
 }
 /* 1つの 壁の 側の 4点 → 画面⇔水面 の 式（そろって いなければ null） */
-function msrFit(pts){
+/* 見切れた 1点を 予測します。
+   同じ ロープの 写って いる 所（hint）が あれば、そのロープの 線と「もう一方の 距離の 横の 線と 平行な 線」の 交わる 所。
+   なければ、ほかの 3点で 平行四辺形を 作ります（遠近の ちぢみを 考えないので ずれが 大きく なります）。 */
+function msrResolve(pts){
   if(!pts || pts.length<4) return null;
-  var img=pts.map(function(q){ return [q.x,q.y]; });
-  var toW=msrHom(img, MSR_W), toI=msrHom(MSR_W, img);
+  var out=pts.map(function(q){ return q.miss ? null : [q.x,q.y]; }), k=-1, i;
+  for(i=0;i<4;i++) if(pts[i].miss){ if(k>=0) return null; k=i; }
+  if(k<0) return out;
+  if(pts[k].hintWait) return null;
+  function find(f){ for(var j=0;j<4;j++) if(j!==k && f(pts[j])) return j; return -1; }
+  var J=find(function(q){ return q.s===pts[k].s && q.m!==pts[k].m; }),
+      C=find(function(q){ return q.m===pts[k].m && q.s!==pts[k].s; }),
+      O=find(function(q){ return q.m!==pts[k].m && q.s!==pts[k].s; });
+  if(J<0||C<0||O<0) return null;
+  var j=out[J], c=out[C], o=out[O], tx=j[0]-o[0], ty=j[1]-o[1], P=null, hn=pts[k].hint;
+  if(hn && Math.hypot(hn.x-j[0], hn.y-j[1])>5){
+    var rx=hn.x-j[0], ry=hn.y-j[1], den=rx*ty-ry*tx;
+    if(Math.abs(den)>1e-6){
+      var u=((c[0]-j[0])*ty-(c[1]-j[1])*tx)/den;
+      P=[j[0]+u*rx, j[1]+u*ry];
+    }
+  }
+  if(!P) P=[c[0]+tx, c[1]+ty];
+  out[k]=P;
+  return out;
+}
+function msrFit(pts){
+  var img=msrResolve(pts); if(!img) return null;
+  var wld=pts.map(function(q){ return [q.m, q.s]; });
+  var toW=msrHom(img, wld), toI=msrHom(wld, img);
   if(!toW || !toI) return null;
   /* 手前と 奥が 入れかわって いないか：10m手前→15m手前→15m奥→10m奥 が ねじれない 四角形なら よい */
   var Q=[img[0],img[2],img[3],img[1]], sg=0, ok=true;
@@ -11282,15 +11377,15 @@ function msrLap(){
 function lapName(i){ return i===0 ? 'スタート' : ('ターン'+i); }
 function msrSide(lap){ return (lap%2===0) ? 'a' : 'b'; }   /* スタート・ターン2・ターン4… は スタートの 壁の 側 */
 function msrWallName(lap){ return (lap%2===0) ? 'スタートの壁' : 'ターンの壁'; }
-function msrLbl(i, lap){
-  var wall=msrWallName(lap);
-  return (i%2===0 ? '手前' : '奥')+'のロープの「'+(i<2 ? wall+'から10m（赤から黄色に変わる所）' : wall+'から15m（黄色の中の赤い玉）')+'」';
+function msrLbl(i, lap, pat){
+  var wall=msrWallName(lap), m=msrSpot(pat,i)[0];
+  return (i%2===0 ? '手前' : '奥')+'のロープの「'+(m===0 ? wall+'（0m）' : wall+'から'+m+'m')+'」';
 }
 function msrPaint(){
   var svg=$('msrSvg'), box=$('msrBox');
   $('ana').classList.toggle('msring', msrOn && !msrDet()); $('detail').classList.toggle('msring', msrOn && msrDet());
   if(!msrOn){ svg.classList.add('hide'); box.classList.add('hide'); return; }
-  var M=msrMeas(), lap=msrLap(), sd=msrSide(lap), pts=M[sd]||(M[sd]=[]), F=msrFit(pts);
+  var M=msrMeas(), lap=msrLap(), sd=msrSide(lap), pts=M[sd]||(M[sd]=[]), F=msrFit(pts), pat=msrPatOf(M, sd), RS=msrResolve(pts);
   var B=msrBoxRect(), k=B.vw/B.w, h='', m, i;
   svg.classList.remove('hide'); box.classList.remove('hide');
   svg.style.left=B.left+'px'; svg.style.top=B.top+'px'; svg.style.width=B.w+'px'; svg.style.height=B.h+'px';
@@ -11305,23 +11400,50 @@ function msrPaint(){
     for(m=0;m<=top;m++){
       var big=(m%5===0);
       h+=ln(F.pt(m,0),F.pt(m,1),'#fff',(big?2.2:1.1)*k,(big?1:.75));
-      if(big && m!==10 && m!==15){ var q=F.pt(m,0); h+=txt(q.x, q.y+fs*1.6, m+'m'); }
+      if(big && pat.indexOf(m)<0){ var q=F.pt(m,0); h+=txt(q.x, q.y+fs*1.6, m+'m'); }
     }
   }
+  var missK=-1;
   pts.forEach(function(pt,j){
+    if(pt.miss){
+      missK=j;
+      if(pt.hint) h+='<circle cx="'+pt.hint.x+'" cy="'+pt.hint.y+'" r="'+(5*k)+'" fill="#fff" stroke="#000" stroke-width="'+(1.5*k)+'"/>';
+      if(!RS || !RS[j]) return;
+      /* 予測した 点は 点線の 丸で 出します */
+      h+='<circle cx="'+RS[j][0]+'" cy="'+RS[j][1]+'" r="'+(9*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+sw+'" stroke-dasharray="'+(4*k)+' '+(3*k)+'"/>'+txt(RS[j][0], RS[j][1]-12*k, (j+1)+'点目 予測', '#f2b01e');
+      return;
+    }
     /* 合わせて いる 間だけ「○点目」を 出します（そろったら 頭の 数字が 見やすいように 丸だけ） */
-    h+='<circle cx="'+pt.x+'" cy="'+pt.y+'" r="'+((F?6:9)*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+sw+'"/>'+(F?'':txt(pt.x, pt.y-12*k, (j+1)+'点目 '+MSR_W[j][0]+'m', '#f2b01e'));
+    h+='<circle cx="'+pt.x+'" cy="'+pt.y+'" r="'+((F?6:9)*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+sw+'"/>'+(F?'':txt(pt.x, pt.y-12*k, (j+1)+'点目 '+pt.m+'m', '#f2b01e'));
   });
-  var n=pts.length;
-  if(n<4){
-    $('msrT').textContent='距離を計る：場所を合わせる（'+(n+1)+'/4）';
-    $('msrM').textContent='動画を止めたまま、泳いでいるレーンの'+msrLbl(n, lap)+'を押してください。';
+  var n=pts.length, wait=(n && pts[n-1].miss && pts[n-1].hintWait), mk=msrMissOf(M, sd);
+  var needChk=(n===0 && !msrChk(M, sd)), mp=$('msrMap');
+  $('msrNoRope').classList.toggle('hide', !wait);
+  mp.classList.toggle('hide', !(needChk || n<4 || wait));
+  if(needChk || n<4 || wait) mp.innerHTML=msrMapSvg(pat, mk, needChk ? -1 : n - (wait?1:0));
+  box.classList.toggle('chk', needChk);
+  if(needChk){
+    /* はじめに 目印と「どの 点が 見切れて いるか」を 1点ずつ 確かめます。答えるまで 点は 押せません */
+    /* 1点ずつ「写って いますか？」と 聞きます（1点目の ときだけ、使う 目印も 選べます） */
+    var q=msrAsk(M, sd), sq=msrSpot(pat, q);
+    mp.innerHTML=msrMapSvg(pat, mk, q);
+    $('msrT').textContent='確認 '+(q+1)+'/4：'+(q+1)+'点目は動画に写っていますか？';
+    $('msrM').textContent=(q+1)+'点目は、'+(sq[1]?'奥':'手前')+'のロープの「'+msrWallName(lap)+(sq[0]===0?'（0m）':'から'+sq[0]+'m')+'」です。';
+    lb.innerHTML='<button class="btn g" type="button" data-vis="1">写っている</button><button class="btn y" type="button" data-vis="0">見切れている</button>'+
+      (q===0 ? '<p class="msrGl">使う目印</p>'+MSR_PATS.map(function(z){ var on=(z[0]===pat[0] && z[1]===pat[1]); return '<button class="btn '+(on?'g':'y')+'" type="button" data-pat="'+z.join(',')+'">'+esc(msrPatName(z))+'</button>'; }).join('') : '');
+    lb.classList.remove('hide');
+  }else if(wait){
+    $('msrT').textContent=n+'点目（'+(pts[n-1].s?'奥':'手前')+'のロープの'+(pts[n-1].m===0?'壁':pts[n-1].m+'m')+'）は見切れているので予測します';
+    $('msrM').textContent='同じ'+(pts[n-1].s?'奥':'手前')+'のロープの、写っている所をどこか1か所押してください。印の所でなくてかまいません。ロープも写っていないときは「ロープも写っていない」を押してください。';
+  }else if(n<4){
+    $('msrT').textContent='距離を計る：'+(n+1)+'点目を押す';
+    $('msrM').textContent='泳いでいるレーンの'+msrLbl(n, lap, pat)+'を押してください。'+(mk>=0 && mk>n ? '（'+(mk+1)+'点目は見切れているので、あとで予測します）' : '');
   }else if(!F){
     $('msrT').textContent='うまく合わせられませんでした';
     $('msrM').textContent='手前と奥を入れちがえたかもしれません。「合わせ直す」を押して、もう一度1点目から押してください。';
   }else if(!msrDone){
     $('msrT').textContent='距離を計る準備ができました（'+msrWallName(lap)+'の側）';
-    $('msrM').textContent='浮き上がりの瞬間で止めて、頭を押してください。白い線は1mごとです。';
+    $('msrM').textContent='浮き上がりの瞬間で止めて、頭を押してください。白い線は1mごとです。'+(missK>=0?'（'+(missK+1)+'点目は予測なので、少しずれることがあります）':'');
   }else{
     var d=msrDone, w=F.w(d.pt), a=F.pt(w[0],0), b=F.pt(w[0],1);
     h+=ln(a,b,'#f2b01e',3*k);
@@ -11398,8 +11520,16 @@ $('msrSvg').addEventListener('pointerdown', function(e){
   e.preventDefault(); e.stopPropagation();
   var B=msrBoxRect(), pt={ x:(e.clientX-B.sx)/B.w*B.vw, y:(e.clientY-B.sy)/B.h*B.vh };
   var M=msrMeas(), lap=msrLap(), sd=msrSide(lap), pts=M[sd]||(M[sd]=[]);
-  if(pts.length<4){
-    pts.push({ x:pt.x, y:pt.y, m:MSR_W[pts.length][0], s:MSR_W[pts.length][1] });
+  if(!pts.length && !msrChk(M, sd)){ msrPaint(); return; }   /* まだ 確認に 答えて いない */
+  var last=pts[pts.length-1];
+  if(last && last.miss && last.hintWait){
+    last.hint={ x:pt.x, y:pt.y }; delete last.hintWait;   /* 見切れた 点と 同じ ロープの 写って いる 所 */
+    msrDone=null;
+    if(pts.length===4 && msrDet() && msrFit(pts)) msrDetSave();
+  }else if(pts.length<4){
+    var sp=msrSpot(msrPatOf(M, sd), pts.length);
+    pts.push({ x:pt.x, y:pt.y, m:sp[0], s:sp[1] });
+    msrAdvance(M, sd);
     msrDone=null;
     if(pts.length===4 && msrDet() && msrFit(pts)) msrDetSave();
   }else{
@@ -11411,6 +11541,30 @@ $('msrSvg').addEventListener('pointerdown', function(e){
   msrPaint();
 });
 $('msrLaps').addEventListener('click', function(e){
+  var pb=e.target.closest('button[data-pat]');
+  if(pb){
+    var M=msrMeas(), sd=msrSide(msrLap()), q=pb.dataset.pat.split(',').map(Number);
+    M.pat=M.pat||{}; M.pat[sd]=q; msrPatLast=q.slice(); M.ask=M.ask||{}; M.ask[sd]=0;
+    try{ localStorage.setItem('swimiq_msrpat', JSON.stringify(q)); }catch(er){}
+    msrPaint(); return;
+  }
+  var vb=e.target.closest('button[data-vis]');
+  if(vb){
+    var M2=msrMeas(), sd2=msrSide(msrLap()), q=msrAsk(M2, sd2);
+    M2.chk=M2.chk||{}; M2.miss=M2.miss||{}; M2.ask=M2.ask||{};
+    if(q===0) M2.miss[sd2]=-1;
+    if(vb.dataset.vis==='0'){
+      if(msrMissOf(M2, sd2)>=0){
+        /* 見切れて いる 点が 2つ 以上 あると 予測できません */
+        alert('見切れている点が2つ以上あると、距離を計れません。\n\n写っている目印の組み合わせ（たとえば「5mと10m」）を選び直すか、4点のうち3点以上が写っている場面で止めてください。');
+        M2.ask[sd2]=0; M2.miss[sd2]=-1; msrPaint(); return;
+      }
+      M2.miss[sd2]=q;
+    }
+    if(q>=3){ M2.chk[sd2]=true; M2.ask[sd2]=0; M2[sd2]=[]; msrAdvance(M2, sd2); }
+    else M2.ask[sd2]=q+1;
+    msrDone=null; msrPaint(); return;
+  }
   var bt=e.target.closest('button[data-lap]'); if(!bt || !msrDone) return;
   var L=Number(bt.dataset.lap);
   msrSetUw(L, msrDone.d);
@@ -11418,7 +11572,13 @@ $('msrLaps').addEventListener('click', function(e){
   toast((L*msrPool())+'〜'+((L+1)*msrPool())+'mに '+msrDone.d.toFixed(1)+'m を登録しました');
   msrPaint();
 });
-$('msrRedo').onclick=function(){ var M=msrMeas(); M[msrSide(msrLap())]=[]; msrPick=null; msrDone=null; msrPaint(); };
+$('msrNoRope').onclick=function(){
+  var M=msrMeas(), pts=M[msrSide(msrLap())]||[], last=pts[pts.length-1];
+  if(last && last.miss){ delete last.hintWait; last.hint=null; }
+  if(pts.length===4 && msrDet() && msrFit(pts)) msrDetSave();
+  msrDone=null; msrPaint();
+};
+$('msrRedo').onclick=function(){ var M=msrMeas(), sd=msrSide(msrLap()); M[sd]=[]; M.chk=M.chk||{}; M.chk[sd]=false; M.ask=M.ask||{}; M.ask[sd]=0; M.miss=M.miss||{}; M.miss[sd]=-1; msrPick=null; msrDone=null; msrPaint(); };
 $('msrClose').onclick=function(){ msrCloseAll(); };
 /* 説明の 板が 押したい ロープに かさなる ときは、上と 下を 入れかえます */
 $('msrMove').onclick=function(){ var low=$('msrBox').classList.toggle('low'); this.textContent=low?'この板を上へ':'この板を下へ'; };
@@ -11627,9 +11787,9 @@ function raceLapData(r, step){
     var d0=d-pool;
     var t0=(d0===0)?0:by[d0], t1=by[d];
     if(t0==null || t1==null) continue;
-    var n=0, k, sum=0, num=0;
-    for(k=0;k<arr.length;k++) if(arr[k]>t0 && arr[k]<=t1) n++;
-    for(k=0;k<iv.length;k++) if(iv[k].t>t0 && iv[k].t<=t1 && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+    var n=0, k, sum=0, num=0, cutL=splitCut(r), c0=(d0===0)?0:cutL[d0], c1=cutL[d];
+    for(k=0;k<arr.length;k++) if(arr[k]>c0 && arr[k]<=c1) n++;
+    for(k=0;k<iv.length;k++) if(iv[k].t>c0 && iv[k].t<=c1 && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
     var st = num ? sum/num : null;
     var lt = (t1-t0) + ((d0===0) ? rt : 0);
     out.push({ from:d0, to:d, lap:out.length+1, t:lt, cum:t1+rt,

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.11.7">
+<meta name="app-ver" content="2026.10.12.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -4169,6 +4169,21 @@ function download(blob,name){
   a.href=u; a.download=name; document.body.appendChild(a); a.click();
   setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); }, 1500);
   toast(T('msgSaved'));
+}
+/* ===== フォルダを えらんで 保存 =====
+   パソコンの Chrome・Edge … 保存の 画面が 出て、フォルダと 名前を えらべます（前に えらんだ フォルダを 覚えます）
+   iPhone・iPad … 共有の 画面の「ファイルに保存」で フォルダを えらべます
+   それ以外（Mac の Safari など）… ダウンロードの フォルダに 入ります */
+function canPickFolder(){ return typeof window.showSaveFilePicker==='function'; }
+function saveToFolder(blob, name, type, hint, ext, kind){
+  if(canPickFolder()){
+    var acc={}; acc[type]=[ext];
+    window.showSaveFilePicker({ id:'swimiq-'+(kind||'file'), suggestedName:name, types:[{ description:(kind==='pdf'?'PDF':'データ'), accept:acc }] })
+      .then(function(h){ return h.createWritable().then(function(w){ return w.write(blob).then(function(){ return w.close(); }); }).then(function(){ toast('保存しました：'+h.name); }); })
+      .catch(function(err){ if(err && err.name==='AbortError') return; shareFile(blob,name,type,hint); });
+    return;
+  }
+  shareFile(blob,name,type,hint);
 }
 function shareFile(blob,name,type,hint){
   var f=null;
@@ -10677,8 +10692,10 @@ function pdfFallback(r){ buildReport(r); toast(T('pdfHint')); setTimeout(functio
 $('pdfClose').onclick=function(){ $('pdfView').classList.add('hide'); };
 $('pdfSave').onclick=function(){
   if(!pdfBlobCur) return;
-  shareFile(pdfBlobCur, pdfNameCur, 'application/pdf', T('pdfShareHint'));
+  saveToFolder(pdfBlobCur, pdfNameCur, 'application/pdf', T('pdfShareHint'), '.pdf', 'pdf');
 };
+/* 保存の ボタンの 名前：フォルダを えらべる ときは そう 書く */
+(function(){ var b=$('pdfSave'); if(b && canPickFolder()){ b.removeAttribute('data-t'); b.textContent='保存（フォルダを選ぶ）'; } })();
 $('dPdf').onclick=function(){ if(dRec) downloadPDF(dRec); };
 $('mPdf').onclick=function(){ if(manualEditId){ dbGet(manualEditId).then(function(rec){ if(rec) downloadPDF(rec); }); } };
 
@@ -12205,7 +12222,7 @@ $('exJson').onclick=function(){
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
     var blob = new Blob([JSON.stringify(payload)], { type:'application/json' });
     var d=new Date(), name='swimiq_data_'+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'.json';
-    shareFile(blob, name, 'application/json', T('exJsonBtn'));
+    saveToFolder(blob, name, 'application/json', T('exJsonBtn'), '.json', 'data');
   });
 };
 $('fImport').onchange=function(){

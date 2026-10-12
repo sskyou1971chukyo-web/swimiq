@@ -6,21 +6,21 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.15">
+<meta name="app-ver" content="2026.10.13.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SwimIQ B">
+<meta name="apple-mobile-web-app-title" content="SWIMIQ B">
 <meta name="theme-color" content="#0b0b0c">
 <link rel="manifest" href="liteb_manifest.webmanifest">
 <link rel="apple-touch-icon" href="liteb-icon-180.png">
 <link rel="icon" type="image/png" href="liteb-icon-192.png">
-<title>SwimIQ LITE B</title>
+<title>SWIMIQ LITE B</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap">
 <style>
 /* =========================================================
-   SwimIQ LITE B ― 見た目のきまり
+   SWIMIQ LITE B ― 見た目のきまり
    競技用の計時板（黒地に黄色の数字）と、プールサイドの
    注意テープを手本にしています。
      黒  … 下地。動画のじゃまをしない
@@ -1575,6 +1575,8 @@ body, button, select, input, textarea{
   border-bottom:3px solid #111318; padding-bottom:9px; }
 #report .rlogo{ font-weight:900; font-size:23px; }
 #report .rlogo .iq{ color:#c98a00; }
+#report .rlogo .rbr{ font-family:Impact,"Arial Narrow Bold","Arial Black",sans-serif; font-style:italic; font-weight:400; font-size:26px; }
+#report .rlogo .rbr sup{ font-size:.4em; font-style:normal; }
 #report .rlogo .rep{ margin-left:10px; font-size:13px; font-weight:800; color:#5b6270; }
 #report .rmeta{ text-align:right; font-size:11px; color:#5b6270; font-weight:600; line-height:1.5; }
 #report .rtitle{ margin:11px 0 3px; font-size:19px; font-weight:900; }
@@ -3951,7 +3953,7 @@ var W={
 
  shareBtn:['選手に 共有する','選手に共有する'],
  cmpShareBtn:['共有する（LINE・メールなど）','共有する（LINEやメールなど）'],
- cmpShareTitle:['SwimIQ の きろく','SwimIQ の記録'],
+ cmpShareTitle:['SWIMIQ の きろく','SWIMIQ の記録'],
 
  exGl:['パソコン・ほかの端末と やりとり','パソコン・他の端末とやりとり'],
  exCsvBtn:['ぜんぶ CSV で 書き出す<small>パソコンの表けいさんソフトで 開けます</small>','全記録をCSVで書き出す<small>パソコンの表計算ソフトで開けます</small>'],
@@ -4243,7 +4245,7 @@ function shareFile(blob,name,type,hint){
    共有が つかえない ときは、コピーだけ しておきます。 */
 function shareText(text, title){
   if(navigator.share){
-    navigator.share({ title:title||'SwimIQ', text:text }).then(function(){},function(err){
+    navigator.share({ title:title||'SWIMIQ', text:text }).then(function(){},function(err){
       if(err && err.name!=='AbortError'){
         if(navigator.clipboard && navigator.clipboard.writeText){
           navigator.clipboard.writeText(text).then(function(){ toast(T('msgCopied')); });
@@ -4674,7 +4676,7 @@ function stInts(arr){
    れい： 1:00.62　1.29ST　46.5SR　0.53RT */
 function sumLine(last, ss, rt){
   var p=[];
-  if(last) p.push(fmt(totalT(last.t, aRTsec())));
+  if(last) p.push(fmt(totalT(last.t, rt)));   /* その 記録の R.T（分析中は 分析中の R.T）。前は いつも 分析中の R.T を 使って いました */
   if(ss && ss.st!=null && ss.st>0) p.push(ss.st.toFixed(2)+'ST');
   if(ss && ss.sr!=null && ss.sr>0) p.push(ss.sr.toFixed(1)+'SR');
   if(rt!=null) p.push(Number(rt).toFixed(2)+'RT');
@@ -4741,7 +4743,7 @@ function paintSheet(){
   }
 }
 function anaText(){
-  var L=['SwimIQ LITE B', $('anaTitle').textContent,
+  var L=['SWIMIQ LITE B', $('anaTitle').textContent,
          $('pool').value+'mプール　'+$('dist').value+'m', ''];
   if(aSplits.length){
     L.push('['+T('glSplit')+']');
@@ -4787,7 +4789,7 @@ function paintSR(){
 /* けっかの 見出しの かんたん表記を 出しなおす */
 function paintAnaSum(){
   var lastS = aSplits.length ? aSplits[aSplits.length-1] : null;
-  $('anaSum').textContent = sumLine(lastS, tempoStats(stInts(aStrokes), wantTurnsOf($('dist').value, $('pool').value)), aRT);
+  $('anaSum').textContent = sumLine(lastS, raceStroke(anaRec(), true), aRTsec());   /* 保存した あとの 画面・PDFと 同じ 計算 */
   /* タイムと RT の タイル（ちいさい 見出し＋大きい 数字） */
   $('oT').textContent  = lastS ? fmt(totalT(lastS.t, aRTsec())) : '--';
   $('oTL').textContent = lastS ? (lastS.d+'m') : T('timeLbl');
@@ -6659,11 +6661,15 @@ function dPaintSR(){
   var last = dRec && dRec.splits && dRec.splits.length ? dRec.splits[dRec.splits.length-1] : null;
   /* この 画面では SR（ストロークレート）は 出しません。
      タイム・ST・SC・RT の 4つだけに して、動画を ひろく 見せます */
+  /* ストロークを 計って いる 間は 今の 数（直近の テンポ）。ふだんは PDF・一覧と 同じ 計算の 値を 出します */
+  var meas=$('detail').classList.contains('stroke'), RS=(dRec && !meas) ? raceStroke(dRec) : null, rtD=dRec?rtSec(dRec):null;
+  var tT=last ? (dRec ? raceBest(dRec) : last.t) : null;
+  var stV=meas ? (avg||null) : (RS ? RS.st : null), nV=meas ? dStrokes.length : (RS && RS.n!=null ? RS.n : dStrokes.length);
   $('dStat').innerHTML =
-    '<div><span>'+(last? last.d+'m':T('timeLbl'))+'</span><b>'+(last? fmt(last.t):'--')+'</b></div>'+
-    '<div><span>'+T('avgST')+'</span><b>'+(avg? avg.toFixed(2):'--')+'</b></div>'+
-    '<div><span>'+T('scAbbr')+'</span><b>'+dStrokes.length+'</b></div>'+
-    ((dRec && dRec.rt!=null) ? ('<div><span>'+T('rtOutLbl')+'</span><b>'+Number(dRec.rt).toFixed(2)+'</b></div>') : '');
+    '<div><span>'+(last? last.d+'m':T('timeLbl'))+'</span><b>'+(tT!=null? fmt(tT):'--')+'</b></div>'+
+    '<div><span>'+T('avgST')+'</span><b>'+(stV? stV.toFixed(2):'--')+'</b></div>'+
+    '<div><span>'+T('scAbbr')+'</span><b>'+nV+'</b></div>'+
+    ((rtD!=null) ? ('<div><span>'+T('rtOutLbl')+'</span><b>'+rtD.toFixed(2)+'</b></div>') : '');
 }
 var dStrokeAt=0;
 function dAddStroke(x,y){
@@ -7295,8 +7301,8 @@ function recFacts(r){
     ['ST', ss.st!=null?ss.st.toFixed(2):NAL],
     ['SR', ss.sr!=null?ss.sr.toFixed(1):NAL],
     ['SC', ss.n!=null?ss.n:NAL],
-    ['効率', q?q.si.toFixed(2):NAL]
-  ];
+    ['効率指数', (eiQ(r)?eiQ(r).si.toFixed(2):NAL)]
+  ].concat((r.manual || !(r.strokes&&r.strokes.length)) && q ? [ ['簡易効率（合計タイムから）', q.si.toFixed(2)] ] : []);
 }
 function meetName(r){
   var t=stripRound((r&&r.title? String(r.title):'').trim());
@@ -7459,12 +7465,12 @@ function medalShow(m, recs){
   var days=Math.floor((Date.now()-first)/86400000), span = days>=60 ? (Math.floor(days/30)+'か月') : (days+'日');
   $('mdMedal').textContent=m; $('mdBig').textContent=m+'本';
   $('mdP').innerHTML=esc(top)+'<br>はじめての分析から '+span+'。<br>これまで分析した本数は '+recs.length+'本です。';
-  $('medalBox').dataset.m=m; $('medalBox').dataset.txt='SwimIQで '+m+'本の分析を達成しました！\n'+top+'\nはじめての分析から '+span+'。';
+  $('medalBox').dataset.m=m; $('medalBox').dataset.txt='SWIMIQで '+m+'本の分析を達成しました！\n'+top+'\nはじめての分析から '+span+'。';
   $('medalBox').classList.remove('hide');
   setTimeout(function(){ try{ $('mdBig').focus(); }catch(e){} }, 30);
 }
 $('mdOk').onclick=function(){ $('medalBox').classList.add('hide'); };
-$('mdSend').onclick=function(){ shareText($('medalBox').dataset.txt||'', 'SwimIQ 分析コレクション'); };
+$('mdSend').onclick=function(){ shareText($('medalBox').dataset.txt||'', 'SWIMIQ 分析コレクション'); };
 $('colEvs').addEventListener('click', function(e){ var b=e.target.closest('[data-ev]'); if(b) colOpen(b.dataset.ev); });
 $('colOthers').addEventListener('click', function(e){ var b=e.target.closest('[data-ev]'); if(b) colOpen(b.dataset.ev); });
 $('colRows').addEventListener('click', function(e){
@@ -7561,7 +7567,7 @@ function openDetail(id){
     dStrokes=(r.strokes||[]).slice();
     // まとめ
     var i, last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
-    $('dSum').textContent = sumLine(last, raceStroke(r), (r.rt!=null?r.rt:null));
+    $('dSum').textContent = sumLine(last, raceStroke(r), rtSec(r));
     dPaintSR();
     // 表
     var b=$('dTbl'); b.innerHTML='';
@@ -7790,7 +7796,7 @@ $('dVid').onclick=function(){
   shareFile(dRec.video, 'swimiq_'+dRec.id+ext, ty, T('shVid'));
 };
 function recText(r){
-  var L=['SwimIQ LITE B', recLabel(r), new Date(r.at).toLocaleString('ja-JP'), ''];
+  var L=['SWIMIQ LITE B', recLabel(r), new Date(r.at).toLocaleString('ja-JP'), ''];
   if(r.splits && r.splits.length){
     L.push('['+T('glSplit')+']');
     for(var i=0;i<r.splits.length;i++){
@@ -7830,7 +7836,7 @@ $('dCopy').onclick=function(){
 };
 $('dShare').onclick=function(){
   if(!dRec) return;
-  shareText(recText(dRec), recLabel(dRec)||'SwimIQ');
+  shareText(recText(dRec), recLabel(dRec)||'SWIMIQ');
 };
 $('dImg').onclick=function(){
   if(!dRec) return;
@@ -7854,7 +7860,7 @@ function sheetImage(r){
   g.fillStyle='#ffc400'; g.fillRect(0,0,W,10);
   var y=88;
   g.fillStyle='#fff'; g.font='900 46px sans-serif'; g.textBaseline='alphabetic';
-  g.fillText('SwimIQ LITE　'+recLabel(r), pad, y); y+=54;
+  g.fillText('SWIMIQ LITE　'+recLabel(r), pad, y); y+=54;
   g.fillStyle='#b5b5b5'; g.font='700 26px sans-serif';
   g.fillText(new Date(r.at).toLocaleString('ja-JP')+'　'+r.pool+'mプール　'+r.dist+'m', pad, y); y+=52;
   var cw=(W-pad*2-24)/3;
@@ -9792,7 +9798,7 @@ function turnText(ts){
 }
 function anaRec(){
   return { splits:aSplits, strokes:aStrokes, dist:Number($('dist').value), pool:Number($('pool').value),
-           t0:aT0, sigT:aSigT, rt:aRTsec(), event:$('event').value };
+           t0:aT0, sigT:aSigT, rt:aRTsec(), event:$('event').value, uw:aUw, uwDist:(aUw[0]&&aUw[0].d>0)?aUw[0].d:null, turnOut:turnOutM };
 }
 /* ===== 通過タイムで 区切った ストロークの まとまり =====
    れい：25mの 通過が 12.73秒 なら、12.73秒までの ストロークを 0-25m、
@@ -9891,6 +9897,22 @@ function srStrip(r, W, l, rr){
   });
   return { s:s, h:rows*rowH };
 }
+/* 点を 角の ない 曲線で つなぎます（単調な 3次曲線：点と 点の あいだで 山や 谷を 作りすぎない ので、
+   ない 値が 見えて しまう ことが ありません）。pts＝[[x,y],…]（x が 左から じゅん） */
+function smoothPath(pts){
+  var n=pts.length, i; if(!n) return ''; if(n<3) return pts.map(function(q,k){ return (k?'L':'M')+q[0]+' '+q[1]; }).join(' ');
+  var dx=[], dy=[], m=[], t=[];
+  for(i=0;i<n-1;i++){ dx.push(pts[i+1][0]-pts[i][0]); dy.push(pts[i+1][1]-pts[i][1]); m.push(dx[i] ? dy[i]/dx[i] : 0); }
+  t.push(m[0]);
+  for(i=1;i<n-1;i++){ t.push((m[i-1]*m[i]<=0) ? 0 : 3*(dx[i-1]+dx[i])/((2*dx[i]+dx[i-1])/m[i-1]+(dx[i]+2*dx[i-1])/m[i])); }
+  t.push(m[n-2]);
+  var d='M'+pts[0][0]+' '+pts[0][1];
+  for(i=0;i<n-1;i++){
+    var h=dx[i]/3;
+    d+=' C'+(pts[i][0]+h)+' '+(pts[i][1]+t[i]*h)+' '+(pts[i+1][0]-h)+' '+(pts[i+1][1]-t[i+1]*h)+' '+pts[i+1][0]+' '+pts[i+1][1];
+  }
+  return d;
+}
 function rpSVGsr(r){
   var arr=r.strokes||[], st=[]; for(var i=1;i<arr.length;i++){ var d=arr[i]-arr[i-1]; if(d>0.05) st.push(d); }
   if(st.length<2) return '';
@@ -9917,7 +9939,7 @@ function rpSVGsr(r){
   var ay=Y(tp.sr);
   s+='<line x1="'+pad.l+'" y1="'+ay+'" x2="'+(W-pad.r)+'" y2="'+ay+'" stroke="#c98a00" stroke-width="1.4" stroke-dasharray="5 4"/>';
   s+='<text x="'+(W-pad.r)+'" y="'+(ay-5)+'" text-anchor="end" font-size="9.5" font-weight="800" fill="#c98a00">平均SR '+tp.sr.toFixed(1)+'</text>';
-  var dp=swim.map(function(p,idx){ return (idx?'L':'M')+X(p.i)+' '+Y(p.sr); }).join(' ');
+  var dp=smoothPath(swim.map(function(p){ return [X(p.i), Y(p.sr)]; }));
   s+='<path d="'+dp+'" fill="none" stroke="#1e6fe0" stroke-width="'+(n>300?1.2:2.2)+'" stroke-linejoin="round" stroke-linecap="round"/>';
   if(n<=300) swim.forEach(function(p){ s+='<circle cx="'+X(p.i)+'" cy="'+Y(p.sr)+'" r="'+(n>120?1.6:3)+'" fill="#1e6fe0"/>'; });
   var ty=pad.t+ih-6;
@@ -9993,7 +10015,7 @@ function buildReport(r){
   var srSvg=rpSVGsr(r), splSvg=rpSVGsplits(r);
   var dt=new Date(r.at).toLocaleString('ja-JP');
   var html='<div class="rp">'+
-    '<div class="rhd"><div class="rlogo">スイム<span class="iq">IQ</span><span class="rep">レース分析レポート</span></div>'+
+    '<div class="rhd"><div class="rlogo"><span class="rbr">SWIM<span class="iq">IQ</span><sup>™</sup></span><span class="rep">レース分析レポート</span></div>'+
       '<div class="rmeta">'+dt+'<br>'+(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m</div></div>'+
     '<div class="rtitle">'+esc(recLabel(r))+'</div>'+
     '<div class="rsub"><span class="chip">'+evLabel(r.event)+'</span><span class="chip">'+(r.dist||'')+'m</span>'+
@@ -10015,7 +10037,7 @@ function buildReport(r){
        ((lapTempoText(r).length>1) ? ('<div class="rcap"><b>区間ごとの平均ST（秒／かき）</b>　'+esc(lapTempoText(r).join('　／　'))+'</div>') : '')+
        '<div class="rcap">横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。</div></div>') : '')+
     ((tp.turns.length||tp.outs.length) ? '<div class="rnote">※ '+turnNote(tp.turns, tp.outs)+'</div>' : '')+
-    '<div class="rft"><span>SwimIQ LITE B — レース分析レポート</span><span>作成 '+dt+'</span></div>'+
+    '<div class="rft"><span>SWIMIQ LITE B — レース分析レポート</span><span>作成 '+dt+'</span></div>'+
   '</div>';
   $('report').innerHTML=html;
 }
@@ -10038,7 +10060,7 @@ function reportSVG(r, W, H){
   var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" '+FF+'>';
   s+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#ffffff"/>';
   // header
-  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="#16181d">スイム<tspan fill="#c98a00">IQ</tspan></text>';
+  s+='<text x="'+mx+'" y="60" font-size="28" font-family="Impact, Arial Narrow Bold, Arial Black, sans-serif" font-style="italic" fill="#16181d">SWIM<tspan fill="#c98a00">IQ</tspan><tspan font-size="11" font-style="normal" dy="-14">™</tspan></text>';
   s+='<text x="'+(mx+150)+'" y="60" font-size="13" font-weight="800" fill="#5b6270">レース分析レポート</text>';
   s+='<text x="'+(W-mx)+'" y="46" font-size="11" font-weight="600" fill="#5b6270" text-anchor="end">'+esc(dt)+'</text>';
   s+='<text x="'+(W-mx)+'" y="62" font-size="11" font-weight="600" fill="#5b6270" text-anchor="end">'+(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m</text>';
@@ -10176,7 +10198,7 @@ function reportSVG(r, W, H){
   }
   // footer
   s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>';
-  s+='<text x="'+mx+'" y="'+(H-36)+'" font-size="9.5" font-weight="700" fill="#9aa0ab">SwimIQ LITE B — レース分析レポート</text>';
+  s+='<text x="'+mx+'" y="'+(H-36)+'" font-size="9.5" font-weight="700" fill="#9aa0ab">SWIMIQ LITE B — レース分析レポート</text>';
   s+='<text x="'+(W-mx)+'" y="'+(H-36)+'" font-size="9.5" font-weight="700" fill="#9aa0ab" text-anchor="end">作成 '+esc(dt)+'</text>';
   s+='</svg>';
   return s;
@@ -10304,7 +10326,7 @@ function reportPages(r, prev, W, H, nP){
   function head(page){
     var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" '+FF+'>';
     s+='<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#ffffff"/>';
-    s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="#16181d">スイム<tspan fill="#c98a00">IQ</tspan></text>';
+    s+='<text x="'+mx+'" y="60" font-size="28" font-family="Impact, Arial Narrow Bold, Arial Black, sans-serif" font-style="italic" fill="#16181d">SWIM<tspan fill="#c98a00">IQ</tspan><tspan font-size="11" font-style="normal" dy="-14">™</tspan></text>';
     s+=T_(mx+150,60,'レース分析レポート',13,800,'#5b6270');
     s+=T_(W-mx,46,dt+'　'+page,11,600,'#5b6270','end');
     s+=T_(W-mx,62,(r.pool||50)+'mプール　'+(r.dist||(last?last.d:'')||'')+'m',11,600,'#5b6270','end');
@@ -10317,7 +10339,7 @@ function reportPages(r, prev, W, H, nP){
   }
   function foot(page){
     return '<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>'+
-      T_(mx,H-36,'SwimIQ LITE B — レース分析レポート　'+page,9.5,700,'#9aa0ab')+T_(W-mx,H-36,'作成 '+dt,9.5,700,'#9aa0ab','end')+'</svg>';
+      T_(mx,H-36,'SWIMIQ LITE B — レース分析レポート　'+page,9.5,700,'#9aa0ab')+T_(W-mx,H-36,'作成 '+dt,9.5,700,'#9aa0ab','end')+'</svg>';
   }
   var G=srSegs(r), EIs=G.map(function(g){ return eiFor(r, g.from, g.to, g.st); });
   var eiR=raceEI(r), PO=partsOf(r);
@@ -10608,7 +10630,7 @@ function cmpPage(r, b, W, H, opt){
   function cut(t,n){ t=String(t||''); return t.length>n ? t.slice(0,n-1)+'…' : t; }
   var nmB=isRefM?(opt.refName||'記録'):(pair?'前の記録':KA('ベスト','ベスト'));
   var s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" '+FF+'><rect width="'+W+'" height="'+H+'" fill="#ffffff"/>';
-  s+='<text x="'+mx+'" y="60" font-size="26" font-weight="900" fill="'+K+'">スイム<tspan fill="#c98a00">IQ</tspan></text>'+T_(mx+150,60,isRefM?(nmB+KA('とのくらべ','との比較')):(pair?KA('記録のくらべ','記録の比較'):KA('ベストとのくらべ','ベストとの比較')),13,800,'#5b6270');
+  s+='<text x="'+mx+'" y="60" font-size="28" font-family="Impact, Arial Narrow Bold, Arial Black, sans-serif" font-style="italic" fill="#16181d">SWIM<tspan fill="#c98a00">IQ</tspan><tspan font-size="11" font-style="normal" dy="-14">™</tspan></text>'+T_(mx+150,60,isRefM?(nmB+KA('とのくらべ','との比較')):(pair?KA('記録のくらべ','記録の比較'):KA('ベストとのくらべ','ベストとの比較')),13,800,'#5b6270');
   s+=T_(W-mx,46,new Date().toLocaleString('ja-JP')+(pg?'　'+pg:''),11,600,'#5b6270','end');
   s+=T_(W-mx,62,(r.pool||50)+'mプール　'+(r.dist||'')+'m　'+evLabel(r.event),11,600,'#5b6270','end');
   s+='<line x1="'+mx+'" y1="82" x2="'+(W-mx)+'" y2="82" stroke="#111318" stroke-width="3"/>';
@@ -10729,7 +10751,7 @@ function cmpPage(r, b, W, H, opt){
   s+=T_(mx,y,'区間タイムの差：緑は'+nmB+'より速い、赤は遅い。効率指数：緑は'+nmB+'より大きい。かき数・ストロークタイム・潜りは良い悪いを決めず、灰色で違いだけ。',9.5,700,'#5b6270'); y+=14;
   s+=T_(mx,y,'帯のかきの点は泳ぎの区間に等間隔で並べています（実際にかいた場所ではありません）。「ー」は測定なし。潜りの合計は全部のラップを測ったときだけ出します。',9.5,700,'#5b6270');
   s+='<line x1="'+mx+'" y1="'+(H-52)+'" x2="'+(W-mx)+'" y2="'+(H-52)+'" stroke="#e4e6ea" stroke-width="1"/>'+
-     T_(mx,H-36,'SwimIQ — '+(isRefM?nmB+KA('とのくらべ','との比較'):(pair?KA('記録のくらべ','記録の比較'):KA('ベストとのくらべ','ベストとの比較')))+(pg?'　'+pg:''),9.5,700,GR)+
+     T_(mx,H-36,'SWIMIQ — '+(isRefM?nmB+KA('とのくらべ','との比較'):(pair?KA('記録のくらべ','記録の比較'):KA('ベストとのくらべ','ベストとの比較')))+(pg?'　'+pg:''),9.5,700,GR)+
      (isRefM ? T_(W-mx,H-36,cut('出どころ：'+((b.srcs||[])[0]||''),80),8.5,600,GR,'end') : '')+'</svg>';
   return s;
 }
@@ -10872,7 +10894,7 @@ function jpegsToPdf(list){
   var out=new Uint8Array(total), o=0; chunks.forEach(function(c){ out.set(c,o); o+=c.length; });
   return new Blob([out], { type:'application/pdf' });
 }
-var pdfBlobCur=null, pdfNameCur='SwimIQ.pdf', pdfImgURL=null;
+var pdfBlobCur=null, pdfNameCur='SWIMIQ.pdf', pdfImgURL=null;
 function downloadPDF(r){
   if(!r) return;
   toast(T('pdfMaking'));
@@ -10909,7 +10931,7 @@ function pdfShow(pages, label, onFail){
     var view=ims.pop();
     pdfBlobCur = jpegsToPdf(ims);
     var t=(label||'report').replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_').slice(0,40);
-    pdfNameCur = 'SwimIQ_'+t+'.pdf';
+    pdfNameCur = 'SWIMIQ_'+t+'.pdf';
     if(pdfImgURL){ try{ URL.revokeObjectURL(pdfImgURL); }catch(e){} }
     pdfImgURL = URL.createObjectURL(new Blob([view.u8], { type:'image/jpeg' }));
     $('pdfImg').src = pdfImgURL;
@@ -12268,7 +12290,7 @@ $('recNow').onclick=function(){ recFetch(false).then(function(c){ if(!c) toast(R
 recStatePaint();
 $('vwWR').onclick=function(){ if(vwRec) refCompare(vwRec,'WR'); };
 $('vwJR').onclick=function(){ if(vwRec) refCompare(vwRec,'JR'); };
-$('vwCopy').onclick=function(){ if(vwRec) shareText(recText(vwRec), recLabel(vwRec)||'SwimIQ'); };
+$('vwCopy').onclick=function(){ if(vwRec) shareText(recText(vwRec), recLabel(vwRec)||'SWIMIQ'); };
 $('vwEdit').onclick=function(){
   if(!vwRec) return;
   $('viewBox').classList.add('hide');
@@ -12553,7 +12575,7 @@ function pairOpen(){
 }
 $('pairOpen').onclick=pairOpen;
 $('pairClose').onclick=function(){ $('pairBox').classList.add('hide'); };
-$('pairSend').onclick=function(){ shareText('SwimIQ をつなぐリンクです。開いて「OK」を押してください。\n'+pairLink(), 'SwimIQ をつなぐ'); };
+$('pairSend').onclick=function(){ shareText('SWIMIQ をつなぐリンクです。開いて「OK」を押してください。\n'+pairLink(), 'SWIMIQ をつなぐ'); };
 $('pairCopy').onclick=function(){
   var u=pairLink();
   if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(function(){ toast(T('msgCopied')); }, function(){ toast(T('msgCopyNG')); });
@@ -12757,7 +12779,7 @@ function uploadPending(){
 /* ===== パソコン・ほかの端末と やりとり =====
    動画は おもすぎるので、書き出す 中身は 数字だけ（日づけ・種目・きょり・
    タイム・ST・SR・かき数）。CSV は パソコンの Excel などで そのまま 開けます。
-   データを書き出す（JSON）は、ほかの スマホの SwimIQ LITE B に そのまま
+   データを書き出す（JSON）は、ほかの スマホの SWIMIQ LITE B に そのまま
    読み込ませる ための ものです。                                       */
 function csvCell(s){
   s = String(s==null ? '' : s);
@@ -13221,12 +13243,21 @@ function cmpFiltered(){
     return raceBest(r)!==null;
   });
 }
-/* 効率指数で 成長を 見る カード */
+/* 効率指数で 成長を 見る カード（PDFと 同じ 計算） */
+/* 効率指数（PDFと 同じ：泳ぎ区間の 速さ×1かきで 進む 距離）と、その 前半・後半 */
+function eiQ(r){
+  if(!r || r.manual) return null;
+  var si=raceEI(r); if(si==null) return null;
+  var G=srSegs(r), d=Number(r.dist)||0, h=d/2, a=[0,0], w=[0,0];
+  G.forEach(function(g){ var e=eiFor(r,g.from,g.to,g.st); if(!e) return; var k=(g.to<=h)?0:1; a[k]+=e.ei*e.swimD; w[k]+=e.swimD; });
+  var halves=(w[0]&&w[1]) ? [ { lbl:'前半', si:a[0]/w[0] }, { lbl:'後半', si:a[1]/w[1] } ] : null;
+  return { si:si, halves:halves };
+}
 function siGrowHtml(list){
-  var rows=list.map(function(r){ return { r:r, q:siSimple(r) }; }).filter(function(x){ return x.q; });
+  var rows=list.map(function(r){ return { r:r, q:eiQ(r) }; }).filter(function(x){ return x.q; });
   var h='<div class="siGrow">';
   if(!rows.length){
-    h+='<p class="siMsg">ストローク数が入っている記録がありません。ストロークを数えるか、修正でストローク数を入れると効率指数が出ます。</p>';
+    h+='<p class="siMsg">効率指数が出せる記録がありません。動画で通過タイムとストロークを計ると効率指数が出ます（手入力の記録は、かきの時刻がないので出ません）。</p>';
   }else{
     var L=rows[0], P=rows[1]||null, F=rows[rows.length-1];
     function pct(a,b){ return (a-b)/b*100; }
@@ -13247,9 +13278,7 @@ function siGrowHtml(list){
       if(P && P.q.halves){ var b2=P.q.halves[1].si; h+='<div class="siRow"><span>後半どうし（前回 '+b2.toFixed(2)+'）</span><b class="'+(b>=b2?'up':'dn')+'">'+sg(pct(b,b2))+'</b></div>'; }
     }
   }
-  h+='<p class="siNote">効率指数＝距離×距離÷（合計時間×ストローク数）。速さ×1ストロークで進む距離と同じです。数字が大きいほど、少ないストロークで速く泳げています。合計時間には合図からの時間、スタートとターンの水中も含みます。</p>';
-  h+='<button type="button" class="btn" id="siHalfBtn" style="width:100%;margin-top:6px;">自由形・背泳ぎは半分にする：'+(siHalf?'オン':'オフ')+'</button>';
-  h+='<p class="siNote">片手ずつ数えている場合はオンにします。バタフライ・平泳ぎ（両手で1回）にそろえて計算します。</p>';
+  h+='<p class="siNote">効率指数＝泳ぐ速さ×1ストロークで進む距離（PDFと同じ）。泳ぎ区間（浮き上がり、なければ15mから、壁の5m手前まで）だけで計算するので、スタートとターンの水中は入りません。数字が大きいほど、少ないストロークで速く泳げています。</p>';
   return h+'</div>';
 }
 function cmpSetN(n){ cmpN=n; paintCompare(); }
@@ -13303,14 +13332,14 @@ function paintCompare(){
      '</div>';
 
   h+='<div class="seg" id="cmpSegTab" style="margin-top:8px;">'+
-      [['time',T('cmpTabTime')],['st',T('cmpTabST')],['sc',T('nStr')],['si','効率']].map(function(p){
+      [['time',T('cmpTabTime')],['st',T('cmpTabST')],['sc',T('nStr')],['si','効率指数']].map(function(p){
         return '<button type="button" data-tab="'+p[0]+'" aria-pressed="'+(cmpTab===p[0]?'true':'false')+'">'+p[1]+'</button>';
       }).join('')+
      '</div>';
 
   if(!mixed){
     h+='<div class="cmpGraphWrap"><canvas id="cmpCanvas" height="220"></canvas></div>';
-    h+='<p class="cmpNote">'+(cmpTab==='si' ? '上ほど効率が良い（数字が大きいほど成長）' : (cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast')))+'</p>';
+    h+='<p class="cmpNote">'+(cmpTab==='si' ? '上ほど効率指数が大きい（数字が大きいほど成長）。手入力の記録は入りません' : (cmpTab==='sc' ? T('cmpNoteSC') : T('cmpNoteFast')))+'</p>';
     if(cmpTab==='si') h+=siGrowHtml(list);
   }
 
@@ -13379,7 +13408,7 @@ function paintBestTable(list){
     })(el[i]);
   }
   $('bstShare').onclick=function(){
-    var L=['SwimIQ　'+T('tabBest'),''], c=null, k;
+    var L=['SWIMIQ　'+T('tabBest'),''], c=null, k;
     for(k=0;k<rows.length;k++){
       var q=rows[k], w=q.who||T('swimNone');
       if(w!==c){ c=w; L.push(''); L.push('【'+w+'】'); }
@@ -13440,7 +13469,7 @@ function paintMeetView(list){
   for(i=0;i<sb.length;i++){
     (function(btn){
       btn.onclick=function(){
-        var key=btn.dataset.m, name=key.split('\u241e')[0], arr=g[key]||[], L=['SwimIQ　'+name,''], j;
+        var key=btn.dataset.m, name=key.split('\u241e')[0], arr=g[key]||[], L=['SWIMIQ　'+name,''], j;
         for(j=0;j<arr.length;j++){
           var q=arr[j], ss=raceStroke(q);
           L.push((whoOf(q)||'')+'　'+evLabel(q.event)+' '+(q.dist||'')+'m'+(roundOf(q)?'　'+roundOf(q):'')+'　'+fmt(raceBest(q))+
@@ -13582,7 +13611,7 @@ function pairRow(label, av, bv, diff){
   return '<div class="cmpPairRow"><span class="lb">'+label+'</span><span class="a">'+av+'</span><span class="b">'+bv+'</span><span class="df">'+d+'</span></div>';
 }
 function cmpProgressText(list, bestT, bestRec, avgT){
-  var L=['SwimIQ LITE B　記録の比較',''];
+  var L=['SWIMIQ LITE B　記録の比較',''];
   L.push(T('cmpBest')+'　'+fmt(bestT)+'　'+(bestRec?(new Date(bestRec.at).toLocaleDateString('ja-JP')+'　'+recLabel(bestRec)):''));
   L.push(T('cmpAvg')+'　'+(avgT!=null?fmt(avgT):'--')+'（'+list.length+T('cmpUnit')+'）');
   L.push('');
@@ -13595,7 +13624,7 @@ function cmpProgressText(list, bestT, bestRec, avgT){
   return L.join('\n');
 }
 function cmpPairText(a,b,ta,tb,sa,sb){
-  var L=['SwimIQ LITE B　2件を比較',''];
+  var L=['SWIMIQ LITE B　2件を比較',''];
   L.push('A：'+recLabel(a)+'　'+new Date(a.at).toLocaleDateString('ja-JP'));
   L.push('B：'+recLabel(b)+'　'+new Date(b.at).toLocaleDateString('ja-JP'));
   L.push('');
@@ -13698,7 +13727,7 @@ function drawCmpChart(list, tab){
     var r=list[i], v=null;
     if(tab==='time') v=raceBest(r);
     else if(tab==='st') v=raceStroke(r).st;
-    else if(tab==='si'){ var _q=siSimple(r); v=_q?-_q.si:null; }   /* 大きいほど よいので 上下を 逆に */
+    else if(tab==='si'){ var _q=eiQ(r); v=_q?-_q.si:null; }   /* 大きいほど よいので 上下を 逆に（PDFと 同じ 効率指数） */
     else v=raceStroke(r).n;
     if(v!=null) pts.push({ r:r, v:v });
   }
@@ -13881,7 +13910,7 @@ function admInfo(){
   });
 }
 $('admInfoCopy').onclick=function(){
-  var tx='SwimIQ LITE B\n'+admLines.join('\n');
+  var tx='SWIMIQ LITE B\n'+admLines.join('\n');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(tx).then(function(){ toast(T('msgCopied')); }, function(){ toast(T('msgCopyNG')); });
   }else toast(T('msgCopyNo'));

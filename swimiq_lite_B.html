@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.5">
+<meta name="app-ver" content="2026.10.12.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -158,6 +158,9 @@ button, select, input{ font-family:inherit; }
 .msrBtns .btn{ width:auto; min-height:40px; padding:4px 12px; font-size:14px; }
 /* 説明の 板の 上を 押しても 下の 動画（ロープ）を 押せるように。ボタンだけ 押せます */
 .msrBtns .btn{ pointer-events:auto; }
+.msrLaps{ margin-bottom:8px; }
+.msrLaps.hide{ display:none; }
+.msrLaps .btn small{ display:block; font-size:11.5px; font-weight:700; opacity:.85; }
 /* 距離を計る 間は 左上の 結果の 板を かくして、動画を 押しやすく します */
 #ana.msring .oInfo, #detail.msring .oInfo{ visibility:hidden; }
 .tapL{ position:absolute; inset:0; z-index:1; margin:0; padding:0; border:0;
@@ -2028,6 +2031,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <div id="msrBox" class="hide" role="dialog" aria-live="polite">
     <b id="msrT"></b>
     <p id="msrM"></p>
+    <div class="msrBtns msrLaps hide" id="msrLaps"></div>
     <div class="msrBtns">
       <button class="btn y" type="button" id="msrRedo">合わせ直す</button>
       <button class="btn" type="button" id="msrClose">閉じる</button>
@@ -4576,7 +4580,7 @@ var HELP=[
  ['距離を計る（浮き上がりを 測る）',[
    '分析の 画面の <b>その他</b> →<b>距離を計る</b>、または 記録を 開いた 再生の 画面の <b>メニュー</b> →<b>距離を計る</b>を おします。再生の 画面で 入れた 浮き上がりは、その 記録に すぐ 保存されます。',
    '動画を 止めたまま、泳いでいる レーンの 両側の コースロープを 4か所 押します。1点目は 手前の ロープの 10m（赤から 黄色に 変わる所）、2点目は 奥の ロープの 10m、3点目は 手前の ロープの 15m（黄色の 中の 赤い玉）、4点目は 奥の ロープの 15mです。',
-   '4点 そろうと、レーンの 中に 1mごとの 白い 線が 出ます。浮き上がりの 瞬間で 止めて 頭を 押すと（5点目）、その ラップの 浮き上がりに すぐ 決まります。押し直すと 上書きされます。',
+   '4点 そろうと、レーンの 中に 1mごとの 白い 線が 出ます。浮き上がりの 瞬間で 止めて 頭を 押すと（5点目）、壁からの 距離が 出ます。つづけて「0〜25m」「25〜50m」のような 区間の ボタンから、登録したい 区間を 押します。同じ 区間に もう一度 登録すると 上書きされます。',
    'ターンの 浮き上がりは、ターンの 壁の 側で もう一度 4点を 合わせます。一度 合わせた 目もりは 記録に 残るので、次からは 頭を 押すだけです。',
    '浮き上がりを 入れた ラップは、浮き上がりから 泳ぎ区間として 泳効率を 計算します。入れて いない ラップは、今まで どおり 15m（ターンアウト）で 計算します。',
    '記録の 修正の 画面でも、ラップごとの 浮き上がりを 数字で 入れられます（長水路の 100mは 2つ、短水路の 100mは 4つ）。'
@@ -11273,7 +11277,8 @@ function msrPaint(){
   svg.classList.remove('hide'); box.classList.remove('hide');
   svg.style.left=B.left+'px'; svg.style.top=B.top+'px'; svg.style.width=B.w+'px'; svg.style.height=B.h+'px';
   svg.setAttribute('viewBox','0 0 '+B.vw+' '+B.vh);
-  var fs=14*k, sw=2.5*k;
+  var fs=14*k, sw=2.5*k, lb=$('msrLaps');
+  lb.classList.add('hide');
   function txt(x,y,t,col,anc){ return '<text x="'+x+'" y="'+y+'" font-size="'+fs+'" font-weight="900" fill="'+(col||'#fff')+'" stroke="#000" stroke-width="'+(3*k)+'" paint-order="stroke" text-anchor="'+(anc||'middle')+'">'+esc(t)+'</text>'; }
   function ln(a,b,col,wd,op){ return '<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="'+col+'" stroke-width="'+wd+'" opacity="'+(op||1)+'"/>'; }
   if(F){
@@ -11304,8 +11309,20 @@ function msrPaint(){
     h+=ln(a,b,'#f2b01e',3*k);
     h+='<circle cx="'+d.pt.x+'" cy="'+d.pt.y+'" r="'+(11*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+(3*k)+'"/>';
     h+=txt(d.pt.x, d.pt.y-16*k, '5点目 頭 '+d.d.toFixed(1)+'m', '#f2b01e');
-    $('msrT').textContent=lapName(d.lap)+'の浮き上がり '+d.d.toFixed(1)+'m　'+(msrDet()?'保存しました':'入れました');
-    $('msrM').textContent='押し直すと、上書きされます。'+(msrDet()?'':'記録を保存すると、いっしょに保存されます。');
+    if(d.to==null){
+      /* どの 区間の 浮き上がりに 登録するかを 聞きます（動画の 時刻から 決めた 区間を 黄色で ぬって おきます） */
+      $('msrT').textContent='壁から '+d.d.toFixed(1)+'m　どの区間に登録しますか？';
+      $('msrM').textContent='登録したい区間を押してください。頭を押し直すと、測り直せます。';
+      var P=msrPool(), N=msrLapN(), hb='';
+      for(var L=0;L<N;L++){
+        var cur=msrUwOf(L);
+        hb+='<button class="btn '+((L===d.lap && msrHasT0())?'g':'y')+'" type="button" data-lap="'+L+'">'+(L*P)+'〜'+((L+1)*P)+'m<small>'+lapName(L)+(cur?'　今 '+cur.toFixed(1)+'m':'')+'</small></button>';
+      }
+      lb.innerHTML=hb; lb.classList.remove('hide');
+    }else{
+      $('msrT').textContent=(d.to*msrPool())+'〜'+((d.to+1)*msrPool())+'mに '+d.d.toFixed(1)+'m を登録しました';
+      $('msrM').textContent=(msrDet()?'この記録に保存しました。':'記録を保存すると、いっしょに保存されます。')+'次の浮き上がりも、止めて頭を押してください。';
+    }
   }
   svg.innerHTML=h;
 }
@@ -11326,7 +11343,21 @@ $('dMsr').onclick=function(){
   msrMeas();
   msrOn=true; msrPick=null; msrDone=null; msrPaint();
 };
-/* 頭（5点目）を 押したら、その ラップの 浮き上がりに すぐ 決めます */
+/* 足離れが 入って いれば 動画の 時刻から 区間が わかるので、その 区間を 黄色で ぬります */
+function msrHasT0(){ return msrDet() ? (dRec.t0!=null && (dRec.splits||[]).length>0) : (aT0!=null && aSplits.length>0); }
+/* 区間の 数（長水路100mは 2、短水路100mは 4） */
+function msrLapN(){
+  var p=msrPool(), dist=(msrDet()?Number(dRec.dist):Number($('dist').value))||p;
+  return Math.max(1, Math.round(dist/p));
+}
+/* その 区間に 今 入って いる 浮き上がり（なければ null） */
+function msrUwOf(L){
+  var arr=msrDet() ? (dRec.uw||[]) : aUw, u=arr[L];
+  if(u && u.d>0) return Number(u.d);
+  if(L===0 && msrDet() && !(dRec.uw&&dRec.uw.length) && Number(dRec.uwDist)>0) return Number(dRec.uwDist);
+  return null;
+}
+/* 頭（5点目）を 押して 区間を えらんだら、その 区間の 浮き上がりに 登録します */
 function msrSetUw(lap, d){
   var u={ d:Math.round(d*10)/10, vt:Math.round(msrVid().currentTime*100)/100 };
   if(msrDet()){
@@ -11354,9 +11385,16 @@ $('msrSvg').addEventListener('pointerdown', function(e){
     var F=msrFit(pts); if(!F){ msrPaint(); return; }
     var d=Math.max(0, Math.min(msrPool(), F.m(pt)));
     if(!(d>0)){ msrPaint(); return; }
-    var saved=msrSetUw(lap, d);
-    msrDone={ pt:pt, d:saved, lap:lap };
+    msrDone={ pt:pt, d:Math.round(d*10)/10, lap:lap, to:null };   /* まだ 登録しない。区間を 聞きます */
   }
+  msrPaint();
+});
+$('msrLaps').addEventListener('click', function(e){
+  var bt=e.target.closest('button[data-lap]'); if(!bt || !msrDone) return;
+  var L=Number(bt.dataset.lap);
+  msrSetUw(L, msrDone.d);
+  msrDone.to=L;
+  toast((L*msrPool())+'〜'+((L+1)*msrPool())+'mに '+msrDone.d.toFixed(1)+'m を登録しました');
   msrPaint();
 });
 $('msrRedo').onclick=function(){ var M=msrMeas(); M[msrSide(msrLap())]=[]; msrPick=null; msrDone=null; msrPaint(); };

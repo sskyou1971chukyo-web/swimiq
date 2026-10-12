@@ -84,6 +84,54 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 .libPaste{margin-top:8px}
 .libPaste summary{cursor:pointer;font-weight:700;padding:6px 0}
 .libPaste textarea{width:100%}
+.pdRow{display:block;font-size:17px;padding:6px 0;cursor:pointer}
+.pdRow input{transform:scale(1.3);margin-right:8px}
+.ygrid{display:grid;grid-template-columns:repeat(var(--ycols,4),minmax(220px,1fr));gap:0;margin-top:12px;background:#fff;border:3px solid #16202e;overflow-x:auto}
+.ymon{border-right:3px solid #16202e;min-width:0}
+.ymon:last-child{border-right:none}
+.ytitle{display:none}
+.yhead,.yrow{display:grid;grid-template-columns:2.2em 2.2em 2.2em 1fr}
+.yhead{border-bottom:2.5px solid #16202e;font-weight:700;text-align:center;height:30px;line-height:30px;font-size:16px}
+.yhead span,.yrow>span{border-right:1px solid #999}
+.yrow{border-bottom:1px dotted #9aa}
+.yrow>span{display:flex;align-items:center;justify-content:center;font-size:15px}
+.yrow .ym{font-weight:700;font-size:18px;align-items:flex-start;border-right:1px solid #999}
+.yrow .yd{font-weight:700}
+.yrow .yw.off{background:#c8c8c8}
+.yrow.yempty .yw,.yrow.yempty .yd{background:#fafafa}
+.yrow.ytoday .yd{background:#ffbf00}
+.yev{background:transparent;border:none;padding:0;cursor:pointer;width:100%;height:100%}
+.yev:hover,.yev:focus-visible{background:#eef5fd}
+.ybody{position:relative}
+.ylayer{position:absolute;top:0;bottom:0;left:6.6em;right:0;pointer-events:none}
+.yshape{position:absolute;pointer-events:auto;cursor:pointer;padding:2px;font:inherit;color:#16202e;overflow:hidden}
+.ybox{border:1.5px solid #16202e;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;line-height:1.25;font-size:14px}
+.ybox.cutT{border-top-style:dashed}.ybox.cutB{border-bottom-style:dashed}
+.ybox small{display:block;font-size:.78em;font-weight:700}
+.ylbl{position:relative}
+.yarrow{background:transparent;border:none;display:flex;align-items:center;justify-content:center}
+.yvt{position:relative;font-weight:700;font-size:13px;line-height:1.08;text-align:center}
+.ytext{position:absolute;right:4px;left:70%;text-align:right;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;pointer-events:auto}
+.ytext button{background:none;border:none;padding:0;font:inherit;cursor:pointer;color:#16202e}
+.yshape:focus-visible,.ytext button:focus-visible{outline:3px solid #ffbf00;z-index:5}
+.yUl{list-style:none;padding:0;margin:0}
+.yUl li{padding:6px 0;border-bottom:1px dotted var(--line);font-size:16px}
+.ycols{border:2px solid var(--line);border-radius:8px;margin-top:8px;padding:6px 10px}
+.ycols legend{font-size:13px;font-weight:700;color:var(--muted)}
+.ycol{display:inline-flex;align-items:center;gap:6px;margin:4px 14px 4px 0;font-size:15px}
+.ycol i{display:inline-block;width:22px;height:18px;border:1.5px solid #16202e}
+.yprint .yph{display:flex;justify-content:space-between;align-items:flex-end;height:36px;border-bottom:3px solid #000;margin-bottom:6px;font-size:20px}
+.yprint .yph span{font-size:16px}
+.yprint .ygrid{margin-top:0;overflow:hidden;font-size:12px}
+.yprint .ymon{min-width:0}
+.yprint .ytitle{display:none}
+.yprint .yhead{height:22px;line-height:22px;font-size:13px}
+.yprint .yrow>span{font-size:12px}
+.yprint .yrow .ym{font-size:14px}
+.yprint .ybox{font-size:11px}
+.yprint .yvt{font-size:10px}
+.yprint .ytext{font-size:9px}
+@media (max-width:700px){.ygrid{grid-template-columns:repeat(var(--ycols,4),minmax(260px,1fr))}}
 .libPick select{font-size:17px;max-width:100%}
 .libCard{display:flex;gap:16px;align-items:flex-start;border:2px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
 .libThumb{flex-shrink:0;width:180px;padding:0;border:2px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;cursor:pointer;line-height:0}
@@ -503,6 +551,7 @@ details.more[open]>summary{background:#e3eefa}
   <nav class="tabs" role="tablist" aria-label="画面の切り替え">
     <button role="tab" aria-selected="true" data-view="vMenu">メニュー作成</button>
     <button role="tab" aria-selected="false" data-view="vAnalysis">週間分析</button>
+    <button role="tab" aria-selected="false" data-view="vYear">年間スケジュール</button>
     <button role="tab" aria-selected="false" data-view="vPlan">ピリオダイゼーション</button>
     <button role="tab" aria-selected="false" data-view="vLib">資料（判断の根拠）</button>
     <button role="tab" aria-selected="false" data-view="vSettings">設定・バックアップ</button>
@@ -614,6 +663,28 @@ details.more[open]>summary{background:#e3eefa}
     <button class="btn ghost" id="aCsv">この週をCSVで保存</button>
   </div>
   <div id="aBody"></div>
+</section>
+
+<!-- ============ 年間スケジュール ============ -->
+<section id="vYear" class="view" aria-label="年間スケジュール">
+  <div class="card yctl">
+    <div class="row" style="gap:10px;align-items:flex-end">
+      <button class="btn primary big" id="yAdd">予定を入れる</button>
+      <button class="btn" id="yPrev" aria-label="1か月前へ">前の月</button>
+      <label class="fld">はじめの月<input type="month" id="yStart"></label>
+      <button class="btn" id="yNext" aria-label="1か月後へ">次の月</button>
+      <button class="btn ghost" id="yToday">今月から</button>
+      <label class="fld">表示する月の数<select id="yMonths"><option value="2">2か月</option><option value="3">3か月</option><option value="4">4か月</option><option value="6">6か月</option></select></label>
+      <label class="fld">印刷で1枚に入れる月<select id="yPer"><option value="2">2か月（A4縦）</option><option value="3">3か月（A4横）</option><option value="4">4か月（A4横）</option></select></label>
+      <button class="btn red primary big" id="yPrint">印刷とPDF保存</button>
+    </div>
+    <p class="muted" style="margin-top:6px"><b id="yRangeTxt"></b>　日付の行を押すと、その日から予定を入れられます。予定の箱を押すと直せます。試合は、ピリオダイゼーションの試合一覧と同じものが出ます。土日と祝日は灰色です。</p>
+  </div>
+  <div id="yGrid" class="ygrid"></div>
+  <div class="card" style="margin-top:12px">
+    <h2>この期間の予定の一覧</h2>
+    <div id="yList"></div>
+  </div>
 </section>
 
 <!-- ============ ピリオダイゼーション ============ -->
@@ -772,6 +843,10 @@ details.more[open]>summary{background:#e3eefa}
       <div id="grpPeaks" class="teamList"></div>
     </div>
     <div class="card">
+      <h2>PDFの保存先</h2>
+      <div id="pdfDestBox" role="radiogroup" aria-label="PDFの保存先"></div>
+    </div>
+    <div class="card">
       <h2>バックアップ</h2>
       <p class="muted">メニューはこのパソコンのブラウザに自動保存されます。ブラウザの履歴を消すと消えることがあるので、ときどきバックアップファイルを保存してください。別のパソコンへ移すときも、このファイルを読み込みます。</p>
       <p id="bkInfo" style="margin:8px 0"></p>
@@ -882,6 +957,27 @@ details.more[open]>summary{background:#e3eefa}
 </div>
 
 <!-- 説明 -->
+<div class="ov hidden" id="yeOv" role="dialog" aria-modal="true" aria-labelledby="yeTitle">
+  <div class="dlg">
+    <h2><span id="yeTitle">予定を入れる</span> <button class="btn ghost small" data-close="yeOv">閉じる</button></h2>
+    <div class="row" style="gap:10px">
+      <label class="fld">種類<select id="yeKind"></select></label>
+      <label class="fld" style="flex:1;min-width:220px">予定の名前<input type="text" id="yeName" placeholder="例：日本短水路、高地合宿"></label>
+    </div>
+    <label class="fld" style="margin-top:8px">場所やメモ（任意。名前の下に小さく出ます）<input type="text" id="yeSub" placeholder="例：佐賀アクア、NTC"></label>
+    <div class="row" style="gap:10px;margin-top:8px">
+      <label class="fld">始まりの日<input type="date" id="yeStart"></label>
+      <label class="fld">終わりの日<input type="date" id="yeEnd"></label>
+      <label class="fld">表の中の形<select id="yeShape"></select></label>
+    </div>
+    <fieldset class="ycols"><legend>色</legend><div id="yeColors"></div></fieldset>
+    <p id="yeNote" class="muted"></p>
+    <div class="foot">
+      <button class="btn red" id="yeDel">この予定を消す</button>
+      <button class="btn primary big" id="yeSave">保存</button>
+    </div>
+  </div>
+</div>
 <div class="ov hidden" id="evOv" role="dialog" aria-modal="true" aria-labelledby="evTitle">
   <div class="dlg wide">
     <h2 id="evTitle">このセットの根拠 <button class="btn ghost small" data-close="evOv">閉じる</button></h2>
@@ -2743,7 +2839,7 @@ function buildPrintPage(kind){
 }
 const SESSION_EN = {'朝':'AM','午後':'PM','夜':'night','その他':'other'};
 let printKind = 'menu';
-function pdfName(){ if(printKind === 'plansum' && pdfPlan) return 'periodization_' + (pdfPlan.target && pdfPlan.target.type === 'athlete' ? 'athlete' : 'team') + '_' + pdfPlan.weeks[0].start + '.pdf'; return ({compare:'compare_', plan:'plan_'}[printKind] || 'menu_') + M.date + '_' + fmtClock(M.start).replace(':', '').padStart(4, '0') + '.pdf'; }
+function pdfName(){ if(printKind === 'year') return 'schedule_' + yView().start + '_' + yView().months + 'months.pdf'; if(printKind === 'plansum' && pdfPlan) return 'periodization_' + (pdfPlan.target && pdfPlan.target.type === 'athlete' ? 'athlete' : 'team') + '_' + pdfPlan.weeks[0].start + '.pdf'; return ({compare:'compare_', plan:'plan_'}[printKind] || 'menu_') + M.date + '_' + fmtClock(M.start).replace(':', '').padStart(4, '0') + '.pdf'; }
 async function makePdf(save){
   if(!window.html2canvas || !window.jspdf){ throw new Error('PDFの部品が読み込めませんでした'); }
   const pages = [...$('printPage').querySelectorAll('.pp-page')];
@@ -2758,7 +2854,7 @@ async function makePdf(save){
   pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start)});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
-  if(save) downloadBlob(blob, pdfName());
+  if(save) lastPdf.where = await savePdfBlob(blob, pdfName());
   return lastPdf;
 }
 function downloadBlob(blob, name){
@@ -2773,6 +2869,7 @@ async function doPrint(modeOverride, kind){
   if($('prPer')) $('prPer').closest('label').style.display = printKind === 'menu' ? '' : 'none';
   if(saveTimer) saveNow();
   const mode = modeOverride || S.settings.printMode || 'both';
+  if((mode === 'both' || mode === 'pdf') && !(await preparePdfTarget(pdfName()))) return;
   showOv('printOv');
   const r = buildPrintPage(printKind);
   if(!r){ closeOv('printOv'); return; }
@@ -2780,8 +2877,8 @@ async function doPrint(modeOverride, kind){
   if(mode === 'both' || mode === 'pdf'){
     msg.textContent = 'PDFを作成しています…';
     try{
-      await makePdf(true);
-      msg.textContent = 'PDF「' + pdfName() + '」を保存しました。保存先はブラウザの「ダウンロード」フォルダです（Macでは Finder の「ダウンロード」）。' + (mode === 'both' ? '続いて印刷の画面を開きます。' : '');
+      const r2 = await makePdf(true);
+      msg.textContent = 'PDF「' + pdfName() + '」を' + r2.where + (mode === 'both' ? '続いて印刷の画面を開きます。' : '');
     }catch(e){
       msg.textContent = 'PDFを作れませんでした（インターネットにつながっていないか、部品が読み込めていません）。印刷の画面で「PDFに保存」を選ぶ方法もあります。';
     }
@@ -3064,6 +3161,8 @@ function renderPlanStrip(){
     rows.push('<div><button class="btn small" data-openplan="' + info.plan.id + '" style="float:right">計画を開く</button>【' + esc(pt) + '】計画「' + esc(info.plan.name) + '」　<b>' + esc(info.label) + '</b>' + (info.week ? '　今週の実績 ' + (Math.round(act/100)/10) + 'km' : '') +
       (info.week ? '<br><span class="muted">今週の重点：' + esc(info.week.focus) + '</span>' : '') + '</div>');
   });
+  const evs = typeof eventsOn === 'function' ? eventsOn(M.date) : [];
+  if(evs.length) rows.unshift('<div>【この日の予定】<b>' + evs.map(x => esc(x.title) + (x.end !== x.start ? '（' + shortDate(x.start) + '〜' + shortDate(x.end) + '）' : '')).join('　') + '</b></div>');
   if(!rows.length){ el.classList.add('hidden'); return; }
   el.innerHTML = rows.join('<hr style="border:none;border-top:1px dashed #e0c878;margin:4px 0">');
   el.classList.remove('hidden');
@@ -3705,12 +3804,13 @@ function buildPlanPdfPages(plan){
 let pdfPlan = null;
 async function planPdf(plan, share){
   pdfPlan = plan; printKind = 'plansum';
+  if(!share && !(await preparePdfTarget(pdfName()))) return;
   showOv('printOv'); $('prPer').closest('label').style.display = 'none';
   buildPlanPdfPages(plan);
   $('printMsg').textContent = '計画書のPDFを作成しています…';
   let pdf;
   try{ pdf = await makePdf(!share); }catch(e){ $('printMsg').textContent = 'PDFを作れませんでした。印刷の画面で「PDFに保存」を選ぶ方法もあります。'; return; }
-  if(!share){ $('printMsg').textContent = '計画書のPDF「' + pdf.name + '」を保存しました。保存先はブラウザの「ダウンロード」フォルダです（Macでは Finder の「ダウンロード」）。'; return; }
+  if(!share){ $('printMsg').textContent = '計画書のPDF「' + pdf.name + '」を' + pdf.where; return; }
   $('printMsg').textContent = '共有の画面を開きます。';
   const file = new File([pdf.blob], pdf.name, {type:'application/pdf'});
   if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -4642,6 +4742,377 @@ function libBind(){
 }
 
 /* =====================================================================
+   PDFの保存先
+   download：ブラウザのダウンロードのフォルダ（これまでどおり）
+   folder  ：コーチが選んだフォルダにいつも保存
+   ask     ：保存するたびに場所と名前を選ぶ
+   フォルダの指定は Chrome と Edge だけでできる（Safari はブラウザの設定で決める）
+   ===================================================================== */
+const PDFDIR_DB = 'cust_menu_handles';
+let pdfTarget = null, lastSaveWhere = '';
+function pdfDestSupported(){ return !!(window.showDirectoryPicker && window.showSaveFilePicker); }
+function pdfDest(){ const m = S.settings.pdfDest || 'download'; return pdfDestSupported() ? m : 'download'; }
+function hdb(){
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open(PDFDIR_DB, 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore('h');
+    rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+  });
+}
+async function hGet(k){ const db = await hdb(); return new Promise(res => { const r = db.transaction('h').objectStore('h').get(k); r.onsuccess = () => { res(r.result || null); db.close(); }; r.onerror = () => { res(null); db.close(); }; }); }
+async function hPut(k, v){ const db = await hdb(); return new Promise(res => { const tx = db.transaction('h', 'readwrite'); tx.objectStore('h').put(v, k); tx.oncomplete = () => { db.close(); res(); }; tx.onerror = () => { db.close(); res(); }; }); }
+async function pickPdfFolder(){
+  try {
+    const dh = await window.showDirectoryPicker({id:'menuPdf', mode:'readwrite', startIn:'documents'});
+    await hPut('pdfDir', dh);
+    S.settings.pdfDest = 'folder'; S.settings.pdfDirName = dh.name; saveNow();
+    renderPdfDest(); toast('PDFの保存先を「' + dh.name + '」フォルダにしました');
+  } catch(e){ if(e.name !== 'AbortError') toast('フォルダを選べませんでした'); }
+}
+/* ボタンを押した直後に呼ぶ（フォルダの許可や保存場所の画面は、押した直後でないと出せないため）。
+   取りやめたときは false を返す */
+async function preparePdfTarget(name){
+  pdfTarget = null;
+  const mode = pdfDest();
+  if(mode === 'ask'){
+    try {
+      const fh = await window.showSaveFilePicker({id:'menuPdf', suggestedName:name, types:[{description:'PDF', accept:{'application/pdf':['.pdf']}}]});
+      pdfTarget = {type:'file', fh}; return true;
+    } catch(e){ if(e.name === 'AbortError'){ toast('PDFの保存を取りやめました'); return false; } return true; }
+  }
+  if(mode === 'folder'){
+    try {
+      const dh = await hGet('pdfDir');
+      if(!dh){ toast('保存先のフォルダが見つからないので、ダウンロードのフォルダに保存します', 5000); return true; }
+      let p = await dh.queryPermission({mode:'readwrite'});
+      if(p !== 'granted') p = await dh.requestPermission({mode:'readwrite'});
+      if(p === 'granted'){ pdfTarget = {type:'dir', dh}; return true; }
+      toast('フォルダへの保存が許可されなかったので、ダウンロードのフォルダに保存します', 5000);
+    } catch(e){ /* 下のダウンロードへ */ }
+  }
+  return true;
+}
+/* PDFを保存して、保存した場所の説明を返す */
+async function savePdfBlob(blob, name){
+  const t = pdfTarget; pdfTarget = null;
+  try {
+    if(t && t.type === 'file'){
+      const w = await t.fh.createWritable(); await w.write(blob); await w.close();
+      return (lastSaveWhere = '選んだ場所に「' + t.fh.name + '」という名前で保存しました。');
+    }
+    if(t && t.type === 'dir'){
+      const fh = await t.dh.getFileHandle(name, {create:true});
+      const w = await fh.createWritable(); await w.write(blob); await w.close();
+      return (lastSaveWhere = '「' + t.dh.name + '」フォルダに保存しました。');
+    }
+  } catch(e){ console.error(e); toast('選んだ場所に保存できなかったので、ダウンロードのフォルダに保存します', 5000); }
+  downloadBlob(blob, name);
+  return (lastSaveWhere = 'ブラウザの「ダウンロード」フォルダに保存しました（Macでは Finder の「ダウンロード」）。');
+}
+function renderPdfDest(){
+  const box = $('pdfDestBox'); if(!box) return;
+  if(!pdfDestSupported()){
+    box.innerHTML = '<p>このブラウザでは、アプリの中で保存先を決めることができません。PDFはブラウザの「ダウンロード」フォルダに保存されます。</p>' +
+      '<p class="muted">Safariで保存先を変えるときは、Safariのメニューの「設定」を開き、「一般」の「ファイルのダウンロード先」で好きなフォルダを選んでください。「毎回確認」にすると、保存するたびに場所を選べます。Google Chromeでこのアプリを開くと、ここでフォルダを選べるようになります。</p>';
+    return;
+  }
+  const m = pdfDest(), dn = S.settings.pdfDirName || '';
+  const opt = (v, t) => '<label class="pdRow"><input type="radio" name="pdfDest" value="' + v + '"' + (m === v ? ' checked' : '') + '> ' + t + '</label>';
+  box.innerHTML = opt('download', 'ブラウザの「ダウンロード」フォルダ（いつもの場所）') +
+    opt('folder', '決めたフォルダにいつも保存する' + (dn ? '　今のフォルダ：<b>' + esc(dn) + '</b>' : '　（まだ選んでいません）')) +
+    opt('ask', '保存するたびに、場所と名前を選ぶ') +
+    '<div class="row" style="margin-top:8px"><button class="btn primary" id="pdfPickDir">' + (dn ? '保存先のフォルダを選び直す' : '保存先のフォルダを選ぶ') + '</button></div>' +
+    '<p class="muted" style="margin-top:6px">フォルダを決めたあと、初めて保存するときに「このフォルダへの保存を許可しますか」と聞かれることがあります。そのときは許可してください。</p>';
+  box.querySelectorAll('input[name=pdfDest]').forEach(r => r.addEventListener('change', () => {
+    if(r.value === 'folder' && !dn){ pickPdfFolder(); return; }
+    S.settings.pdfDest = r.value; saveNow(); renderPdfDest();
+    toast({download:'PDFはダウンロードのフォルダに保存します', folder:'PDFは「' + dn + '」フォルダに保存します', ask:'PDFを保存するたびに場所を選びます'}[r.value]);
+  }));
+  $('pdfPickDir').addEventListener('click', pickPdfFolder);
+}
+
+/* =====================================================================
+   年間スケジュール（月ごとに縦に日付が並ぶ一覧表）
+   予定：S.events（合宿・遠征・会議など）
+   試合：S.races（ピリオダイゼーションの試合一覧と同じもの。ここで入れた試合は、そちらにも出る）
+   ===================================================================== */
+const YCOLORS = {
+  yellow:{name:'黄（主要な大会）', c:'#fff36b'},
+  green:{name:'緑（国内の大会）', c:'#a6d86e'},
+  blue:{name:'青（合宿）', c:'#b8c8e8'},
+  white:{name:'白（遠征・その他）', c:'#ffffff'},
+  red:{name:'赤（注意）', c:'#f6b8b8'}
+};
+const YKINDS = {race:'試合', camp:'合宿', trip:'遠征・移動', meet:'会議・行事', other:'その他'};
+const YKIND_DEF = {race:{shape:'box', color:'yellow'}, camp:{shape:'box', color:'blue'}, trip:{shape:'box', color:'white'}, meet:{shape:'text', color:'white'}, other:{shape:'text', color:'white'}};
+const YSHAPES = {box:'箱', arrow:'矢印（長い期間）', text:'文字だけ（右に小さく）'};
+const WDJ = ['日','月','火','水','木','金','土'];
+
+/* ---------- 日本の祝日 ---------- */
+const holCache = {};
+function jpHolidays(y){
+  if(holCache[y]) return holCache[y];
+  const H = {};
+  const ymd = (m, d) => y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  const nthMon = (m, n) => { const w = new Date(y, m - 1, 1).getDay(); return 1 + ((8 - w) % 7) + (n - 1) * 7; };
+  [[1,1,'元日'],[2,11,'建国記念の日'],[2,23,'天皇誕生日'],[4,29,'昭和の日'],[5,3,'憲法記念日'],[5,4,'みどりの日'],[5,5,'こどもの日'],[8,11,'山の日'],[11,3,'文化の日'],[11,23,'勤労感謝の日']].forEach(([m, d, n]) => H[ymd(m, d)] = n);
+  H[ymd(1, nthMon(1, 2))] = '成人の日'; H[ymd(7, nthMon(7, 3))] = '海の日'; H[ymd(9, nthMon(9, 3))] = '敬老の日'; H[ymd(10, nthMon(10, 2))] = 'スポーツの日';
+  const k = Math.floor((y - 1980) / 4);
+  H[ymd(3, Math.floor(20.8431 + 0.242194 * (y - 1980) - k))] = '春分の日';
+  H[ymd(9, Math.floor(23.2488 + 0.242194 * (y - 1980) - k))] = '秋分の日';
+  // 振替休日と国民の休日
+  Object.keys(H).sort().forEach(d => {
+    if(new Date(d + 'T00:00').getDay() === 0){ let x = addDays(d, 1); while(H[x]) x = addDays(x, 1); H[x] = '振替休日'; }
+  });
+  Object.keys(H).forEach(d => { const x = addDays(d, 1), z = addDays(d, 2); if(!H[x] && H[z] && new Date(x + 'T00:00').getDay() !== 0) H[x] = '国民の休日'; });
+  return (holCache[y] = H);
+}
+function holidayName(d){ return jpHolidays(+d.slice(0, 4))[d] || ''; }
+
+/* ---------- データ ---------- */
+function yEvents(){ if(!Array.isArray(S.events)) S.events = []; return S.events; }
+function yItems(){
+  const races = (S.races || []).map(r => ({id:'race:' + r.id, raceId:r.id, title:r.name, sub:r.place || '', start:r.date, end:r.end && r.end >= r.date ? r.end : r.date, kind:'race', shape:r.shape || 'box', color:r.color || 'yellow'}));
+  return yEvents().map(e => Object.assign({}, e)).concat(races).filter(x => x.start).sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : (b.end > a.end ? 1 : -1));
+}
+function yView(){
+  const v = S.settings.yearView || {};
+  if(!/^\d{4}-\d{2}$/.test(v.start || '')) v.start = todayYmd().slice(0, 7);
+  if(![2, 3, 4, 6].includes(+v.months)) v.months = 4;
+  if(![2, 3, 4].includes(+v.perPage)) v.perPage = 4;
+  S.settings.yearView = v; return v;
+}
+function monthAdd(ym, n){ const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function monthDays(ym){ const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); }
+function ymJp(ym){ return +ym.slice(0, 4) + '年' + (+ym.slice(5)) + '月'; }
+
+/* ---------- 1か月分の表 ---------- */
+/* opt: {rh:行の高さpx, print:印刷用か} */
+function monthHtml(ym, items, opt){
+  const rh = opt.rh, nd = monthDays(ym), ms = ym + '-01', me = ym + '-' + String(nd).padStart(2, '0');
+  const segs = items.filter(x => x.start <= me && x.end >= ms).map(x => {
+    const s = x.start < ms ? ms : x.start, e = x.end > me ? me : x.end;
+    return Object.assign({}, x, {s, e, d0:+s.slice(8), d1:+e.slice(8), cutTop:x.start < ms, cutBot:x.end > me});
+  });
+  const texts = segs.filter(x => x.shape === 'text'), shapes = segs.filter(x => x.shape !== 'text');
+  // 重ならないように列（レーン）に分ける
+  const lanes = [];
+  shapes.sort((a, b) => a.d0 - b.d0 || (b.d1 - b.d0) - (a.d1 - a.d0)).forEach(x => {
+    let k = lanes.findIndex(l => l[l.length - 1].d1 < x.d0);
+    if(k < 0){ lanes.push([]); k = lanes.length - 1; }
+    lanes[k].push(x); x.lane = k;
+  });
+  const L = Math.max(1, lanes.length);
+  const area = texts.length ? 70 : 100;
+  const today = todayYmd();
+  let rows = '';
+  for(let d = 1; d <= 31; d++){
+    if(d > nd){ rows += '<div class="yrow yempty" style="height:' + rh + 'px"><span></span><span></span><span></span><span class="yev"></span></div>'; continue; }
+    const date = ym + '-' + String(d).padStart(2, '0'), w = new Date(date + 'T00:00').getDay(), hol = holidayName(date);
+    const off = w === 0 || w === 6 || hol;
+    const on = segs.filter(x => x.d0 <= d && x.d1 >= d).map(x => x.title);
+    rows += '<div class="yrow' + (off ? ' yoff' : '') + (date === today && !opt.print ? ' ytoday' : '') + '" style="height:' + rh + 'px">' +
+      '<span class="ym">' + (d === 1 ? +ym.slice(5) : '') + '</span><span class="yd">' + d + '</span><span class="yw' + (off ? ' off' : '') + '">' + WDJ[w] + '</span>' +
+      (opt.print ? '<span class="yev"></span>' : '<button type="button" class="yev" data-yday="' + date + '" aria-label="' + (+ym.slice(5)) + '月' + d + '日 ' + WDJ[w] + '曜' + (hol ? ' ' + hol : '') + (on.length ? '　予定：' + esc(on.join('、')) : '　予定なし。押すと予定を入れます') + '"></button>') + '</div>';
+  }
+  let layer = '';
+  shapes.forEach(x => {
+    const top = (x.d0 - 1) * rh + 1, h = (x.d1 - x.d0 + 1) * rh - 2;
+    const left = x.lane * area / L, wid = area / L;
+    const col = (YCOLORS[x.color] || YCOLORS.white).c;
+    const label = esc(x.title) + (x.sub ? '<small>（' + esc(x.sub) + '）</small>' : '');
+    const aria = esc(x.title + (x.sub ? '　' + x.sub : '') + '　' + jpDate(x.start) + (x.end !== x.start ? 'から' + jpDate(x.end) : ''));
+    const tag = opt.print ? 'div' : 'button type="button"';
+    const ctag = opt.print ? 'div' : 'button';
+    const dataAttr = opt.print ? '' : ' data-yid="' + esc(x.id) + '" aria-label="' + aria + '"';
+    if(x.shape === 'arrow'){
+      const chars = [...(x.title + (x.sub ? '（' + x.sub + '）' : ''))].map(c => esc(c)).join('<br>');
+      layer += '<' + tag + ' class="yshape yarrow"' + dataAttr + ' data-top="' + (x.cutTop ? 0 : 1) + '" data-bot="' + (x.cutBot ? 0 : 1) + '" style="top:' + top + 'px;height:' + h + 'px;left:' + left + '%;width:' + wid + '%"><span class="yvt">' + chars + '</span></' + ctag + '>';
+    } else {
+      layer += '<' + tag + ' class="yshape ybox' + (x.cutTop ? ' cutT' : '') + (x.cutBot ? ' cutB' : '') + '"' + dataAttr + ' style="top:' + top + 'px;height:' + h + 'px;left:calc(' + left + '% + 2px);width:calc(' + wid + '% - 4px);background:' + col + '"><span class="ylbl">' + label + '</span></' + ctag + '>';
+    }
+  });
+  // 文字だけの予定：その日の行の右に
+  const byDay = {};
+  texts.forEach(x => { for(let d = x.d0; d <= x.d1; d++) (byDay[d] = byDay[d] || []).push(x); });
+  Object.keys(byDay).forEach(d => {
+    const list = byDay[d];
+    const free = !shapes.some(x => x.d0 <= +d && x.d1 >= +d);
+    layer += '<div class="ytext" style="top:' + ((d - 1) * rh) + 'px;height:' + rh + 'px;line-height:' + rh + 'px;left:' + (free ? '4px' : area + '%') + '">' + list.map(x =>
+      opt.print ? '<span>' + esc(x.title) + '</span>' : '<button type="button" data-yid="' + esc(x.id) + '" aria-label="' + esc(x.title + '　' + jpDate(x.start) + (x.end !== x.start ? 'から' + jpDate(x.end) : '')) + '">' + esc(x.title) + '</button>').join('・') + '</div>';
+  });
+  return '<div class="ymon"><div class="ytitle">' + ymJp(ym) + '</div><div class="yhead"><span>月</span><span>日</span><span>曜</span><span></span></div>' +
+    '<div class="ybody">' + rows + '<div class="ylayer" style="--rh:' + rh + 'px">' + layer + '</div></div></div>';
+}
+/* 文字が箱からはみ出さないよう、小さくする */
+function fitYLabels(root){
+  root.querySelectorAll('.ybox').forEach(el => {
+    const l = el.querySelector('.ylbl'); if(!l) return;
+    let fs = parseFloat(getComputedStyle(el).fontSize);
+    while((l.offsetHeight > el.clientHeight - 2 || l.scrollWidth > el.clientWidth) && fs > 7){ fs -= 0.5; el.style.fontSize = fs + 'px'; }
+  });
+  root.querySelectorAll('.ytext').forEach(el => {
+    let fs = parseFloat(getComputedStyle(el).fontSize);
+    while(el.scrollWidth > el.clientWidth + 1 && fs > 7){ fs -= 0.5; el.style.fontSize = fs + 'px'; }
+  });
+}
+/* 矢印は、大きさが決まってから絵を描く */
+function drawYArrows(root){
+  fitYLabels(root);
+  root.querySelectorAll('.yarrow').forEach(el => {
+    const w = el.offsetWidth, h = el.offsetHeight; if(!w || !h) return;
+    const ah = Math.min(w * 0.6, h / 3, 18), sw = w * 0.22, cx = w / 2;
+    const top = el.dataset.top === '1', bot = el.dataset.bot === '1';
+    const p = [];
+    if(top){ p.push([cx, 1], [w - 1, ah], [cx + sw, ah]); } else p.push([cx + sw, 0]);
+    if(bot){ p.push([cx + sw, h - ah], [w - 1, h - ah], [cx, h - 1], [1, h - ah], [cx - sw, h - ah]); } else p.push([cx + sw, h], [cx - sw, h]);
+    if(top){ p.push([cx - sw, ah], [1, ah]); } else p.push([cx - sw, 0]);
+    const old = el.querySelector('svg'); if(old) old.remove();
+    const t = el.querySelector('.yvt');
+    if(t){ let fs = parseFloat(getComputedStyle(t).fontSize); const room = h - (top ? ah : 0) - (bot ? ah : 0) - 4; while(t.offsetHeight > room && fs > 6){ fs -= 0.5; t.style.fontSize = fs + 'px'; } }
+    el.insertAdjacentHTML('afterbegin', '<svg width="' + w + '" height="' + h + '" style="position:absolute;left:0;top:0" aria-hidden="true"><polygon points="' + p.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ') + '" fill="#fff" stroke="#16202e" stroke-width="1.5"/></svg>');
+  });
+}
+
+/* ---------- 画面 ---------- */
+function renderYear(){
+  const v = yView(), items = yItems();
+  $('yStart').value = v.start; $('yMonths').value = String(v.months); $('yPer').value = String(v.perPage);
+  $('yRangeTxt').textContent = ymJp(v.start) + '〜' + ymJp(monthAdd(v.start, v.months - 1));
+  let h = '';
+  for(let i = 0; i < v.months; i++) h += monthHtml(monthAdd(v.start, i), items, {rh:26});
+  $('yGrid').style.setProperty('--ycols', v.months);
+  $('yGrid').innerHTML = h;
+  drawYArrows($('yGrid'));
+  // 読み上げ用の一覧
+  const ms = v.start + '-01', me = monthAdd(v.start, v.months - 1) + '-31';
+  const inRange = items.filter(x => x.start <= me && x.end >= ms);
+  $('yList').innerHTML = inRange.length ? '<ul class="yUl">' + inRange.map(x => '<li><button class="btn small" data-yid="' + esc(x.id) + '">直す</button> <b>' + jpDate(x.start) + (x.end !== x.start ? '〜' + jpDate(x.end) : '') + '</b>　' + esc(x.title) + (x.sub ? '（' + esc(x.sub) + '）' : '') + '<span class="muted">　' + YKINDS[x.kind] + (x.kind === 'race' ? '・試合一覧と同期' : '') + '</span></li>').join('') + '</ul>' : '<p class="muted">この期間の予定はまだありません。表の日付の行を押すか、「予定を入れる」で追加してください。</p>';
+}
+function yOpenEdit(id, date){
+  const it = id ? yItems().find(x => x.id === id) : null;
+  const d = date || todayYmd();
+  $('yeTitle').textContent = it ? '予定を直す' : '予定を入れる';
+  $('yeKind').value = it ? it.kind : 'camp';
+  $('yeName').value = it ? it.title : '';
+  $('yeSub').value = it ? it.sub || '' : '';
+  $('yeStart').value = it ? it.start : d;
+  $('yeEnd').value = it ? it.end : d;
+  $('yeShape').value = it ? it.shape : YKIND_DEF.camp.shape;
+  yColorPick(it ? it.color : YKIND_DEF.camp.color);
+  $('yeDel').classList.toggle('hidden', !it);
+  $('yeOv').dataset.id = it ? it.id : '';
+  yKindNote();
+  showOv('yeOv');
+  setTimeout(() => $('yeName').focus(), 50);
+}
+function yColorPick(c){ $('yeColors').querySelectorAll('input').forEach(r => r.checked = r.value === c); }
+function yColorVal(){ const r = $('yeColors').querySelector('input:checked'); return r ? r.value : 'white'; }
+function yKindNote(){ $('yeNote').textContent = $('yeKind').value === 'race' ? '試合は、ピリオダイゼーションの「試合の登録」の一覧にも同じものが入ります。どちらで直しても、両方に反映されます。' : ''; }
+function ySave(){
+  const kind = $('yeKind').value, title = $('yeName').value.trim(), sub = $('yeSub').value.trim();
+  let start = $('yeStart').value, end = $('yeEnd').value || start;
+  if(!title){ toast('予定の名前を入れてください'); $('yeName').focus(); return; }
+  if(!start){ toast('始まりの日を入れてください'); return; }
+  if(end < start){ const t = start; start = end; end = t; }
+  const shape = $('yeShape').value, color = yColorVal();
+  const oldId = $('yeOv').dataset.id;
+  // 前のものを消してから入れ直す（種類が試合とそれ以外で入れかわっても大丈夫なように）
+  let keepRaceId = null, keepEvId = null;
+  if(oldId){
+    if(oldId.startsWith('race:')){ keepRaceId = oldId.slice(5); if(kind !== 'race') S.races = S.races.filter(r => r.id !== keepRaceId); }
+    else { keepEvId = oldId; if(kind === 'race') S.events = yEvents().filter(e => e.id !== oldId); }
+  }
+  if(kind === 'race'){
+    if(!Array.isArray(S.races)) S.races = [];
+    let r = keepRaceId && S.races.find(x => x.id === keepRaceId);
+    if(!r){ r = {id:'r' + Date.now().toString(36)}; S.races.push(r); }
+    Object.assign(r, {name:title, date:start, end:end > start ? end : '', place:sub, shape, color});
+  } else {
+    let e = keepEvId && yEvents().find(x => x.id === keepEvId);
+    if(!e){ e = {id:'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)}; yEvents().push(e); }
+    Object.assign(e, {title, sub, start, end, kind, shape, color});
+  }
+  saveNow(); closeOv('yeOv'); renderYear(); ySyncOthers();
+  toast('「' + title + '」を' + (oldId ? '直しました' : '入れました') + (kind === 'race' ? '。試合の一覧にも入っています' : ''));
+}
+function yDelete(){
+  const id = $('yeOv').dataset.id; if(!id) return;
+  const it = yItems().find(x => x.id === id);
+  if(!confirm('「' + (it ? it.title : '') + '」を消しますか' + (id.startsWith('race:') ? '。試合の一覧からも消えます' : ''))) return;
+  if(id.startsWith('race:')) S.races = S.races.filter(r => r.id !== id.slice(5));
+  else S.events = yEvents().filter(e => e.id !== id);
+  saveNow(); closeOv('yeOv'); renderYear(); ySyncOthers(); toast('消しました');
+}
+function ySyncOthers(){
+  if(typeof renderRaceList === 'function' && $('raceList')) try { renderRaceList(); renderRaceChecks(); } catch(e){}
+  if(typeof renderPlanStrip === 'function' && M) renderPlanStrip();
+}
+/* メニュー作成の画面に、その日の予定を出す */
+function eventsOn(date){ return yItems().filter(x => x.start <= date && x.end >= date); }
+
+/* ---------- 印刷とPDF ---------- */
+function buildYearPages(){
+  const v = yView(), per = v.perPage, land = per >= 3;
+  const W = land ? 1062 : 733, H = land ? 733 : 1062;
+  $('pageStyle').textContent = '@media print{@page{size:A4 ' + (land ? 'landscape' : 'portrait') + ';margin:8mm}}';
+  const items = yItems();
+  const head = 44, foot = 18, monthHead = 24 + 22;
+  const rh = Math.floor((H - 16 - head - foot - monthHead) / 31);
+  const pages = [];
+  for(let i = 0; i < v.months; i += per){
+    const mons = [];
+    for(let k = i; k < Math.min(v.months, i + per); k++) mons.push(monthAdd(v.start, k));
+    const title = 'PLAN of ' + (S.settings.header || '') + '　年間スケジュール';
+    const range = ymJp(mons[0]) + '〜' + ymJp(mons[mons.length - 1]);
+    pages.push('<div class="pp-page yprint" style="width:' + W + 'px;height:' + H + 'px"><div class="ppInner">' +
+      '<div class="yph"><b>' + esc(title) + '</b><span>' + range + '</span></div>' +
+      '<div class="ygrid" style="--ycols:' + per + '">' + mons.map(m => monthHtml(m, items, {rh, print:true})).join('') + '</div>' +
+      '<div class="pp-foot">' + (pages.length + 1) + '/' + Math.ceil(v.months / per) + '　土日と祝日は灰色　作成 ' + jpDate(todayYmd()) + '</div></div></div>');
+  }
+  $('printPage').innerHTML = pages.join('');
+  drawYArrows($('printPage'));
+}
+async function yearPrint(){
+  printKind = 'year';
+  const mode = S.settings.printMode || 'both';
+  if((mode === 'both' || mode === 'pdf') && !(await preparePdfTarget(pdfName()))) return;
+  showOv('printOv'); $('prPer').closest('label').style.display = 'none';
+  buildYearPages();
+  const msg = $('printMsg');
+  if(mode === 'both' || mode === 'pdf'){
+    msg.textContent = '年間スケジュールのPDFを作成しています…';
+    try { const r = await makePdf(true); msg.textContent = 'PDF「' + r.name + '」を' + r.where + (mode === 'both' ? '続いて印刷の画面を開きます。' : ''); }
+    catch(e){ msg.textContent = 'PDFを作れませんでした。印刷の画面で「PDFに保存」を選ぶ方法もあります。'; }
+  } else msg.textContent = '印刷の画面を開きます。';
+  if(mode === 'both' || mode === 'print') setTimeout(() => window.print(), 250);
+}
+
+function yearBind(){
+  $('yGrid').addEventListener('click', e => {
+    const ev = e.target.closest('[data-yid]'); if(ev){ yOpenEdit(ev.dataset.yid); return; }
+    const d = e.target.closest('[data-yday]'); if(d) yOpenEdit(null, d.dataset.yday);
+  });
+  $('yList').addEventListener('click', e => { const b = e.target.closest('[data-yid]'); if(b) yOpenEdit(b.dataset.yid); });
+  $('yAdd').addEventListener('click', () => yOpenEdit(null, todayYmd() >= yView().start + '-01' ? todayYmd() : yView().start + '-01'));
+  $('yPrev').addEventListener('click', () => { yView().start = monthAdd(yView().start, -1); saveNow(); renderYear(); });
+  $('yNext').addEventListener('click', () => { yView().start = monthAdd(yView().start, 1); saveNow(); renderYear(); });
+  $('yToday').addEventListener('click', () => { yView().start = todayYmd().slice(0, 7); saveNow(); renderYear(); });
+  $('yStart').addEventListener('change', () => { if(/^\d{4}-\d{2}$/.test($('yStart').value)){ yView().start = $('yStart').value; saveNow(); renderYear(); } });
+  $('yMonths').addEventListener('change', () => { yView().months = +$('yMonths').value; saveNow(); renderYear(); });
+  $('yPer').addEventListener('change', () => { yView().perPage = +$('yPer').value; saveNow(); });
+  $('yPrint').addEventListener('click', yearPrint);
+  $('yeSave').addEventListener('click', ySave);
+  $('yeDel').addEventListener('click', yDelete);
+  $('yeKind').addEventListener('change', () => { const d = YKIND_DEF[$('yeKind').value]; $('yeShape').value = d.shape; yColorPick(d.color); yKindNote(); });
+  $('yeStart').addEventListener('change', () => { if(!$('yeEnd').value || $('yeEnd').value < $('yeStart').value) $('yeEnd').value = $('yeStart').value; });
+  $('yeColors').innerHTML = Object.keys(YCOLORS).map(k => '<label class="ycol"><input type="radio" name="yeColor" value="' + k + '"><i style="background:' + YCOLORS[k].c + '"></i>' + YCOLORS[k].name + '</label>').join('');
+  $('yeKind').innerHTML = Object.keys(YKINDS).map(k => '<option value="' + k + '">' + YKINDS[k] + '</option>').join('');
+  $('yeShape').innerHTML = Object.keys(YSHAPES).map(k => '<option value="' + k + '">' + YSHAPES[k] + '</option>').join('');
+  window.addEventListener('resize', () => { if($('vYear').classList.contains('active')) drawYArrows($('yGrid')); });
+}
+
+/* =====================================================================
    週間分析
    ===================================================================== */
 function weekData(mon, team){
@@ -4839,6 +5310,7 @@ function backupLoad(file){
       if(!S.activePlanId && o.activePlanId) S.activePlanId = o.activePlanId;
       ensurePlanMaps();
       (o.races || []).forEach(r => { if(!S.races.find(x => x.name === r.name && x.date === r.date)) S.races.push(r); });
+      (o.events || []).forEach(e => { if(!yEvents().find(x => x.id === e.id)) yEvents().push(e); });
       (o.athletes || []).forEach(x => { if(!athletes().find(y => y.name === x.name)) athletes().push(x); });
       Object.keys(o.activePlans || {}).forEach(t => { if(!S.activePlans[t]) S.activePlans[t] = o.activePlans[t]; });
       saveNow(); openMenu(M.date, M.session); renderSettings();
@@ -4857,8 +5329,9 @@ function showView(id){
   if(saveTimer) saveNow();
   if(id === 'vAnalysis') renderAnalysis();
   if(id === 'vPlan') renderPlanView();
-  if(id === 'vSettings') renderSettings();
+  if(id === 'vSettings'){ renderSettings(); renderPdfDest(); }
   if(id === 'vLib') renderLib();
+  if(id === 'vYear') renderYear();
   if(id === 'vMenu'){ renderPlanStrip(); }
 }
 function init(){
@@ -4902,6 +5375,7 @@ function init(){
   $('panelTabs').addEventListener('click', e => { const b = e.target.closest('[data-pt]'); if(b) selectPanel(+b.dataset.pt); });
   $('btnPlanned').addEventListener('click', openPlanned);
   $('wsEdit2').addEventListener('click', openWeekSched);
+  yearBind();
   libBind(); libInit();
   /* 取りやめたClaude相談機能の名残りを消す */
   ['prompts','promptSel','consults','apiModel','apiToolset','apiAutoFix','apiSpent'].forEach(k => delete S.settings[k]);
@@ -4950,7 +5424,7 @@ function init(){
   $('lineCopy').addEventListener('click', () => copyText($('lineBody').value));
   // 印刷
   $('prAgain').addEventListener('click', () => window.print());
-  $('prPdf').addEventListener('click', async () => { try{ await makePdf(true); toast('PDFを保存しました'); }catch(e){ toast('PDFを作れませんでした'); } });
+  $('prPdf').addEventListener('click', async () => { if(!(await preparePdfTarget(pdfName()))) return; try{ const r = await makePdf(true); toast('PDFを' + r.where, 5000); }catch(e){ toast('PDFを作れませんでした'); } });
   $('prLine').addEventListener('click', () => { closeOv('printOv'); openLine(); });
   // ダイアログを閉じる
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeOv(b.dataset.close)));

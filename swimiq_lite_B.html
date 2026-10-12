@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.4">
+<meta name="app-ver" content="2026.10.12.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -4575,7 +4575,7 @@ var HELP=[
  ]],
  ['距離を計る（浮き上がりを 測る）',[
    '分析の 画面の <b>その他</b> →<b>距離を計る</b>、または 記録を 開いた 再生の 画面の <b>メニュー</b> →<b>距離を計る</b>を おします。再生の 画面で 入れた 浮き上がりは、その 記録に すぐ 保存されます。',
-   '動画を 止めたまま、泳いでいる レーンの 両側の コースロープを 4か所 押します。1点目は 手前の ロープの 5m（赤から 黄色に 変わる所）、2点目は 奥の ロープの 5m、3点目は 手前の ロープの 15m（黄色が 終わる所）、4点目は 奥の ロープの 15mです。',
+   '動画を 止めたまま、泳いでいる レーンの 両側の コースロープを 4か所 押します。1点目は 手前の ロープの 10m（赤から 黄色に 変わる所）、2点目は 奥の ロープの 10m、3点目は 手前の ロープの 15m（黄色の 中の 赤い玉）、4点目は 奥の ロープの 15mです。',
    '4点 そろうと、レーンの 中に 1mごとの 白い 線が 出ます。浮き上がりの 瞬間で 止めて 頭を 押すと（5点目）、その ラップの 浮き上がりに すぐ 決まります。押し直すと 上書きされます。',
    'ターンの 浮き上がりは、ターンの 壁の 側で もう一度 4点を 合わせます。一度 合わせた 目もりは 記録に 残るので、次からは 頭を 押すだけです。',
    '浮き上がりを 入れた ラップは、浮き上がりから 泳ぎ区間として 泳効率を 計算します。入れて いない ラップは、今まで どおり 15m（ターンアウト）で 計算します。',
@@ -11178,21 +11178,21 @@ function vfUwRead(){
   return out;
 }
 /* ===== 距離を計る（動画の 上で 距離を 測る・4点方式） =====
-   泳いでいる レーンの 両側の コースロープで、壁から 5m（赤から 黄色に 変わる所）と
-   15m（黄色が 終わる所）を 手前・奥の じゅんに 押します（1点目〜4点目）。
+   泳いでいる レーンの 両側の コースロープで、壁から 10m（赤から 黄色に 変わる所）と
+   15m（黄色の 中の 赤い玉）を 手前・奥の じゅんに 押します（1点目〜4点目）。
    4点から 水面の 遠近を 補正するので、ロープの 間に いる 選手の 頭でも そのまま 測れます。
    5点目に 頭を 押すと、その ラップの 浮き上がり（壁からの 距離と 動画の 時刻）に すぐ 決まります。
    目もりは 壁の 側ごとに おぼえます（a＝スタートの 壁の 側、b＝反対の 壁の 側）。 */
 var aMeas=null, aUw=[], msrOn=false, msrPick=null, msrDone=null;
 /* 分析の 画面（ana）と 再生の 画面（det）の どちらでも 使えるように、今 どちらで 使って いるかを おぼえます */
 var msrCtx='ana', dMeas=null;
-var MSR_W=[[5,0],[5,1],[15,0],[15,1]];   /* 1点目〜4点目の 場所（壁からの m、手前0・奥1） */
+var MSR_W=[[10,0],[10,1],[15,0],[15,1]];   /* 1点目〜4点目の 場所（壁からの m、手前0・奥1） */
 function msrDet(){ return msrCtx==='det' && !!dRec; }
 function msrVid(){ return $(msrDet()?'dv':'v'); }
 function msrHost(){ return $(msrDet()?'detail':'ana'); }
-function msrNorm(m){ return (m && m.mode==='h4') ? m : { mode:'h4', a:[], b:[] }; }   /* 前の 3点方式の 目もりは 使わない */
+function msrNorm(m){ return (m && m.mode==='h4v2') ? m : { mode:'h4v2', a:[], b:[] }; }   /* 前の 方式（3点・5m基準）の 目もりは 使わない */
 function msrMeas(){ var m=msrNorm(msrDet()?dMeas:aMeas); if(msrDet()) dMeas=m; else aMeas=m; return m; }
-function msrCount(m){ return (m && m.mode==='h4') ? (m.a||[]).length+(m.b||[]).length : 0; }
+function msrCount(m){ return (m && m.mode==='h4v2') ? (m.a||[]).length+(m.b||[]).length : 0; }
 function msrPool(){ return msrDet() ? (Number(dRec.pool)||50) : (Number(($('pool')||{}).value)||50); }
 /* メジャーの 画面を 分析・再生の どちらかの 動画の 上に のせます */
 function msrMount(ctx){
@@ -11237,7 +11237,7 @@ function msrFit(pts){
   var img=pts.map(function(q){ return [q.x,q.y]; });
   var toW=msrHom(img, MSR_W), toI=msrHom(MSR_W, img);
   if(!toW || !toI) return null;
-  /* 手前と 奥が 入れかわって いないか：5m手前→15m手前→15m奥→5m奥 が ねじれない 四角形なら よい */
+  /* 手前と 奥が 入れかわって いないか：10m手前→15m手前→15m奥→10m奥 が ねじれない 四角形なら よい */
   var Q=[img[0],img[2],img[3],img[1]], sg=0, ok=true;
   for(var i=0;i<4;i++){
     var A=Q[i], B=Q[(i+1)%4], C=Q[(i+2)%4];
@@ -11262,7 +11262,7 @@ function msrSide(lap){ return (lap%2===0) ? 'a' : 'b'; }   /* スタート・タ
 function msrWallName(lap){ return (lap%2===0) ? 'スタートの壁' : 'ターンの壁'; }
 function msrLbl(i, lap){
   var wall=msrWallName(lap);
-  return (i%2===0 ? '手前' : '奥')+'のロープの「'+(i<2 ? wall+'から5m（赤から黄色に変わる所）' : wall+'から15m（黄色が終わる所）')+'」';
+  return (i%2===0 ? '手前' : '奥')+'のロープの「'+(i<2 ? wall+'から10m（赤から黄色に変わる所）' : wall+'から15m（黄色の中の赤い玉）')+'」';
 }
 function msrPaint(){
   var svg=$('msrSvg'), box=$('msrBox');
@@ -11282,7 +11282,7 @@ function msrPaint(){
     for(m=0;m<=top;m++){
       var big=(m%5===0);
       h+=ln(F.pt(m,0),F.pt(m,1),'#fff',(big?2.2:1.1)*k,(big?1:.75));
-      if(big && m!==5 && m!==15){ var q=F.pt(m,0); h+=txt(q.x, q.y+fs*1.6, m+'m'); }
+      if(big && m!==10 && m!==15){ var q=F.pt(m,0); h+=txt(q.x, q.y+fs*1.6, m+'m'); }
     }
   }
   pts.forEach(function(pt,j){

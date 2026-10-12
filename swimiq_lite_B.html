@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.3">
+<meta name="app-ver" content="2026.10.12.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -150,11 +150,16 @@ button, select, input{ font-family:inherit; }
 #msrSvg{ position:absolute; z-index:1; touch-action:none; cursor:crosshair; overflow:visible; }
 #msrSvg.hide, #msrBox.hide{ display:none; }
 #msrBox{ position:absolute; z-index:7; top:calc(env(safe-area-inset-top) + 62px); left:50%; transform:translateX(-50%);
-  width:min(560px,72vw); background:rgba(0,0,0,.9); border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; }
+  width:min(560px,72vw); background:rgba(0,0,0,.72); pointer-events:none; border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; }
+#msrBox.low{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 96px); }
 #msrT{ display:block; color:var(--am); font-size:17px; font-weight:900; }
 #msrM{ margin:4px 0 8px; font-size:14px; font-weight:700; line-height:1.5; }
 .msrBtns{ display:flex; gap:6px; flex-wrap:wrap; }
 .msrBtns .btn{ width:auto; min-height:40px; padding:4px 12px; font-size:14px; }
+/* 説明の 板の 上を 押しても 下の 動画（ロープ）を 押せるように。ボタンだけ 押せます */
+.msrBtns .btn{ pointer-events:auto; }
+/* 距離を計る 間は 左上の 結果の 板を かくして、動画を 押しやすく します */
+#ana.msring .oInfo, #detail.msring .oInfo{ visibility:hidden; }
 .tapL{ position:absolute; inset:0; z-index:1; margin:0; padding:0; border:0;
   background:transparent; cursor:pointer; touch-action:none; }
 /* 「測定終了」は みじかいので 1行に おさめます */
@@ -2024,10 +2029,9 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <b id="msrT"></b>
     <p id="msrM"></p>
     <div class="msrBtns">
-      <button class="btn g hide" type="button" id="msrUse"></button>
-      <button class="btn hide" type="button" id="msrNoWall">壁が写っていない</button>
       <button class="btn y" type="button" id="msrRedo">合わせ直す</button>
       <button class="btn" type="button" id="msrClose">閉じる</button>
+      <button class="btn" type="button" id="msrMove">この板を下へ</button>
     </div>
   </div>
   <div class="ov ana">
@@ -4571,8 +4575,9 @@ var HELP=[
  ]],
  ['距離を計る（浮き上がりを 測る）',[
    '分析の 画面の <b>その他</b> →<b>距離を計る</b>、または 記録を 開いた 再生の 画面の <b>メニュー</b> →<b>距離を計る</b>を おします。再生の 画面で 入れた 浮き上がりは、その 記録に すぐ 保存されます。',
-   '動画を 止めたまま、1本の コースロープの 壁（0m）、赤から 黄色に 変わる所（5m）、黄色の中の 色の違う玉（15m）を じゅんに おします。壁が 写って いない ときは <b>壁が写っていない</b>を おすと、5m・15m・反対側の 赤の 始まりで 合わせられます。',
-   '浮き上がりの 瞬間で 止めて、頭を おすと「壁から ○m」が 出ます。<b>浮き上がりに入れる</b>を おすと、その ラップの 浮き上がりに 入ります。',
+   '動画を 止めたまま、泳いでいる レーンの 両側の コースロープを 4か所 押します。1点目は 手前の ロープの 5m（赤から 黄色に 変わる所）、2点目は 奥の ロープの 5m、3点目は 手前の ロープの 15m（黄色が 終わる所）、4点目は 奥の ロープの 15mです。',
+   '4点 そろうと、レーンの 中に 1mごとの 白い 線が 出ます。浮き上がりの 瞬間で 止めて 頭を 押すと（5点目）、その ラップの 浮き上がりに すぐ 決まります。押し直すと 上書きされます。',
+   'ターンの 浮き上がりは、ターンの 壁の 側で もう一度 4点を 合わせます。一度 合わせた 目もりは 記録に 残るので、次からは 頭を 押すだけです。',
    '浮き上がりを 入れた ラップは、浮き上がりから 泳ぎ区間として 泳効率を 計算します。入れて いない ラップは、今まで どおり 15m（ターンアウト）で 計算します。',
    '記録の 修正の 画面でも、ラップごとの 浮き上がりを 数字で 入れられます（長水路の 100mは 2つ、短水路の 100mは 4つ）。'
  ]],
@@ -4853,7 +4858,7 @@ function openAna(blob, opt){
   aUw = (opt.uw||[]).map(function(u){ return u ? { d:u.d, vt:(u.vt!=null?u.vt:null) } : null; });
   if(!aUw.length && opt.uwDist>0) aUw=[{ d:Number(opt.uwDist), vt:null }];
   aMeas = opt.meas ? JSON.parse(JSON.stringify(opt.meas)) : null;
-  msrOn=false; msrPick=null; try{ msrMount('ana'); msrPaint(); }catch(e){}
+  msrOn=false; msrPick=null; msrDone=null; try{ msrMount('ana'); msrPaint(); }catch(e){}
   if(typeof wvShow==='function'){ wvShow(false); wvSel=null; wvClosed=false; wvPinned=false; wvData=null; wvBlob=null; }
   aRT   = (opt.rt!=null)   ? opt.rt   : null;
   aPreLaps = opt.laps || null;
@@ -4931,7 +4936,7 @@ function openAna(blob, opt){
 var aDraftId=null, aDraftAt=null, aDraftThumb='', aDraftSig='', aDraftBusy=false, aNoDraft=false, aDraftVidFor='';
 function anaSig(){
   var st=aStrokes||[];
-  return JSON.stringify([aSplits, st.length, st[st.length-1]||0, aT0, aSigT, aRT, $('dist').value, $('pool').value, $('event').value, aPre, $('anaTitle').textContent, aUw, aMeas&&aMeas.pts.length]);
+  return JSON.stringify([aSplits, st.length, st[st.length-1]||0, aT0, aSigT, aRT, $('dist').value, $('pool').value, $('event').value, aPre, $('anaTitle').textContent, aUw, msrCount(aMeas)]);
 }
 function anaHasWork(){ return !!((aSplits&&aSplits.length) || (aStrokes&&aStrokes.length) || aT0!=null || aSigT!=null); }
 function draftSave(){
@@ -11172,20 +11177,23 @@ function vfUwRead(){
   });
   return out;
 }
-/* ===== メジャー（動画の 上で 距離を 測る） =====
-   1本の コースロープの 3か所（壁0m・赤から黄色5m・黄色の中の印15m、壁が 写って いなければ 反対側の 赤の 始まり）を
-   押すと、遠近を 補正して 1mごとの 目もりを 出します。測りたい 所を 押すと「壁からの 距離」が 出ます。
-   「浮き上がりに入れる」で、その ラップの 浮き上がり（距離と 動画の 時刻）を 記録します。 */
-var aMeas=null, aUw=[], msrOn=false, msrPick=null;
+/* ===== 距離を計る（動画の 上で 距離を 測る・4点方式） =====
+   泳いでいる レーンの 両側の コースロープで、壁から 5m（赤から 黄色に 変わる所）と
+   15m（黄色が 終わる所）を 手前・奥の じゅんに 押します（1点目〜4点目）。
+   4点から 水面の 遠近を 補正するので、ロープの 間に いる 選手の 頭でも そのまま 測れます。
+   5点目に 頭を 押すと、その ラップの 浮き上がり（壁からの 距離と 動画の 時刻）に すぐ 決まります。
+   目もりは 壁の 側ごとに おぼえます（a＝スタートの 壁の 側、b＝反対の 壁の 側）。 */
+var aMeas=null, aUw=[], msrOn=false, msrPick=null, msrDone=null;
 /* 分析の 画面（ana）と 再生の 画面（det）の どちらでも 使えるように、今 どちらで 使って いるかを おぼえます */
 var msrCtx='ana', dMeas=null;
+var MSR_W=[[5,0],[5,1],[15,0],[15,1]];   /* 1点目〜4点目の 場所（壁からの m、手前0・奥1） */
 function msrDet(){ return msrCtx==='det' && !!dRec; }
 function msrVid(){ return $(msrDet()?'dv':'v'); }
 function msrHost(){ return $(msrDet()?'detail':'ana'); }
-function msrMeas(){ return msrDet() ? dMeas : aMeas; }
-function msrSetMeas(m){ if(msrDet()) dMeas=m; else aMeas=m; }
+function msrNorm(m){ return (m && m.mode==='h4') ? m : { mode:'h4', a:[], b:[] }; }   /* 前の 3点方式の 目もりは 使わない */
+function msrMeas(){ var m=msrNorm(msrDet()?dMeas:aMeas); if(msrDet()) dMeas=m; else aMeas=m; return m; }
+function msrCount(m){ return (m && m.mode==='h4') ? (m.a||[]).length+(m.b||[]).length : 0; }
 function msrPool(){ return msrDet() ? (Number(dRec.pool)||50) : (Number(($('pool')||{}).value)||50); }
-function msrSteps(){ var p=msrPool(), M=msrMeas(); return (M && M.far) ? [5,15,p-5] : [0,5,15]; }
 /* メジャーの 画面を 分析・再生の どちらかの 動画の 上に のせます */
 function msrMount(ctx){
   msrCtx=ctx;
@@ -11195,49 +11203,50 @@ function msrMount(ctx){
 /* 再生の 画面で 合わせた 目もりと 浮き上がりを その 記録に 保存します */
 function msrDetSave(){
   if(!dRec) return;
-  dRec.meas = (dMeas && dMeas.pts && dMeas.pts.length>=3) ? JSON.parse(JSON.stringify(dMeas)) : (dRec.meas||null);
+  dRec.meas = msrCount(dMeas) ? JSON.parse(JSON.stringify(dMeas)) : (dRec.meas||null);
   dRec.updatedAt=Date.now();
   var r=dRec;
   dbPut(r).then(function(){ afterSave(r); });
 }
-function msrCloseAll(){ msrOn=false; msrPick=null; try{ msrPaint(); }catch(e){} }
-function msrLbl(m){
-  if(m===0) return '壁（0m）';
-  if(m===5) return '赤から黄色に変わる所（5m）';
-  if(m===15) return '黄色の中の色の違う玉（15m）';
-  return '反対側の赤が始まる所（'+m+'m）';
-}
+function msrCloseAll(){ msrOn=false; msrPick=null; msrDone=null; try{ msrPaint(); }catch(e){} }
 function msrBoxRect(){
   var v=msrVid(), r=v.getBoundingClientRect(), ar=msrHost().getBoundingClientRect();
   var vw=v.videoWidth||16, vh=v.videoHeight||9, w=r.width||1, h=r.height||1, cw, ch, ox=0, oy=0;
   if(w/h > vw/vh){ ch=h; cw=h*vw/vh; ox=(w-cw)/2; } else { cw=w; ch=w*vh/vw; oy=(h-ch)/2; }
   return { left:r.left-ar.left+ox, top:r.top-ar.top+oy, w:cw, h:ch, vw:vw, vh:vh, sx:r.left+ox, sy:r.top+oy };
 }
-function solve3(M){
-  var A=M.map(function(r){ return r.slice(); }), i, j, k;
-  for(i=0;i<3;i++){
-    var piv=i; for(j=i+1;j<3;j++) if(Math.abs(A[j][i])>Math.abs(A[piv][i])) piv=j;
-    var tmp=A[i]; A[i]=A[piv]; A[piv]=tmp;
-    if(Math.abs(A[i][i])<1e-12) return null;
-    for(j=0;j<3;j++){ if(j===i) continue; var f=A[j][i]/A[i][i]; for(k=i;k<4;k++) A[j][k]-=f*A[i][k]; }
+/* 4つの 点の 組から 平らな 面の 遠近を 直す 式（射影変換）を 作ります */
+function msrHom(src, dst){
+  var A=[], i, r, c, k;
+  for(i=0;i<4;i++){
+    var x=src[i][0], y=src[i][1], u=dst[i][0], v=dst[i][1];
+    A.push([x,y,1,0,0,0,-u*x,-u*y,u]); A.push([0,0,0,x,y,1,-v*x,-v*y,v]);
   }
-  return [A[0][3]/A[0][0], A[1][3]/A[1][1], A[2][3]/A[2][2]];
+  for(c=0;c<8;c++){
+    var p=c; for(r=c+1;r<8;r++) if(Math.abs(A[r][c])>Math.abs(A[p][c])) p=r;
+    var t=A[c]; A[c]=A[p]; A[p]=t;
+    if(Math.abs(A[c][c])<1e-9) return null;
+    for(r=0;r<8;r++){ if(r===c) continue; var f=A[r][c]/A[c][c]; for(k=c;k<9;k++) A[r][k]-=f*A[c][k]; }
+  }
+  var h=[]; for(i=0;i<8;i++) h.push(A[i][8]/A[i][i]);
+  return function(x,y){ var w=h[6]*x+h[7]*y+1; return [(h[0]*x+h[1]*y+h[2])/w, (h[3]*x+h[4]*y+h[5])/w]; };
 }
-/* 3点から「画面の 位置 ↔ メートル」を 出す（遠近は 1次元の 射影で 補正） */
-function msrFit(meas){
-  meas = meas || msrMeas();
-  if(!meas || !meas.pts || meas.pts.length<3) return null;
-  var P=meas.pts.slice().sort(function(a,b){ return a.m-b.m; });
-  var p0=P[0], p2=P[2], dx=p2.x-p0.x, dy=p2.y-p0.y, L=Math.sqrt(dx*dx+dy*dy); if(!(L>0)) return null;
-  var ux=dx/L, uy=dy/L;
-  function sOf(pt){ return (pt.x-p0.x)*ux+(pt.y-p0.y)*uy; }
-  var sol=solve3(P.map(function(q){ var ss=sOf(q); return [ss,1,-ss*q.m,q.m]; })); if(!sol) return null;
-  var a=sol[0], b=sol[1], c=sol[2];
-  return {
-    m:function(pt){ var ss=sOf(pt); return (a*ss+b)/(c*ss+1); },
-    pt:function(m){ var ss=(b-m)/(m*c-a); return { x:p0.x+ux*ss, y:p0.y+uy*ss }; },
-    foot:function(pt){ var ss=sOf(pt); return { x:p0.x+ux*ss, y:p0.y+uy*ss }; }
-  };
+/* 1つの 壁の 側の 4点 → 画面⇔水面 の 式（そろって いなければ null） */
+function msrFit(pts){
+  if(!pts || pts.length<4) return null;
+  var img=pts.map(function(q){ return [q.x,q.y]; });
+  var toW=msrHom(img, MSR_W), toI=msrHom(MSR_W, img);
+  if(!toW || !toI) return null;
+  /* 手前と 奥が 入れかわって いないか：5m手前→15m手前→15m奥→5m奥 が ねじれない 四角形なら よい */
+  var Q=[img[0],img[2],img[3],img[1]], sg=0, ok=true;
+  for(var i=0;i<4;i++){
+    var A=Q[i], B=Q[(i+1)%4], C=Q[(i+2)%4];
+    var cr=(B[0]-A[0])*(C[1]-B[1])-(B[1]-A[1])*(C[0]-B[0]);
+    if(Math.abs(cr)<1){ ok=false; break; }
+    if(!sg) sg=(cr>0?1:-1); else if((cr>0?1:-1)!==sg){ ok=false; break; }
+  }
+  if(!ok) return null;
+  return { m:function(pt){ return toW(pt.x, pt.y)[0]; }, w:function(pt){ return toW(pt.x, pt.y); }, pt:function(m, s){ var q=toI(m, s); return { x:q[0], y:q[1] }; } };
 }
 /* 今の 動画の 時刻は 何ラップ目か（0＝スタート、1＝ターン1…） */
 function msrLap(){
@@ -11249,47 +11258,54 @@ function msrLap(){
   return Math.min(n-1, Math.floor((far+0.001)/p));
 }
 function lapName(i){ return i===0 ? 'スタート' : ('ターン'+i); }
+function msrSide(lap){ return (lap%2===0) ? 'a' : 'b'; }   /* スタート・ターン2・ターン4… は スタートの 壁の 側 */
+function msrWallName(lap){ return (lap%2===0) ? 'スタートの壁' : 'ターンの壁'; }
+function msrLbl(i, lap){
+  var wall=msrWallName(lap);
+  return (i%2===0 ? '手前' : '奥')+'のロープの「'+(i<2 ? wall+'から5m（赤から黄色に変わる所）' : wall+'から15m（黄色が終わる所）')+'」';
+}
 function msrPaint(){
   var svg=$('msrSvg'), box=$('msrBox');
+  $('ana').classList.toggle('msring', msrOn && !msrDet()); $('detail').classList.toggle('msring', msrOn && msrDet());
   if(!msrOn){ svg.classList.add('hide'); box.classList.add('hide'); return; }
-  var aMeas=msrMeas(), B=msrBoxRect(), k=B.vw/B.w, F=msrFit(), st=msrSteps(), p=msrPool(), h='', m, i;
+  var M=msrMeas(), lap=msrLap(), sd=msrSide(lap), pts=M[sd]||(M[sd]=[]), F=msrFit(pts);
+  var B=msrBoxRect(), k=B.vw/B.w, h='', m, i;
   svg.classList.remove('hide'); box.classList.remove('hide');
   svg.style.left=B.left+'px'; svg.style.top=B.top+'px'; svg.style.width=B.w+'px'; svg.style.height=B.h+'px';
   svg.setAttribute('viewBox','0 0 '+B.vw+' '+B.vh);
   var fs=14*k, sw=2.5*k;
   function txt(x,y,t,col,anc){ return '<text x="'+x+'" y="'+y+'" font-size="'+fs+'" font-weight="900" fill="'+(col||'#fff')+'" stroke="#000" stroke-width="'+(3*k)+'" paint-order="stroke" text-anchor="'+(anc||'middle')+'">'+esc(t)+'</text>'; }
+  function ln(a,b,col,wd,op){ return '<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="'+col+'" stroke-width="'+wd+'" opacity="'+(op||1)+'"/>'; }
   if(F){
-    var q0=F.pt(0), q1=F.pt(p);
-    h+='<line x1="'+q0.x+'" y1="'+q0.y+'" x2="'+q1.x+'" y2="'+q1.y+'" stroke="#fff" stroke-width="'+(1.6*k)+'" stroke-dasharray="'+(6*k)+' '+(4*k)+'"/>';
-    for(m=0;m<=p;m++){
-      var q=F.pt(m), big=(m%5===0), len=(big?10:5)*k;
-      h+='<line x1="'+q.x+'" y1="'+(q.y-len)+'" x2="'+q.x+'" y2="'+(q.y+len)+'" stroke="#fff" stroke-width="'+((big?2.2:1.2)*k)+'"/>';
-      if(big && !(aMeas.pts||[]).some(function(c){ return c.m===m; })) h+=txt(q.x, q.y+len+fs, m+'m');
+    var p=msrPool(), top=Math.min(p, 25);
+    h+=ln(F.pt(0,0),F.pt(top,0),'#fff',1.4*k,.8)+ln(F.pt(0,1),F.pt(top,1),'#fff',1.4*k,.8);
+    for(m=0;m<=top;m++){
+      var big=(m%5===0);
+      h+=ln(F.pt(m,0),F.pt(m,1),'#fff',(big?2.2:1.1)*k,(big?1:.75));
+      if(big && m!==5 && m!==15){ var q=F.pt(m,0); h+=txt(q.x, q.y+fs*1.6, m+'m'); }
     }
   }
-  (aMeas&&aMeas.pts||[]).forEach(function(pt){
-    h+='<circle cx="'+pt.x+'" cy="'+pt.y+'" r="'+(9*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+sw+'"/>'+txt(pt.x, pt.y-12*k, pt.m+'m', '#f2b01e');
+  pts.forEach(function(pt,j){
+    /* 合わせて いる 間だけ「○点目」を 出します（そろったら 頭の 数字が 見やすいように 丸だけ） */
+    h+='<circle cx="'+pt.x+'" cy="'+pt.y+'" r="'+((F?6:9)*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+sw+'"/>'+(F?'':txt(pt.x, pt.y-12*k, (j+1)+'点目 '+MSR_W[j][0]+'m', '#f2b01e'));
   });
-  var n=(aMeas&&aMeas.pts||[]).length;
-  $('msrNoWall').classList.toggle('hide', !(n===0 && !(aMeas&&aMeas.far)));
-  $('msrUse').classList.add('hide');
-  if(n<3){
-    $('msrT').textContent='距離を計る：場所を合わせる（'+(n+1)+'/3）';
-    $('msrM').textContent='動画を止めたまま、1本のコースロープの「'+msrLbl(st[n])+'」を押してください。'+(n===1&&st[0]===0?'25mプールは、壁に近い長い黄色（5mから15m）を使います。':'');
-  }else if(!msrPick || !F){
-    $('msrT').textContent='距離を計る準備ができました';
-    $('msrM').textContent='測りたい所（頭など）を押してください。白い目もりは1mごとで、遠くほどせまくなります。';
+  var n=pts.length;
+  if(n<4){
+    $('msrT').textContent='距離を計る：場所を合わせる（'+(n+1)+'/4）';
+    $('msrM').textContent='動画を止めたまま、泳いでいるレーンの'+msrLbl(n, lap)+'を押してください。';
+  }else if(!F){
+    $('msrT').textContent='うまく合わせられませんでした';
+    $('msrM').textContent='手前と奥を入れちがえたかもしれません。「合わせ直す」を押して、もう一度1点目から押してください。';
+  }else if(!msrDone){
+    $('msrT').textContent='距離を計る準備ができました（'+msrWallName(lap)+'の側）';
+    $('msrM').textContent='浮き上がりの瞬間で止めて、頭を押してください。白い線は1mごとです。';
   }else{
-    var mm=Math.max(0, Math.min(p, F.m(msrPick))), lap=msrLap(), wall=(lap%2===0)?0:p, dW=Math.abs(mm-wall);
-    var ft=F.foot(msrPick);
-    h+='<line x1="'+msrPick.x+'" y1="'+msrPick.y+'" x2="'+ft.x+'" y2="'+ft.y+'" stroke="#f2b01e" stroke-width="'+sw+'" stroke-dasharray="'+(5*k)+' '+(4*k)+'"/>';
-    h+='<circle cx="'+msrPick.x+'" cy="'+msrPick.y+'" r="'+(9*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+(3*k)+'"/>';
-    h+=txt(msrPick.x, msrPick.y+24*k, (lap?lapName(lap)+'の壁から ':'壁から ')+dW.toFixed(1)+'m', '#f2b01e');
-    $('msrT').textContent=(lap?lapName(lap)+'の壁から ':'スタートの壁から ')+dW.toFixed(1)+'m';
-    $('msrM').textContent='浮き上がりの瞬間で止めて押した場合は、下のボタンで'+lapName(lap)+'の浮き上がりに入れられます。'+(msrDet()?'この記録にすぐ保存されます。':'');
-    $('msrUse').textContent='浮き上がりに入れる（'+lapName(lap)+'）';
-    $('msrUse').classList.remove('hide');
-    $('msrUse').dataset.lap=String(lap); $('msrUse').dataset.d=dW.toFixed(1);
+    var d=msrDone, w=F.w(d.pt), a=F.pt(w[0],0), b=F.pt(w[0],1);
+    h+=ln(a,b,'#f2b01e',3*k);
+    h+='<circle cx="'+d.pt.x+'" cy="'+d.pt.y+'" r="'+(11*k)+'" fill="none" stroke="#f2b01e" stroke-width="'+(3*k)+'"/>';
+    h+=txt(d.pt.x, d.pt.y-16*k, '5点目 頭 '+d.d.toFixed(1)+'m', '#f2b01e');
+    $('msrT').textContent=lapName(d.lap)+'の浮き上がり '+d.d.toFixed(1)+'m　'+(msrDet()?'保存しました':'入れました');
+    $('msrM').textContent='押し直すと、上書きされます。'+(msrDet()?'':'記録を保存すると、いっしょに保存されます。');
   }
   svg.innerHTML=h;
 }
@@ -11297,8 +11313,8 @@ $('anaMsr').onclick=function(){
   anaMoreOpen(false);
   msrMount('ana');
   try{ $('v').pause(); $('bPlay').innerHTML=T('playI'); }catch(e){}
-  if(!aMeas) aMeas={ pts:[], far:false };
-  msrOn=true; msrPick=null; msrPaint();
+  msrMeas();
+  msrOn=true; msrPick=null; msrDone=null; msrPaint();
 };
 /* 再生の 画面の メニュー →「距離を計る」 */
 $('dMsr').onclick=function(){
@@ -11306,24 +11322,12 @@ $('dMsr').onclick=function(){
   document.querySelector('.ov.det').classList.remove('on'); $('dMenu').textContent=T('dMenu');
   msrMount('det');
   try{ $('dv').pause(); $('dPlay').innerHTML=T('playI'); }catch(e){}
-  dMeas = dRec.meas ? JSON.parse(JSON.stringify(dRec.meas)) : { pts:[], far:false };
-  msrOn=true; msrPick=null; msrPaint();
+  dMeas = dRec.meas ? JSON.parse(JSON.stringify(dRec.meas)) : null;
+  msrMeas();
+  msrOn=true; msrPick=null; msrDone=null; msrPaint();
 };
-$('msrSvg').addEventListener('pointerdown', function(e){
-  if(!msrOn) return;
-  e.preventDefault(); e.stopPropagation();
-  var B=msrBoxRect(), pt={ x:(e.clientX-B.sx)/B.w*B.vw, y:(e.clientY-B.sy)/B.h*B.vh };
-  var st=msrSteps(), M=msrMeas();
-  if(M.pts.length<3){ pt.m=st[M.pts.length]; M.pts.push(pt); if(M.pts.length===3 && msrDet()) msrDetSave(); }
-  else msrPick=pt;
-  msrPaint();
-});
-$('msrNoWall').onclick=function(){ msrSetMeas({ pts:[], far:true }); msrPick=null; msrPaint(); };
-$('msrRedo').onclick=function(){ msrSetMeas({ pts:[], far:false }); msrPick=null; msrPaint(); };
-$('msrClose').onclick=function(){ msrOn=false; msrPick=null; msrPaint(); };
-$('msrUse').onclick=function(){
-  var lap=Number(this.dataset.lap)||0, d=Number(this.dataset.d);
-  if(!(d>0)){ return; }
+/* 頭（5点目）を 押したら、その ラップの 浮き上がりに すぐ 決めます */
+function msrSetUw(lap, d){
   var u={ d:Math.round(d*10)/10, vt:Math.round(msrVid().currentTime*100)/100 };
   if(msrDet()){
     var uw=(dRec.uw||[]).slice();
@@ -11331,13 +11335,36 @@ $('msrUse').onclick=function(){
     for(var i=0;i<lap;i++) if(uw[i]===undefined) uw[i]=null;
     uw[lap]=u; dRec.uw=uw; dRec.uwDist=(uw[0]&&uw[0].d>0)?uw[0].d:null;
     msrDetSave();
-    toast(lapName(lap)+'の浮き上がりを '+d.toFixed(1)+'m にして保存しました');
   }else{
+    for(var j=0;j<lap;j++) if(aUw[j]===undefined) aUw[j]=null;
     aUw[lap]=u;
-    toast(lapName(lap)+'の浮き上がりを '+d.toFixed(1)+'m にしました');
   }
-  msrPick=null; msrPaint();
-};
+  return u.d;
+}
+$('msrSvg').addEventListener('pointerdown', function(e){
+  if(!msrOn) return;
+  e.preventDefault(); e.stopPropagation();
+  var B=msrBoxRect(), pt={ x:(e.clientX-B.sx)/B.w*B.vw, y:(e.clientY-B.sy)/B.h*B.vh };
+  var M=msrMeas(), lap=msrLap(), sd=msrSide(lap), pts=M[sd]||(M[sd]=[]);
+  if(pts.length<4){
+    pts.push({ x:pt.x, y:pt.y, m:MSR_W[pts.length][0], s:MSR_W[pts.length][1] });
+    msrDone=null;
+    if(pts.length===4 && msrDet() && msrFit(pts)) msrDetSave();
+  }else{
+    var F=msrFit(pts); if(!F){ msrPaint(); return; }
+    var d=Math.max(0, Math.min(msrPool(), F.m(pt)));
+    if(!(d>0)){ msrPaint(); return; }
+    var saved=msrSetUw(lap, d);
+    msrDone={ pt:pt, d:saved, lap:lap };
+  }
+  msrPaint();
+});
+$('msrRedo').onclick=function(){ var M=msrMeas(); M[msrSide(msrLap())]=[]; msrPick=null; msrDone=null; msrPaint(); };
+$('msrClose').onclick=function(){ msrCloseAll(); };
+/* 説明の 板が 押したい ロープに かさなる ときは、上と 下を 入れかえます */
+$('msrMove').onclick=function(){ var low=$('msrBox').classList.toggle('low'); this.textContent=low?'この板を上へ':'この板を下へ'; };
+/* 動画の 場面を うごかしたら、その ラップの 側の 目もりに 合わせて 書き直します */
+['v','dv'].forEach(function(id){ $(id).addEventListener('seeked', function(){ if(msrOn){ msrDone=null; msrPaint(); } }); });
 window.addEventListener('resize', function(){ if(msrOn) setTimeout(msrPaint, 60); });
 /* ===== ターンアウトを 10m か 15m か 聞く =====
    登録した 選手が 10m と 決めて いれば「10m（ターンアウト）で測定しますか？」。

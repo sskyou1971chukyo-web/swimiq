@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.4">
+<meta name="app-ver" content="2026.10.13.5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -9542,14 +9542,17 @@ function boOf(r, lap){
   else if(lap===0 && !(r.uw && r.uw.length) && Number(r.uwDist)>0) u={ d:Number(r.uwDist) };
   if(!u) return null;
   var d=Number(u.d); if(!(d>0 && d<p-5)) return null;
-  var W=lap*p, abs=Math.round((W+d)*10)/10, t=null, est=false;
+  var W=lap*p, abs=Math.round((W+d)*10)/10, t=null, est=false, bad=false;
   if(u.vt!=null && r.t0!=null) t=Number(u.vt)-Number(r.t0);
-  /* 動画の 時刻が 通過タイムと 合わない とき（壁より 前、または 次の 通過より 後）は 使わず、通過から 見つもります。
-     れい：50〜75mの 浮き上がりを、ちがう 場面で 止めた まま 登録した とき */
+  /* 動画の 時刻が 通過タイムと 合わない とき は 使わず、通過から 見つもります。
+     れい：50〜75mの 浮き上がりを、ちがう 場面で 止めた まま 登録した とき。
+     目もりや 通過の 押し方で 1mくらいは ずれるので、浮き上がりの 前後 3mの ゆとりを 持たせます */
   if(t!=null){
-    var by0=splitBy(r), tW=(lap===0 ? 0 : by0[W]), nx=null;
-    (r.splits||[]).forEach(function(q){ if(q.d>abs && (nx==null || q.d<nx.d)) nx=q; });
-    if((tW!=null && !(t>tW)) || (nx && !(t<nx.t))) t=null;
+    var by0=splitBy(r), tW=(lap===0 ? 0 : by0[W]);
+    var spA=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; });
+    function tAt(m){ var lo={ d:0, t:0 }, hi=null; for(var q=0;q<spA.length;q++){ if(spA[q].d<=m) lo=spA[q]; else { hi=spA[q]; break; } } return hi ? lo.t+(hi.t-lo.t)*(m-lo.d)/(hi.d-lo.d) : null; }
+    var tLo=tAt(Math.max(W, abs-3)), tHi=tAt(abs+3);
+    if((tW!=null && !(t>tW)) || (tLo!=null && abs-3>W && !(t>tLo)) || (tHi!=null && !(t<tHi))){ t=null; bad=true; }
   }
   if(t==null){
     var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; }), lo={ d:0, t:0 }, hi=null, i;
@@ -9559,7 +9562,7 @@ function boOf(r, lap){
   /* 足が 壁から 離れた 時刻（足離れからの 秒）。動画の 時刻から 出した 浮き上がりの とき だけ 使います */
   var po=null;
   if(!est && t!=null && u.po!=null && r.t0!=null){ var pv=Number(u.po)-Number(r.t0), by1=splitBy(r); if(lap>0 && by1[W]!=null && pv>by1[W] && pv<t) po=pv; }
-  return { d:d, abs:abs, t:t, est:est, po:po };
+  return { d:d, abs:abs, t:t, est:est, po:po, bad:bad };   /* bad：動画の 時刻は あったが 通過タイムと 合わなかった */
 }
 function swimStart(r, lap){
   var p=Number(r.pool)||50, W=lap*p, by=splitBy(r), bo=boOf(r, lap);
@@ -9738,7 +9741,7 @@ function turnStats(r){
     var W0=L*pool, t0w=(L===0) ? 0 : by[W0], Z=zone(L); if(t0w==null) continue;
     var spin=(bo.po!=null) ? bo.po-t0w : null, tu=bo.t-(bo.po!=null ? bo.po : t0w); if(!(tu>0)) continue;
     var zl=Z.abs-W0, ta=(Z.t!=null && bo.d<zl) ? Z.t-bo.t : null;
-    var o={ lap:L, d:bo.d, t:tu, v:bo.d/tu, est:bo.est, spin:spin, zl:zl, da:(ta!=null&&ta>0)?Math.round((zl-bo.d)*10)/10:null, ta:(ta!=null&&ta>0)?ta:null, va:(ta!=null&&ta>0)?(zl-bo.d)/ta:null };
+    var o={ lap:L, d:bo.d, t:tu, v:bo.d/tu, est:bo.est, bad:bo.bad, spin:spin, zl:zl, da:(ta!=null&&ta>0)?Math.round((zl-bo.d)*10)/10:null, ta:(ta!=null&&ta>0)?ta:null, va:(ta!=null&&ta>0)?(zl-bo.d)/ta:null };
     /* 水中の得：潜った 距離を この ラップの 泳ぎ区間の 速さで 泳いだ ときの 時間 − 実際に 潜って いた 時間（ターンだけ。スタートは 飛び込みを 含むので 出さない） */
     var cs=(L>0 && !bo.est) ? cleanSeg(r, W0, Math.min(W0+25, W0+pool)) : null;
     o.vs=(cs && cs.v) ? cs.v : null;
@@ -10438,7 +10441,7 @@ function reportPages(r, prev, W, H, nP){
         if(!one && o.lap>0 && !o.est) s+=T_(bx2,ya+8,o.spin!=null?('回る'+o.spin.toFixed(2)+'秒除く'):'回る時間ふくむ',7.5,700,'#5b6270');
         s+='<rect x="'+(bx2+LWb)+'" y="'+by2+'" width="'+wu+'" height="'+rhb+'" rx="5" fill="#1f4fa8"/>';
         if(o.da!=null) s+='<rect x="'+(bx2+LWb+wu)+'" y="'+by2+'" width="'+(bwb-wu)+'" height="'+rhb+'" rx="5" fill="#bcd0f2"/>';
-        var a=o.est ? fitb(['潜り '+o.d.toFixed(1)+'m（動画の時刻なし）', '潜り '+o.d.toFixed(1)+'m（時刻なし）', '潜り '+o.d.toFixed(1)+'m', o.d.toFixed(1)+'m'], wu, 11)
+        var a=o.est ? fitb(o.bad ? ['潜り '+o.d.toFixed(1)+'m（時刻が通過と合わない）', '潜り '+o.d.toFixed(1)+'m（時刻が合わない）', '潜り '+o.d.toFixed(1)+'m', o.d.toFixed(1)+'m'] : ['潜り '+o.d.toFixed(1)+'m（動画の時刻なし）', '潜り '+o.d.toFixed(1)+'m（時刻なし）', '潜り '+o.d.toFixed(1)+'m', o.d.toFixed(1)+'m'], wu, 11)
                     : fitb(['潜り '+o.d.toFixed(1)+'m　'+o.t.toFixed(2)+'秒　'+o.v.toFixed(2)+'m/秒', o.d.toFixed(1)+'m '+o.t.toFixed(2)+'秒 '+o.v.toFixed(2)+'m/秒', o.d.toFixed(1)+'m '+o.v.toFixed(2)+'m/秒', o.d.toFixed(1)+'m'], wu, 11);
         if(a) s+=T_(bx2+LWb+wu/2,ya,a.t,a.fs,900,'#ffffff','middle');
         if(o.da!=null){ var b3=fitb(['浮き上がり後 '+o.da.toFixed(1)+'m', o.da.toFixed(1)+'m'], bwb-wu, 10); if(b3) s+=T_(bx2+LWb+wu+(bwb-wu)/2,ya,b3.t,b3.fs,900,'#16181d','middle'); }
@@ -10448,7 +10451,7 @@ function reportPages(r, prev, W, H, nP){
         var ex=bx2+LWb+bwb+10;
         /* 水中の得 */
         var gtx, gsub, gcol;
-        if(o.est){ gtx=NA; gsub='動画の時刻なし'; gcol='#8a909b'; }
+        if(o.est){ gtx=NA; gsub=o.bad?'時刻が合わない':'動画の時刻なし'; gcol='#8a909b'; }
         else if(o.lap===0){ gtx='出しません'; gsub='飛び込みを含む'; gcol='#8a909b'; }
         else if(o.gain==null){ gtx=NA; gsub='泳ぎの速さなし'; gcol='#8a909b'; }
         else { gtx=(o.gain>=0?'+':'−')+Math.abs(o.gain).toFixed(2)+'秒'; gsub=o.gain>=0?'潜ったほうが速い':'泳いだほうが速い'; gcol=o.gain>=0?GOOD2:BAD2; }
@@ -10470,7 +10473,8 @@ function reportPages(r, prev, W, H, nP){
       y+=Math.ceil(BO.length/nc)*(rhb+(one?14:8))+4;
       var nts='ターンは足が壁から離れた時刻から（なければ壁にさわってから）。水中の得＝潜った距離をこのラップの泳ぎの速さで泳いだ時間－潜った時間。';
       s+=T_(mx,y+8,nts,8.8,700,'#5b6270'); y+=13;
-      if(BO.some(function(o){ return o.est; })){ s+=T_(mx,y+8,'「動画の時刻なし」は、浮き上がりを数字で入れたか、別の場面で止めて登録したものです。その浮き上がりで止めて登録し直すと、速さと水中の得が出ます。',8.8,700,'#5b6270'); y+=13; }
+      if(BO.some(function(o){ return o.est && !o.bad; })){ s+=T_(mx,y+8,'「動画の時刻なし」は、浮き上がりを数字で入れたか、別の区間の場面で止めて登録したものです。その浮き上がりで止めて登録し直すと出ます。',8.8,700,'#5b6270'); y+=13; }
+      if(BO.some(function(o){ return o.bad; })){ s+=T_(mx,y+8,'「時刻が通過と合わない」は、止めた場面の時刻が通過タイムと3m以上ずれているものです。浮き上がりの場面か、通過タイムを確かめてください。',8.8,700,'#5b6270'); y+=13; }
       if(BOall.length>BO.length){ s+=T_(mx,y+8,'ほか '+(BOall.length-BO.length)+' か所の浮き上がりは、場所が足りないので省いています。',8.8,700,'#5b6270'); y+=13; }
       y+=6;
     }

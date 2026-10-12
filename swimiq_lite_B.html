@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.7">
+<meta name="app-ver" content="2026.10.12.8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -9500,6 +9500,13 @@ function boOf(r, lap){
   var d=Number(u.d); if(!(d>0 && d<p-5)) return null;
   var W=lap*p, abs=Math.round((W+d)*10)/10, t=null, est=false;
   if(u.vt!=null && r.t0!=null) t=Number(u.vt)-Number(r.t0);
+  /* 動画の 時刻が 通過タイムと 合わない とき（壁より 前、または 次の 通過より 後）は 使わず、通過から 見つもります。
+     れい：50〜75mの 浮き上がりを、ちがう 場面で 止めた まま 登録した とき */
+  if(t!=null){
+    var by0=splitBy(r), tW=(lap===0 ? 0 : by0[W]), nx=null;
+    (r.splits||[]).forEach(function(q){ if(q.d>abs && (nx==null || q.d<nx.d)) nx=q; });
+    if((tW!=null && !(t>tW)) || (nx && !(t<nx.t))) t=null;
+  }
   if(t==null){
     var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; }), lo={ d:0, t:0 }, hi=null, i;
     for(i=0;i<sp.length;i++){ if(sp[i].d<=abs) lo=sp[i]; else { hi=sp[i]; break; } }
@@ -11370,7 +11377,10 @@ function msrUwOf(L){
 }
 /* 頭（5点目）を 押して 区間を えらんだら、その 区間の 浮き上がりに 登録します */
 function msrSetUw(lap, d){
-  var u={ d:Math.round(d*10)/10, vt:Math.round(msrVid().currentTime*100)/100 };
+  /* 動画の 時刻は、今 写って いる 区間に 登録した ときだけ 残します。
+     ほかの 区間に 登録した ときは 時刻を 入れず、通過タイムから 見つもります（時刻が ずれると 泳速と 効率指数が くるうため） */
+  var same = msrHasT0() && msrDone && lap===msrDone.lap;
+  var u={ d:Math.round(d*10)/10, vt:(same ? Math.round(msrVid().currentTime*100)/100 : null) };
   if(msrDet()){
     var uw=(dRec.uw||[]).slice();
     if(!uw.length && Number(dRec.uwDist)>0) uw=[{ d:Number(dRec.uwDist), vt:null }];

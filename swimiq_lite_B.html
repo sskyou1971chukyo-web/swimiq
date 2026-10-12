@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.13">
+<meta name="app-ver" content="2026.10.12.14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -10339,6 +10339,19 @@ function reportPages(r, prev, W, H, nP){
     var MINW=58, ws=PO.parts.map(function(p){ return p.t/PO.total*cw; }), add=0, big=-1, k2;
     for(k2=0;k2<ws.length;k2++){ if(PO.parts[k2].k.indexOf('泳ぎ')===0){ if(big<0||ws[k2]>ws[big]) big=k2; continue; } if(ws[k2]<MINW){ add+=MINW-ws[k2]; ws[k2]=MINW; } }
     if(big>=0) ws[big]=Math.max(MINW, ws[big]-add);
+    /* 枠に 入る ように：長い 言い方から 順に ためし、入らなければ 字を 小さく（9ptまで）。それでも 入らなければ 次の 短い 言い方 */
+    function twd(str){ var n=0; for(var q=0;q<str.length;q++) n+=(str.charCodeAt(q)<256?0.6:1.0); return n; }
+    function short(k){ return k==='ターンイン'?'イン':(k==='ターンアウト'?'アウト':(k==='スタート'?'スタート':k)); }
+    function fitL(cands, w, fs){
+      for(var c=0;c<cands.length;c++){ var t=cands[c]; if(!t) continue; var need=twd(t)*fs; if(need<=w-8) return { t:t, fs:fs }; var f2=(w-8)/twd(t); if(f2>=8.5) return { t:t, fs:f2 }; }
+      return null;
+    }
+    function lbl2(x, w, k, sub, t, fc, fs){
+      var a=fitL([k+' '+sub, k, short(k)], w, fs), b2=fitL([fmt(t)+'秒', fmt(t)], w, fs+0.5), o='';
+      if(a) o+=T_(x+w/2,y+19,a.t,a.fs,900,fc,'middle');
+      if(b2) o+=T_(x+w/2,y+(a?35:27),b2.t,Math.min(a?a.fs+0.5:b2.fs, b2.fs),900,fc,'middle');
+      return o;
+    }
     var bx=mx; PO.parts.forEach(function(p, pi){
       var w=ws[pi];
       if(p.segs){
@@ -10346,18 +10359,14 @@ function reportPages(r, prev, W, H, nP){
         p.segs.forEach(function(g){
           var gw=Math.max(1, (g.t/p.t)*(w-2));
           s+='<rect x="'+sx+'" y="'+y+'" width="'+gw+'" height="42" fill="'+g.c+'"'+(g===p.segs[0]?' rx="6"':'')+'/>';
-          if(gw>96) s+=T_(sx+gw/2,y+19,g.k+' '+g.sub,10,900,g.fc,'middle')+T_(sx+gw/2,y+35,fmt(g.t)+'秒',10.5,900,g.fc,'middle');
-          else if(gw>46) s+=T_(sx+gw/2,y+19,g.k.slice(0,4),9,900,g.fc,'middle')+T_(sx+gw/2,y+35,fmt(g.t),9,900,g.fc,'middle');
-          else if(gw>26) s+=T_(sx+gw/2,y+27,fmt(g.t),8,900,g.fc,'middle');
+          s+=lbl2(sx, gw, g.k, g.sub, g.t, g.fc, 10);
           sx+=gw;
         });
         bx+=w; return;
       }
       s+='<rect x="'+bx+'" y="'+y+'" width="'+Math.max(1,w-2)+'" height="42" rx="6" fill="'+p.c+'"/>';
       var fc=p.fc||'#16181d';
-      if(w>120){ s+=T_(bx+w/2,y+19,p.k+' '+p.sub,11,900,fc,'middle')+T_(bx+w/2,y+35,fmt(p.t)+'秒',11.5,900,fc,'middle'); }
-      else if(w>44){ s+=T_(bx+w/2,y+19,p.k+(p.k==='タッチ'?' 5m':''),10,900,fc,'middle')+T_(bx+w/2,y+35,fmt(p.t),10.5,900,fc,'middle'); }
-      else if(w>22){ s+=T_(bx+w/2,y+19,p.k.slice(0,2),9,900,fc,'middle')+T_(bx+w/2,y+35,fmt(p.t),8.5,900,fc,'middle'); }
+      s+=lbl2(bx, w-2, p.k, p.sub||'', p.t, fc, 11);
       bx+=w; });
     y+=58;
     var cap='';

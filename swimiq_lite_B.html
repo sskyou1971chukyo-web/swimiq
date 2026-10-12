@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.14">
+<meta name="app-ver" content="2026.10.12.15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -4582,7 +4582,7 @@ var HELP=[
    'グラフの 非泳区間は 3色で わかれます。薄い青が スタート、濃い青が ターンイン（かべの 5m前から かべまで）、いちばん濃い青が ターンアウト（かべから 15m後まで）です。',
    'そろうと、結果の 一番上に <b>泳ぎ区間</b>・<b>非泳区間</b>（スタート15m＋ターン20m×回数＋タッチ5m）・<b>ターン平均</b>が 出ます。25mプールの 200mは 15m＋20m×7＋5m＝160m、50mプールの 200mは 15m＋20m×3＋5m＝80mです。タッチは ゴールの 5m前を 計った ときに 入ります。',
    '25mプールは ターンが 多く、押す 場所も 多く なります。まずは 50mプールか、100mから ためして ください。',
-   'PDFの グラフでは、非泳区間を 青、泳ぎ区間を 黄色で わけて 出します。'
+   'PDFの グラフでは、非泳区間を 青、泳ぎを 黄色で わけて 出します。内訳は 浮き上がりに 関係なく、スタート・ターンアウトを 必ず 15mで 区切ります。浮き上がりを 入れた ときは、帯の 下に 壁ごとの 潜りと 浮き上がり後の タイムと 速さを 出します。'
  ]],
  ['距離を計る（浮き上がりを 測る）',[
    '分析の 画面の <b>その他</b> →<b>距離を計る</b>、または 記録を 開いた 再生の 画面の <b>メニュー</b> →<b>距離を計る</b>を おします。再生の 画面で 入れた 浮き上がりは、その 記録に すぐ 保存されます。',
@@ -9693,7 +9693,15 @@ function turnStats(r){
   var sp=(r.splits||[]), by={}, i;
   for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t;
   var dist=Number(r.dist)||0, pool=Number(r.pool)||50;
-  var S0=swimStart(r, 0);
+  /* 内訳の 区切りは 浮き上がりに 関係なく 必ず 15m（スタート 0-15m、ターンアウト 壁-15m）。
+     15mの 通過が ない 古い 記録は ターンアウトの 設定（10m）で 区切ります。浮き上がりは 下の bos に 別に 持ちます */
+  function zone(lap){
+    var W=lap*pool, a15=W+15, aT=W+turnOutOf(r);
+    if(by[a15]!=null) return { abs:a15, t:by[a15] };
+    if(lap>0 && by[aT]!=null) return { abs:aT, t:by[aT] };
+    return { abs:a15, t:null };
+  }
+  var S0=zone(0);
   if(!dist || S0.t==null) return null;
   /* ゴールが 入って いなくても、スタートと ターンは 出します（泳ぎ区間だけは ゴールが ないと 出せません） */
   var rt=rtSec(r)||0, total=(by[dist]!=null) ? by[dist]+rt : null, startT=S0.t, startD=S0.abs;   /* スタートは 足離れから 浮き上がり（なければ 15m）まで。R.T は 別に 持つ */
@@ -9702,17 +9710,26 @@ function turnStats(r){
   for(w=pool; w<dist-0.001; w+=pool) walls.push(w);
   for(i=0;i<walls.length;i++){
     w=walls[i];
-    var S=swimStart(r, Math.round(w/pool)), b=Math.min(S.abs, dist), tb=(S.abs>=dist) ? by[dist] : S.t;
+    var S=zone(Math.round(w/pool)), b=Math.min(S.abs, dist), tb=(S.abs>=dist) ? by[dist] : S.t;
     if(by[w-5]!=null && tb!=null && tb>by[w-5]){
       var t=tb-by[w-5], tin=(by[w]!=null && by[w]>by[w-5]) ? by[w]-by[w-5] : null;
-      turns.push({ w:w, a:w-5, b:b, t:t, tin:tin, tout:(tin!=null ? t-tin : null), bo:S.bo, est:S.est }); sum+=t;
+      turns.push({ w:w, a:w-5, b:b, t:t, tin:tin, tout:(tin!=null ? t-tin : null) }); sum+=t;
     }
   }
   if(walls.length && !turns.length) return null;          /* ターンを 1つも 計って いない */
   /* タッチ区間（ゴール前 5m）：dist-5m と ゴールの 両方が あり、最後の ターンと 重ならない とき */
   var touch=null, tA=dist-5, lastB=turns.length?turns[turns.length-1].b:startD;
   if(by[dist]!=null && by[tA]!=null && tA>=lastB && by[dist]>by[tA]) touch={ a:tA, b:dist, t:by[dist]-by[tA] };
-  var res={ dist:dist, pool:pool, turnOut:turnOutOf(r), total:total, rt:(rtSec(r)||null), start:startT, startD:startD, startBo:S0.bo, turns:turns, nWalls:walls.length,
+  /* 浮き上がり（距離を計るで 入れた もの）：壁から 浮き上がりまでと、浮き上がって から 区切り（15m）までの タイムと 速さ */
+  var bos=[];
+  for(var L=0; L<=walls.length; L++){
+    var bo=boOf(r, L); if(!bo || bo.t==null) continue;
+    var W0=L*pool, t0w=(L===0) ? 0 : by[W0], Z=zone(L); if(t0w==null) continue;
+    var tu=bo.t-t0w; if(!(tu>0)) continue;
+    var zl=Z.abs-W0, ta=(Z.t!=null && bo.d<zl) ? Z.t-bo.t : null;
+    bos.push({ lap:L, d:bo.d, t:tu, v:bo.d/tu, est:bo.est, zl:zl, da:(ta!=null&&ta>0)?Math.round((zl-bo.d)*10)/10:null, ta:(ta!=null&&ta>0)?ta:null, va:(ta!=null&&ta>0)?(zl-bo.d)/ta:null });
+  }
+  var res={ dist:dist, pool:pool, turnOut:turnOutOf(r), total:total, rt:(rtSec(r)||null), start:startT, startD:startD, turns:turns, nWalls:walls.length, bos:bos,
             turnAvg: turns.length ? sum/turns.length : null, turnSum:sum, touch:touch,
             allTurns:(turns.length===walls.length), full:(turns.length===walls.length && total!=null),
             noGoal:(total==null), lastD:(lastS?lastS.d:null), lastT:(lastS?lastS.t+rt:null) };
@@ -9741,7 +9758,7 @@ function turnLines(ts){
   if(!ts) return [];
   var L=[];
   if(ts.full && ts.swimT>0){
-    L.push(['泳ぎ区間 '+ts.swimD+'m', fmt(ts.swimT)+'　'+(ts.v!=null?ts.v.toFixed(2)+'m/秒':'')]);
+    L.push(['泳ぎ（15m区切り） '+ts.swimD+'m', fmt(ts.swimT)+'　'+(ts.v!=null?ts.v.toFixed(2)+'m/秒':'')]);
     L.push(['非泳区間 '+ts.nonD+'m', fmt(ts.nonT)+'　'+ts.pct.toFixed(0)+'%']);
   }else if(ts.allTurns){
     L.push(['非泳区間 '+ts.nonD+'m', fmt(ts.nonT)]);
@@ -10233,13 +10250,13 @@ function partsOf(r){
        R.T なし      … スタート15mに 入れる（ぜんぶ スタート）
        ターンイン なし … 泳区間に まとめる
        ターンアウト なし … 泳区間に まとめる */
-  var S0=swimStart(r,0); if(S0.t==null) return null;
-  var startT=S0.t, startD=S0.abs;          /* 足離れから 浮き上がり（なければ 15m）まで */
+  if(!ts) return null;
+  var startT=ts.start, startD=ts.startD;   /* 足離れから 15mまで（浮き上がりに 関係なく 15mで 区切ります） */
   var inT=0, outT=0, inD=0, outD=0, n=0, touch=(ts && ts.touch) ? ts.touch : null, anyBo=false;
   if(ts && ts.midOK){
     n=ts.turns.length;
     inT=ts.inSum; outT=ts.outSum; inD=5*n+(touch?5:0);
-    ts.turns.forEach(function(x){ outD+=(x.b-x.w); if(x.bo) anyBo=true; });
+    ts.turns.forEach(function(x){ outD+=(x.b-x.w); });
   }else if(touch){
     inT=touch.t; inD=5;                    /* 壁の時間は なくても、タッチだけは ターンイン側に 入れます */
   }
@@ -10247,7 +10264,7 @@ function partsOf(r){
   if(rt) P.push({ k:'R.T', sub:'合図から', t:rt, c:'#b9a7f5', fc:'#1b1140' });
   P.push({ k:'スタート', sub:'0-'+startD+'m', t:startT, c:'#9fd3ff', fc:'#0b1f3a' });
   if(inT>0) P.push({ k:'ターンイン', sub:(n?'5m×'+n+(touch?'＋タッチ':''):'タッチ 5m'), t:inT, c:'#1f5fd1', fc:'#ffffff' });
-  if(outT>0) P.push({ k:'ターンアウト', sub:(anyBo ? '浮き上がりまで×'+n : outM+'m×'+n), t:outT, c:'#0b3d91', fc:'#ffffff' });
+  if(outT>0) P.push({ k:'ターンアウト', sub:((ts.turns[0]?ts.turns[0].b-ts.turns[0].w:outM)+'m×'+n), t:outT, c:'#0b3d91', fc:'#ffffff' });
   P.push({ k:'泳ぎ', sub:swimD+'m'+(n?'':'（ターン含む）'), t:swimT, c:'#f2b01e', fc:'#16181d' });
   return { parts:P, total:total, ts:ts };
 }
@@ -10370,9 +10387,35 @@ function reportPages(r, prev, W, H, nP){
       bx+=w; });
     y+=58;
     var cap='';
-    if(PO.ts && PO.ts.full) cap='泳ぎ区間 '+PO.ts.swimD+'m '+fmt(PO.ts.swimT)+'（'+(PO.ts.v!=null?PO.ts.v.toFixed(2):'--')+'m/秒）　非泳区間 '+PO.ts.nonD+'m '+fmt(PO.ts.nonT)+'（'+PO.ts.pct.toFixed(0)+'%）'+(PO.ts.touch?('　タッチ 5m '+fmt(PO.ts.touch.t)):'');
+    if(PO.ts && PO.ts.full) cap='泳ぎ '+PO.ts.swimD+'m '+fmt(PO.ts.swimT)+'（'+(PO.ts.v!=null?PO.ts.v.toFixed(2):'--')+'m/秒）　非泳区間 '+PO.ts.nonD+'m '+fmt(PO.ts.nonT)+'（'+PO.ts.pct.toFixed(0)+'%）'+(PO.ts.touch?('　タッチ 5m '+fmt(PO.ts.touch.t)):'');
     else cap=PO.parts.map(function(p){ return p.k+' '+fmt(p.t); }).join('　');
-    s+=T_(mx,y,cap,10.5,800,'#3d4450'); y+=30;
+    s+=T_(mx,y,cap,10.5,800,'#3d4450'); y+=20;
+    /* 浮き上がり：壁ごとの 15mを 距離どおりに、潜り（紺）と 浮き上がって から（うすい 青）に 分けて タイムと 速さ */
+    var BO=(PO.ts && PO.ts.bos) || [];
+    if(BO.length){
+      s+=T_(mx,y+4,'浮き上がり（壁から'+(BO[0].zl||15)+'mの区切りまで）',11,900,'#1f4fa8'); y+=12;
+      var nc=BO.length>2?2:1, gapc=16, colw=(cw-(nc-1)*gapc)/nc, LWb=58, bwb=colw-LWb, rhb=26;
+      function twb(str){ var n=0; for(var q=0;q<str.length;q++) n+=(str.charCodeAt(q)<256?0.6:1.0); return n; }
+      function fitb(c, w, fs){ for(var q=0;q<c.length;q++){ if(!c[q]) continue; var f=Math.min(fs,(w-8)/twb(c[q])); if(f>=8.5) return { t:c[q], fs:f }; } return null; }
+      BO.forEach(function(o,ix){
+        var col=ix%nc, row=Math.floor(ix/nc), bx2=mx+col*(colw+gapc), by2=y+row*(rhb+6), k=bwb/o.zl, wu=Math.min(o.d,o.zl)*k, ya=by2+rhb/2+4;
+        s+=T_(bx2,ya,lapName(o.lap),11,900,'#16181d');
+        s+='<rect x="'+(bx2+LWb)+'" y="'+by2+'" width="'+wu+'" height="'+rhb+'" rx="5" fill="#1f4fa8"/>';
+        if(o.da!=null) s+='<rect x="'+(bx2+LWb+wu)+'" y="'+by2+'" width="'+(bwb-wu)+'" height="'+rhb+'" rx="5" fill="#bcd0f2"/>';
+        /* 動画の 時刻が ない（通過から 見つもった）ときは、潜りと 浮き上がり後の 速さが 同じに なって しまうので 速さは 出しません */
+        var a=o.est ? fitb(['潜り '+o.d.toFixed(1)+'m（時刻なし）', '潜り '+o.d.toFixed(1)+'m', o.d.toFixed(1)+'m'], wu, 11)
+                    : fitb(['潜り '+o.d.toFixed(1)+'m　'+o.t.toFixed(2)+'秒　'+o.v.toFixed(2)+'m/秒', o.d.toFixed(1)+'m '+o.t.toFixed(2)+'秒 '+o.v.toFixed(2)+'m/秒', o.d.toFixed(1)+'m '+o.v.toFixed(2)+'m/秒', o.d.toFixed(1)+'m'], wu, 11);
+        if(a) s+=T_(bx2+LWb+wu/2,ya,a.t,a.fs,900,'#ffffff','middle');
+        if(o.da!=null){
+          var b3=o.est ? fitb(['浮き上がり後 '+o.da.toFixed(1)+'m', o.da.toFixed(1)+'m'], bwb-wu, 10.5)
+                       : fitb(['浮き上がり後 '+o.da.toFixed(1)+'m　'+o.ta.toFixed(2)+'秒　'+o.va.toFixed(2)+'m/秒', o.da.toFixed(1)+'m '+o.ta.toFixed(2)+'秒 '+o.va.toFixed(2)+'m/秒', o.da.toFixed(1)+'m '+o.va.toFixed(2)+'m/秒', o.va.toFixed(2)+'m/秒', o.da.toFixed(1)+'m'], bwb-wu, 10.5);
+          if(b3) s+=T_(bx2+LWb+wu+(bwb-wu)/2,ya,b3.t,b3.fs,900,'#16181d','middle');
+        }
+      });
+      y+=Math.ceil(BO.length/nc)*(rhb+6)+4;
+      s+=T_(mx,y+8,'スタートは足離れから、ターンは壁にさわってから。速さ＝距離÷タイム。'+(BO.some(function(o){ return o.est; })?'「時刻なし」は動画の時刻を入れていないので速さを出していません。':''),9.5,700,'#5b6270'); y+=20;
+    }
+    y+=12;
   }
   /* 区間の 表 */
   var srSvg=rpSVGsr(r), srH=srSvg ? (cw*((/viewBox="0 0 900 (\d+)"/.exec(srSvg)||[0,250])[1]*1)/900) : 0;
@@ -10473,7 +10516,7 @@ function reportPages(r, prev, W, H, nP){
   var ts=turnStats(r);
   if(ts){
     turnRows(ts).forEach(function(x){ R.push([x.lbl, fmt(x.t), (x.v!=null?x.v.toFixed(2):'')]); });
-    if(ts.full && ts.swimT>0) R.push(['泳ぎ区間 '+ts.swimD+'m', fmt(ts.swimT), (ts.v!=null?ts.v.toFixed(2):'')]);
+    if(ts.full && ts.swimT>0) R.push(['泳ぎ（15m区切り） '+ts.swimD+'m', fmt(ts.swimT), (ts.v!=null?ts.v.toFixed(2):'')]);
   }
   else if(PO){ PO.parts.forEach(function(p){ R.push([p.k+' '+p.sub, fmt(p.t), '']); }); }
   var rhT=Math.max(15, Math.min(isSC?19:22, Math.floor(600/Math.max(1,R.length))));
@@ -10485,7 +10528,7 @@ function reportPages(r, prev, W, H, nP){
   })();
   s2+=tr.s; var ry2=isSC ? (y2+22+6) : (tr.y+18);
   if(isSC) rx=mx+colW+24;                       /* 短水路は 補足を 右側に */
-  if(ts && ts.full){ s2+=T_(rx,ry2,'泳ぎ区間 '+ts.swimD+'m '+fmt(ts.swimT)+'　非泳区間 '+ts.nonD+'m '+fmt(ts.nonT)+'（'+ts.pct.toFixed(0)+'%）',10.5,800,'#3d4450'); ry2+=16; }
+  if(ts && ts.full){ s2+=T_(rx,ry2,'泳ぎ（15m区切り） '+ts.swimD+'m '+fmt(ts.swimT)+'　非泳区間 '+ts.nonD+'m '+fmt(ts.nonT)+'（'+ts.pct.toFixed(0)+'%）',10.5,800,'#3d4450'); ry2+=16; }
   if(ts && ts.noGoal){
     s2+=T_(rx,ry2,'ゴール（'+ts.dist+'m）のタイムが入っていません。最後の通過は '+ts.lastD+'m '+fmt(ts.lastT)+'。',10.5,900,'#c0392b'); ry2+=15;
     s2+=T_(rx,ry2,'記録の修正で最後の通過を'+ts.dist+'mに直すと、泳ぎ区間と効率指数も出ます。',10,700,'#c0392b'); ry2+=16;
@@ -10497,7 +10540,7 @@ function reportPages(r, prev, W, H, nP){
     var n=lapCount(r), items=[], i, any=false;
     for(i=0;i<n;i++){ var bo=boOf(r,i); if(bo) any=true; items.push(lapName(i)+' '+(bo ? bo.d.toFixed(1)+'m'+(bo.est?'（推定）':'') : NA)); }
     for(i=0;i<items.length;i+=3){ s2+=T_(rx,ry2,(i===0?'浮き上がり　':'　　　　　　')+items.slice(i,i+3).join('　'),10.5,800,'#3d4450'); ry2+=16; }
-    if(any){ s2+=T_(rx,ry2,'浮き上がりを入れたラップは、壁から浮き上がりまでを非泳区間にしています。',9.5,700,'#5b6270'); ry2+=14;
+    if(any){ s2+=T_(rx,ry2,'浮き上がりを入れたラップは、効率指数の泳ぎ区間を浮き上がりからにしています（内訳の帯は15mで区切ります）。',9.5,700,'#5b6270'); ry2+=14;
              s2+=T_(rx,ry2,'（推定）は、時刻を前後の通過から比例で見つもった値です。',9.5,700,'#5b6270'); ry2+=14; }
   })();
   if(!ts) { s2+=T_(rx,ry2,'ターンも計ると、各ターンの時間がここに出ます。',10,700,'#9aa0ab'); ry2+=14; }
@@ -13579,7 +13622,7 @@ function cmpPaintPair(){
   var tsA=turnStats(a), tsB=turnStats(b);
   if(tsA && tsB){
     if(tsA.full && tsB.full && tsA.swimD===tsB.swimD){
-      rows+=pairRow('泳ぎ区間', fmt(tsA.swimT), fmt(tsB.swimT), tsB.swimT-tsA.swimT);
+      rows+=pairRow('泳ぎ（15m区切り）', fmt(tsA.swimT), fmt(tsB.swimT), tsB.swimT-tsA.swimT);
       rows+=pairRow('非泳区間', fmt(tsA.nonT), fmt(tsB.nonT), tsB.nonT-tsA.nonT);
     }
     rows+=pairRow('スタート15m', fmt(tsA.start), fmt(tsB.start), tsB.start-tsA.start);

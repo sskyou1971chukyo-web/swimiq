@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.12.6">
+<meta name="app-ver" content="2026.10.12.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SwimIQ B">
@@ -9814,7 +9814,9 @@ function rpSVGsr(r){
   if(tp.sr==null) tp.sr=60/(swim.reduce(function(a,p){ return a+60/p.sr; },0)/swim.length);
   var srMax=Math.max.apply(null,swim.map(function(p){return p.sr;})), srMin=Math.min.apply(null,swim.map(function(p){return p.sr;}));
   var yLo=Math.floor((srMin-2)/5)*5, yHi=Math.ceil((srMax+2)/5)*5, n=pts.length;
-  var _G0=srSegs(r), W=900,H=(_G0.length?270:250),pad={l:38,r:16,t:(_G0.length?72:42),b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  /* 壁から 始まる 区間には「潜り（浮き上がりまでの 距離）」の 行を 足すので、その 分 上を あけます */
+  var _G0=srSegs(r), _uwRow=(_G0.length && _G0.length<=10) ? 17 : 0;
+  var W=900,H=(_G0.length?270:250)+_uwRow,pad={l:38,r:16,t:(_G0.length?72:42)+_uwRow,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
   function X(i){ return pad.l+(i-1)/(n-1)*iw; } function Y(v){ return pad.t+ih-(v-yLo)/(yHi-yLo)*ih; }
   var s='<svg viewBox="0 0 '+W+' '+H+'">';
   for(var g=yLo; g<=yHi; g+=5){ var yy=Y(g);
@@ -9855,9 +9857,18 @@ function rpSVGsr(r){
       s+='<path d="M'+x2+' '+by+' l-7 -4 v8 z" fill="#e8902c"/>';
       if(nSeg>16 && gi%Math.ceil(nSeg/10)!==Math.ceil(nSeg/10)-1 && gi!==nSeg-1) return;
       var lbl=g.from+'-'+g.to+'m　'+fmt(g.t)+'秒', lb2=g.n+'かき'+(g.st!=null?('　'+g.st.toFixed(2)+'秒/かき'):'');
+      /* 潜って いる 距離：壁から 始まる 区間だけ（入れて いなければ「ー（測定なし）」） */
+      var uwT=null, _pl=Number(r.pool)||50;
+      if(_uwRow && g.from%_pl===0){ var _bo=boOf(r, Math.round(g.from/_pl)); uwT='潜り '+(_bo ? _bo.d.toFixed(1)+'m' : (big?NAL:NA)); }
+      var uy=_uwRow ? 17 : 0;
       if(big){
-        s+='<text x="'+cx+'" y="'+(by-24)+'" text-anchor="middle" font-size="'+fs+'" font-weight="900" fill="#e0501e">'+esc(lbl)+'</text>';
-        s+='<text x="'+cx+'" y="'+(by-7)+'" text-anchor="middle" font-size="'+(fs-2)+'" font-weight="900" fill="#e0501e">'+esc(lb2)+'</text>';
+        s+='<text x="'+cx+'" y="'+(by-24-uy)+'" text-anchor="middle" font-size="'+fs+'" font-weight="900" fill="#e0501e">'+esc(lbl)+'</text>';
+        s+='<text x="'+cx+'" y="'+(by-7-uy)+'" text-anchor="middle" font-size="'+(fs-2)+'" font-weight="900" fill="#e0501e">'+esc(lb2)+'</text>';
+        if(uwT) s+='<text x="'+cx+'" y="'+(by-7)+'" text-anchor="middle" font-size="'+(fs-2)+'" font-weight="900" fill="#1f4fa8">'+esc(uwT)+'</text>';
+      }else if(_uwRow){
+        s+='<text x="'+cx+'" y="'+(by-18-14)+'" text-anchor="middle" font-size="'+fs+'" font-weight="900" fill="#e0501e">'+esc(g.from+'-'+g.to+'m')+'</text>';
+        s+='<text x="'+cx+'" y="'+(by-6-14)+'" text-anchor="middle" font-size="'+(fs-1)+'" font-weight="800" fill="#e0501e">'+esc(g.n+'/'+(g.st!=null?g.st.toFixed(2):'--'))+'</text>';
+        if(uwT) s+='<text x="'+cx+'" y="'+(by-6)+'" text-anchor="middle" font-size="'+(fs-1)+'" font-weight="800" fill="#1f4fa8">'+esc(uwT)+'</text>';
       }else{
         /* 区間が 多い ときは 上下 2だんに ずらして かさならない ように します */
         var oy=(nSeg>10 && nSeg<=16 && gi%2===1)?-26:0;
@@ -10016,7 +10027,7 @@ function reportSVG(r, W, H){
   s+='<text x="'+(mx+10)+'" y="'+srY+'" font-size="13" font-weight="900" fill="#16181d">ストロークレート（SR）の推移</text>';
   if(srSvg){
     // legend
-    var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']], lx=mx, ly=srY+20;
+    var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']].concat(srSvg.indexOf('#1f4fa8')>=0?[['#1f4fa8','潜り（浮き上がりまで）']]:[]), lx=mx, ly=srY+20;
     lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(ly-9)+'" width="11" height="11" rx="3" fill="'+g[0]+'"/>'; s+='<text x="'+(lx+16)+'" y="'+ly+'" font-size="10.5" font-weight="800" fill="#5b6270">'+g[1]+'</text>'; lx+=g[1].length*11+40; });
     var _vbH=(/viewBox="0 0 900 (\d+)"/.exec(srSvg)||[0,250])[1]*1;
     s+=place(srSvg, mx, srY+30, cw, cw*_vbH/900);
@@ -10324,7 +10335,7 @@ function reportPages(r, prev, W, H, nP){
   if(srSvg){
     var sy=Math.min(srTop, y+40);
     s+=SEC(sy,'ストロークレート（1かきごと）');
-    var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']], lx=mx+230;
+    var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']].concat(srSvg.indexOf('#1f4fa8')>=0?[['#1f4fa8','潜り（浮き上がりまで）']]:[]), lx=mx+230;
     lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(sy-9)+'" width="11" height="11" rx="3" fill="'+g[0]+'"/>'+T_(lx+16,sy,g[1],10.5,800,'#5b6270'); lx+=g[1].length*11+40; });
     s+=place(srSvg, mx, sy+12, cw, srH);
     s+=T_(mx,sy+12+srH+16,'横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。',10,700,'#5b6270');

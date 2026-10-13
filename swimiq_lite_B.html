@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.12">
+<meta name="app-ver" content="2026.10.13.13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -92,6 +92,11 @@ button, select, input{ font-family:inherit; }
 .foldH .fc{ flex:0 0 auto; font-size:13px; font-weight:800; color:var(--dim); }
 .foldH .fa{ flex:0 0 18px; text-align:right; font-size:15px; font-weight:900; color:var(--am); }
 .foldB{ display:flex; flex-direction:column; gap:8px; padding:0 8px 10px; }
+/* 年月の フォルダ（中に 日の フォルダ） */
+.fold.mon > .foldH{ min-height:62px; }
+.fold.mon > .foldH .fn{ font-size:19px; }
+.fold.mon > .foldH .fi{ flex:0 0 32px; height:24px; }
+.fold.mon > .foldB .fold{ background:#121418; }
 .card{ display:flex; gap:11px; align-items:center; cursor:pointer;
   background:var(--pane); border:2px solid var(--line2); border-left:6px solid var(--am);
   border-radius:6px; padding:9px; }
@@ -7389,7 +7394,7 @@ window.addEventListener('resize', function(){
    あたらしい 5つは そのまま ならべ、それより 前の ものは
    その日ごとの ふくろに 入れます。ふくろを おすと 中が 出ます。 */
 var WD=['日','月','火','水','木','金','土'];
-var openDay={};
+var openDay={}, openMon={};   /* ひらいて いる 日・年月の フォルダ */
 function dayKey(d){ return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 function dayName(d){ return (d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[d.getDay()]+'）'; }
 function mdShort(at){ var d=new Date(at); return (d.getMonth()+1)+'/'+d.getDate(); }
@@ -7653,7 +7658,27 @@ function paintList(){
     }
     var hd=document.createElement('div'); hd.className='gl sub2';
     hd.textContent=T('lstOld'); box.appendChild(hd);
+    /* 年月の フォルダに 分けて、その 中に 日の フォルダを 入れます。
+       いちばん 新しい 月だけ はじめから ひらいて おきます（自分で とじれば とじた まま） */
+    var mKeys=[], mMap={};
     keys.forEach(function(k){
+      var d0=new Date(workAt(map[k].items[0])), mk=d0.getFullYear()+'-'+String(d0.getMonth()+1).padStart(2,'0');
+      if(!mMap[mk]){ mMap[mk]={ name:d0.getFullYear()+'年'+(d0.getMonth()+1)+'月', days:[], n:0 }; mKeys.push(mk); }
+      mMap[mk].days.push(k); mMap[mk].n+=map[k].items.length;
+    });
+    mKeys.forEach(function(mk, mi){
+      var M=mMap[mk], mon=(openMon[mk]!=null) ? openMon[mk] : (mi===0);
+      var mf=document.createElement('div'); mf.className='fold mon'+(mon?' on':'');
+      var mh=document.createElement('button'); mh.type='button'; mh.className='foldH';
+      mh.setAttribute('aria-expanded', mon?'true':'false');
+      mh.innerHTML='<span class="fi"></span><span class="fn">'+M.name+'</span>'+
+                   '<span class="fc">'+M.n+T('lstCnt')+'</span>'+
+                   '<span class="fa">'+(mon?'▾':'▸')+'</span>';
+      mh.onclick=function(){ openMon[mk]=!mon; paintList(); };
+      mf.appendChild(mh);
+      if(mon){
+        var mb=document.createElement('div'); mb.className='foldB';
+        M.days.forEach(function(k){
       var g=map[k], on=!!openDay[k];
       var f=document.createElement('div'); f.className='fold'+(on?' on':'');
       var h=document.createElement('button'); h.type='button'; h.className='foldH';
@@ -7667,7 +7692,11 @@ function paintList(){
         for(var j=0;j<g.items.length;j++) body.appendChild(recCard(g.items[j]));
         f.appendChild(body);
       }
-      box.appendChild(f);
+          mb.appendChild(f);
+        });
+        mf.appendChild(mb);
+      }
+      box.appendChild(mf);
     });
   });
 }

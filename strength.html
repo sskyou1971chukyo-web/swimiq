@@ -264,6 +264,142 @@ th,td{border-color:var(--line)}
 .tag.stop{border-color:var(--redline);color:var(--red);background:var(--redbg)}
 .hero .note{margin-top:10px}
 .hero .ghost{margin-top:12px}
+
+/* ============ 画面の作り直し（2026年10月13日） ============
+   説明や注記は消さず、押すと開く形にする。黄色は、いちばん押すボタンと、いま選んでいるものだけ。 */
+#tabs{grid-template-columns:repeat(4,1fr)}
+#tabs button{font-size:.82rem;min-height:66px}
+@media(max-width:560px){#tabs{grid-template-columns:repeat(4,1fr)}#app{padding-bottom:130px}#toast{bottom:100px}}
+#top{grid-template-columns:88px 1fr 88px}
+.card{background:var(--soft);border:1px solid #2f3033;border-radius:16px;padding:18px;margin:16px 0}
+.card h2{margin:0 0 10px;font-size:1.15rem}
+.card h2:focus,.today h2:focus{outline:none}
+.kicker{margin:0;font-weight:700;color:var(--sub);font-size:.9rem;letter-spacing:.04em}
+/* 押すと開く説明 */
+.ibtn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;border:0;background:none;color:var(--sub);font-size:1.6rem;vertical-align:middle}
+.ibtn:hover{color:#fff}
+details.more{border:1px solid #2f3033;border-radius:12px;margin:12px 0;background:var(--soft)}
+details.more>summary{cursor:pointer;min-height:52px;padding:12px 14px;font-weight:700;color:#fff}
+details.more>summary .tag{margin:0 8px 0 4px}
+details.more>.note,details.more>p{margin:0;border-radius:0 0 12px 12px;border-left-width:0;padding:4px 16px 14px;background:none}
+details.more>.inner{padding:0 14px 14px}
+#info{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.72);display:flex;align-items:flex-end;justify-content:center}
+.infobox{background:#101113;border:1px solid #3a3b3d;border-bottom:0;border-radius:20px 20px 0 0;width:100%;max-width:760px;max-height:86vh;overflow:auto;padding:0 20px calc(24px + env(safe-area-inset-bottom))}
+@media(min-width:800px){#info{align-items:center}.infobox{border-bottom:1px solid #3a3b3d;border-radius:20px;padding-bottom:24px}}
+.infohead{position:sticky;top:0;background:#101113;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:16px 0 12px;border-bottom:1px solid #2f3033;margin-bottom:8px}
+.infohead h2{margin:0;font-size:1.2rem;line-height:1.4}
+.infohead h2:focus{outline:none}
+#infoB .flag{border:0;padding:0;background:none;margin:0}
+#infoB .menu{display:grid;gap:12px;margin:14px 0}
+/* 赤の知らせ */
+.alerts{display:grid;gap:8px;margin:14px 0 0}
+.alertrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--redline);border-left-width:6px;background:var(--redbg);border-radius:12px;padding:8px 8px 8px 12px}
+.alertrow svg{width:26px;height:26px;color:var(--red)}
+.alertrow strong{line-height:1.4}
+.alertrow .link{color:#fff;white-space:nowrap;padding:6px 10px}
+/* ホーム */
+.today{background:linear-gradient(160deg,#1d1e21,#0d0d0e);border:1px solid #2f3033;border-radius:20px;padding:22px;margin-top:16px}
+.today .big{font-size:4rem;margin:2px 0 6px}
+.today .cta{min-height:76px;font-size:1.35rem;border-radius:14px;margin-top:14px}
+.today .link{display:block;width:100%;text-align:center;color:var(--sub);margin-top:6px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.bdg{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:1px 10px;font-size:.86rem;font-weight:700;color:#fff;background:#0b0b0c;line-height:1.6}
+.bdg.ok{border-color:var(--green);color:var(--green)}
+.bdg.warn{border-style:dashed;color:var(--sub)}
+.bdg.stop{border-color:var(--redline);color:var(--red)}
+.weekbox{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.ring{width:112px;height:112px;position:relative;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:800}
+.ring b small{font-size:.95rem;color:var(--sub);margin-left:2px}
+.cardhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cardhead h2{margin:0}
+.cal{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal li{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cal .cw{color:var(--sub);font-size:.8rem;font-weight:700}
+.cal .cd{font-size:.85rem}
+.cal .cm{width:36px;height:36px;border-radius:50%;border:2px solid #3a3b3d;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem}
+.cal .cm svg{width:20px;height:20px}
+.cal .has .cm{background:var(--green);border-color:var(--green);color:#000}
+.cal .part .cm{border-color:var(--green);color:var(--green)}
+.cal .now .cd{color:#fff;font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.navrow{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;width:100%;min-height:68px;text-align:left;background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:12px 14px 12px 16px;margin:10px 0;color:#fff}
+.navrow .nk{grid-column:1;color:var(--sub);font-size:.82rem;font-weight:700}
+.navrow strong,.navrow .badges{grid-column:1;line-height:1.4;margin:0}
+.navrow .chev{grid-column:2;grid-row:1 / span 2;width:22px;height:22px;color:var(--sub)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two .navrow{margin:0}
+/* ワークアウト */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:5px;margin-top:14px}
+.seg button{min-height:48px;border:0;border-radius:10px;background:none;color:var(--sub);font-weight:700}
+.seg button[aria-current]{background:var(--am);color:#000}
+.sessbar{margin-top:14px}
+.sessbar h2{margin:0 0 8px;font-size:1.2rem}
+.sessbar h2:focus{outline:none}
+.sessbar .cta{min-height:68px;font-size:1.2rem;border-radius:14px}
+.sessbar .link{display:block;width:100%;text-align:center;color:var(--sub)}
+.goalrow{display:flex;align-items:center;gap:6px;margin-top:14px}
+.goalrow .chips{flex:1;gap:8px}
+.goalrow .chip{min-width:0;min-height:48px;padding:4px 14px;font-size:.92rem}
+.undobar{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 14px;margin-top:14px;background:var(--pane2)}
+.undobar .ghost{width:auto;min-height:46px}
+.v-program h2.blk{font-size:.95rem;color:var(--sub);letter-spacing:.06em;margin:26px 0 6px}
+ul.wrows{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.wrow{display:grid;grid-template-columns:56px 1fr 48px 48px;align-items:center;gap:4px;background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:8px 4px 8px 8px;touch-action:pan-y}
+.wrow.sw{transition:none}
+.ck{width:52px;height:52px;border-radius:50%;border:2.5px solid #9a9a9a;background:none;color:transparent;display:flex;align-items:center;justify-content:center}
+.ck svg{width:28px;height:28px}
+.ck[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#000}
+.wmain{display:flex;gap:12px;align-items:center;min-width:0;text-align:left;background:none;border:0;padding:4px;color:#fff;border-radius:10px}
+.wmain .th.sm{width:60px;height:60px}
+.wmain strong{display:block;line-height:1.35}
+.wrow.isdone .wmain strong{color:var(--sub);text-decoration:line-through}
+.icb{width:48px;height:48px;border-radius:50%;border:0;background:none;color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.5rem}
+.icb:hover,.ibtn:hover{background:#26272a}
+@media(max-width:420px){.wrow{grid-template-columns:54px 1fr 44px 44px}.wmain .th.sm{display:none}.icb{width:44px}}
+/* 数字を押して変える */
+.stp{display:grid;grid-template-columns:54px 1fr 54px;gap:6px;align-items:center;margin-top:6px}
+.stp input{margin-top:0 !important;text-align:center;max-width:none !important;width:100% !important;font-weight:700}
+.stp button{height:54px;border-radius:10px;border:1px solid var(--line);background:var(--pane2);color:#fff;font-size:1.6rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.planstp{grid-template-columns:64px 1fr 64px}
+.planstp output{text-align:center;font-size:1.5rem;font-weight:800}
+.planstp button{height:64px}
+/* きつさの10個のボタン */
+.v-finish .radios{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.v-finish .radios .rad{justify-content:center;border:1px solid var(--line);border-radius:10px;min-height:60px;padding:4px;font-weight:700;font-size:1.1rem;position:relative}
+.v-finish .radios .rad input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
+.v-finish .radios .rad:has(input:checked){background:var(--am);color:#000;box-shadow:none;border-color:var(--am)}
+.v-finish .radios .rad:has(input:focus-visible){outline:3px solid var(--am);outline-offset:2px}
+/* 記録 */
+.wknav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-top:14px}
+.wknav .ghost{width:auto;min-height:48px;padding:4px 14px}
+.wknav h2{margin:0;text-align:center;font-size:1.1rem}
+.wknav h2:focus{outline:none}
+.pbar{height:14px;border-radius:999px;background:#2a2b2e;overflow:hidden;margin-top:12px}
+.pbar span{display:block;height:100%;background:var(--green);border-radius:999px}
+.pbar.over span{background:var(--redline)}
+.stats{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats li{background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:12px 10px;display:flex;flex-direction:column}
+.stats .v{font-size:1.6rem;font-weight:800;line-height:1.2}
+.stats .k{font-size:.8rem;color:var(--sub);font-weight:700}
+.stats .p{font-size:.78rem;color:var(--sub)}
+ul.sesslist{list-style:none;margin:0;padding:0}
+.sess .ghost.small{flex:none;margin-top:10px}
+/* 水泳 */
+.daynav{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin-top:14px}
+.daynav .ghost{width:auto;min-height:54px;padding:4px 14px}
+.daynav input{width:100%;min-height:54px;border:2px solid var(--line);border-radius:6px;padding:8px 10px;background:var(--soft);color:#fff;color-scheme:dark}
+.swblk{border-top:1px solid #2f3033;padding:10px 0}
+.swblk p{white-space:pre-wrap;margin:6px 0 0}
+.zrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.zrow label{position:relative;display:flex;align-items:center;justify-content:center;min-height:50px;min-width:64px;padding:4px 14px;border:2px solid var(--line);border-radius:6px;font-weight:700;background:var(--soft)}
+.zrow input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.zrow label:has(input:checked){background:var(--am);border-color:var(--am);color:#000}
+.zrow label:has(input:focus-visible){outline:3px solid var(--am);outline-offset:2px}
+.v-swim .chips .chip{min-height:48px;min-width:0;padding:4px 14px}
+.fl{font-weight:700;margin:12px 0 0}
+@media print{.ck,.icb,.seg,.sessbar,.goalrow,.undobar,details.more,#info{display:none !important}.wrow{grid-template-columns:1fr;border-color:#c9c9c9;background:#fff}.wmain,.bdg{color:#111;background:#fff}}
+@media(prefers-reduced-motion:no-preference){.wrow{transition:transform .15s}}
 </style>
 </head>
 <body>
@@ -274,10 +410,8 @@ th,td{border-color:var(--line)}
 </div>
 <nav id="tabs" aria-label="メインメニュー">
   <button type="button" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/></svg>ホーム</button>
-  <button type="button" data-tab="browse"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z" fill="currentColor"/></svg>種目</button>
+  <button type="button" data-tab="program"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 12l2 2 4-4"/></svg>ワークアウト</button>
   <button type="button" data-tab="activity"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>記録</button>
-  <button type="button" data-tab="program"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 12l2 2 4-4"/></svg>プログラム</button>
-  <button type="button" data-tab="swim"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>水泳</button>
   <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>設定</button>
 </nav>
 <div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden></div>
@@ -2151,6 +2285,433 @@ ROOTS.push('swim');
 
 
 ROOTS.push('settings');
+
+/* ============ 画面の作り直し（2026年10月13日） ============
+ 保存されるデータの形は変えていない。画面の組み立てだけを置き換えている。
+ 説明や注記は消さず、押すと開く形にした。赤の知らせは、ホームのいちばん上に残している。
+ 下のタブは4つ（ホーム、ワークアウト、記録、設定）。資料の登録などの裏方は、設定の奥に移した。 */
+const UI = {
+  info:'<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.4v.2"/></svg>',
+  more:'<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+  check:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l9.5 17h-19z"/><path d="M12 10v4.5M12 17.4v.2"/></svg>'
+};
+const TABMAP = {home:'home', program:'program', swim:'program', browse:'program', activity:'activity', settings:'settings'};
+const UI_NEW = ['home','program','activity','settings','data','swim'];
+
+/* ---- 押すと開く説明（下から出る窓） ---- */
+let uiInfos = {}, uiInfoN = 0, uiInfoFrom = null;
+function uiInfo(label, title, html, text){
+  const k = 'k'+(++uiInfoN); uiInfos[k] = {title, html};
+  return '<button type="button" class="'+(text?'link':'ibtn')+'" data-info="'+k+'" aria-label="'+esc(label)+'">'+(text?esc(text):UI.info)+'</button>';
+}
+(function(){
+  const d = document.createElement('div'); d.id = 'info'; d.hidden = true;
+  d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true'); d.setAttribute('aria-labelledby','infoT');
+  d.innerHTML = '<div class="infobox"><div class="infohead"><h2 id="infoT" tabindex="-1"></h2><button type="button" class="pclose" id="infoX">閉じる</button></div><div id="infoB"></div></div>';
+  document.body.appendChild(d);
+})();
+function uiOpen(title, html){
+  if($('#info').hidden) uiInfoFrom = document.activeElement;
+  $('#infoT').textContent = title; $('#infoB').innerHTML = html;
+  $('#info').hidden = false; document.body.classList.add('lock'); $('.infobox').scrollTop = 0; $('#infoT').focus();
+}
+function uiClose(refocus){
+  if($('#info').hidden) return;
+  $('#info').hidden = true; $('#infoB').innerHTML = ''; document.body.classList.remove('lock');
+  if(refocus!==false){ if(uiInfoFrom && document.contains(uiInfoFrom)) uiInfoFrom.focus(); else $('#title').focus(); }
+}
+document.addEventListener('keydown',e=>{
+  if($('#info').hidden) return;
+  if(e.key==='Escape'){ uiClose(); return; }
+  if(e.key==='Tab'){
+    const f = [...$('#info').querySelectorAll('button,a[href],input,select,textarea,summary')].filter(x=>x.offsetParent!==null);
+    if(!f.length) return; const a = f[0], z = f[f.length-1];
+    if(!$('#info').contains(document.activeElement) || document.activeElement===$('#infoT')){ e.preventDefault(); (e.shiftKey?z:a).focus(); }
+    else if(e.shiftKey && document.activeElement===a){ e.preventDefault(); z.focus(); }
+    else if(!e.shiftKey && document.activeElement===z){ e.preventDefault(); a.focus(); }
+  }
+});
+
+/* ---- 小さな部品 ---- */
+function uiDate(k){ const d = new Date(k+'T12:00:00'); return (d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'[d.getDay()]+'）'; }
+function uiSub(cur){
+  return '<div class="seg" role="group" aria-label="ワークアウトの切り替え">'+[['program','陸上'],['swim','水泳'],['browse','種目']].map(x=>
+    '<button type="button" data-go="'+x[0]+'"'+(x[0]===cur?' aria-current="page"':'')+'>'+x[1]+'</button>').join('')+'</div>';
+}
+function uiDays(w0){
+  const out = [];
+  for(let i=0;i<7;i++){ const d = new Date(w0); d.setDate(d.getDate()+i); const k = dayOf(d);
+    out.push({d, k, sess:(db.sessions||[]).filter(s=>s.date===k).length, done:db.logs.filter(l=>l.kind==='done' && dayOf(l.t)===k).length}); }
+  return out;
+}
+function uiCal(w0){
+  const td = today();
+  return '<ol class="cal">'+uiDays(w0).map((x,i)=>'<li class="'+(x.sess?'has':x.done?'part':'')+(x.k===td?' now':'')+'">'+
+    '<span class="cw" aria-hidden="true">'+'月火水木金土日'[i]+'</span><span class="cd" aria-hidden="true">'+x.d.getDate()+'</span>'+
+    '<span class="cm" aria-hidden="true">'+(x.sess?UI.check:x.done?x.done:'')+'</span>'+
+    '<span class="sr">'+uiDate(x.k)+(x.k===td?'、今日':'')+'、練習の記録'+x.sess+'回、実施した種目'+x.done+'</span></li>').join('')+'</ol>';
+}
+const UI_CAL_INFO = '<p>緑で塗った丸は、練習の終わりの記録を残した日です。緑の線の丸と数字は、種目を実施済みにしただけで、練習の終わりの記録はまだない日と、その種目の数です。</p><p>週は月曜から日曜で数えます。続けている週は、練習を1回以上記録した週が何週続いているかです。どちらも、このアプリの数え方です。</p>';
+function uiRing(used, per){
+  const r = 46, c = 2*Math.PI*r; const f = Math.min(1, per ? used/per : 0); const over = used>per;
+  return '<div class="ring" role="img" aria-label="今週の練習は、契約の'+per+'回のうち'+used+'回'+(over?'。契約の回数を超えています':'')+'"><svg viewBox="0 0 112 112"><circle cx="56" cy="56" r="'+r+'" fill="none" stroke="#2a2b2e" stroke-width="11"/>'+
+    '<circle cx="56" cy="56" r="'+r+'" fill="none" stroke="'+(over?'#ff4b2b':'#35e06a')+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+(c*f).toFixed(1)+' '+c.toFixed(1)+'"/></svg><b aria-hidden="true">'+used+'<small>/'+per+'</small></b></div>';
+}
+function uiSteppers(sel){
+  document.querySelectorAll(sel).forEach(inp=>{
+    if(inp.dataset.st) return; inp.dataset.st = '1';
+    const lab = inp.closest('label'); const name = lab ? lab.textContent.trim().replace(/（.*$/,'') : '数字';
+    const inc = Number(inp.dataset.inc) || (inp.step==='0.5' ? 2.5 : inp.name==='min' ? 5 : 1);
+    if(lab && !inp.getAttribute('aria-label')) inp.setAttribute('aria-label', lab.textContent.trim());
+    const w = document.createElement('span'); w.className = 'stp'; inp.parentNode.insertBefore(w, inp);
+    const mk = (sign, txt)=>{ const b = document.createElement('button'); b.type = 'button'; b.textContent = sign>0?'＋':'−'; b.setAttribute('aria-label', name+'を'+inc+txt);
+      b.addEventListener('click',()=>{ const min = inp.min===''?-Infinity:Number(inp.min), max = inp.max===''?Infinity:Number(inp.max);
+        let v = (inp.value===''?0:Number(inp.value)) + sign*inc; v = Math.min(max, Math.max(min, Math.round(v*100)/100)); inp.value = v;
+        inp.dispatchEvent(new Event('input',{bubbles:true})); inp.dispatchEvent(new Event('change',{bubbles:true})); });
+      return b; };
+    w.appendChild(mk(-1,'減らす')); w.appendChild(inp); w.appendChild(mk(1,'増やす'));
+  });
+}
+
+/* ---- 古い画面の説明や注記を、押すと開く形にまとめる ---- */
+function uiFold(el, labelHTML){
+  const d = document.createElement('details'); d.className = 'more';
+  const s = document.createElement('summary'); s.innerHTML = labelHTML; d.appendChild(s);
+  el.parentNode.insertBefore(d, el); d.appendChild(el); return d;
+}
+function uiEnhance(){
+  const v = $('#view'); const name = stack[stack.length-1].name;
+  if(name==='finish' || name==='swim') uiSteppers('.v-'+name+' form input[type=number]');
+  if(UI_NEW.includes(name)) return;
+  const first = v.firstElementChild;
+  if(first && first.tagName==='P' && first.textContent.length>55) uiFold(first, 'この画面の説明');
+  v.querySelectorAll('.note').forEach(n=>{
+    if(n.id || n.closest('details') || n.closest('.flag') || n.classList.contains('bad') || n.classList.contains('good')) return;
+    const t = n.textContent;
+    uiFold(n, t.includes('仮の') ? '<span class="tag warn">仮の設定</span>説明を開く' : n.classList.contains('warn') ? '<span class="tag warn">注意書き</span>開く' : '説明を開く');
+  });
+  if(name==='detail'){ const ol = [...v.children].find(c=>c.matches('ol.refs')); if(ol) uiFold(ol, '文献'+ol.children.length+'件を開く'); }
+}
+const _renderBase = render;
+render = function(focus){
+  uiInfos = {}; uiInfoN = 0;
+  if(stack[stack.length-1].name!=='program'){ uiRemoved = null; uiClear = false; }
+  _renderBase(focus);
+  const root = TABMAP[stack[0].name] || stack[0].name;
+  document.querySelectorAll('#tabs button').forEach(b=>{ const on = b.dataset.tab===root; b.classList.toggle('on',on); if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  uiEnhance();
+};
+
+/* 画面の名前が変わったので、古い文の中の案内を直す */
+const _expertBase = expertHTML;
+expertHTML = function(a){ return _expertBase(a).replace('ホームの「セルフチェックをする」で','設定の「セルフチェック」で'); };
+const _finishBase = VIEWS.finish;
+VIEWS.finish = ()=>{ const v = _finishBase();
+  v.html = v.html.replace('プログラムで実施済みにした種目です。','ワークアウトの画面で実施済みにした種目です。').replace('プログラムの画面で「実施済みにする」を押してからここに戻ると','ワークアウトの画面で、種目の左の丸を押してからここに戻ると');
+  return v; };
+const _browseBase = VIEWS.browse;
+VIEWS.browse = ()=>{ const v = _browseBase(); v.html = uiSub('browse')+v.html; return v; };
+
+/* ---- ホーム ---- */
+function uiAlerts(){
+  const it = db.intake; if(!it) return '';
+  const box = document.createElement('div'); box.innerHTML = expertHTML(it);
+  const al = [...box.querySelectorAll('.flag.stop')]; if(!al.length) return '';
+  return '<section class="alerts" aria-label="注意が'+al.length+'件あります">'+al.map(a=>{ const h = a.querySelector('h3'); const t = h.textContent; h.remove();
+    return '<div class="alertrow">'+UI.warn+'<strong>'+esc(t)+'</strong>'+uiInfo(t+'。くわしい説明を開く', t, a.innerHTML, 'くわしく')+'</div>'; }).join('')+'</section>';
+}
+function uiStarInfo(){
+  const lv = {direct:0,related:0,none:0}; EX.filter(e=>!e.gym).forEach(e=>lv[evLevel(e)]++);
+  const glv = {direct:0,related:0,none:0}; EX.filter(e=>e.gym).forEach(e=>glv[evLevel(e)]++);
+  return '<p>星の数は根拠の強さです。星3つは、その種目を直接調べた論文があるもの。星2つは、近い動作の研究、トレーニング全般の研究、または書籍があるもの。星1つは、論文を確認できていないが、練習として伝統的に行われているものです。</p>'+
+    '<p>元の'+BASE_N+'種目は、星3つが'+lv.direct+'、星2つが'+lv.related+'、星1つが'+lv.none+'です。体操の'+(EX.length-BASE_N)+'種目は、星3つが'+glv.direct+'、星2つが'+glv.related+'、星1つが'+glv.none+'です。</p>'+
+    '<div class="menu"><button type="button" class="ghost" data-golist="related">星2つの種目を見る</button><button type="button" class="ghost" data-golist="nopaper">星1つの種目を見る</button></div>';
+}
+function uiAdvice(){
+  const x = adviceNow;
+  uiOpen('今日の助言', '<h3>'+esc(x.t)+'</h3><p>'+esc(x.b)+'</p>'+srcBox(x.src)+'<div class="menu"><button type="button" class="ghost" id="advNext">別の助言を見る</button></div>');
+}
+VIEWS.home = ()=>{
+  const it = db.intake; const p = planInfo(); const st = streakWeeks(); const s = db.sessNow; const td = today();
+  const rows = db.prog.filter(r=>EXMAP[r.id]); const n = rows.length;
+  const dn = rows.filter(r=>db.logs.some(l=>l.id===r.id && l.kind==='done' && dayOf(l.t)===td)).length;
+  const el = s ? Math.max(0, Math.round((Date.now()-new Date(s.start))/60000)) : 0;
+  const cta = s ? '<button type="button" class="cta" data-go="program">練習を続ける</button><button type="button" class="link" data-go="finish">練習を終えて記録する</button>'
+    : n ? '<button type="button" class="cta" id="homeStart">練習を始める</button>'
+    : '<button type="button" class="cta" data-go="program">メニューを選ぶ</button>';
+  const today_ = '<section class="today" aria-labelledby="tdT"><h2 class="kicker" id="tdT">今日のメニュー</h2>'+
+    '<p class="big">'+n+'<span>種目</span></p><div class="badges">'+(n?'<span class="bdg">'+GOALS[db.goal].label+'</span>':'')+
+    (dn?'<span class="bdg ok">実施済み '+dn+' / '+n+'</span>':'')+(s?'<span class="bdg ok">練習中 '+el+'分</span>':'')+'</div>'+cta+'</section>';
+  const week = '<section class="card" aria-labelledby="wkT"><div class="cardhead"><h2 id="wkT">今週</h2>'+uiInfo('今週の見方の説明を開く','今週の見方',UI_CAL_INFO)+'</div>'+
+    '<div class="weekbox">'+(p.per!=null ? uiRing(p.used, p.per) : '<div class="ring" role="img" aria-label="今週の練習は'+p.used+'回"><svg viewBox="0 0 112 112"><circle cx="56" cy="56" r="46" fill="none" stroke="#2a2b2e" stroke-width="11"/></svg><b aria-hidden="true">'+p.used+'<small>回</small></b></div>')+
+    '<div><div class="badges">'+(p.per!=null?'<span class="bdg">残り '+p.left+' 回</span>':'')+(p.over?'<span class="bdg stop">契約を '+p.over+' 回超えています</span>':'')+
+    '<span class="bdg">続けて '+st+' 週</span><span class="bdg">種目 '+weekCount()+'</span></div>'+
+    (p.per==null?'<button type="button" class="link" data-go="settings">契約の回数を入れる</button>':'')+'</div></div>'+uiCal(weekStart(new Date()))+'</section>';
+  let status;
+  if(it){ const jr = judge(it); const fl = jr.junior ? juniorFlags(it) : flagsFor(it).concat(actualFlags());
+    const stg = (jr.stage==='senior'?'シニア':jr.junior?'ジュニア':'成長の段階は未判定')+(jr.provisional && jr.stage!=='unknown'?'（仮の判定）':'');
+    status = '<button type="button" class="navrow" data-go="intake"><span class="nk">総合判定</span><span class="badges"><span class="bdg">'+stg+'</span><span class="bdg">'+LEVELS[it.level].label+'</span>'+
+      (jr.band?'<span class="bdg">'+BANDS[jr.band].label.split('（')[0]+'</span>':'')+'<span class="bdg">気づき '+fl.length+' 件</span></span>'+UI.chev+'</button>';
+  } else status = '<button type="button" class="navrow" data-go="intake"><span class="nk">聞き取り</span><strong>経験に合った目安を出す</strong>'+UI.chev+'</button>';
+  return {title:'ホーム', html:
+    uiAlerts()+today_+week+
+    '<button type="button" class="navrow" id="advOpen"><span class="nk">今日の助言</span><strong>'+esc(adviceNow.t)+'</strong>'+UI.chev+'</button>'+status+
+    '<div class="two"><button type="button" class="navrow" data-go="browse"><strong>種目を動画で学ぶ</strong>'+UI.chev+'</button><button type="button" class="navrow" data-go="tests"><strong>測定を記録する</strong>'+UI.chev+'</button></div>'
+  };
+};
+
+/* ---- ワークアウト（陸上） ---- */
+let uiRemoved = null, uiClear = false, uiSwiped = false;
+function uiBadges(e){
+  if(e.norx) return '<span class="bdg warn">処方は未登録</span>';
+  const rx = rxFor(e, db.goal);
+  return '<span class="bdg">'+esc(rx.sets)+' セット</span><span class="bdg">'+esc(rx.reps)+'</span>'+(rx.load?'<span class="bdg">'+esc(rx.load)+'</span>':'')+'<span class="bdg">休息 '+esc(rx.rest)+'</span>';
+}
+function uiToggleDone(id){
+  const ex = EXMAP[id]; const td = today();
+  const mine = db.logs.filter(l=>l.id===id && l.kind==='done' && dayOf(l.t)===td);
+  if(mine.length){ const free = mine.filter(l=>!l.sess).pop();
+    if(!free){ say('この種目は、もう練習の記録に入っています'); return; }
+    db.logs.splice(db.logs.indexOf(free),1); save(); say(ex.name+'の実施済みを取り消しました'); }
+  else { const rx = rxFor(ex, db.goal); addLog({id, kind:'done', sets:nums(rx.sets)[0]||'', reps:ex.norx?'':rx.reps, load:'', memo:'プログラムから記録'}); say(ex.name+'を実施済みにしました'); }
+  render(false); const b = document.querySelector('[data-ck="'+id+'"]'); if(b) b.focus();
+}
+function uiProgRemove(id){
+  const i = db.prog.findIndex(x=>x.id===id); if(i<0) return;
+  uiRemoved = {row:db.prog[i], i}; db.prog.splice(i,1); save(); say(EXMAP[id].name+'を外しました。元に戻すこともできます');
+  render(false); const u = $('#uiUndo'); if(u) u.focus();
+}
+function uiRowMenu(id){
+  const e = EXMAP[id];
+  uiOpen(e.name, '<div class="badges">'+uiBadges(e)+'</div><div class="menu">'+
+    '<button type="button" class="ghost" data-play="'+id+'">動画を見る</button>'+
+    '<button type="button" class="ghost" data-go="detail" data-id="'+id+'">種目の説明と根拠を見る</button>'+
+    '<button type="button" class="ghost" data-wrm="'+id+'">ワークアウトから外す</button></div>');
+}
+VIEWS.program = ()=>{
+  const s = db.sessNow; const td = today(); const g = GOALS[db.goal];
+  const rows = db.prog.filter(r=>EXMAP[r.id]);
+  const groups = BLOCKS.map(b=>({b, rows:rows.filter(r=>defaultBlock(EXMAP[r.id])===b)})).filter(x=>x.rows.length);
+  let bar;
+  if(s){ const d = new Date(s.start); const el = Math.max(0, Math.round((Date.now()-d)/60000));
+    bar = '<section class="sessbar" aria-labelledby="sessT"><h2 id="sessT" tabindex="-1">練習中　<span id="sessMin">'+el+'</span>分</h2><button type="button" class="cta" data-go="finish">練習を終えて記録する</button><button type="button" class="link" id="sessCancel">始めた時刻を取り消す</button></section>';
+  } else {
+    bar = '<section class="sessbar" aria-labelledby="sessT"><h2 id="sessT" tabindex="-1" class="sr">今日の練習</h2><button type="button" class="cta" id="sessStart">練習を始める</button><button type="button" class="link" data-go="finish">時間を計らずに記録する</button></section>';
+  }
+  const goal = '<div class="goalrow"><div class="chips" role="group" aria-label="トレーニングの目的">'+Object.keys(GOALS).map(k=>'<button type="button" class="chip'+(k===db.goal?' on':'')+'" aria-pressed="'+(k===db.goal)+'" data-goal="'+k+'">'+GOALS[k].label.replace('向上','')+'</button>').join('')+'</div>'+
+    uiInfo(g.label+'の考え方と根拠を開く', g.label, '<p>'+esc(g.swim)+'</p>'+refList(g.refs))+'</div>';
+  const undo = uiRemoved && EXMAP[uiRemoved.row.id] ? '<div class="undobar" role="status"><span>'+esc(EXMAP[uiRemoved.row.id].name)+'を外しました</span><button type="button" class="ghost" id="uiUndo">元に戻す</button></div>' : '';
+  const list = groups.map(x=>'<h2 class="blk">'+x.b+'</h2><ul class="wrows">'+x.rows.map(r=>{
+    const e = EXMAP[r.id]; const dn = db.logs.some(l=>l.id===e.id && l.kind==='done' && dayOf(l.t)===td);
+    return '<li class="wrow'+(dn?' isdone':'')+'" data-wid="'+e.id+'">'+
+      '<button type="button" class="ck" data-ck="'+e.id+'" aria-pressed="'+dn+'" aria-label="'+esc(e.name)+'を実施済みにする">'+UI.check+'</button>'+
+      '<button type="button" class="wmain" data-go="detail" data-id="'+e.id+'">'+thumb(e,'sm')+'<span class="rowtxt"><strong>'+esc(e.name)+'</strong><span class="badges">'+uiBadges(e)+'</span></span></button>'+
+      '<button type="button" class="icb" data-play="'+e.id+'" aria-label="'+esc(e.name)+'の動画を見る">'+ICON.play+'</button>'+
+      '<button type="button" class="icb" data-wmenu="'+e.id+'" aria-label="'+esc(e.name)+'のメニューを開く">'+UI.more+'</button></li>';
+  }).join('')+'</ul>').join('');
+  const tpl = '<details class="more"'+(rows.length?'':' open')+'><summary>ひな形から入れる</summary><div class="inner stackbtns">'+Object.keys(TEMPLATES).map(k=>'<button type="button" class="ghost" data-tpl="'+k+'">'+TEMPLATES[k].label+'（'+TEMPLATES[k].ids.length+'種目）</button>').join('')+
+    '<button type="button" class="ghost" data-go="browse">種目を1つずつ選ぶ</button></div></details>';
+  const etc = rows.length ? '<details class="more"><summary>そのほか</summary><div class="inner stackbtns"><button type="button" class="ghost" id="pPrint">印刷する</button><button type="button" class="ghost" id="pClear">'+(uiClear?'もう一度押すと空にします':'ワークアウトを空にする')+'</button></div></details>' : '';
+  return {title:'ワークアウト', html: uiSub('program')+bar+goal+undo+list+tpl+etc,
+    after(){
+      const b = $('#sessStart'); if(b) b.addEventListener('click',()=>{ db.sessNow = {start:new Date().toISOString()}; save(); say('練習を始めました。時間を計っています'); render(false); $('#sessT').focus(); });
+      const c = $('#sessCancel'); if(c) c.addEventListener('click',()=>{ delete db.sessNow; save(); say('始めた時刻を取り消しました'); render(false); $('#sessStart').focus(); });
+      const p = $('#pPrint'); if(p) p.addEventListener('click',()=>window.print());
+      const x = $('#pClear'); if(x) x.addEventListener('click',()=>{
+        if(!uiClear){ uiClear = true; render(false); const d = $('#pClear'); d.closest('details').open = true; d.focus(); say('もう一度押すと、ワークアウトを空にします'); return; }
+        db.prog = []; uiClear = false; uiRemoved = null; save(); say('ワークアウトを空にしました'); render(false); $('#title').focus(); });
+      const u = $('#uiUndo'); if(u) u.addEventListener('click',()=>{ const r = uiRemoved; uiRemoved = null; if(r && !db.prog.some(y=>y.id===r.row.id)) db.prog.splice(Math.min(r.i, db.prog.length), 0, r.row); save(); say('元に戻しました'); render(false);
+        const k = document.querySelector('[data-ck="'+r.row.id+'"]'); if(k) k.focus(); });
+    }
+  };
+};
+setInterval(()=>{ const m = $('#sessMin'); if(m && db.sessNow) m.textContent = Math.max(0, Math.round((Date.now()-new Date(db.sessNow.start))/60000)); }, 20000);
+
+/* 携帯では、種目を左へ払うと外せる。同じことは「メニューを開く」のボタンからもできる */
+(function(){
+  let li = null, x0 = 0, y0 = 0, dx = 0, moving = false;
+  const v = $('#view');
+  v.addEventListener('touchstart',e=>{ li = e.target.closest('.wrow'); if(!li) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; moving = false; },{passive:true});
+  v.addEventListener('touchmove',e=>{ if(!li) return; dx = e.touches[0].clientX-x0; const dy = e.touches[0].clientY-y0;
+    if(!moving){ if(Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)*1.5) moving = true; else if(Math.abs(dy)>12){ li = null; return; } else return; }
+    li.classList.add('sw'); li.style.transform = 'translateX('+Math.min(0,dx)+'px)'; li.style.opacity = String(Math.max(.3, 1+Math.min(0,dx)/260)); },{passive:true});
+  v.addEventListener('touchend',()=>{ if(!li) return; const el = li; li = null; el.classList.remove('sw');
+    if(moving){ uiSwiped = true; setTimeout(()=>{ uiSwiped = false; },350); }
+    if(moving && dx<-110){ uiProgRemove(el.dataset.wid); return; }
+    el.style.transform = ''; el.style.opacity = ''; });
+})();
+
+/* ---- 記録 ---- */
+let uiWk = 0;
+function uiSess(s){
+  return '<li class="card sess"><strong>'+uiDate(s.date)+'</strong>'+(s.over?' <span class="tag stop">契約の回数を超えた記録</span>':'')+
+    '<div class="badges"><span class="bdg">'+s.min+' 分</span><span class="bdg">きつさ '+s.rpe+'</span><span class="bdg">'+s.vol+' kg</span><span class="bdg">負荷 '+s.load+'</span></div>'+
+    (s.memo?'<p class="sub">メモ：'+esc(s.memo)+'</p>':'')+
+    (s.items && s.items.length?'<details class="plain"><summary>種目'+s.items.length+'つを見る</summary><ul>'+s.items.map(i=>'<li>'+esc(i.name)+'　'+i.sets+'セット、'+i.reps+'回、'+i.kg+'キログラム</li>').join('')+'</ul></details>':'')+
+    '<div class="prbtns"><button type="button" class="ghost small" data-sdel="'+s.id+'" aria-label="'+uiDate(s.date)+'の練習の記録を消す">'+(sessDel===s.id?'もう一度押すと消します':'この記録を消す')+'</button></div></li>';
+}
+VIEWS.activity = ()=>{
+  const w0 = weekStart(new Date()); w0.setDate(w0.getDate()+uiWk*7); const wp = new Date(w0); wp.setDate(wp.getDate()-7);
+  const k = dayOf(w0), kp = dayOf(wp); const p = planInfo(); const r1 = x=>Math.round(x*10)/10;
+  const ss = sessOfWeek(k).sort((a,b)=>a.end<b.end?1:-1); const sum = (key,fn)=>r1(sessOfWeek(key).reduce((t,s)=>t+fn(s),0));
+  const cnt = ss.length; const pre = sessOfWeek(kp).length;
+  const bar = p.per!=null ? '<div class="pbar'+(cnt>p.per?' over':'')+'" role="img" aria-label="契約の'+p.per+'回のうち'+cnt+'回"><span style="width:'+Math.min(100, Math.round(cnt/p.per*100))+'%"></span></div><p class="sub">練習 '+cnt+' / '+p.per+' 回</p>' : '';
+  const loadInfo = '<p>練習の負荷は、きつさに練習の時間（分）を掛けた数字です。競泳選手の水中練習では、心拍数から求めた負荷と関連することが報告されています。レジスタンストレーニングでも使えそうだとする研究があります。</p>'+srcBox(['foster2001','haddad2017','wallace2009','srperes2004'])+
+    '<p>動かした重さは、セット数×回数×重さを、種目ごとに足したものです。</p><div class="note warn">どこまで増やしてよいかという線は、このアプリでは引いていません。根拠の資料を確認できていないためです。この週と前の週の数字を並べて見るための表示です。週は月曜から日曜で数えます。</div>';
+  const all = db.sessions||[]; const done = db.logs.filter(l=>l.kind==='done');
+  const per = {}; done.forEach(l=>{ per[l.id] = (per[l.id]||0)+1; }); const top = Object.entries(per).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  return {title:'記録', html:
+    '<div class="wknav"><button type="button" class="ghost" id="wkPrev">前の週</button><h2 id="wkH" tabindex="-1">'+(uiWk===0?'今週':uiWk===-1?'先週':uiDate(k)+'の週')+'</h2><button type="button" class="ghost" id="wkNext"'+(uiWk>=0?' disabled':'')+'>次の週</button></div>'+
+    '<section class="card" aria-label="この週のカレンダー"><div class="cardhead"><p class="kicker">'+uiDate(k)+'から</p>'+uiInfo('カレンダーの見方の説明を開く','カレンダーの見方',UI_CAL_INFO)+'</div>'+uiCal(w0)+bar+'</section>'+
+    '<div class="cardhead"><h2>この週の合計</h2>'+uiInfo('練習の負荷と、動かした重さの説明と根拠を開く','合計の数字について',loadInfo)+'</div>'+
+    '<ul class="stats"><li><span class="k">練習</span><span class="v">'+cnt+'<small> 回</small></span><span class="p">前の週 '+pre+'</span></li>'+
+      '<li><span class="k">負荷</span><span class="v">'+sum(k,s=>s.load)+'</span><span class="p">前の週 '+sum(kp,s=>s.load)+'</span></li>'+
+      '<li><span class="k">重さ</span><span class="v">'+sum(k,s=>s.vol)+'<small> kg</small></span><span class="p">前の週 '+sum(kp,s=>s.vol)+'</span></li></ul>'+
+    (ss.length ? '<h2>この週の練習</h2><ul class="sesslist">'+ss.map(uiSess).join('')+'</ul>' : '')+
+    '<div class="two" style="margin-top:16px"><button type="button" class="navrow" data-go="tests"><strong>測定を記録する</strong>'+UI.chev+'</button><button type="button" class="navrow" data-go="data"><strong>保存と持ち出し</strong>'+UI.chev+'</button></div>'+
+    '<details class="more"><summary>これまでの合計</summary><div class="inner"><ul class="stats"><li><span class="k">練習の記録</span><span class="v">'+all.length+'</span></li><li><span class="k">実施した種目</span><span class="v">'+done.length+'</span></li><li><span class="k">見た動画</span><span class="v">'+db.logs.filter(l=>l.kind==='watch').length+'</span></li></ul>'+
+      (top.length?'<h3>よく行っている種目</h3><ol class="top">'+top.map(t=>'<li><button type="button" class="link" data-go="detail" data-id="'+t[0]+'">'+esc(EXMAP[t[0]]?EXMAP[t[0]].name:t[0])+'</button> '+t[1]+'回</li>').join('')+'</ol>':'')+'</div></details>'+
+    (db.logs.length?'<details class="more"><summary>種目ごとの履歴（新しい順）</summary><div class="inner"><ul class="hist">'+[...db.logs].reverse().slice(0,50).map(logLine).join('')+'</ul></div></details>':''),
+    after(){
+      const mv = d=>{ uiWk = Math.min(0, uiWk+d); sessDel = null; render(false); $('#wkH').focus(); say($('#wkH').textContent+'を表示しました'); };
+      $('#wkPrev').addEventListener('click',()=>mv(-1)); $('#wkNext').addEventListener('click',()=>mv(1));
+      $('#view').onclick = e=>{ const b = e.target.closest('[data-sdel]'); if(!b) return; const id = b.dataset.sdel;
+        if(sessDel!==id){ sessDel = id; render(false); const again = document.querySelector('[data-sdel="'+id+'"]'); if(again) again.focus(); say('もう一度押すと、この練習の記録を消します'); return; }
+        db.sessions = db.sessions.filter(s=>s.id!==id); db.logs.forEach(l=>{ if(l.sess===id) delete l.sess; }); sessDel = null; save();
+        say('練習の記録を消しました。契約の残りの回数も数え直しました'); render(false); $('#wkH').focus(); };
+    }
+  };
+};
+
+/* ---- 設定 ---- */
+function uiPlanText(){ const p = planInfo(); return p.per==null ? '契約なし' : '週 '+p.per+' 回'; }
+VIEWS.settings = ()=>{
+  const lib = db.lib||[]; const row = (go, k, t)=>'<button type="button" class="navrow" data-go="'+go+'"><span class="nk">'+k+'</span><strong>'+t+'</strong>'+UI.chev+'</button>';
+  const it = db.intake; const nt = (db.tests||[]).length; const nc = Object.keys(db.check||{}).length;
+  return {title:'設定', html:
+    '<section class="card" aria-labelledby="planH"><div class="cardhead"><h2 id="planH">契約の回数</h2>'+uiInfo('契約の回数の説明を開く','契約の回数','<p>週に何回の契約かを入れます。ホームに、今週の残りの回数が出ます。残りの回数は、練習ごとの記録から毎回数え直すので、記録を消すと自動で戻ります。0にすると、契約なしになります。</p>')+'</div>'+
+      '<div class="stp planstp"><button type="button" data-plan="-1" aria-label="契約の回数を1回減らす">−</button><output id="planV" aria-live="polite">'+uiPlanText()+'</output><button type="button" data-plan="1" aria-label="契約の回数を1回増やす">＋</button></div></section>'+
+    '<h2>選手</h2>'+
+    row('intake','聞き取りと総合判定', it ? it.date+' に実施' : 'はじめる')+
+    row('check','セルフチェック', nc ? nc+'項目を入力済み' : '肩と胸椎の4つのテスト')+
+    row('tests','測定の記録', nt ? nt+'件' : '身長、体重、垂直跳びなど')+
+    '<h2>データ</h2>'+row('data','保存と持ち出し','バックアップ、表計算用のファイル')+
+    '<h2>管理（コーチ向け）</h2>'+
+    row('library','根拠の資料を登録する','自分で登録した資料 '+lib.length+'件')+
+    row('refs','根拠の資料の一覧','文献 '+REF_ORDER.length+'件')+
+    '<button type="button" class="navrow" id="starOpen"><span class="nk">星の基準</span><strong>根拠の強さと登録の状況</strong>'+UI.chev+'</button>',
+    after(){
+      $('#view').onclick = e=>{ const b = e.target.closest('[data-plan]'); if(!b) return;
+        const cur = db.plan ? (num(db.plan.perWeek)||0) : 0; const n = Math.min(14, Math.max(0, cur+Number(b.dataset.plan)));
+        db.plan = {perWeek:n}; save(); $('#planV').textContent = uiPlanText(); say(n ? '契約を週'+n+'回で保存しました' : '契約なしで保存しました'); };
+    }
+  };
+};
+VIEWS.library = ()=>{ const v = _settings2(); v.title = '根拠の資料の登録';
+  v.html = v.html.replace('記録のタブの「バックアップを保存」に一緒に入ります','設定の「保存と持ち出し」のバックアップに一緒に入ります'); return v; };
+VIEWS.data = ()=>{
+  return {title:'保存と持ち出し', html:
+    '<div class="cardhead"><h2>バックアップ</h2>'+uiInfo('データの保存場所の説明を開く','データの保存場所','<p>記録は、このパソコンやスマートフォンの、このブラウザーの中に保存されます。ブラウザーの履歴やデータを消すと一緒に消えるので、ときどきバックアップを保存してください。バックアップには、練習の記録、測定、聞き取り、水泳のメニュー、登録した資料がすべて入ります。</p>')+'</div>'+
+    '<div class="stackbtns"><button type="button" class="cta" id="xJson">バックアップを保存</button><label class="filebtn ghost">バックアップから戻す<input type="file" id="iJson" accept=".json,application/json"></label></div>'+
+    '<h2>表計算用のファイル（CSV）</h2><div class="stackbtns"><button type="button" class="ghost" id="xSess">練習ごとの記録を保存</button><button type="button" class="ghost" id="xCsv">種目ごとの記録を保存</button></div>',
+    after(){
+      const q = t=>'"'+String(t==null?'':t).replace(/"/g,'""')+'"';
+      $('#xCsv').addEventListener('click',()=>{
+        const rows = [['日時','種目','カテゴリー','内容','セット','回数','重量kg','メモ']].concat(db.logs.map(l=>{ const e = EXMAP[l.id]||{}; return [l.t, e.name||l.id, CATS[e.cat]||'', l.kind==='watch'?'動画を見た':'実施', l.sets, l.reps, l.load, l.memo]; }));
+        dl('swim_wt_kiroku_'+today()+'.csv', '﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'), 'text/csv'); });
+      $('#xSess').addEventListener('click',()=>{
+        const rows = [['日付','時間（分）','きつさ','動かした重さの合計kg','練習の負荷','契約の回数を超えた記録','種目','メモ']].concat((db.sessions||[]).map(s=>[s.date, s.min, s.rpe, s.vol, s.load, s.over?'はい':'', (s.items||[]).map(i=>i.name+' '+i.sets+'×'+i.reps+'×'+i.kg+'kg').join(' / '), s.memo]));
+        dl('swimiq_strength_renshu_'+today()+'.csv', '﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'), 'text/csv'); });
+      $('#xJson').addEventListener('click',()=>dl('swim_wt_backup_'+today()+'.json', JSON.stringify(db), 'application/json'));
+      $('#iJson').addEventListener('change',ev=>{ const f = ev.target.files[0]; if(!f) return; f.text().then(t=>{ try{ const o = JSON.parse(t); if(!o || !Array.isArray(o.logs)) throw 0; db = Object.assign({saved:[],prog:[],goal:'power',logs:[],videos:{},check:{}}, o); save(); applyUserLib(); say('バックアップから戻しました'); render(false); }catch(x){ say('このファイルは読み込めませんでした'); } }); });
+    }
+  };
+};
+
+/* ---- 水泳 ---- */
+const SWIM_Z = ['楽','中','強','全力'];
+const SWIM_M = [200,400,800,1000,1500];
+VIEWS.swim = ()=>{
+  const S = swimDB(); if(!swimDate) swimDate = today();
+  const m = S.menus.find(x=>x.date===swimDate); const editing = swimEdit || !m;
+  const tot = m ? m.blocks.reduce((t,b)=>t+(num(b.m)||0),0) : 0;
+  const bv = b=>(m && m.blocks.find(y=>y.b===b)) || {text:'', m:'', z:''};
+  const about = '<p>水泳のメニュー、ドリル、動画は、最初からは入れていません。資料で確かめていない内容を、アプリが作らないようにするためです。コーチが入れた内容だけが、ここに出ます。</p><p>メニューと動画は、このブラウザーの中に保存されます。設定の「保存と持ち出し」のバックアップに一緒に入ります。</p>'+
+    '<div class="note warn">強度の4つの区分（楽、中、強、全力）は、このアプリの仮の設定です。根拠の資料はありません。チームの呼び方に合わせて、内容の欄に書き足してください。</div>';
+  const nav = '<div class="daynav"><button type="button" class="ghost" id="swPrev">前の日</button><input type="date" id="swDate" aria-label="日付を選ぶ" value="'+esc(swimDate)+'"><button type="button" class="ghost" id="swNext">次の日</button></div>';
+  const show = (m && !editing) ? '<section class="card" aria-labelledby="swT"><div class="cardhead"><h2 id="swT" tabindex="-1">'+uiDate(swimDate)+'　'+tot+'メートル</h2>'+uiInfo('水泳の画面の説明を開く','水泳の画面について',about)+'</div>'+
+    m.blocks.filter(b=>b.text || num(b.m)!=null || b.z).map(b=>'<div class="swblk"><strong>'+esc(b.b)+'</strong><div class="badges">'+(num(b.m)!=null?'<span class="bdg">'+num(b.m)+' m</span>':'')+(b.z?'<span class="bdg">強度 '+esc(b.z)+'</span>':'')+'</div>'+(b.text?'<p>'+esc(b.text)+'</p>':'')+'</div>').join('')+
+    (m.memo?'<div class="swblk"><strong>コーチのメモ</strong><p>'+esc(m.memo)+'</p></div>':'')+
+    '<div class="stackbtns" style="margin-top:12px"><button type="button" class="ghost" id="swEdit">このメニューを直す</button><button type="button" class="ghost" id="swDel">'+(swimDel?'もう一度押すと消します':'このメニューを消す')+'</button></div></section>' : '';
+  const form = editing ? '<div class="cardhead"><h2 id="swT" tabindex="-1">'+uiDate(swimDate)+'の'+(m?'メニューを直す':'メニューを入れる')+'</h2>'+uiInfo('水泳の画面の説明を開く','水泳の画面について',about)+'</div><form id="swForm" class="intake" novalidate>'+
+    SWIM_BLOCKS.map((b,i)=>{ const x = bv(b); return '<fieldset><legend>'+b+'</legend>'+
+      '<label>距離（メートル）<input type="number" name="m'+i+'" min="0" step="1" data-inc="100" inputmode="numeric" value="'+esc(x.m)+'"></label>'+
+      '<div class="chips" role="group" aria-label="'+b+'の距離を選ぶ" style="margin-top:8px">'+SWIM_M.map(v=>'<button type="button" class="chip" data-swm="'+i+':'+v+'" aria-label="'+b+'の距離を'+v+'メートルにする">'+v+'</button>').join('')+'</div>'+
+      '<p class="fl" id="zl'+i+'">強度 <span class="tag warn">仮の設定</span></p><div class="zrow" role="radiogroup" aria-labelledby="zl'+i+'">'+[''].concat(SWIM_Z).map(z=>'<label><input type="radio" name="z'+i+'" value="'+z+'"'+((x.z||'')===z?' checked':'')+'><span>'+(z||'なし')+'</span></label>').join('')+'</div>'+
+      '<details class="more"'+(x.text?' open':'')+'><summary>内容を文字で書く</summary><div class="inner"><textarea class="txt" name="t'+i+'" rows="3" aria-label="'+b+'の内容">'+esc(x.text)+'</textarea></div></details></fieldset>'; }).join('')+
+    '<label>コーチのメモ（なくてもかまいません）<input type="text" class="txt" name="memo" value="'+esc(m?m.memo:'')+'"></label>'+
+    '<p id="swErr" role="alert" class="err"></p><button type="submit" class="cta">この日のメニューを保存する</button>'+(m?'<button type="button" class="ghost" id="swCancel">直すのをやめる</button>':'')+'</form>' : '';
+  const vids = Object.keys(VID_CATS).map(c=>{ const l = S.vids.filter(x=>x.cat===c); return l.length ? '<h3>'+VID_CATS[c]+'（'+l.length+'）</h3><ul class="hist">'+l.map(x=>'<li><strong>'+esc(x.title)+'</strong>'+(x.memo?'<span class="sub">'+esc(x.memo)+'</span>':'<br>')+
+    '<a target="_blank" rel="noopener" href="'+esc(x.url)+'">'+esc(x.title)+'の動画を開く</a><div class="prbtns"><button type="button" class="ghost small" data-vdel="'+x.id+'" aria-label="'+esc(x.title)+'を動画の一覧から消す">一覧から消す</button></div></li>').join('')+'</ul>' : ''; }).join('');
+  return {title:'ワークアウト', html: uiSub('swim')+nav+show+form+
+    '<h2 id="vH" tabindex="-1">ドリルと技術の動画</h2>'+vids+
+    '<details class="more"><summary>動画を登録する</summary><div class="inner"><form id="vForm" class="intake" novalidate>'+
+      '<label>題名（必ず入れてください）<input type="text" class="txt" name="vtitle"></label>'+
+      '<label>動画のアドレス（必ず入れてください）<input type="url" class="txt" name="vurl" placeholder="https://"></label>'+
+      '<label>種類<select name="vcat">'+Object.keys(VID_CATS).map(c=>'<option value="'+c+'">'+VID_CATS[c]+'</option>').join('')+'</select></label>'+
+      '<label>メモ（なくてもかまいません）<input type="text" class="txt" name="vmemo" placeholder="例：キャッチの肘の高さを見る"></label>'+
+      '<p id="vErr" role="alert" class="err"></p><button type="submit" class="ghost">この動画を登録する</button></form></div></details>'+
+    '<h2>体を整える教材</h2><div class="stackbtns">'+
+      '<button type="button" class="ghost" data-golist="cat" data-cat="mobility">モビリティの種目</button>'+
+      '<button type="button" class="ghost" data-golist="cat" data-cat="shoulder">肩の安定性の種目</button>'+
+      '<button type="button" class="ghost" data-go="check">セルフチェック</button></div>',
+    after(){
+      const setDay = v=>{ swimDate = v || today(); swimEdit = false; swimDel = false; render(false); $('#swT').focus(); };
+      const shift = n=>{ const d = new Date(swimDate+'T12:00:00'); d.setDate(d.getDate()+n); setDay(dayOf(d)); };
+      $('#swDate').addEventListener('change',e=>setDay(e.target.value));
+      $('#swPrev').addEventListener('click',()=>shift(-1)); $('#swNext').addEventListener('click',()=>shift(1));
+      const ed = $('#swEdit'); if(ed) ed.addEventListener('click',()=>{ swimEdit = true; swimDel = false; render(false); $('#swT').focus(); });
+      const dl2 = $('#swDel'); if(dl2) dl2.addEventListener('click',()=>{
+        if(!swimDel){ swimDel = true; render(false); $('#swDel').focus(); say('もう一度押すと、この日のメニューを消します'); return; }
+        S.menus = S.menus.filter(x=>x.date!==swimDate); swimDel = false; swimEdit = false; save(); say('この日のメニューを消しました'); render(false); $('#swT').focus(); });
+      const cn = $('#swCancel'); if(cn) cn.addEventListener('click',()=>{ swimEdit = false; render(false); $('#swT').focus(); });
+      const sf = $('#swForm'); if(sf){
+        sf.addEventListener('click',e=>{ const b = e.target.closest('[data-swm]'); if(!b) return; const a = b.dataset.swm.split(':'); sf.elements['m'+a[0]].value = a[1]; say(SWIM_BLOCKS[a[0]]+'を'+a[1]+'メートルにしました'); });
+        sf.addEventListener('submit',ev=>{ ev.preventDefault();
+          const blocks = SWIM_BLOCKS.map((b,i)=>({b, text:sf.elements['t'+i].value.trim(), m:sf.elements['m'+i].value, z:(new FormData(sf)).get('z'+i)||''}));
+          if(!blocks.some(b=>b.text || b.m!=='' || b.z)){ $('#swErr').textContent = '保存できません。距離、強度、内容のどれか一つは入れてください。'; sf.elements.m0.focus(); return; }
+          S.menus = S.menus.filter(x=>x.date!==swimDate); S.menus.push({date:swimDate, blocks, memo:sf.elements.memo.value.trim()});
+          swimEdit = false; swimDel = false; save(); say('この日のメニューを保存しました'); render(false); $('#swT').focus(); }); }
+      $('#vForm').addEventListener('submit',ev=>{ ev.preventDefault(); const f = ev.target.elements;
+        const t = f.vtitle.value.trim(), u = f.vurl.value.trim();
+        if(!t){ $('#vErr').textContent = '題名を入れてください。'; f.vtitle.focus(); return; }
+        if(!/^https?:\/\//.test(u)){ $('#vErr').textContent = '動画のアドレスを、httpsから始まる形で入れてください。'; f.vurl.focus(); return; }
+        S.vids.push({id:'v_'+Date.now(), title:t, url:u, cat:f.vcat.value, memo:f.vmemo.value.trim()}); save(); say('動画を登録しました'); render(false); $('#vH').focus(); });
+      $('#view').onclick = e=>{ const b = e.target.closest('[data-vdel]'); if(!b) return; S.vids = S.vids.filter(x=>x.id!==b.dataset.vdel); save(); say('動画を一覧から消しました'); render(false); $('#vH').focus(); };
+    }
+  };
+};
+
+/* ---- 新しい画面の、押したときの動き（古い仕組みより先に受け取る） ---- */
+document.addEventListener('click',e=>{
+  if(uiSwiped){ uiSwiped = false; e.stopPropagation(); e.preventDefault(); return; }
+  const stop = ()=>e.stopPropagation(); let b;
+  const inInfo = !!e.target.closest('#info');
+  if(e.target.id==='info' || e.target.closest('#infoX')){ uiClose(); stop(); return; }
+  if(e.target.closest('#advNext')){ pickAdvice(adviceNow.id); uiAdvice(); const r = $('#advOpen strong'); if(r) r.textContent = adviceNow.t; stop(); return; }
+  if(e.target.closest('#advOpen')){ uiAdvice(); stop(); return; }
+  if(e.target.closest('#starOpen')){ uiOpen('星の基準', uiStarInfo()); stop(); return; }
+  if((b = e.target.closest('[data-info]'))){ const x = uiInfos[b.dataset.info]; if(x) uiOpen(x.title, x.html); stop(); return; }
+  if((b = e.target.closest('[data-wrm]'))){ uiClose(false); uiProgRemove(b.dataset.wrm); stop(); return; }
+  if(inInfo){ if(e.target.closest('[data-go],[data-play],[data-golist]')) uiClose(false); return; }
+  if((b = e.target.closest('[data-ck]'))){ uiToggleDone(b.dataset.ck); stop(); return; }
+  if((b = e.target.closest('[data-wmenu]'))){ uiRowMenu(b.dataset.wmenu); stop(); return; }
+  if((b = e.target.closest('[data-goal]'))){ db.goal = b.dataset.goal; save(); say('目的を'+GOALS[db.goal].label+'にしました'); render(false); const again = document.querySelector('[data-goal="'+db.goal+'"]'); if(again) again.focus(); stop(); return; }
+  if(e.target.closest('#homeStart')){ db.sessNow = {start:new Date().toISOString()}; save(); say('練習を始めました。時間を計っています'); go('program'); stop(); return; }
+},true);
+
 render(false);
 </script>
 </body>

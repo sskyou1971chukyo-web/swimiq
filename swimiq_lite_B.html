@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.8">
+<meta name="app-ver" content="2026.10.13.9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -942,6 +942,9 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 #admInfo .tr .v{ flex:1; min-width:0; color:#fff; word-break:break-all; font-variant-numeric:tabular-nums; }
 /* 分析の やり直し：なにを やり直すかを えらぶ まど */
 .reList{ display:flex; flex-direction:column; gap:10px; margin:6px 0 12px; }
+.rpGrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; }
+.rpGrid .btn{ min-height:56px !important; padding:6px 8px !important; align-items:center !important; }
+.reList .btn.rpNo{ border-style:dashed; opacity:.85; }
 #fxQ{ width:100%; min-height:52px; padding:6px 12px; border-radius:10px; margin:4px 0 10px; font-size:16px; }
 #fxList{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
 .fxRow{ width:100%; display:flex; align-items:center; gap:12px; text-align:left; padding:12px 14px; min-height:64px; }
@@ -3968,7 +3971,7 @@ var W={
  rePartB:['タイムを 一部だけ なおす','記録を一部だけ直す'],
  rePartS:['なおしたい ところを えらぶと、動画が そこへ うごきます。ほかは そのまま','直したい場所を選ぶと、動画がそこへ移動します。ほかはそのまま'],
  rpTitle:['どこを なおしますか','どこを直しますか'],
- rpLead:['えらぶと 動画が その ところへ うごきます。動画を 動かして〈記録〉を おすと、その ところだけ 上書きされます。','選ぶと動画がその場所へ移動します。動画を動かして〈記録〉を押すと、その場所だけ上書きされます。'],
+ rpLead:['えらぶと 動画が その ところへ うごきます。動画を 動かして〈記録〉を おすと、その ところだけ 入ります。点線は まだ 入って いない ところです。','選ぶと動画がその場所へ移動します。動画を動かして〈記録〉を押すと、その場所だけ入ります。点線はまだ入っていない場所です。'],
  rpGo:['動画を うごかして、正しい ところで〈記録〉を おしてください','動画を動かして、正しい場所で〈記録〉を押してください'],
  reStrB:['ストロークだけ 計りなおす','ストロークのみ再度計測'],
  reStrS:['タイムは そのまま。はじめから 数えなおします','タイムはそのまま。最初から数え直します'],
@@ -4894,6 +4897,7 @@ function bindVidError(id){
 }
 bindVidError('v'); bindVidError('dv');
 function openAna(blob, opt){
+  rpExtraD=null;
   opt = opt || {};
   aDraftId = opt.draftId || null; aDraftAt = opt.draftAt || null; aDraftThumb = opt.thumb || ''; aNoDraft=false; aDraftSig='';
   aDraftVidFor = opt.vidStored ? (opt.draftId||'') : '';
@@ -5110,7 +5114,7 @@ var turnOn=false; try{ turnOn = localStorage.getItem('swimiq_turn5')==='1'; }cat
 /* ターンアウト（壁のあと 何mまでを 非泳にするか）。10 か 15。今の 分析で つかう 値 */
 var turnOutM=15, turnOutAsked=false, anaSwimId='';
 function turnOutOf(r){ var v=Number(r && r.turnOut); return (v===10 || v===15) ? v : 15; }
-function lapDists(dist, pool){
+function lapDistsCore(dist, pool){
   var out=lapDistsBase(dist);
   dist=Number(dist)||0; if(!(dist>0)) return out;
   pool=Number(pool) || Number(($('pool')||{}).value) || 50;
@@ -5124,6 +5128,16 @@ function lapDists(dist, pool){
   for(w=pool; w<dist-0.001; w+=pool){ add.push(w-5); add.push(w); add.push(Math.min(w+turnOutM, dist)); }
   add.push(dist-5);                 /* タッチ（ゴール前 5m） */
   for(k=0;k<add.length;k++) if(add[k]>0 && add[k]<dist && out.indexOf(add[k])<0) out.push(add[k]);
+  out.sort(function(a,b){ return a-b; });
+  return out;
+}
+function lapDists(dist, pool){
+  var out=lapDistsCore(dist, pool), k;
+  dist=Number(dist)||0;
+  /* 「一部だけ直す」で えらんだ きょりと、すでに 入って いる 通過は いつも 一覧に 入れます */
+  var more=[]; if(typeof rpExtraD!=='undefined' && rpExtraD!=null) more.push(rpExtraD);
+  if(typeof aSplits!=='undefined' && aSplits) for(k=0;k<aSplits.length;k++) more.push(aSplits[k].d);
+  for(k=0;k<more.length;k++) if(more[k]>0 && more[k]<=dist && out.indexOf(more[k])<0) out.push(more[k]);
   out.sort(function(a,b){ return a-b; });
   return out;
 }
@@ -7730,32 +7744,56 @@ $('rePart').onclick=function(){
                         sigT:dRec.sigT, rt:dRec.rt });
   setTimeout(rpOpen, 500);
 };
-/* なおす ところの 一覧（合図・足離れ・各通過）。えらぶと 動画が そこへ うごき、つぎに 計る ところも そこに なります */
+/* なおす ところの 一覧。合図・足離れ・15m から ゴールまで 5mごとの 場所を いつも 全部 出します。
+   まだ 入って いない 所も えらべます（えらぶと 動画が だいたいの 場所へ うごき、〈記録〉で 入ります）。 */
+var rpExtraD=null;   /* 一覧から えらんだ、ふだんの 一覧に ない きょり（30m など） */
+function rpEstT(d){   /* まだ 入って いない きょりの 動画の 時刻を、前後の 通過から 見つもります */
+  if(aT0==null) return null;
+  var pts=[{d:0,t:0}].concat(aSplits.slice().sort(function(a,b){ return a.d-b.d; })), lo=pts[0], hi=null, i;
+  for(i=0;i<pts.length;i++){ if(pts[i].d<=d) lo=pts[i]; else { hi=pts[i]; break; } }
+  var v;
+  if(hi && hi.d>lo.d) v=lo.t+(hi.t-lo.t)*(d-lo.d)/(hi.d-lo.d);
+  else if(lo.d>0) v=lo.t*d/lo.d;
+  else v=d/1.6;                                  /* 通過が 1つも ない ときは 秒速1.6mで 見つもり */
+  return aT0+v;
+}
 function rpOpen(){
   var box=$('rpDlg'), list=$('rpList'); if(!box||!list) return;
   list.innerHTML='';
-  var items=[], rt=aRTsec();
-  if(aSigT!=null) items.push({ k:'sig', lbl:T('rtSigLbl'), t:aSigT, sub:fmt(aSigT)+'（動画の時刻）' });
-  if(aT0!=null)   items.push({ k:'t0',  lbl:T('rtFootLbl'), t:aT0, sub:fmt(aT0)+'（動画の時刻）' });
-  aSplits.slice().sort(function(a,b){ return a.d-b.d; }).forEach(function(sp){
-    if(aT0==null) return;
-    items.push({ k:String(sp.d), lbl:sp.d+'m', t:aT0+sp.t, sub:fmt(totalT(sp.t, rt)) });
-  });
-  if(!items.length){ toast(T('anaNone')); return; }
-  items.forEach(function(it){
-    var b=document.createElement('button'); b.type='button'; b.className='btn y';
-    b.innerHTML='<span>'+esc(it.lbl)+'</span><small>'+esc(it.sub)+'</small>';
-    b.onclick=function(){ rpGo(it); };
-    list.appendChild(b);
-  });
+  var dist=Number($('dist').value)||Number((dRec||{}).dist)||0, used={}, k;
+  aSplits.forEach(function(q){ used[q.d]=q; });
+  function add(it, grid){
+    var bt=document.createElement('button'); bt.type='button'; bt.className='btn y'+(it.done?'':' rpNo');
+    bt.innerHTML='<span>'+esc(it.lbl)+'</span><small>'+esc(it.sub)+'</small>';
+    bt.onclick=function(){ rpGo(it); };
+    (grid||list).appendChild(bt);
+  }
+  add({ k:'sig', lbl:T('rtSigLbl'), t:(aSigT!=null?aSigT:(aT0!=null?Math.max(0,aT0-1.5):0)), done:aSigT!=null, sub:(aSigT!=null?fmt(aSigT)+'（動画の時刻）':'まだ入っていません') });
+  add({ k:'t0',  lbl:T('rtFootLbl'), t:(aT0!=null?aT0:0), done:aT0!=null, sub:(aT0!=null?fmt(aT0)+'（動画の時刻）':'まだ入っていません') });
+  var g=document.createElement('div'); g.className='rpGrid'; list.appendChild(g);
+  var rt=aRTsec();
+  for(k=15;k<=dist;k+=5){
+    var q=used[k];
+    add({ k:String(k), lbl:k+'m', d:k, done:!!q,
+          t:(q && aT0!=null ? aT0+q.t : rpEstT(k)),
+          sub:(q ? fmt(totalT(q.t, rt)) : (aT0==null ? '先に足離れ' : 'まだ')) }, g);
+  }
+  /* 5mごとで ない 通過（ほかの 方法で 入れた もの）も のこさず 出します */
+  aSplits.forEach(function(q){ if(q.d%5!==0 || q.d<15) add({ k:String(q.d), lbl:q.d+'m', d:q.d, done:true, t:(aT0!=null?aT0+q.t:null), sub:fmt(totalT(q.t, rt)) }, g); });
   box.classList.remove('hide');
 }
 function rpGo(it){
   $('rpDlg').classList.add('hide');
+  if(it.k==='sig' && !rtIsOn()){ rtOn=true; }          /* 合図を えらんだら、合図も 計れる ように します */
+  if(it.d!=null && it.k!=='sig' && it.k!=='t0'){
+    if(aT0==null){ toast('先に足離れを入れてください'); it={ k:'t0', lbl:T('rtFootLbl'), t:0 }; }
+    else rpExtraD=it.d;
+  }
   var v=$('v');
   var go=function(){
     try{ if(!v.paused){ v.pause(); $('bPlay').innerHTML=T('playI'); } }catch(e){}
-    try{ v.currentTime=Math.max(0, it.t-1.5); }catch(e){}     /* 1.5秒 手前から 見られる ように */
+    try{ if(it.t!=null) v.currentTime=Math.max(0, it.t-1.5); }catch(e){}     /* 1.5秒 手前から 見られる ように */
+    paintNextSel();
     selManual=true; $('nextSel').value=it.k; paintNext();
     toast(it.lbl+'：'+T('rpGo'));
   };
@@ -9564,13 +9602,17 @@ function turn5Of(r){
   if(!r || r.t0==null || r.manual) return null;
   var p=Number(r.pool)||50, nT=lapCount(r)-1; if(!(nT>=1)) return null;
   var by=splitBy(r), t0=Number(r.t0), L=[], bad=0;
-  (r.turn5||[]).forEach(function(e){
+  /* 〈ターンを測定〉で 押した 5m後 が なく、通過タイムに 壁の 5m後 が ある ターンは、その 通過を 使います */
+  var src=(r.turn5||[]).slice(), have={};
+  src.forEach(function(e){ if(e && e.out!=null) have[Number(e.k)]=1; });
+  for(var kk=1;kk<=nT;kk++) if(!have[kk] && by[kk*p+5]!=null) src.push({ k:kk, out:t0+by[kk*p+5], fromSplit:true });
+  src.forEach(function(e){
     if(!e || e.out==null) return;
     var k=Number(e.k); if(!(k>=1 && k<=nT)) return;
     var W=k*p, wt=by[W], tin=(e.inn!=null ? Number(e.inn)-t0 : (by[W-5]!=null ? by[W-5] : null)), tout=Number(e.out)-t0;
     if(tin==null){ bad++; return; }
     if(!(tout>tin) || (wt!=null && !(tin<wt && tout>wt)) || tout-tin>40){ bad++; return; }
-    L.push({ k:k, w:W, tin:tin, tout:tout, t:Math.round((tout-tin)*100)/100, inSrc:(e.inn!=null?'tap':'split') });
+    L.push({ k:k, w:W, tin:tin, tout:tout, t:Math.round((tout-tin)*100)/100, inSrc:(e.inn!=null?'tap':'split'), outSrc:(e.fromSplit?'split':'tap') });
   });
   L.sort(function(a,b){ return a.k-b.k; });
   function avg(A){ return A.length ? Math.round(A.reduce(function(s,x){ return s+x.t; },0)/A.length*100)/100 : null; }

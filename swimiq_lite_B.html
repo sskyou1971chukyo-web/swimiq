@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.10">
+<meta name="app-ver" content="2026.10.13.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1725,7 +1725,7 @@ body.grid .gridL{ display:block; }
     right:0; top:0; bottom:0; left:auto; width:var(--sideW);
     background:#0d0f13; border-left:3px solid #2a2d33; pointer-events:auto;
     display:grid; grid-template-columns:1fr 1fr;
-    grid-template-rows:auto auto minmax(0,1fr) auto auto; gap:8px;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto auto; gap:8px;
     padding:calc(env(safe-area-inset-top) + 12px) 12px
             calc(env(safe-area-inset-bottom) + 12px) 12px; }
   .ov.ana:not(.play) .oAct > *{ min-width:0; }
@@ -1736,6 +1736,10 @@ body.grid .gridL{ display:block; }
     font-size:38px; font-weight:900; line-height:1.15;
     text-align:center; text-align-last:center;
     padding:0 26px 0 8px; background-position:right 2px center; }
+  /* つぎに 計る ところの 小さな 図（A案） */
+  .ov.ana:not(.play) #nextFig{ grid-column:1 / span 2; display:block; background:#14171c; border:2px solid var(--am); border-radius:12px; padding:3px 6px 4px; }
+  .ov.ana:not(.play) #nextFig:empty{ display:none; }
+  .ov.ana:not(.play) #nextFig svg{ display:block; width:100%; height:auto; max-height:22vh; margin:0 auto; }
   .ov.ana:not(.play) #bPass{ grid-column:1 / span 2; width:auto; height:auto;
     align-self:stretch; justify-self:stretch; margin:0; padding:8px;
     min-height:0 !important; border-radius:18px !important; border-width:0 !important;
@@ -1963,6 +1967,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 #cZbtn b{ font-size:16px; font-weight:900; font-variant-numeric:tabular-nums; }
 #cZbtn:active{ background:var(--am); color:#000; }
 #cv{ transform-origin:center center; }
+#nextFig{ display:none; }
 @media (orientation:portrait){ #camZoom, #cZbtn{ display:none; } }
 /* 右の 列を せまく した ぶん、中の 文字も 列の はばに 合わせます */
 @media (orientation:landscape){
@@ -2141,6 +2146,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="oAct">
       <span class="sideHd" data-t="sideNext"></span>
       <select class="osel nextSel" id="nextSel" data-ta="nextLbl"></select>
+      <div id="nextFig" aria-hidden="true"></div>
       <button class="ob b circle" id="bPass" type="button" disabled><span data-t="pass"></span><small id="nextD">-</small></button>
       <button class="ob y" id="bStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
       <button class="ob" id="bUndo" type="button" data-t="bUndo"></button>
@@ -4429,6 +4435,7 @@ function paintNext(){
   paintNextSel();
   var k=selKind();
   $('nextD').textContent = selLabel();
+  try{ var _nf=$('nextFig'); if(_nf){ var _v=$('nextSel').value, _gk=guideKind(_v, $('pool').value); _nf.innerHTML=guideMini(_gk, Number(_v)); } }catch(e){}
   $('bPass').disabled = (k==='') || (k==='d' && aT0===null);
   $('bStart').innerHTML = T(aT0===null ? 'bStart' : 'bStartRe');
   paintSteps();
@@ -7824,9 +7831,9 @@ function gdShow(it){
   if(it.k==='sig'){ kind='sig'; title='合図を直す'; msg='動画を動かして、スタートの音か光がはじめて出たコマで止め、〈記録〉を押してください。'; }
   else if(it.k==='t0'){ kind='t0'; title='足離れを直す'; msg='動画を動かして、足がスタート台から離れたコマで止め、〈記録〉を押してください。'; }
   else{
-    var r=d%pool;
-    if(r===pool-5){ kind='tIn'; title=d+'m（壁の5m前）を直す'; msg='壁に向かう頭が、壁から5mの線を通ったコマで止めて〈記録〉を押してください。'; }
-    else if(r===5 && d>pool){ kind='tOut'; title=d+'m（壁の5m後）を直す'; msg='ターンのあと、頭が壁から5mの線を通ったコマで止めて〈記録〉を押してください。水の中の頭でかまいません。'; }
+    var r=d%pool, gk=guideKind(it.k, pool);
+    if(gk==='tIn'){ kind='tIn'; title=d+'m（壁の5m前）を直す'; msg='壁に向かう頭が、壁から5mの線を通ったコマで止めて〈記録〉を押してください。'; }
+    else if(gk==='tOut'){ kind='tOut'; title=d+'m（壁の5m後）を直す'; msg='ターンのあと、頭が壁から5mの線を通ったコマで止めて〈記録〉を押してください。水の中の頭でかまいません。'; }
     else { kind='pass'; title=d+'mを直す'; msg='頭が'+d+'mの目印を通ったコマで止めて〈記録〉を押してください。'+(r===0?'壁は、体が壁にさわったコマです（クイックターンは足、タッチターンとゴールは手）。':''); }
   }
   $('gdT').textContent=title; $('gdMap').innerHTML=guideSvg(kind, d, pool); $('gdM').textContent=msg;
@@ -9669,6 +9676,47 @@ function guideSvg(kind, d, pool){
   h+=arrow(wall-8,y2,60,!inOn);
   h+=tx(10,y1+5,'行き',13,inOn?Y:'#8a909b')+tx(10,y2+5,'帰り',13,inOn?'#8a909b':Y);
   var py=inOn?y1:y2; h+=head(line,py)+push(line,py,'l');
+  return h+'</svg>';
+}
+/* つぎに 計る ところの 種類（図と 説明で 同じ 決め方を 使います） */
+function guideKind(k, pool){
+  pool=Number(pool)||50;
+  if(k==='sig') return 'sig';
+  if(k==='t0') return 't0';
+  var d=Number(k); if(!(d>0)) return '';
+  var r=d%pool;
+  if(r===pool-5) return 'tIn';
+  if(r===5 && d>pool) return 'tOut';
+  if(r===0) return 'wall';
+  return 'pass';
+}
+/* 右の 列に 入る 小さな 図（200×110）。ひとことだけ 書きます */
+function guideMini(kind, d){
+  var Y='#f2b01e', h='<svg viewBox="0 0 200 110">';
+  function ring(x,y){ return '<circle cx="'+x+'" cy="'+y+'" r="15" fill="none" stroke="#fff" stroke-width="3"/>'; }
+  function cap(t,y){ return '<text x="100" y="'+(y||100)+'" font-size="15" font-weight="900" text-anchor="middle" fill="#fff">'+t+'</text>'; }
+  if(kind==='sig'){
+    h+='<rect x="0" y="72" width="200" height="38" rx="6" fill="#0d3a5c"/><rect x="10" y="56" width="58" height="12" rx="3" fill="#cfd3da"/><circle cx="36" cy="44" r="8" fill="'+Y+'"/>';
+    h+='<g stroke="'+Y+'" stroke-width="3" fill="none"><path d="M84 32 q7 7 0 14"/><path d="M93 26 q12 12 0 26"/><path d="M102 20 q17 17 0 38"/></g>';
+    h+='<circle cx="150" cy="38" r="11" fill="'+Y+'"/><g stroke="'+Y+'" stroke-width="3" stroke-linecap="round"><line x1="150" y1="12" x2="150" y2="20"/><line x1="172" y1="38" x2="180" y2="38"/><line x1="166" y1="22" x2="172" y2="16"/><line x1="134" y1="22" x2="128" y2="16"/></g>'+ring(150,38)+cap('音・光の瞬間');
+  }else if(kind==='t0'){
+    h+='<rect x="0" y="72" width="200" height="38" rx="6" fill="#0d3a5c"/><rect x="10" y="56" width="58" height="12" rx="3" fill="#cfd3da"/>';
+    h+='<path d="M62 54 q36 -34 84 -14" fill="none" stroke="'+Y+'" stroke-width="4" stroke-dasharray="6 5"/><circle cx="150" cy="42" r="8" fill="'+Y+'"/><rect x="56" y="50" width="12" height="8" rx="2" fill="'+Y+'"/>'+ring(62,54)+cap('足が台から離れた');
+  }else if(kind==='tIn' || kind==='tOut'){
+    var inOn=(kind==='tIn'), y=inOn?48:70;
+    h+='<rect x="0" y="30" width="200" height="56" rx="6" fill="#0d3a5c"/><rect x="184" y="26" width="10" height="64" fill="#cfd3da"/>';
+    h+='<line x1="120" y1="12" x2="120" y2="90" stroke="'+Y+'" stroke-width="3" stroke-dasharray="6 5"/><path d="M120 4 v12 l14 -4z" fill="'+Y+'"/>';
+    h+='<line x1="10" y1="48" x2="'+(inOn?170:178)+'" y2="48" stroke="'+(inOn?Y:'#8a909b')+'" stroke-width="'+(inOn?5:3)+'"'+(inOn?'':' stroke-dasharray="6 5"')+'/>'+(inOn?'<path d="M182 48 l-14 -8 v16z" fill="'+Y+'"/>':'');
+    h+='<line x1="178" y1="70" x2="'+(inOn?20:22)+'" y2="70" stroke="'+(inOn?'#8a909b':Y)+'" stroke-width="'+(inOn?3:5)+'"'+(inOn?' stroke-dasharray="6 5"':'')+'/>'+(inOn?'':'<path d="M10 70 l14 -8 v16z" fill="'+Y+'"/>');
+    h+='<circle cx="120" cy="'+y+'" r="8" fill="'+Y+'"/>'+ring(120,y)+cap(inOn?'壁の5m前を頭が通った':'壁の5m後を頭が通った',106);
+  }else if(kind==='wall'){
+    h+='<rect x="0" y="30" width="200" height="56" rx="6" fill="#0d3a5c"/><rect x="176" y="22" width="12" height="70" fill="#cfd3da"/>';
+    h+='<line x1="14" y1="58" x2="150" y2="58" stroke="'+Y+'" stroke-width="5"/><path d="M164 58 l-14 -8 v16z" fill="'+Y+'"/>'+ring(176,58)+cap('壁にさわった',106);
+  }else if(kind==='pass'){
+    h+='<rect x="0" y="30" width="200" height="56" rx="6" fill="#0d3a5c"/>';
+    h+='<line x1="110" y1="18" x2="110" y2="92" stroke="'+Y+'" stroke-width="4"/><text x="110" y="14" font-size="13" font-weight="900" text-anchor="middle" fill="'+Y+'">'+(d||'')+'m</text>';
+    h+='<line x1="14" y1="58" x2="176" y2="58" stroke="'+Y+'" stroke-width="5"/><path d="M190 58 l-14 -8 v16z" fill="'+Y+'"/><circle cx="110" cy="58" r="8" fill="'+Y+'"/>'+ring(110,58)+cap('頭が線を通った',106);
+  }else return '';
   return h+'</svg>';
 }
 function turn5Plan(nT){

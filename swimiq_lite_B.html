@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.9">
+<meta name="app-ver" content="2026.10.13.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -165,6 +165,14 @@ button, select, input{ font-family:inherit; }
 #t5Box .msrBtns .btn .ico{ width:20px; height:20px; flex:0 0 auto; }
 #t5Box .btn.y.fill{ background:var(--am); color:#000; }
 #detail.t5ing .oInfo{ visibility:hidden; }
+.gdMap svg{ display:block; width:100%; max-width:520px; height:auto; margin:2px 0 8px; }
+#gdBox{ position:absolute; z-index:7; top:calc(env(safe-area-inset-top) + 62px); left:50%; transform:translateX(-50%);
+  width:min(560px,86vw); background:rgba(0,0,0,.80); border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; pointer-events:none; }
+#gdBox.hide{ display:none; }
+#gdBox.low{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 96px); }
+#gdBox .btn{ pointer-events:auto; }
+#gdT{ display:block; color:var(--am); font-size:17px; font-weight:900; }
+#gdM{ margin:2px 0 6px; font-size:14px; font-weight:700; line-height:1.5; }
 .ob.wI{ display:inline-flex; align-items:center; gap:6px; }
 .ob.wI .ico{ width:20px; height:20px; flex:0 0 auto; }
 #msrT{ display:block; color:var(--am); font-size:17px; font-weight:900; }
@@ -2052,6 +2060,15 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <div class="gridL" aria-hidden="true"><i class="v" style="left:25%"></i><i class="v mid" style="left:50%"></i><i class="v" style="left:75%"></i><i class="h" style="top:25%"></i><i class="h mid" style="top:50%"></i><i class="h" style="top:75%"></i></div>
   <button id="tapZone" class="tapL" type="button" data-ta="tapAna"></button>
   <svg id="msrSvg" class="hide" xmlns="http://www.w3.org/2000/svg" aria-label="メジャー"></svg>
+  <div id="gdBox" class="hide" role="note" aria-live="polite">
+    <b id="gdT"></b>
+    <div class="gdMap" id="gdMap"></div>
+    <p id="gdM"></p>
+    <div class="msrBtns">
+      <button class="btn" type="button" id="gdClose">わかった</button>
+      <button class="btn" type="button" id="gdMove">この板を下へ</button>
+    </div>
+  </div>
   <div id="msrBox" class="hide" role="dialog" aria-live="polite">
     <b id="msrT"></b>
     <p id="msrM"></p>
@@ -2204,6 +2221,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <button id="dTap" class="tapL" type="button" data-ta="tapDet"></button>
   <div id="t5Box" class="hide" role="dialog" aria-live="polite">
     <b id="t5T"></b>
+    <div class="gdMap" id="t5Map"></div>
     <p id="t5M"></p>
     <p id="t5S"></p>
     <div class="msrBtns">
@@ -7795,11 +7813,27 @@ function rpGo(it){
     try{ if(it.t!=null) v.currentTime=Math.max(0, it.t-1.5); }catch(e){}     /* 1.5秒 手前から 見られる ように */
     paintNextSel();
     selManual=true; $('nextSel').value=it.k; paintNext();
-    toast(it.lbl+'：'+T('rpGo'));
+    gdShow(it);
   };
   if(v.readyState>=1) go();
   else v.addEventListener('loadedmetadata', function once(){ v.removeEventListener('loadedmetadata', once); setTimeout(go, 80); });
 }
+/* 直す ところを えらんだ あとの 図の 案内（分析の 画面の 上） */
+function gdShow(it){
+  var pool=Number($('pool').value)||50, kind, d=Number(it.k), title, msg;
+  if(it.k==='sig'){ kind='sig'; title='合図を直す'; msg='動画を動かして、スタートの音か光がはじめて出たコマで止め、〈記録〉を押してください。'; }
+  else if(it.k==='t0'){ kind='t0'; title='足離れを直す'; msg='動画を動かして、足がスタート台から離れたコマで止め、〈記録〉を押してください。'; }
+  else{
+    var r=d%pool;
+    if(r===pool-5){ kind='tIn'; title=d+'m（壁の5m前）を直す'; msg='壁に向かう頭が、壁から5mの線を通ったコマで止めて〈記録〉を押してください。'; }
+    else if(r===5 && d>pool){ kind='tOut'; title=d+'m（壁の5m後）を直す'; msg='ターンのあと、頭が壁から5mの線を通ったコマで止めて〈記録〉を押してください。水の中の頭でかまいません。'; }
+    else { kind='pass'; title=d+'mを直す'; msg='頭が'+d+'mの目印を通ったコマで止めて〈記録〉を押してください。'+(r===0?'壁は、体が壁にさわったコマです（クイックターンは足、タッチターンとゴールは手）。':''); }
+  }
+  $('gdT').textContent=title; $('gdMap').innerHTML=guideSvg(kind, d, pool); $('gdM').textContent=msg;
+  $('gdBox').classList.remove('hide');
+}
+$('gdClose').onclick=function(){ $('gdBox').classList.add('hide'); };
+$('gdMove').onclick=function(){ var low=$('gdBox').classList.toggle('low'); this.textContent=low?'この板を上へ':'この板を下へ'; };
 $('rpCancel').onclick=function(){ $('rpDlg').classList.add('hide'); };
 $('reStroke').onclick=function(){
   reClose();
@@ -9591,6 +9625,52 @@ function splitBy(r){ var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) 
    動画の 時刻で 持つので、足離れを 入れ直しても ずれません。
    どの 画面・PDFも この 関数の 答えだけを 使います。
    ================================================================ */
+/* 押す 瞬間を 図で 見せます。kind：'sig' 合図／'t0' 足離れ／'pass' 通過（d m）／'tIn' 壁の5m前／'tOut' 壁の5m後 */
+function guideSvg(kind, d, pool){
+  var W=520, H=112, Y='#f2b01e', h='<svg viewBox="0 0 '+W+' '+H+'" aria-hidden="true">';
+  function tx(x,y,t,fs,c,a){ return '<text x="'+x+'" y="'+y+'" font-size="'+(fs||14)+'" font-weight="900" fill="'+(c||'#fff')+'" stroke="#000" stroke-width="3" paint-order="stroke"'+(a?' text-anchor="'+a+'"':'')+'>'+t+'</text>'; }
+  function head(x,y){ return '<circle cx="'+x+'" cy="'+y+'" r="9" fill="'+Y+'" stroke="#000" stroke-width="2"/>'; }
+  function push(x,y,side){ var lx=(side==='l')?x-22:x+22; return '<circle cx="'+x+'" cy="'+y+'" r="17" fill="none" stroke="#fff" stroke-width="3"/>'+tx(lx,y+5,'ここで押す',13,'#fff',side==='l'?'end':'start'); }
+  function arrow(x1,y,x2,on){ var dir=x2>x1?1:-1; return '<line x1="'+x1+'" y1="'+y+'" x2="'+(x2-dir*10)+'" y2="'+y+'" stroke="'+(on?Y:'#8a909b')+'" stroke-width="'+(on?5:3)+'"'+(on?'':' stroke-dasharray="6 5"')+'/><path d="M'+x2+' '+y+' l'+(-dir*14)+' -8 v16z" fill="'+(on?Y:'#8a909b')+'"/>'; }
+  if(kind==='sig' || kind==='t0'){
+    /* 左：プールサイドと スタート台、右：説明 */
+    h+='<rect x="0" y="74" width="230" height="36" rx="6" fill="#0d3a5c"/>';
+    h+='<rect x="14" y="56" width="70" height="14" rx="3" fill="#cfd3da"/>'+tx(49,104,'スタート台',12,'#cfe3f2','middle');
+    if(kind==='sig'){
+      h+=head(40,44);
+      h+='<g stroke="'+Y+'" stroke-width="3" fill="none"><path d="M104 30 q8 8 0 16"/><path d="M114 24 q14 14 0 28"/><path d="M124 18 q20 20 0 40"/></g>';
+      h+='<circle cx="172" cy="38" r="11" fill="'+Y+'"/><g stroke="'+Y+'" stroke-width="3" stroke-linecap="round"><line x1="172" y1="12" x2="172" y2="20"/><line x1="194" y1="38" x2="202" y2="38"/><line x1="188" y1="22" x2="194" y2="16"/><line x1="156" y1="22" x2="150" y2="16"/></g>';
+      h+='<circle cx="172" cy="38" r="19" fill="none" stroke="#fff" stroke-width="3"/>';
+      h+=tx(250,34,'音が鳴った・光ったコマ',16,Y)+tx(250,62,'ブザーの音か、ランプの光が',13,'#fff')+tx(250,82,'はじめて出たコマで止めて押す',13,'#fff');
+    }else{
+      h+=head(150,40);
+      h+='<path d="M76 54 q30 -30 66 -16" fill="none" stroke="'+Y+'" stroke-width="4" stroke-dasharray="6 5"/>';
+      h+='<rect x="70" y="50" width="14" height="8" rx="2" fill="'+Y+'"/>';
+      h+='<circle cx="77" cy="54" r="17" fill="none" stroke="#fff" stroke-width="3"/>';
+      h+=tx(250,34,'足が台から離れたコマ',16,Y)+tx(250,62,'うしろの足のつま先が',13,'#fff')+tx(250,82,'台から離れたコマで止めて押す',13,'#fff');
+    }
+    return h+'</svg>';
+  }
+  h+='<rect x="0" y="40" width="'+W+'" height="66" rx="8" fill="#0d3a5c"/>';
+  if(kind==='pass'){
+    var mark=W*0.5;
+    h+='<line x1="'+mark+'" y1="34" x2="'+mark+'" y2="106" stroke="'+Y+'" stroke-width="4"/>'+tx(mark,26,d+'mの目印',15,Y,'middle');
+    h+=arrow(24,73,W-24,true)+head(mark,73)+push(mark,73);
+    h+=tx(14,100,'頭が線を通ったコマ',13,'#fff');
+    return h+'</svg>';
+  }
+  /* ターン：右が 壁、5mの 線（背泳ぎの 旗）。上が 行き、下が 帰り */
+  var wall=W-26, line=W-180, inOn=(kind==='tIn'), y1=60, y2=90;
+  h+='<rect x="'+wall+'" y="34" width="12" height="72" fill="#cfd3da"/>'+tx(wall+6,26,'壁',13,'#fff','middle');
+  h+='<line x1="'+line+'" y1="30" x2="'+line+'" y2="106" stroke="'+Y+'" stroke-width="4" stroke-dasharray="8 6"/>';
+  h+='<path d="M'+line+' 6 v22 M'+line+' 6 l18 5 l-18 5" fill="'+Y+'" stroke="'+Y+'" stroke-width="2"/>'+tx(line-8,22,'壁から5m（背泳ぎの旗）',13,Y,'end');
+  h+=arrow(60,y1,wall-8,inOn);
+  h+='<path d="M'+(wall-8)+' '+y1+' q22 15 0 30" fill="none" stroke="#8a909b" stroke-width="3"/>';
+  h+=arrow(wall-8,y2,60,!inOn);
+  h+=tx(10,y1+5,'行き',13,inOn?Y:'#8a909b')+tx(10,y2+5,'帰り',13,inOn?'#8a909b':Y);
+  var py=inOn?y1:y2; h+=head(line,py)+push(line,py,'l');
+  return h+'</svg>';
+}
 function turn5Plan(nT){
   var o=[], i, k;
   if(!(nT>0)) return o;
@@ -11943,7 +12023,7 @@ function t5Paint(){
   $('t5All').innerHTML=T5I.all+'<span>'+(t5.all?'おすすめの回数にもどす':'全部のターンを測る')+'</span>';
   $('t5All').classList.toggle('hide', T5.nT<=15);
   if(t5.i>=n){   /* 終わり：まとめ */
-    $('t5T').innerHTML=T5I.ok+'<span>ターンの測定が終わりました</span>';
+    $('t5T').innerHTML=T5I.ok+'<span>ターンの測定が終わりました</span>'; $('t5Map').innerHTML='';
     $('t5M').textContent=T5.list.length ? turn5Line(T5) : 'まだ1回も測っていません。';
     $('t5S').textContent='壁の5m前から5m後まで。PDFの2ページ目にも出ます。';
     $('t5Go').innerHTML=T5I.turn+'<span>はじめから見直す</span>'; $('t5Skip').classList.add('hide'); $('t5Next').classList.add('hide'); $('t5Prev').classList.toggle('hide', !n);
@@ -11952,6 +12032,7 @@ function t5Paint(){
   var k=t5.plan[t5.i], w=t5Wall(k), e=t5Entry(k), now=T5.list.filter(function(x){ return x.k===k; })[0];
   $('t5Skip').classList.remove('hide'); $('t5Next').classList.remove('hide'); $('t5Prev').classList.toggle('hide', t5.i===0);
   $('t5T').innerHTML=T5I.turn+'<span>ターン'+k+'（'+w.W+'mの壁）　'+(t5.i+1)+'/'+n+'</span>';
+  $('t5Map').innerHTML=guideSvg(t5.step==='in'?'tIn':'tOut');
   if(t5.step==='in'){
     $('t5M').textContent='壁の5m前の線（背泳ぎの旗）を、壁に向かう頭が通ったコマで止めて、〈5m前を通った〉を押してください。';
     $('t5Go').innerHTML=T5I.flag+'<span>5m前を通った</span>';

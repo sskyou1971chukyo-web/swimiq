@@ -255,6 +255,15 @@ th,td{border-color:var(--line)}
   body{background:#fff;color:#111}
   .tag,.ghost,.minecard,.tiles li,.hero{background:#fff;color:#111}
 }
+/* 2026年10月13日に追加：練習ごとの記録、契約、水泳の画面 */
+#tabs{grid-template-columns:repeat(6,1fr)}
+@media(max-width:560px){#tabs{grid-template-columns:repeat(3,1fr)}#app{padding-bottom:200px}#toast{bottom:164px}}
+.lr3{display:grid;gap:12px}
+@media(min-width:620px){.lr3{grid-template-columns:1fr 1fr 1fr}}
+.intake input[type=date]{display:block;width:100%;max-width:320px;min-height:54px;border:2px solid var(--line);border-radius:6px;padding:8px 14px;margin-top:6px;background:var(--soft);color:#fff;color-scheme:dark}
+.tag.stop{border-color:var(--redline);color:var(--red);background:var(--redbg)}
+.hero .note{margin-top:10px}
+.hero .ghost{margin-top:12px}
 </style>
 </head>
 <body>
@@ -268,6 +277,7 @@ th,td{border-color:var(--line)}
   <button type="button" data-tab="browse"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l6-3.5z" fill="currentColor"/></svg>種目</button>
   <button type="button" data-tab="activity"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>記録</button>
   <button type="button" data-tab="program"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 12l2 2 4-4"/></svg>プログラム</button>
+  <button type="button" data-tab="swim"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>水泳</button>
   <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>設定</button>
 </nav>
 <div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden></div>
@@ -1889,6 +1899,256 @@ VIEWS.settings = ()=>{
     }
   };
 };
+
+/* ============ 練習ごとの記録、契約の残り枠、水泳の画面（2026年10月13日に追加） ============
+ 練習の終わりに、きつさ、動かした重さの合計、かかった時間の3つを必ず残す。
+ 契約の残りの回数は、保存せずに毎回「練習ごとの記録」から数え直すので、記録とずれない。
+ 水泳のメニューと動画は、最初からは入れない。コーチが入れた内容だけを表示する。 */
+Object.assign(REFS, {
+  foster2001:"Foster C, Florhaug JA, Franklin J, Gottschall L, Hrovatin LA, Parker S, Doleshal P, Dodge C. A new approach to monitoring exercise training. J Strength Cond Res. 2001;15(1):109-115.",
+  haddad2017:"Haddad M, Stylianides G, Djaoui L, Dellal A, Chamari K. Session-RPE method for training load monitoring: validity, ecological usefulness, and influencing factors. Front Neurosci. 2017;11:612.",
+  wallace2009:"Wallace LK, Slattery KM, Coutts AJ. The ecological validity and application of the session-RPE method for quantifying training loads in swimming. J Strength Cond Res. 2009;23(1):33-38.",
+  srperes2004:"Quantitation of resistance training using the session rating of perceived exertion method. J Strength Cond Res. 2004;18(4):796-802."
+});
+['foster2001','haddad2017','wallace2009','srperes2004'].forEach(k=>REF_ORDER.push(k));
+Object.assign(REF_URL, {foster2001:'https://sponet.de/sponet/Record/4006210', haddad2017:'https://doi.org/10.3389/fnins.2017.00612', wallace2009:'https://doi.org/10.1519/JSC.0b013e3181874512', srperes2004:'https://pubmed.ncbi.nlm.nih.gov/15574104/'});
+Object.assign(REF_NOTE, {
+  foster2001:"運動の時間（分）に、その練習全体のきつさを掛けて、練習の負荷を表す方法を示した。きつさは、運動が終わって30分後に聞いている。自転車運動とバスケットボールの練習で、心拍数から求めた負荷と一貫した関係があった。ただし、きつさから求めた値のほうが大きかった。",
+  haddad2017:"この方法を調べた36の研究をまとめた総説。0（安静）から10（最大）の尺度を使い、負荷は「きつさ×練習の時間（分）」で表す。複数の競技、男女、年齢層、競技レベルで、妥当性と良好な信頼性が確かめられたと結論している。きつさの感じ方は、気温、音楽、カフェイン、一緒にいる人など、多くの要因で変わるとも述べている。",
+  wallace2009:"よく鍛えられた競泳選手12名（男女各6名）の、20回の練習を調べた。きつさから求めた負荷は、心拍数から求めた負荷と、選手ごとに0.55から0.94の相関があった。コーチの見立ては、楽な練習では選手より低く、きつい練習では選手より高かった。",
+  srperes2004:"成人20名（男女各10名）。レジスタンストレーニングでも、強度が上がるほど練習全体のきつさは上がり、強度を表す方法として使えそうだと結論している。一方、練習全体のきつさは、各セットの直後に聞いたきつさの平均より低く出ることがあるとしている。"
+});
+Object.assign(REF_WARN, {
+  foster2001:"計算の方法と、30分後に聞く点は、論文の本文で確認しました。対象者の人数は確認できていません。",
+  wallace2009:"内容はデータベースの要約で確認したもので、原文は読めていません。水中練習の研究で、陸上トレーニングを調べたものではありません。",
+  srperes2004:"著者名は確認元のデータベースに表示がなく、省略しています。"
+});
+applyUserLib();
+
+function weekStart(d){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+function sessOfWeek(k){ return (db.sessions||[]).filter(s=>dayOf(weekStart(new Date(s.date+'T12:00:00')))===k); }
+function planInfo(){
+  const per = db.plan ? num(db.plan.perWeek) : null; const used = sessOfWeek(dayOf(weekStart(new Date()))).length;
+  const has = per!=null && per>0;
+  return {per: has?per:null, used, left: has ? Math.max(0, per-used) : null, over: has ? Math.max(0, used-per) : 0};
+}
+function streakWeeks(){
+  const w = weekStart(new Date()); let n = 0;
+  if(!sessOfWeek(dayOf(w)).length) w.setDate(w.getDate()-7);
+  while(sessOfWeek(dayOf(w)).length && n<520){ n++; w.setDate(w.getDate()-7); }
+  return n;
+}
+function planHTML(){
+  const p = planInfo(); const st = streakWeeks();
+  if(p.per==null) return '<section class="hero" aria-labelledby="planT"><p class="kicker" id="planT">今週の契約</p><p>契約の回数が、まだ入っていません。設定のタブで、週に何回の契約かを入れると、残りの回数がここに出ます。今週、記録した練習は'+p.used+'回です。</p><button type="button" class="ghost" data-go="settings">設定を開く</button></section>';
+  return '<section class="hero" aria-labelledby="planT"><p class="kicker" id="planT">今週の契約の残り</p><p class="big">'+p.left+'<span>回</span></p><p>契約は週'+p.per+'回、今週の消化は'+p.used+'回です。続けている週は'+st+'週です。</p>'+
+    (p.over?'<div class="note bad">今週は、契約の回数を'+p.over+'回超えて記録しています。</div>':'')+
+    '<p class="sub">週は月曜から日曜で数えます。続けている週は、練習を1回以上記録した週が何週続いているかです。どちらも、このアプリの数え方です。</p></section>';
+}
+const _home3 = VIEWS.home;
+VIEWS.home = ()=>{ const v = _home3(); v.html = planHTML()+v.html; return v; };
+
+/* ---- プログラムの画面に、練習の始めと終わりを足す ---- */
+const _program2 = VIEWS.program;
+VIEWS.program = ()=>{
+  const v = _program2(); const s = db.sessNow; let top;
+  if(s){ const d = new Date(s.start); const el = Math.max(0, Math.round((Date.now()-d)/60000));
+    top = '<section class="advice" aria-labelledby="sessT"><h2 id="sessT" tabindex="-1">練習中です</h2><p>'+d.getHours()+'時'+String(d.getMinutes()).padStart(2,'0')+'分に始めました。今、'+el+'分たっています。</p><div class="stackbtns"><button type="button" class="cta" data-go="finish">練習を終えて記録する</button><button type="button" class="ghost" id="sessCancel">始めた時刻を取り消す</button></div></section>';
+  } else {
+    top = '<section class="advice" aria-labelledby="sessT"><h2 id="sessT" tabindex="-1">今日の練習</h2><p>始めるときに押すと、時間を計り始めます。終わったら、きつさ、動かした重さの合計、かかった時間を記録します。</p><div class="stackbtns"><button type="button" class="cta" id="sessStart">練習を始める</button><button type="button" class="ghost" data-go="finish">時間を計らずに、終わった練習を記録する</button></div></section>';
+  }
+  v.html = top+v.html; const a0 = v.after;
+  v.after = ()=>{ if(a0) a0();
+    const b = $('#sessStart'); if(b) b.addEventListener('click',()=>{ db.sessNow = {start:new Date().toISOString()}; save(); say('練習を始めました。時間を計っています'); render(false); $('#sessT').focus(); });
+    const c = $('#sessCancel'); if(c) c.addEventListener('click',()=>{ delete db.sessNow; save(); say('始めた時刻を取り消しました'); render(false); $('#sessT').focus(); });
+  };
+  return v;
+};
+
+/* ---- 練習の終わりの記録 ---- */
+function sessItems(){
+  const td = today(); const out = [];
+  db.logs.forEach(l=>{ if(l.kind==='done' && !l.sess && dayOf(l.t)===td && EXMAP[l.id]) out.push({l, e:EXMAP[l.id]}); });
+  return out;
+}
+function n0(v){ const x = nums(v)[0]; return x==null ? '' : x; }
+const F_NAME = {sets:'セット数', reps:'回数', kg:'重さ'};
+VIEWS.finish = ()=>{
+  const items = sessItems(); const s = db.sessNow;
+  const el = s ? Math.max(1, Math.round((Date.now()-new Date(s.start))/60000)) : '';
+  const rows = items.map((x,k)=>{
+    const heavy = ['loaded','olympic','mb','gym'].includes(x.e.type);
+    const kg = (x.l.load!=='' && x.l.load!=null) ? x.l.load : (heavy ? '' : 0);
+    return '<fieldset data-row="'+k+'"><legend>'+esc(x.e.name)+'</legend><div class="lr3">'+
+      '<label>セット数<input type="number" min="0" step="1" inputmode="numeric" data-f="sets" value="'+esc(n0(x.l.sets))+'"></label>'+
+      '<label>1セットの回数<input type="number" min="0" step="1" inputmode="numeric" data-f="reps" value="'+esc(n0(x.l.reps))+'"></label>'+
+      '<label>重さ（キログラム）<input type="number" min="0" step="0.5" inputmode="decimal" data-f="kg" value="'+esc(kg)+'"></label></div>'+
+      '<p class="sub" data-sub="1"></p></fieldset>';
+  }).join('');
+  return {title:'練習の記録', html:
+    '<p>練習の終わりに、3つの数字を必ず残します。動かした重さの合計、かかった時間、きつさです。どれか一つでも空のままでは保存できません。</p>'+
+    '<form id="fForm" class="intake" novalidate>'+
+    '<h3 class="part">1　今日行った種目と重さ</h3>'+
+    (items.length ? '<p>プログラムで実施済みにした種目です。セット数、回数、重さを確かめて、違っていれば直してください。自重の種目は、重さを0にします。</p>'+rows
+      : '<div class="note warn">今日、実施済みにした種目がありません。プログラムの画面で「実施済みにする」を押してからここに戻ると、種目が並びます。種目を並べずに記録する場合は、下の欄に、動かした重さの合計を直接入れてください。</div>')+
+    '<label>このほかに動かした重さの合計（キログラム。なければ0）<input type="number" min="0" step="0.5" inputmode="decimal" name="extra" value="'+(items.length?'0':'')+'"></label>'+
+    '<div class="note" id="fTotal"></div>'+
+    '<div class="note warn">動かした重さの合計は、セット数×回数×重さを、種目ごとに足したものです。自重の種目を0キログラムとして数えるのは、このアプリの仮の数え方で、根拠の資料はありません。</div>'+
+    '<h3 class="part">2　かかった時間</h3>'+
+    '<label>練習にかかった時間（分）<input type="number" min="1" max="600" step="1" inputmode="numeric" name="min" value="'+el+'"></label>'+
+    (s?'<p class="sub">始めた時刻から計算して入れてあります。違っていれば直してください。</p>':'')+
+    '<h3 class="part">3　きつさ</h3>'+
+    '<fieldset><legend>練習全体のきつさを、1から10で選んでください</legend>'+radio('rpe',[1,2,3,4,5,6,7,8,9,10].map(n=>[String(n), n===10?'10（最大）':String(n)]),'')+'</fieldset>'+
+    '<div class="note">元の研究の尺度は、0が安静、10が最大です。練習の記録なので、このアプリでは1から10にしています。研究では、練習が終わって30分後に、練習全体を振り返って答えています。'+srcBox(['foster2001','haddad2017'])+'</div>'+
+    '<label>メモ（なくてもかまいません）<input type="text" class="txt" name="memo" placeholder="例：後半で肩が重かった"></label>'+
+    '<p id="fErr" role="alert" class="err"></p>'+
+    '<button type="submit" class="cta">この練習を記録する</button></form>',
+    after(){
+      const f = $('#fForm');
+      const calc = ()=>{ let tot = 0, ok = true;
+        f.querySelectorAll('[data-row]').forEach(r=>{ const g = k=>r.querySelector('[data-f="'+k+'"]').value; const a = g('sets'), b = g('reps'), c = g('kg'); const sub = r.querySelector('[data-sub]');
+          if(a===''||b===''||c===''){ ok = false; sub.textContent = '空の欄があります。'; return; }
+          const v = Number(a)*Number(b)*Number(c); tot += v; sub.textContent = 'この種目は'+(Math.round(v*10)/10)+'キログラム'; });
+        const ex = f.elements.extra.value; if(ex==='') ok = false; else tot += Number(ex);
+        tot = Math.round(tot*10)/10;
+        $('#fTotal').innerHTML = ok ? '<strong>動かした重さの合計：'+tot+'キログラム</strong>' : '<strong>動かした重さの合計：まだ計算できません。</strong>空の欄があります。';
+        return ok ? tot : null; };
+      calc(); f.addEventListener('input',calc);
+      f.addEventListener('submit',ev=>{
+        ev.preventDefault(); const errs = []; let first = null; const bad = (elm,msg)=>{ errs.push(msg); if(!first) first = elm; };
+        f.querySelectorAll('[data-row]').forEach(r=>{ const nm = r.querySelector('legend').textContent; ['sets','reps','kg'].forEach(k=>{ const elm = r.querySelector('[data-f="'+k+'"]'); if(elm.value==='' || !(Number(elm.value)>=0)) bad(elm, nm+'の'+F_NAME[k]+'が空です。'); }); });
+        const ex = f.elements.extra; if(ex.value==='' || !(Number(ex.value)>=0)) bad(ex,'「このほかに動かした重さの合計」が空です。なければ0を入れてください。');
+        const me = f.elements.min; const mn = Number(me.value); if(me.value==='' || !(mn>=1)) bad(me,'かかった時間を、1以上の数字で入れてください。');
+        const rp = (new FormData(f)).get('rpe'); if(!rp) bad(f.querySelector('[name=rpe]'),'きつさを、1から10で選んでください。');
+        if(errs.length){ $('#fErr').textContent = '保存できません。'+errs.join(' '); first.focus(); return; }
+        const tot = calc(); const id = 's_'+Date.now(); const p = planInfo(); const its = [];
+        f.querySelectorAll('[data-row]').forEach(r=>{ const x = items[Number(r.dataset.row)]; const g = k=>r.querySelector('[data-f="'+k+'"]').value;
+          if(String(n0(x.l.reps))!==g('reps')) x.l.reps = g('reps')+'回';
+          x.l.sets = g('sets'); x.l.load = g('kg'); x.l.sess = id;
+          its.push({id:x.e.id, name:x.e.name, sets:Number(g('sets')), reps:Number(g('reps')), kg:Number(g('kg'))}); });
+        const over = p.per!=null && p.used>=p.per;
+        db.sessions = db.sessions||[];
+        db.sessions.push({id, date:today(), start:s?s.start:'', end:new Date().toISOString(), min:mn, rpe:Number(rp), vol:tot, load:Number(rp)*mn, memo:f.elements.memo.value.trim(), items:its, over});
+        delete db.sessNow; save();
+        say(over ? '記録しました。今週の契約の回数を超えた記録です' : '練習を記録しました');
+        go('activity');
+      });
+    }
+  };
+};
+
+/* ---- 記録の画面に、練習ごとの記録を足す ---- */
+let sessDel = null;
+function sessLine(s){
+  return '<li><strong>'+esc(s.date)+'</strong>'+(s.over?' <span class="tag stop">契約の回数を超えた記録</span>':'')+
+    '<br>時間 '+s.min+'分、きつさ '+s.rpe+'、動かした重さの合計 '+s.vol+'キログラム<br>練習の負荷（きつさ×分） '+s.load+
+    (s.items && s.items.length?'<br><span class="sub">'+s.items.map(i=>esc(i.name)).join('、')+'</span>':'')+(s.memo?'<span class="sub">メモ：'+esc(s.memo)+'</span>':'')+
+    '<div class="prbtns" style="margin-top:8px"><button type="button" class="ghost small" data-sdel="'+s.id+'" aria-label="'+esc(s.date)+'の練習の記録を消す">'+(sessDel===s.id?'もう一度押すと消します':'この記録を消す')+'</button></div></li>';
+}
+const _activity2 = VIEWS.activity;
+VIEWS.activity = ()=>{
+  const v = _activity2(); const ss = [...(db.sessions||[])].sort((a,b)=>a.end<b.end?1:-1);
+  const w0 = weekStart(new Date()); const w1 = new Date(w0); w1.setDate(w1.getDate()-7);
+  const r1 = x=>Math.round(x*10)/10; const sum = (k,fn)=>r1(sessOfWeek(k).reduce((t,s)=>t+fn(s),0));
+  const h = '<h2>練習ごとの記録</h2>'+
+    '<div class="scroll"><table><thead><tr><th scope="col">週</th><th scope="col">練習の回数</th><th scope="col">練習の負荷の合計</th><th scope="col">動かした重さの合計</th></tr></thead><tbody>'+
+    [['今週',dayOf(w0)],['先週',dayOf(w1)]].map(x=>'<tr><th scope="row">'+x[0]+'</th><td>'+sessOfWeek(x[1]).length+'回</td><td>'+sum(x[1],s=>s.load)+'</td><td>'+sum(x[1],s=>s.vol)+'キログラム</td></tr>').join('')+'</tbody></table></div>'+
+    '<div class="note">練習の負荷は、きつさに練習の時間（分）を掛けた数字です。競泳選手の水中練習では、心拍数から求めた負荷と関連することが報告されています。レジスタンストレーニングでも使えそうだとする研究があります。'+srcBox(['foster2001','haddad2017','wallace2009','srperes2004'])+'</div>'+
+    '<div class="note warn">どこまで増やしてよいかという線は、このアプリでは引いていません。根拠の資料を確認できていないためです。今週と先週の数字を並べて見るための表です。週は月曜から日曜で数えます。</div>'+
+    (ss.length ? '<ul class="hist">'+ss.slice(0,30).map(sessLine).join('')+'</ul><div class="stackbtns"><button type="button" class="ghost" id="xSess">練習ごとの記録を表計算用のファイル（CSV）で保存</button></div>'
+      : '<p class="sub">まだ練習ごとの記録がありません。プログラムの画面の「練習を終えて記録する」から残せます。</p>');
+  v.html = v.html.replace('<h2>直近7日の実施数</h2>', h+'<h2>直近7日の実施数</h2>');
+  const a0 = v.after;
+  v.after = ()=>{ if(a0) a0();
+    const x = $('#xSess'); if(x) x.addEventListener('click',()=>{
+      const q = t=>'"'+String(t==null?'':t).replace(/"/g,'""')+'"';
+      const rows = [['日付','時間（分）','きつさ','動かした重さの合計kg','練習の負荷','契約の回数を超えた記録','種目','メモ']].concat(db.sessions.map(s=>[s.date, s.min, s.rpe, s.vol, s.load, s.over?'はい':'', (s.items||[]).map(i=>i.name+' '+i.sets+'×'+i.reps+'×'+i.kg+'kg').join(' / '), s.memo]));
+      dl('swimiq_strength_renshu_'+today()+'.csv', '﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'), 'text/csv');
+    });
+    $('#view').onclick = e=>{ const b = e.target.closest('[data-sdel]'); if(!b) return; const id = b.dataset.sdel;
+      if(sessDel!==id){ sessDel = id; render(false); const again = document.querySelector('[data-sdel="'+id+'"]'); if(again) again.focus(); say('もう一度押すと、この練習の記録を消します'); return; }
+      db.sessions = db.sessions.filter(s=>s.id!==id); db.logs.forEach(l=>{ if(l.sess===id) delete l.sess; }); sessDel = null; save();
+      say('練習の記録を消しました。契約の残りの回数も数え直しました'); render(false); $('#title').focus(); };
+  };
+  return v;
+};
+
+/* ---- 設定の画面に、契約プランを足す ---- */
+const _settings2 = VIEWS.settings;
+VIEWS.settings = ()=>{
+  const v = _settings2(); const p = planInfo();
+  v.html = '<h2 id="planH" tabindex="-1">契約プラン</h2><p>週に何回の契約かを入れます。ホームに、今週の残りの回数が出ます。残りの回数は、練習ごとの記録から毎回数え直すので、記録を消すと自動で戻ります。</p>'+
+    '<form id="planForm" class="intake" novalidate><label>週に何回の契約ですか（契約がなければ0）<input type="number" name="per" min="0" max="14" step="1" inputmode="numeric" value="'+(p.per==null?'':p.per)+'"></label>'+
+    '<button type="submit" class="ghost">契約の回数を保存する</button><p id="planErr" role="alert" class="err"></p></form><h2>根拠の資料</h2>'+v.html;
+  const a0 = v.after;
+  v.after = ()=>{ if(a0) a0();
+    $('#planForm').addEventListener('submit',ev=>{ ev.preventDefault(); const el = ev.target.elements.per; const n = Number(el.value);
+      if(el.value==='' || !Number.isInteger(n) || n<0 || n>14){ $('#planErr').textContent = '0から14までの整数で入れてください。'; el.focus(); return; }
+      db.plan = {perWeek:n}; save(); say(n ? '契約を週'+n+'回で保存しました' : '契約なしで保存しました'); render(false); $('#planH').focus(); });
+  };
+  return v;
+};
+
+/* ---- 水泳の画面 ---- */
+const SWIM_BLOCKS = ['ウォームアップ','ドリル','メイン','ダウン'];
+const VID_CATS = {drill:'ドリル', tech:'技術の解説', other:'そのほか'};
+let swimDate = null, swimEdit = false, swimDel = false;
+function swimDB(){ db.swim = db.swim||{}; db.swim.menus = db.swim.menus||[]; db.swim.vids = db.swim.vids||[]; return db.swim; }
+VIEWS.swim = ()=>{
+  const S = swimDB(); if(!swimDate) swimDate = today();
+  const m = S.menus.find(x=>x.date===swimDate); const editing = swimEdit || !m;
+  const tot = m ? m.blocks.reduce((t,b)=>t+(num(b.m)||0),0) : 0;
+  const show = '<h2 id="swT" tabindex="-1">'+esc(swimDate)+'のメニュー</h2>'+(m ?
+    m.blocks.filter(b=>b.text || num(b.m)!=null).map(b=>'<h3>'+esc(b.b)+(num(b.m)!=null?'　'+num(b.m)+'メートル':'')+'</h3><p style="white-space:pre-wrap">'+esc(b.text)+'</p>').join('')+
+    '<p><strong>距離の合計：'+tot+'メートル</strong></p>'+(m.memo?'<div class="note"><strong>コーチのメモ</strong>　'+esc(m.memo)+'</div>':'')+
+    '<div class="stackbtns"><button type="button" class="ghost" id="swEdit">このメニューを直す</button><button type="button" class="ghost" id="swDel">'+(swimDel?'もう一度押すと消します':'このメニューを消す')+'</button></div>'
+    : '<div class="note">この日のメニューは、まだ入っていません。下の欄から入れてください。</div>');
+  const bv = b=>(m && m.blocks.find(y=>y.b===b)) || {text:'', m:''};
+  const form = editing ? '<h2>'+(m?'メニューを直す':'メニューを入れる')+'</h2><form id="swForm" class="intake" novalidate>'+
+    SWIM_BLOCKS.map((b,i)=>'<fieldset><legend>'+b+'</legend><label>内容<textarea class="txt" name="t'+i+'" rows="3">'+esc(bv(b).text)+'</textarea></label><label>距離（メートル）<input type="number" name="m'+i+'" min="0" step="1" inputmode="numeric" value="'+esc(bv(b).m)+'"></label></fieldset>').join('')+
+    '<label>コーチのメモ（なくてもかまいません）<input type="text" class="txt" name="memo" value="'+esc(m?m.memo:'')+'"></label>'+
+    '<p id="swErr" role="alert" class="err"></p><button type="submit" class="cta">この日のメニューを保存する</button>'+(m?'<button type="button" class="ghost" id="swCancel">直すのをやめる</button>':'')+'</form>' : '';
+  const vids = Object.keys(VID_CATS).map(c=>{ const l = S.vids.filter(x=>x.cat===c); return l.length ? '<h3>'+VID_CATS[c]+'（'+l.length+'）</h3><ul class="hist">'+l.map(x=>'<li><strong>'+esc(x.title)+'</strong>'+(x.memo?'<span class="sub">'+esc(x.memo)+'</span>':'<br>')+
+    '<a target="_blank" rel="noopener" href="'+esc(x.url)+'">'+esc(x.title)+'の動画を開く</a><div class="prbtns"><button type="button" class="ghost small" data-vdel="'+x.id+'" aria-label="'+esc(x.title)+'を動画の一覧から消す">一覧から消す</button></div></li>').join('')+'</ul>' : ''; }).join('');
+  return {title:'水泳', html:
+    '<div class="note warn">水泳のメニュー、ドリル、動画は、最初からは入れていません。資料で確かめていない内容を、アプリが作らないようにするためです。コーチが入れた内容だけが、ここに出ます。</div>'+
+    '<div class="intake"><label>日付を選ぶ<input type="date" id="swDate" value="'+esc(swimDate)+'"></label></div>'+
+    show+form+
+    '<h2>ドリルと技術の動画</h2>'+(S.vids.length ? vids : '<p class="sub">まだ動画が登録されていません。</p>')+
+    '<h3 id="vH" tabindex="-1">動画を登録する</h3><form id="vForm" class="intake" novalidate>'+
+      '<label>題名（必ず入れてください）<input type="text" class="txt" name="vtitle"></label>'+
+      '<label>動画のアドレス（必ず入れてください）<input type="url" class="txt" name="vurl" placeholder="https://"></label>'+
+      '<label>種類<select name="vcat">'+Object.keys(VID_CATS).map(c=>'<option value="'+c+'">'+VID_CATS[c]+'</option>').join('')+'</select></label>'+
+      '<label>メモ（なくてもかまいません）<input type="text" class="txt" name="vmemo" placeholder="例：キャッチの肘の高さを見る"></label>'+
+      '<p id="vErr" role="alert" class="err"></p><button type="submit" class="ghost">この動画を登録する</button></form>'+
+    '<h2>体を整える教材</h2><p>このアプリに入っている、根拠つきの種目とテストです。</p><div class="stackbtns">'+
+      '<button type="button" class="ghost" data-golist="cat" data-cat="mobility">モビリティの種目を見る</button>'+
+      '<button type="button" class="ghost" data-golist="cat" data-cat="shoulder">肩の安定性の種目を見る</button>'+
+      '<button type="button" class="ghost" data-go="check">セルフチェックをする</button></div>'+
+    '<div class="note">水泳のメニューと動画は、このパソコンのこのブラウザーの中に保存されます。記録のタブの「バックアップを保存」に一緒に入ります。</div>',
+    after(){
+      $('#swDate').addEventListener('change',e=>{ swimDate = e.target.value || today(); swimEdit = false; swimDel = false; render(false); $('#swT').focus(); });
+      const ed = $('#swEdit'); if(ed) ed.addEventListener('click',()=>{ swimEdit = true; swimDel = false; render(false); $('#swForm textarea').focus(); });
+      const dl2 = $('#swDel'); if(dl2) dl2.addEventListener('click',()=>{
+        if(!swimDel){ swimDel = true; render(false); $('#swDel').focus(); say('もう一度押すと、この日のメニューを消します'); return; }
+        S.menus = S.menus.filter(x=>x.date!==swimDate); swimDel = false; swimEdit = false; save(); say('この日のメニューを消しました'); render(false); $('#swT').focus(); });
+      const cn = $('#swCancel'); if(cn) cn.addEventListener('click',()=>{ swimEdit = false; render(false); $('#swT').focus(); });
+      const sf = $('#swForm'); if(sf) sf.addEventListener('submit',ev=>{ ev.preventDefault();
+        const blocks = SWIM_BLOCKS.map((b,i)=>({b, text:sf.elements['t'+i].value.trim(), m:sf.elements['m'+i].value}));
+        if(!blocks.some(b=>b.text || b.m!=='')){ $('#swErr').textContent = '保存できません。内容か距離を、どれか一つは入れてください。'; sf.elements.t0.focus(); return; }
+        S.menus = S.menus.filter(x=>x.date!==swimDate); S.menus.push({date:swimDate, blocks, memo:sf.elements.memo.value.trim()});
+        swimEdit = false; swimDel = false; save(); say('この日のメニューを保存しました'); render(false); $('#swT').focus(); });
+      $('#vForm').addEventListener('submit',ev=>{ ev.preventDefault(); const f = ev.target.elements;
+        const t = f.vtitle.value.trim(), u = f.vurl.value.trim();
+        if(!t){ $('#vErr').textContent = '題名を入れてください。'; f.vtitle.focus(); return; }
+        if(!/^https?:\/\//.test(u)){ $('#vErr').textContent = '動画のアドレスを、httpsから始まる形で入れてください。'; f.vurl.focus(); return; }
+        S.vids.push({id:'v_'+Date.now(), title:t, url:u, cat:f.vcat.value, memo:f.vmemo.value.trim()}); save(); say('動画を登録しました'); render(false); $('#vH').focus(); });
+      $('#view').onclick = e=>{ const b = e.target.closest('[data-vdel]'); if(!b) return; S.vids = S.vids.filter(x=>x.id!==b.dataset.vdel); save(); say('動画を一覧から消しました'); render(false); $('#vH').focus(); };
+    }
+  };
+};
+ROOTS.push('swim');
+
 
 ROOTS.push('settings');
 render(false);

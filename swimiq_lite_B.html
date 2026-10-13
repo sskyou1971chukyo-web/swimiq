@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.16">
+<meta name="app-ver" content="2026.10.13.17">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -4769,6 +4769,17 @@ function stInts(arr, u){
   for(i=k;i<(arr||[]).length;i++){ var d=arr[i]-arr[i-k]; if(d>0.05) out.push(d); }
   return out;
 }
+/* ストロークの 時刻と 通過タイムが 合わせられるかを 調べます。合わせられない ときは、その 理由（直し方つき）を 返します */
+function strokeIssue(r){
+  if(!r || !(r.strokes && r.strokes.length>=2)) return null;
+  if(r.manual) return '手入力の記録なので、ストロークと通過タイムを合わせられません。〈分析をやり直す〉で足離れと通過を動画で入れて保存すると、区間ごとのかき数・ST・効率指数が出ます。';
+  if(r.t0==null) return '足離れの時刻が入っていないので、区間ごとのかき数・ST・効率指数を出せません。〈分析をやり直す〉→〈記録を一部だけ直す〉→〈足離れ〉で入れてください。';
+  var sp=(r.splits||[]).slice().sort(function(a,b){ return a.d-b.d; }); if(!sp.length) return null;
+  var end=sp[sp.length-1].t+2, a=strokeRel(r), inn=0, i;
+  for(i=0;i<a.length;i++) if(a[i]>-1 && a[i]<=end) inn++;
+  if(inn<a.length*0.5) return 'ストロークの時刻がレースの時刻と合っていません（'+a.length+'回のうちレースの中は'+inn+'回）。足離れの時刻か、ストロークを計り直してください。';
+  return null;
+}
 function sUnitOf(r){ return (r && r.sUnit==='arm') ? 'arm' : 'cycle'; }
 /* 片手ずつの ときは ターンを またぐ 間隔が 2つ できるので、ターンの 数も 2倍で 見ます */
 function wantT(dist, pool, u){ var w=wantTurnsOf(dist, pool); return (w!=null && u==='arm') ? w*2 : w; }
@@ -7223,6 +7234,7 @@ $('anaSave').onclick=function(){
       if(!th && old.thumb) rec.thumb=old.thumb;
       if(uwKick==null && old.uwKick!=null) rec.uwKick=old.uwKick;
       if(uwDist==null && old.uwDist!=null) rec.uwDist=old.uwDist;
+      if(old.manual && aT0!=null && aSplits.length) rec.manual=false;   /* 動画で 足離れと 通過を 入れ直したので、手入力の しるしを 外します */
       var sameStr = JSON.stringify(old.strokes||[])===JSON.stringify(rec.strokes||[]);
       if(!sameStr){ rec.strokesAt=Date.now(); rec.manualN=null; rec.manualST=null; rec.manualAt=null; }
     }else{
@@ -7808,7 +7820,8 @@ function openDetail(id){
         if(!r.manual){
           var dint=stInts(r.strokes||[], sUnitOf(r));
           var dtp=tempoStats(dint, wantT(r.dist, r.pool, sUnitOf(r)));
-          bandSet('detBand', (dtp.turns.length || dtp.outs.length) ? ('※ '+turnNote(dtp.turns, dtp.outs)) : '');
+          var _sIss=strokeIssue(r);
+          bandSet('detBand', _sIss ? ('※ '+_sIss) : ((dtp.turns.length || dtp.outs.length) ? ('※ '+turnNote(dtp.turns, dtp.outs)) : ''));
         }
       }
     }
@@ -10927,7 +10940,9 @@ function reportPages(r, prev, W, H, nP){
     var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']], lx=mx+226;
     lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(y-9)+'" width="10" height="10" rx="3" fill="'+g[0]+'"/>'+T_(lx+14,y,g[1],10,800,GR); lx+=tw(g[1])*10+34; });
     s+=place(srSvg, mx, y+8, cw, srH);
-    s+=T_(mx,y+8+srH+12,'横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上の数字は区間ごとのかき数'+(sUnitOf(r)==='arm'?'（左右で1回＝片手の数の半分）':'')+'とST。',9.5,700,GR);
+    var _si=strokeIssue(r);
+    if(_si){ var _sf=fit([_si], cw, 10, 7.5); s+=T_(mx,y+8+srH+12,_si,_sf?_sf.fs:7.5,900,'#c0392b'); }
+    else s+=T_(mx,y+8+srH+12,'横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上の数字は区間ごとのかき数'+(sUnitOf(r)==='arm'?'（左右で1回＝片手の数の半分）':'')+'とST。',9.5,700,GR);
     y=y+8+srH+12;
   }
   var p1=s, y1=y+18; pages.push('');   /* 1ページ目は 最後に 式の 箱を 入れるか 決めてから しめます */

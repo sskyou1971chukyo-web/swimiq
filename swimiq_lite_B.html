@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.7">
+<meta name="app-ver" content="2026.10.13.8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -153,6 +153,20 @@ button, select, input{ font-family:inherit; }
   width:min(560px,72vw); background:rgba(0,0,0,.72); pointer-events:none; border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; }
 #msrBox.chk{ pointer-events:auto; max-height:calc(100% - 80px); overflow-y:auto; }
 #msrBox.low{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 96px); }
+#t5Box{ position:absolute; z-index:7; top:calc(env(safe-area-inset-top) + 62px); left:50%; transform:translateX(-50%);
+  width:min(560px,86vw); background:rgba(0,0,0,.80); border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; }
+#t5Box.hide{ display:none; }
+#t5Box.low{ top:auto; bottom:calc(env(safe-area-inset-bottom) + 96px); }
+#t5T{ display:flex; align-items:center; gap:8px; color:var(--am); font-size:17px; font-weight:900; }
+#t5T .ico{ width:24px; height:24px; flex:0 0 auto; }
+#t5M{ margin:4px 0 6px; font-size:14px; font-weight:700; line-height:1.5; }
+#t5S{ margin:0 0 8px; font-size:13px; font-weight:800; color:#ffe9a8; line-height:1.5; }
+#t5Box .msrBtns .btn{ display:inline-flex; align-items:center; gap:6px; }
+#t5Box .msrBtns .btn .ico{ width:20px; height:20px; flex:0 0 auto; }
+#t5Box .btn.y.fill{ background:var(--am); color:#000; }
+#detail.t5ing .oInfo{ visibility:hidden; }
+.ob.wI{ display:inline-flex; align-items:center; gap:6px; }
+.ob.wI .ico{ width:20px; height:20px; flex:0 0 auto; }
 #msrT{ display:block; color:var(--am); font-size:17px; font-weight:900; }
 #msrM{ margin:4px 0 8px; font-size:14px; font-weight:700; line-height:1.5; }
 .msrBtns{ display:flex; gap:6px; flex-wrap:wrap; }
@@ -2185,6 +2199,20 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <video id="dv" playsinline preload="auto"></video>
   <div class="gridL" aria-hidden="true"><i class="v" style="left:25%"></i><i class="v mid" style="left:50%"></i><i class="v" style="left:75%"></i><i class="h" style="top:25%"></i><i class="h mid" style="top:50%"></i><i class="h" style="top:75%"></i></div>
   <button id="dTap" class="tapL" type="button" data-ta="tapDet"></button>
+  <div id="t5Box" class="hide" role="dialog" aria-live="polite">
+    <b id="t5T"></b>
+    <p id="t5M"></p>
+    <p id="t5S"></p>
+    <div class="msrBtns">
+      <button class="btn y fill" type="button" id="t5Go"></button>
+      <button class="btn" type="button" id="t5Skip"></button>
+      <button class="btn" type="button" id="t5Prev"></button>
+      <button class="btn" type="button" id="t5Next"></button>
+      <button class="btn" type="button" id="t5All"></button>
+      <button class="btn" type="button" id="t5Close"></button>
+      <button class="btn" type="button" id="t5Move">この板を下へ</button>
+    </div>
+  </div>
   <div class="ov det">
     <div class="oTop">
       <button class="ob" id="dBack" type="button" data-t="back"></button>
@@ -2225,6 +2253,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button class="ob y" id="dStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
       <button class="ob" id="dUndo" type="button" data-t="bUndo"></button>
       <button class="ob y" id="dMsr" type="button" data-t="bMsr"></button>
+      <button class="ob y wI" id="dTurn" type="button"></button>
       <button class="ob b" id="dImg" type="button" data-t="saveImg"></button>
       <button class="ob b" id="dVid" type="button" data-t="saveVidBtn"></button>
       <button class="ob b" id="dCopy" type="button" data-t="copyTx"></button>
@@ -4595,6 +4624,13 @@ var HELP=[
    'ターンの 浮き上がりは、ターンの 壁の 側で もう一度 4点を 合わせます。一度 合わせた 目もりは 記録に 残るので、次からは 頭を 押すだけです。',
    '浮き上がりを 入れた ラップは、浮き上がりから 泳ぎ区間として 泳効率を 計算します。入れて いない ラップは、今まで どおり 15m（ターンアウト）で 計算します。',
    '記録の 修正の 画面でも、ラップごとの 浮き上がりを 数字で 入れられます（長水路の 100mは 2つ、短水路の 100mは 4つ）。'
+ ]],
+ ['ターンを 測定する（壁の 5m前〜5m後）',[
+   '記録を 開いた 再生の 画面の <b>メニュー</b> →<b>ターンを測定</b> を おします。動画が 残って いる 記録だけ 使えます。',
+   '動画が ターンの 少し 前に うごきます。ターンの あと、頭が 壁から 5mの 線（背泳ぎの 旗）を 通った コマで 止めて <b>5m後を通った</b> を おします。コマ送りの ボタンが 使えます。',
+   '5m前は、もう 測って ある 通過タイムを 使います。5m前の 通過が ない ときだけ、先に <b>5m前を通った</b> も おします。',
+   '25mプールの 400mまでは 全部の ターン、それより ターンが 多い ときは 前半と 後半に 5回ずつ 散らした 10回を 測ります。見えない ターンは <b>見えないので飛ばす</b> で 飛ばして ください。',
+   'これは 1500m世界選手権の 研究（Polach ら 2021）と 同じ 区切りです。PDFの 非泳区間に ある 「ターン平均」（5m前〜15m後）とは 区切りが ちがいます。'
  ]],
  ['動画を 携帯に 保存する',[
    'アプリで とった 動画は、<b>動画を携帯に保存</b>を おすと 携帯の 写真（カメラロール）に 入ります。',
@@ -7628,6 +7664,7 @@ function openDetail(id){
   });
 }
 $('dBack').onclick=function(){
+  t5=null; try{ t5Paint(); }catch(e){}
   /* ストロークを 計っている 途中なら、ここまでの 分を 保存するか たずねます（キャンセルは 前の 記録の まま） */
   if($('detail').classList.contains('stroke')){
     if(dStrokes.length && confirm('ストロークの計測中です。ここまでの'+dStrokes.length+'回を保存しますか？\n\n「キャンセル」を押すと、前の記録のままにします。')) $('dStroke').click();
@@ -9507,6 +9544,46 @@ function naCards(kp){ (kp||[]).forEach(function(x){ if(x && x.v===NA){ x.u=''; x
    なければ スタートは 15m、ターンは ターンアウト（15m か 10m）の 通過。 */
 function lapCount(r){ var p=Number(r.pool)||50, d=Number(r.dist)||0; return d ? Math.max(1,Math.round(d/p)) : 0; }
 function splitBy(r){ var sp=r.splits||[], by={0:0}, i; for(i=0;i<sp.length;i++) by[sp[i].d]=sp[i].t; return by; }
+
+/* ================================================================
+   ターンタイム（壁の 5m前 〜 壁の 5m後）
+   1500m世界選手権の 研究（Polach ら 2021, BMC Research Notes）と 同じ 区切り。
+   5m前は 今ある 通過タイム（なければ 動画で 押した 時刻）、5m後は 動画で 押した 時刻。
+   r.turn5＝[{ k:何回目の ターン, out:5m後の 動画の 時刻, inn:5m前の 動画の 時刻（通過タイムが ない とき だけ） }]
+   動画の 時刻で 持つので、足離れを 入れ直しても ずれません。
+   どの 画面・PDFも この 関数の 答えだけを 使います。
+   ================================================================ */
+function turn5Plan(nT){
+  var o=[], i, k;
+  if(!(nT>0)) return o;
+  if(nT<=15){ for(i=1;i<=nT;i++) o.push(i); return o; }      /* ターンが 少ない（25mプールの 400mまで）ときは 全部 */
+  for(i=0;i<10;i++){ k=Math.max(1, Math.min(nT, Math.round((i+0.5)*nT/10))); if(o.indexOf(k)<0) o.push(k); }   /* 多い ときは 前半と 後半に 5回ずつ 散らして 10回 */
+  return o;
+}
+function turn5Of(r){
+  if(!r || r.t0==null || r.manual) return null;
+  var p=Number(r.pool)||50, nT=lapCount(r)-1; if(!(nT>=1)) return null;
+  var by=splitBy(r), t0=Number(r.t0), L=[], bad=0;
+  (r.turn5||[]).forEach(function(e){
+    if(!e || e.out==null) return;
+    var k=Number(e.k); if(!(k>=1 && k<=nT)) return;
+    var W=k*p, wt=by[W], tin=(e.inn!=null ? Number(e.inn)-t0 : (by[W-5]!=null ? by[W-5] : null)), tout=Number(e.out)-t0;
+    if(tin==null){ bad++; return; }
+    if(!(tout>tin) || (wt!=null && !(tin<wt && tout>wt)) || tout-tin>40){ bad++; return; }
+    L.push({ k:k, w:W, tin:tin, tout:tout, t:Math.round((tout-tin)*100)/100, inSrc:(e.inn!=null?'tap':'split') });
+  });
+  L.sort(function(a,b){ return a.k-b.k; });
+  function avg(A){ return A.length ? Math.round(A.reduce(function(s,x){ return s+x.t; },0)/A.length*100)/100 : null; }
+  var A1=L.filter(function(x){ return x.k<=nT/2; }), A2=L.filter(function(x){ return x.k>nT/2; });
+  return { nT:nT, plan:turn5Plan(nT), list:L, avg:avg(L), a1:avg(A1), n1:A1.length, a2:avg(A2), n2:A2.length, bad:bad };
+}
+/* 前半と 後半の ひとこと（パネル・PDFで 同じ 文） */
+function turn5Line(T5){
+  if(!T5 || !T5.list.length) return '';
+  var s='平均 '+T5.avg.toFixed(2)+'秒（'+T5.list.length+'回）';
+  if(T5.n1 && T5.n2){ var d=Math.round((T5.a2-T5.a1)*100)/100; s+='　前半 '+T5.a1.toFixed(2)+'秒 → 後半 '+T5.a2.toFixed(2)+'秒（'+(d>0?'+':(d<0?'−':'±'))+Math.abs(d).toFixed(2)+'秒）'; }
+  return s;
+}
 /* かき数を ラップに 分ける ための さかい目（足離れからの 秒）。
    ふだんは 通過タイム そのもの。ただし ターンの 壁では、壁に さわる 最後の かきを
    タッチと 同時か 少し あとに 押す ことが あるので、通過の 1秒 以内の あとに 押した かきで、
@@ -9784,7 +9861,7 @@ function turnLines(ts){
     L.push(['非泳区間 '+ts.nonD+'m', fmt(ts.nonT)]);
   }
   if(ts.noGoal) L.push(['ゴール（'+ts.dist+'m）のタイムが入っていません', '最後は'+ts.lastD+'m '+fmt(ts.lastT)]);
-  if(ts.nWalls) L.push(['ターン平均（'+ts.turns.length+'/'+ts.nWalls+'）', (ts.turnAvg!=null?ts.turnAvg.toFixed(2)+'秒':'--')]);
+  if(ts.nWalls) L.push(['ターン平均（5m前〜'+ts.turnOut+'m後 '+ts.turns.length+'/'+ts.nWalls+'）', (ts.turnAvg!=null?ts.turnAvg.toFixed(2)+'秒':'--')]);
   return L;
 }
 /* スタート・各ターン・ゴールの 表の 行 */
@@ -10609,10 +10686,18 @@ function reportPages(r, prev, W, H, nP){
   if(TS){
     var R=turnRows(TS).map(function(x){ var row=[x.lbl, fmt(x.t), (x.v!=null?x.v.toFixed(2):'')]; if(x.sum) row.hl=true; return row; });
     if(TS.full && TS.swimT>0) R.push(['泳ぎ（15m区切り） '+TS.swimD+'m', fmt(TS.swimT), (TS.v!=null?TS.v.toFixed(2):'')]);
-    var side=(TS.nWalls?'ターン平均 '+(TS.turnAvg!=null?TS.turnAvg.toFixed(2)+'秒':NA)+'（'+TS.turns.length+'/'+TS.nWalls+'）　':'')+'スタートのドルフィン '+(r.uwKick!=null?r.uwKick+'回':NA);
+    var side=(TS.nWalls?'ターン平均（5m前〜'+TS.turnOut+'m後） '+(TS.turnAvg!=null?TS.turnAvg.toFixed(2)+'秒':NA)+'（'+TS.turns.length+'/'+TS.nWalls+'）　':'')+'スタートのドルフィン '+(r.uwKick!=null?r.uwKick+'回':NA);
     var rh5=R.length>10?16:18;
     FLOW('非泳区間','決まった距離で分けたときのくわしい数字',[{h:'局面',w:0.56},{h:'タイム',w:0.22},{h:'速さ m/秒',w:0.22}],R,rh5,(rh5<18?10:10.5),
       { w:0.62, two:14, three:40, lead:side, notes:(TS.noGoal?[{t:'ゴール（'+TS.dist+'m）のタイムが入っていません。最後の通過は '+TS.lastD+'m '+fmt(TS.lastT)+'。',c:'#c0392b'}]:[]) });
+  }
+  /* 4b ターンタイム（壁の 5m前〜5m後。〈ターンを測定〉で 測った ときだけ） */
+  var T5=turn5Of(r);
+  if(T5 && T5.list.length){
+    var rows6=T5.list.map(function(x){ return ['ターン'+x.k, x.w+'m', (x.k<=T5.nT/2?'前半':'後半'), x.t.toFixed(2)+'秒', (x.inSrc==='split'?'通過タイム':'動画で押した')]; });
+    FLOW('ターンタイム','壁の5m前〜5m後',[{h:'',w:0.2},{h:'壁',w:0.16},{h:'',w:0.16},{h:'タイム',w:0.22},{h:'5m前',w:0.26}],rows6,(rows6.length>10?16:18),(rows6.length>10?10:10.5),
+      { w:0.62, two:14, lead:turn5Line(T5)+'　（測ったターン '+T5.list.length+'/'+T5.nT+'）',
+        notes:['頭が壁の5m前を通ってから、ターンして同じ5mの線を通るまで。1500m世界選手権の研究（Polachら 2021）と同じ区切りです。','非泳区間の「ターン平均」（5m前〜'+turnOutOf(r)+'m後）とは区切りがちがいます。'] });
   }
   /* 5 式 */
   var box=['効率指数＝泳ぐ速さ×1かきで進む距離（m²/秒）。泳ぐ速さは泳ぎ区間だけ。全体は区間の長さで重みをつけた平均（Costillら 1985 のStroke Index と同じ式）。',
@@ -11781,6 +11866,116 @@ $('msrRedo').onclick=function(){ var M=msrMeas(), sd=msrSide(msrLap()); M[sd]=[]
 $('msrClose').onclick=function(){ msrCloseAll(); };
 /* 説明の 板が 押したい ロープに かさなる ときは、上と 下を 入れかえます */
 $('msrMove').onclick=function(){ var low=$('msrBox').classList.toggle('low'); this.textContent=low?'この板を上へ':'この板を下へ'; };
+/* ================================================================
+   ターンを 測定（再生の 画面）
+   測って ある 通過タイムを もとに、動画を ターンの 少し 前へ 動かし、
+   頭が 壁の 5m後の 線を 通った コマで〈5m後を通った〉を 押して もらいます。
+   5m前は 通過タイム（なければ 動画で 押して もらう）。
+   ================================================================ */
+var T5I={
+  turn:'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h11a4 4 0 0 1 0 8H8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M11 11.5 7.5 15l3.5 3.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 3v18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  flag:'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 21V4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M5 4h12l-3 4 3 4H5" fill="currentColor"/></svg>',
+  skip:'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5l9 7-9 7z" fill="currentColor"/><path d="M18 5v14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  all:'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="currentColor"><rect x="3" y="4" width="18" height="3" rx="1.5"/><rect x="3" y="10.5" width="18" height="3" rx="1.5"/><rect x="3" y="17" width="18" height="3" rx="1.5"/></g></svg>',
+  x:'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>',
+  ok:'<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+$('dTurn').innerHTML=T5I.turn+'<span>ターンを測定</span>';
+var t5=null;   /* { plan:[ターンの番号], i:今の 位置, step:'in'|'out', inn:先に 押した 5m前, all:全部か, done:{} } */
+function t5Rec(){ return dRec; }
+function t5Wall(k){ var r=t5Rec(), by=splitBy(r), W=k*(Number(r.pool)||50); return { W:W, wt:by[W], pre:by[W-5], post:(by[W+15]!=null?by[W+15]:by[W+10]) }; }
+function t5Entry(k){ var a=t5Rec().turn5||[]; for(var i=0;i<a.length;i++) if(a[i] && Number(a[i].k)===k) return a[i]; return null; }
+function t5Seek(){
+  var r=t5Rec(), k=t5.plan[t5.i]; if(k==null) return;
+  var w=t5Wall(k), t0=Number(r.t0), tt;
+  if(t5.step==='in') tt = t0 + (w.wt!=null ? w.wt-3.5 : 0);
+  else tt = t0 + (w.wt!=null ? w.wt-0.3 : 0);
+  try{ $('dv').pause(); $('dPlay').innerHTML=T('playI'); $('dv').currentTime=Math.max(0, tt); }catch(e){}
+}
+function t5Paint(){
+  var box=$('t5Box'); if(!t5){ box.classList.add('hide'); $('detail').classList.remove('t5ing'); return; }
+  box.classList.remove('hide'); $('detail').classList.add('t5ing');
+  var r=t5Rec(), T5=turn5Of(r), n=t5.plan.length;
+  $('t5Prev').innerHTML=ICO_L+'<span>前のターン</span>'; $('t5Next').innerHTML='<span>次のターン</span>'+ICO_R;
+  $('t5Close').innerHTML=T5I.x+'<span>閉じる</span>';
+  $('t5All').innerHTML=T5I.all+'<span>'+(t5.all?'おすすめの回数にもどす':'全部のターンを測る')+'</span>';
+  $('t5All').classList.toggle('hide', T5.nT<=15);
+  if(t5.i>=n){   /* 終わり：まとめ */
+    $('t5T').innerHTML=T5I.ok+'<span>ターンの測定が終わりました</span>';
+    $('t5M').textContent=T5.list.length ? turn5Line(T5) : 'まだ1回も測っていません。';
+    $('t5S').textContent='壁の5m前から5m後まで。PDFの2ページ目にも出ます。';
+    $('t5Go').innerHTML=T5I.turn+'<span>はじめから見直す</span>'; $('t5Skip').classList.add('hide'); $('t5Next').classList.add('hide'); $('t5Prev').classList.toggle('hide', !n);
+    return;
+  }
+  var k=t5.plan[t5.i], w=t5Wall(k), e=t5Entry(k), now=T5.list.filter(function(x){ return x.k===k; })[0];
+  $('t5Skip').classList.remove('hide'); $('t5Next').classList.remove('hide'); $('t5Prev').classList.toggle('hide', t5.i===0);
+  $('t5T').innerHTML=T5I.turn+'<span>ターン'+k+'（'+w.W+'mの壁）　'+(t5.i+1)+'/'+n+'</span>';
+  if(t5.step==='in'){
+    $('t5M').textContent='壁の5m前の線（背泳ぎの旗）を、壁に向かう頭が通ったコマで止めて、〈5m前を通った〉を押してください。';
+    $('t5Go').innerHTML=T5I.flag+'<span>5m前を通った</span>';
+  }else{
+    $('t5M').textContent='ターンのあと、頭が同じ5mの線を通ったコマで止めて、〈5m後を通った〉を押してください。水の中の頭が線を通ったコマでかまいません。';
+    $('t5Go').innerHTML=T5I.flag+'<span>5m後を通った</span>';
+  }
+  $('t5S').textContent=(w.pre!=null ? '5m前は通過タイム（'+(w.W-5)+'m）を使います。' : '5m前の通過タイムがないので、動画で押します。')+(now ? '　いまの値 '+now.t.toFixed(2)+'秒（押し直すと上書き）' : '')+'　見えないときは飛ばしてください。';
+  $('t5Skip').innerHTML=T5I.skip+'<span>見えないので飛ばす</span>';
+}
+function t5Save(){
+  var r=dRec; r.updatedAt=Date.now();
+  dbPut(r).then(function(){ afterSave(r); });
+}
+function t5Move(d){
+  if(!t5) return;
+  t5.i=Math.max(0, Math.min(t5.plan.length, t5.i+d)); t5.inn=null;
+  var k=t5.plan[t5.i];
+  t5.step=(k!=null && t5Wall(k).pre==null) ? 'in' : 'out';
+  t5Seek(); t5Paint();
+}
+function t5Start(all){
+  var r=dRec, T5=turn5Of(r);
+  var every=[]; for(var q=1;q<=T5.nT;q++) every.push(q);
+  t5={ plan:(all ? every : T5.plan), i:0, step:'out', inn:null, all:!!all };
+  t5.i=-1; t5Move(1);
+}
+$('dTurn').onclick=function(){
+  if(!dRec) return;
+  if(!hasVid(dRec)){ noVidGo(dRec); return; }
+  var T5=turn5Of(dRec);
+  if(!T5){ toast(dRec.manual ? '手入力の記録では測れません' : (lapCount(dRec)<2 ? 'ターンのないレースです' : '足離れと通過タイムを先に入れてください')); return; }
+  var miss=T5.plan.filter(function(k){ return t5Wall(k).wt==null; });
+  if(miss.length===T5.plan.length){ toast('壁の通過タイムがないので測れません'); return; }
+  document.querySelector('.ov.det').classList.remove('on'); $('dMenu').textContent=T('dMenu');
+  try{ if(typeof msrOn!=='undefined' && msrOn){ msrCloseAll(); } }catch(e){}
+  t5Start(false);
+};
+$('t5Go').onclick=function(){
+  if(!t5) return;
+  if(t5.i>=t5.plan.length){ t5.i=-1; t5Move(1); return; }
+  var r=dRec, k=t5.plan[t5.i], w=t5Wall(k), t0=Number(r.t0), now=Math.round($('dv').currentTime*100)/100;
+  if(w.wt==null){ toast('このターンの壁の通過タイムがないので測れません。飛ばしてください'); return; }
+  var wall=t0+w.wt;
+  if(t5.step==='in'){
+    if(!(now<wall-0.2)){ toast('壁にさわるより後です。動画を少し戻してください'); return; }
+    var prevWall=(k>1 && splitBy(r)[(k-1)*(Number(r.pool)||50)]!=null) ? t0+splitBy(r)[(k-1)*(Number(r.pool)||50)] : t0;
+    if(!(now>prevWall)){ toast('前の壁より前です。動画を少し進めてください'); return; }
+    t5.inn=now; t5.step='out'; t5Seek(); t5Paint(); return;
+  }
+  if(!(now>wall+0.2)){ toast('壁にさわるより前です。動画を少し進めてください'); return; }
+  if(w.post!=null && !(now<t0+w.post)){ toast('次の通過（'+(w.W+(splitBy(r)[w.W+15]!=null?15:10))+'m）より後です。動画を少し戻してください'); return; }
+  var tin=(t5.inn!=null ? t5.inn-t0 : w.pre);
+  if(!(now-t0>tin)){ toast('5m前より前です。動画を進めてください'); return; }
+  var e={ k:k, out:now }; if(t5.inn!=null) e.inn=t5.inn;
+  var arr=(r.turn5||[]).filter(function(x){ return x && Number(x.k)!==k; }); arr.push(e); arr.sort(function(a,b){ return a.k-b.k; });
+  r.turn5=arr; t5Save();
+  toast('ターン'+k+'　'+(Math.round((now-t0-tin)*100)/100).toFixed(2)+'秒');
+  t5Move(1);
+};
+$('t5Skip').onclick=function(){ t5Move(1); };
+$('t5Next').onclick=function(){ t5Move(1); };
+$('t5Prev').onclick=function(){ t5Move(-1); };
+$('t5All').onclick=function(){ if(!t5) return; t5Start(!t5.all); };
+$('t5Close').onclick=function(){ t5=null; t5Paint(); };
+$('t5Move').onclick=function(){ var low=$('t5Box').classList.toggle('low'); this.textContent=low?'この板を上へ':'この板を下へ'; };
 /* 動画の 場面を うごかしたら、その ラップの 側の 目もりに 合わせて 書き直します */
 ['v','dv'].forEach(function(id){ $(id).addEventListener('seeked', function(){ if(msrOn){ if(!(msrDone && (msrDone.ask==='poWait' || msrDone.ask==='po'))) msrDone=null; msrPaint(); } }); });   /* 足が 離れた 瞬間を 探す 間は 消さない */
 window.addEventListener('resize', function(){ if(msrOn) setTimeout(msrPaint, 60); });
@@ -12929,6 +13124,7 @@ $('exJson').onclick=function(){
                sigT:(r.sigT!=null?r.sigT:null), rt:(r.rt!=null?r.rt:null), rtMode:(r.rtMode||null),
                turnOut:(r.turnOut||null), memo:(r.memo||''), uwKick:(r.uwKick!=null?r.uwKick:null), uwDist:(r.uwDist!=null?r.uwDist:null),
                manualAt:(r.manualAt||null), strokesAt:(r.strokesAt||null),
+               uw:(r.uw||null), meas:(r.meas||null), turn5:(r.turn5||null),
                updatedAt:(r.updatedAt||r.at) };
     });
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
@@ -12968,6 +13164,7 @@ $('fImport').onchange=function(){
         sigT: (src.sigT!=null?src.sigT:null), rt: (src.rt!=null?src.rt:null), rtMode: (src.rtMode||null),
         turnOut: (src.turnOut||null), memo: (src.memo||''), uwKick: (src.uwKick!=null?src.uwKick:null), uwDist: (src.uwDist!=null?src.uwDist:null),
         manualAt: (src.manualAt||null), strokesAt: (src.strokesAt||null),
+        uw: (src.uw||[]), meas: (src.meas||null), turn5: (src.turn5||null),
         updatedAt: (src.updatedAt || src.at || Date.now()),
         thumb: ''
       };
@@ -13761,7 +13958,7 @@ function cmpPaintPair(){
       rows+=pairRow('非泳区間', fmt(tsA.nonT), fmt(tsB.nonT), tsB.nonT-tsA.nonT);
     }
     rows+=pairRow('スタート15m', fmt(tsA.start), fmt(tsB.start), tsB.start-tsA.start);
-    if(tsA.turnAvg!=null && tsB.turnAvg!=null) rows+=pairRow('ターン平均', tsA.turnAvg.toFixed(2), tsB.turnAvg.toFixed(2), tsB.turnAvg-tsA.turnAvg);
+    if(tsA.turnAvg!=null && tsB.turnAvg!=null) rows+=pairRow('ターン平均（5m前〜'+tsA.turnOut+'m後）', tsA.turnAvg.toFixed(2), tsB.turnAvg.toFixed(2), tsB.turnAvg-tsA.turnAvg);
     if(tsA.touch && tsB.touch) rows+=pairRow('タッチ5m', fmt(tsA.touch.t), fmt(tsB.touch.t), tsB.touch.t-tsA.touch.t);
   }
 

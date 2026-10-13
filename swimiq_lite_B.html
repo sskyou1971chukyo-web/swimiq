@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.15">
+<meta name="app-ver" content="2026.10.13.16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -10394,7 +10394,7 @@ function rpSVGsr(r, opt){
   var yLo=Math.floor((srMin-2)/5)*5, yHi=Math.ceil((srMax+2)/5)*5, n=pts.length;
   /* 上の だん：ラップごとの 帯（潜り・泳ぎ・壁の 前5m を 距離どおりの 長さで）。下の だん：かきごとの SR */
   var STR=opt.noStrip ? { s:'', h:0 } : srStrip(r, 900, 38, 16), _G0=srSegs(r);
-  var W=900, top=(STR.h ? STR.h+30 : 42), H=top+176+34, pad={l:38,r:16,t:top,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  var W=900, top=(STR.h ? STR.h+30 : 70), H=top+176+34, pad={l:38,r:16,t:top,b:34}, iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
   function X(i){ return pad.l+(i-1)/(n-1)*iw; } function Y(v){ return pad.t+ih-(v-yLo)/(yHi-yLo)*ih; }
   var s='<svg viewBox="0 0 '+W+' '+H+'">'+STR.s;
   if(STR.h) s+='<text x="'+pad.l+'" y="'+(pad.t-12)+'" font-size="11" font-weight="800" fill="#5b6270">かきごとのSR（横軸は何かき目か）</text>';
@@ -10411,11 +10411,11 @@ function rpSVGsr(r, opt){
   s+='<path d="'+dp+'" fill="none" stroke="#1e6fe0" stroke-width="'+(n>300?1.2:2.2)+'" stroke-linejoin="round" stroke-linecap="round"/>';
   if(n<=300) swim.forEach(function(p){ s+='<circle cx="'+X(p.i)+'" cy="'+Y(p.sr)+'" r="'+(n>120?1.6:3)+'" fill="#1e6fe0"/>'; });
   var ty=pad.t+ih-6;
-  var _lastTL=-99;   /* 片手ずつの ときは ターンの 印が 2つ ならぶので、文字は 1つだけ 書きます */
+  var _lastTL=-99, _lastTI=-99;   /* 片手ずつの ときは ターンの 印が 2つ ならぶので、文字は 1つだけ 書きます */
   pts.filter(function(p){return p.turn;}).forEach(function(p){
     s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty-4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty+4)+'" stroke="#d64545" stroke-width="2.2"/>';
     s+='<line x1="'+(X(p.i)-4)+'" y1="'+(ty+4)+'" x2="'+(X(p.i)+4)+'" y2="'+(ty-4)+'" stroke="#d64545" stroke-width="2.2"/>';
-    if(tp.turns.length<=(sUnitOf(r)==='arm'?24:12) && X(p.i)-_lastTL>24){ s+='<text x="'+(X(p.i)+(sUnitOf(r)==='arm'?X(2)/2-X(1)/2:0))+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#d64545">'+T('turnLbl')+'</text>'; _lastTL=X(p.i); } });
+    if(tp.turns.length<=(sUnitOf(r)==='arm'?24:12) && X(p.i)-_lastTL>24 && p.i-_lastTI>1){ s+='<text x="'+(X(p.i)+(sUnitOf(r)==='arm'?X(2)/2-X(1)/2:0))+'" y="'+(ty-9)+'" text-anchor="middle" font-size="8.5" font-weight="800" fill="#d64545">'+T('turnLbl')+'</text>'; _lastTL=X(p.i); } _lastTI=p.i; });
   /* おしまちがいと みなした ところ（平均には 入れて いません） */
   pts.filter(function(p){return p.out;}).forEach(function(p){
     s+='<circle cx="'+X(p.i)+'" cy="'+ty+'" r="4.2" fill="none" stroke="#b07000" stroke-width="2"/>';
@@ -10431,9 +10431,27 @@ function rpSVGsr(r, opt){
       if(gi>0){
         var prev=G[gi-1], px=(prev.nos.length? X(prev.nos[prev.nos.length-1]) : x1);
         var bx=(px+x1)/2;
-        s+='<line x1="'+bx+'" y1="'+(pad.t-4)+'" x2="'+bx+'" y2="'+(pad.t+ih)+'" stroke="#e8902c" stroke-width="1.6" stroke-dasharray="4 4"/>';
+        s+='<line x1="'+bx+'" y1="'+(pad.t-40)+'" x2="'+bx+'" y2="'+(pad.t+ih)+'" stroke="#e8902c" stroke-width="1.6" stroke-dasharray="4 4"/>';
       }
     });
+    /* 区間ごとの かき数と ST（帯が ない とき：グラフの 上に 書きます）。
+       自由形・背泳ぎを 片手ずつ 数えた 記録は、かき数を 半分（左右で 1回）に して 出します */
+    if(!STR.h){
+      var arm=(sUnitOf(r)==='arm');
+      G.forEach(function(g, gi){
+        if(!g.nos.length) return;
+        var prev=G[gi-1], next=G[gi+1];
+        var lx=gi>0 ? ((prev.nos.length? X(prev.nos[prev.nos.length-1]) : X(g.nos[0]))+X(g.nos[0]))/2 : pad.l;
+        var rx=next && next.nos.length ? (X(g.nos[g.nos.length-1])+X(next.nos[0]))/2 : (W-pad.r);
+        var cx=(lx+rx)/2, wd=rx-lx;
+        var nTxt=(g.n!=null) ? (arm ? (g.n%2 ? (g.n/2).toFixed(1) : String(g.n/2)) : String(g.n))+'回' : 'ー';
+        var stTxt=(g.st!=null) ? 'ST '+g.st.toFixed(2) : 'ST ー';
+        if(wd<46) return;
+        var fz=wd>150?13:(wd>90?11.5:10);
+        s+='<text x="'+cx+'" y="'+(pad.t-26)+'" text-anchor="middle" font-size="'+(fz-1.5)+'" font-weight="800" fill="#5b6270">'+g.from+'-'+g.to+'m</text>';
+        s+='<text x="'+cx+'" y="'+(pad.t-10)+'" text-anchor="middle" font-size="'+fz+'" font-weight="900" fill="#16181d">'+nTxt+'<tspan fill="#c98a00" dx="6">'+stTxt+'</tspan></text>';
+      });
+    }
   }
   if(LT.length>1){
     LT.forEach(function(L){
@@ -10909,7 +10927,7 @@ function reportPages(r, prev, W, H, nP){
     var lg=[['#1e6fe0','泳ぎのSR'],['#d64545','ターン（除外）'],['#c98a00','平均SR']], lx=mx+226;
     lg.forEach(function(g){ s+='<rect x="'+lx+'" y="'+(y-9)+'" width="10" height="10" rx="3" fill="'+g[0]+'"/>'+T_(lx+14,y,g[1],10,800,GR); lx+=tw(g[1])*10+34; });
     s+=place(srSvg, mx, y+8, cw, srH);
-    s+=T_(mx,y+8+srH+12,'横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上ほどテンポが速い。',9.5,700,GR);
+    s+=T_(mx,y+8+srH+12,'横軸はストローク番号、縦軸はSR（1分あたりのかき回数）。上の数字は区間ごとのかき数'+(sUnitOf(r)==='arm'?'（左右で1回＝片手の数の半分）':'')+'とST。',9.5,700,GR);
     y=y+8+srH+12;
   }
   var p1=s, y1=y+18; pages.push('');   /* 1ページ目は 最後に 式の 箱を 入れるか 決めてから しめます */

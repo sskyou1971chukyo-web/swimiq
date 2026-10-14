@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.13.18">
+<meta name="app-ver" content="2026.10.14.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1735,7 +1735,7 @@ body.grid .gridL{ display:block; }
     right:0; top:0; bottom:0; left:auto; width:var(--sideW);
     background:#0d0f13; border-left:3px solid #2a2d33; pointer-events:auto;
     display:grid; grid-template-columns:1fr 1fr;
-    grid-template-rows:auto auto auto minmax(0,1fr) auto auto; gap:8px;
+    grid-template-rows:auto auto auto minmax(0,1fr) auto auto auto; gap:8px;
     padding:calc(env(safe-area-inset-top) + 12px) 12px
             calc(env(safe-area-inset-bottom) + 12px) 12px; }
   .ov.ana:not(.play) .oAct > *{ min-width:0; }
@@ -1749,6 +1749,13 @@ body.grid .gridL{ display:block; }
   /* つぎに 計る ところの 小さな 図（A案） */
   .ov.ana:not(.play) #nextFig{ grid-column:1 / span 2; display:block; background:#14171c; border:2px solid var(--am); border-radius:12px; padding:3px 6px 4px; }
   .ov.ana:not(.play) #nextFig:empty{ display:none; }
+  /* 記録ボタンの 下の 再生の そうさ（1秒もどす・再生／停止・1秒すすめる） */
+  .ov.ana:not(.play) #sideCtl{ grid-column:1 / span 2; display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:6px; }
+  .ov.ana:not(.play) #sideCtl .ob{ min-height:48px; padding:2px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
+    border-color:rgba(255,255,255,.34); background:rgba(255,255,255,.07); color:#fff; }
+  .ov.ana:not(.play) #sideCtl .ob .ico{ width:22px; height:22px; }
+  .ov.ana:not(.play) #sideCtl .ob small{ font-size:11px; font-weight:800; color:#cfd3da; line-height:1.1; }
+  .ov.ana:not(.play) #sideCtl #scPlay{ border-color:#fff; }
   .ov.ana:not(.play) #nextFig svg{ display:block; width:100%; height:auto; max-height:22vh; margin:0 auto; }
   .ov.ana:not(.play) #bPass{ grid-column:1 / span 2; width:auto; height:auto;
     align-self:stretch; justify-self:stretch; margin:0; padding:8px;
@@ -1978,6 +1985,16 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 #cZbtn:active{ background:var(--am); color:#000; }
 #cv{ transform-origin:center center; }
 #nextFig{ display:none; }
+#sideCtl{ display:none; }
+/* 高さが 低い 画面（スマホを 横）：記録ボタンが 小さく ならない ように、ほかを つめます */
+@media (orientation:landscape) and (max-height:500px){
+  .ov.ana:not(.play) #nextSel{ min-height:40px !important; font-size:clamp(20px, 3.2vw, 30px) !important; }
+  .ov.ana:not(.play) #nextFig svg{ max-height:14vh; }
+  .ov.ana:not(.play) #nextFig{ padding:2px 4px; }
+  .ov.ana:not(.play) #sideCtl .ob{ min-height:40px; }
+  .ov.ana:not(.play) #sideCtl .ob small{ display:none; }
+  .ov.ana:not(.play) #bStroke, .ov.ana:not(.play) #bUndo, .ov.ana:not(.play) #anaMore{ min-height:40px !important; }
+}
 @media (orientation:portrait){ #camZoom, #cZbtn{ display:none; } }
 /* 右の 列を せまく した ぶん、中の 文字も 列の はばに 合わせます */
 @media (orientation:landscape){
@@ -2158,6 +2175,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <select class="osel nextSel" id="nextSel" data-ta="nextLbl"></select>
       <div id="nextFig" aria-hidden="true"></div>
       <button class="ob b circle" id="bPass" type="button" disabled><span data-t="pass"></span><small id="nextD">-</small></button>
+      <div id="sideCtl" role="group" aria-label="再生のそうさ">
+        <button class="ob" type="button" id="scBack" aria-label="1秒もどす"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 3 12l8 6zM21 6l-8 6 8 6z" fill="currentColor"/></svg><small>1秒</small></button>
+        <button class="ob" type="button" id="scPlay" aria-label="再生・停止"></button>
+        <button class="ob" type="button" id="scFwd" aria-label="1秒すすめる"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 6l8 6-8 6zM3 6l8 6-8 6z" fill="currentColor"/></svg><small>1秒</small></button>
+      </div>
       <button class="ob y" id="bStroke" type="button" aria-pressed="false" data-t="bStroke"></button>
       <button class="ob" id="bUndo" type="button" data-t="bUndo"></button>
       <button class="ob" id="anaMore" type="button" data-t="moreBtn"></button>
@@ -3469,6 +3491,7 @@ var W={
  clearAll:['ぜんぶ 消す','すべて消去'],
  strokeTag:['画面の どこでも おすと 1かき','画面のどこを押しても1ストローク'],
  normal:['ふつう','等速'],
+ spd500:['5倍','5倍'],
  spd200:['2倍','2倍'],
  spd150:['1.5倍','1.5倍'],
  spd100:['1倍','1倍'],
@@ -5359,7 +5382,7 @@ function mmss(t){ if(!t||isNaN(t)) t=0; return Math.floor(t/60)+':'+String(Math.
 var RATES=[2,1.5,1,0.5,0.25];
 function rateWord(r){
   r=Number(r);
-  return r===2?'spd200':(r===1.5?'spd150':(r===1?'spd100':(r===0.5?'spd50':'spd25')));
+  return r===5?'spd500':r===2?'spd200':(r===1.5?'spd150':(r===1?'spd100':(r===0.5?'spd50':'spd25')));
 }
 function spdMark(btn,r){            /* はやさの ボタンの 見た目を そろえる */
   btn.dataset.r=String(r);
@@ -5368,7 +5391,7 @@ function spdMark(btn,r){            /* はやさの ボタンの 見た目を �
   btn.setAttribute('aria-pressed', Number(r)===1?'false':'true');
 }
 /* はやさを えらぶ まど（おそい じゅんに ならべます） */
-var SPD_LIST=[0.25,0.5,1,1.5,2];
+var SPD_LIST=[0.25,0.5,1,1.5,2,5];
 var spdPopOn=false;
 function spdPopClose(){
   var pop=$('spdPop'); if(!pop) return;
@@ -5565,6 +5588,14 @@ function modeSet(v, quiet){
   if(!quiet) toast(isDetail() ? '詳細分析にしました。ターンごとに壁の5m後と足が離れたも押します' : '簡易分析にしました。押してある所はそのまま残ります');
   if(isDetail()) turnOutAsk();
 }
+/* 右の 列の 再生そうさ：下の バーと 同じ 動きを します */
+function scPaint(){ var v=$('v'), b=$('scPlay'); if(b) b.innerHTML=T(v && !v.paused ? 'pauseI' : 'playI'); }
+$('scPlay').onclick=function(){ $('bPlay').click(); setTimeout(scPaint, 30); };
+function scJump(d){ var v=$('v'); try{ v.pause(); $('bPlay').innerHTML=T('playI'); v.currentTime=Math.max(0, Math.min((v.duration||1e9)-0.01, v.currentTime+d)); }catch(e){} scPaint(); try{ anaP.paint(); }catch(e){} }
+$('scBack').onclick=function(){ scJump(-1); };
+$('scFwd').onclick=function(){ scJump(1); };
+['play','pause','ended'].forEach(function(ev){ $('v').addEventListener(ev, scPaint); });
+scPaint();
 $('bMode').onclick=function(){ modeSet(isDetail()?'simple':'detail'); };
 modeBtnPaint();
 $('bDraftDel').onclick=function(){

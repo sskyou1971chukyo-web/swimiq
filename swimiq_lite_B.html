@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.15.3">
+<meta name="app-ver" content="2026.10.15.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -835,10 +835,17 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #admPw, #saveBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #admPw, #saveBox, #ocrBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #admPw.hide, #saveBox.hide{ display:none !important; }
+#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide{ display:none !important; }
+#ocrBox{ z-index:80; }
+#ocrTxt{ width:100%; box-sizing:border-box; background:#16181d; color:#fff; border:2px solid #3a3d44; font-size:15px; padding:8px 10px; border-radius:10px; font-variant-numeric:tabular-nums; }
+#ocrList{ display:flex; flex-direction:column; margin:4px 0 10px; max-height:40vh; overflow-y:auto; }
+.ocrRow{ display:grid; grid-template-columns:1fr 1fr 1fr; padding:5px 8px; border-bottom:1px solid #2a2d33; font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ocrRow.ocrHd{ color:var(--am); font-size:13px; }
+.ocrRow.odd{ color:#ff8e78; }
+#ocrUse:disabled{ opacity:.45; }
 #saveBox{ z-index:90; }
 #saveBox select, #saveBox input[type=text], #reFix input[type=text], #vFix #vfMeet{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
   border:2px solid var(--line); background:var(--pane); color:#fff; font-size:19px; font-weight:800; }
@@ -3136,6 +3143,26 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 </div>
 
+<!-- 結果の 画像から 通過タイムを 読み取る -->
+<div id="ocrBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="ocrH">
+  <div class="svWrap">
+    <h3 id="ocrH">結果の画像から通過タイムを読み取る</h3>
+    <p class="lead">1人分の行だけが写った画像を選んでください。iPhoneは、写真の文字を長押ししてコピーし、下の欄に貼り付けても読めます。</p>
+    <button class="btn g" type="button" id="ocrPick" style="width:100%;min-height:54px;">画像を選ぶ</button>
+    <input type="file" id="ocrFile" accept="image/*" class="hide">
+    <p class="lead" id="ocrStat" aria-live="polite"></p>
+    <p class="q">読み取った文字（直せます）</p>
+    <textarea id="ocrTxt" rows="4" spellcheck="false" autocomplete="off" placeholder="例）29.93 1:01.70 1:33.64 …"></textarea>
+    <p class="lead" id="ocrInfo" aria-live="polite"></p>
+    <p class="lead hide" id="ocrWarn" style="color:#ff8e78;font-weight:900;"></p>
+    <div id="ocrList"></div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="ocrX" data-t="dMenuX"></button>
+      <button class="btn g" type="button" id="ocrUse" disabled>ラップに入れる</button>
+    </div>
+  </div>
+</div>
+
 <div id="vFix" class="hide" role="dialog" aria-modal="true" aria-labelledby="vfH">
   <div class="svWrap">
     <h3 id="vfH" data-t="vfTitle"></h3>
@@ -3189,6 +3216,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sq">
       <p class="q" data-t="vfSplLbl"></p>
       <p class="lead" data-t="vfSplHint"></p>
+      <button class="btn y" type="button" id="vfOcr" style="width:100%;margin-bottom:8px;">結果の画像から読み取る</button>
       <div id="vfSplWrap"></div>
       <button class="btn" type="button" id="vfSplAdd" data-t="vfSplAdd" style="width:100%;margin-top:8px;"></button>
     </div>
@@ -4760,6 +4788,14 @@ var HELP=[
    'ターンは 再生の 画面の <b>メニュー</b> →<b>ターンを測定</b> で 前半と 後半に 5回ずつ、10回を 測ります。',
    'PDFの 1ページ目は 1500m版に なります。100mごとの ラップ、4区間の くらべ（ラスト200は 100mずつ）、SRと 1かきの距離の 変化です。1かきの距離と 効率指数は、50mごとの 通過しか ないので、ターンと 潜りを ふくむ 100m 全体で 出します。区間どうしの くらべに 使って ください。',
    '前に 全部 数えた 1500mの 記録は、そのまま 全部の かきで 計算します。'
+ ]],
+ ['結果の 画像から 通過タイムを 入れる',[
+   '記録の 修正の 画面（記録を見る → 記録を 押す）の 通過タイムの 上に <b>結果の画像から読み取る</b> が あります。',
+   '<b>画像を選ぶ</b> で、大会の 結果の スクショを 選びます。1人分の 行だけが 写る ように 切り取って ください。ほかの 選手が 入ると タイムが 多すぎて 入れられません。',
+   'はじめて 使う ときは、読み取りの しくみを ネットから 読みこむので 少し 時間が かかります（約5MB）。',
+   'iPhoneは、写真の 文字を 長押しして コピーし、読み取った文字 の 欄に 貼り付けても 読めます。',
+   '下の 表に 距離・通過・ラップが 出ます。ほかと 大きく ちがう ラップは 赤く なります。画像と 見くらべて、まちがいは 文字の 欄で 直します。',
+   '<b>ラップに入れる</b> を 押すと 通過タイムの 一覧に 入ります。カッコの 中の 反応時間も 入ります。15m などの ほかの 通過は 残ります。最後に <b>保存</b> を 押すと 記録に 残ります。'
  ]],
  ['動画を 携帯に 保存する',[
    'アプリで とった 動画は、<b>動画を携帯に保存</b>を おすと 携帯の 写真（カメラロール）に 入ります。',
@@ -12209,6 +12245,141 @@ function vfCheck(when){
   if(when!=='open') toast('記録タイムを一覧の'+$('vfDist').value+'mに合わせました');
   return false;
 }
+/* ================================================================
+   結果の 画像（スクショ）から 通過タイムを 読み取る
+   文字の 読み取りは Tesseract.js（数字だけ）。はじめて 使う ときに ネットから 読みこみます（約5MB）。
+   iPhone の 写真の 文字を 長押しで コピーして、貼り付けても 読めます。
+   読み取った 文字は 直せます。どの 距離に 入るかは、タイムの 数と 記録の 距離から 決めます。
+   ================================================================ */
+var OCR_SRC={ js:'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js',
+  worker:'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js',
+  core:'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0',
+  lang:'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int' };
+var ocrWorker=null, ocrRes=null;
+function ocrLoadLib(){
+  if(window.Tesseract) return Promise.resolve();
+  return new Promise(function(ok, ng){
+    var sc=document.createElement('script'); sc.src=OCR_SRC.js; sc.onload=function(){ ok(); }; sc.onerror=function(){ ng(new Error('load')); };
+    document.head.appendChild(sc);
+  });
+}
+function ocrGetWorker(){
+  if(ocrWorker) return Promise.resolve(ocrWorker);
+  return ocrLoadLib().then(function(){
+    return Tesseract.createWorker('eng', 1, { workerPath:OCR_SRC.worker, corePath:OCR_SRC.core, langPath:OCR_SRC.lang,
+      logger:function(m){ if(m && m.status==='recognizing text') ocrStat('読み取っています… '+Math.round((m.progress||0)*100)+'%'); } });
+  }).then(function(w){
+    return w.setParameters({ tessedit_char_whitelist:'0123456789:.() ', tessedit_pageseg_mode:'6' }).then(function(){ ocrWorker=w; return w; });
+  });
+}
+/* 小さい 画像は 2倍に して 読みやすく します */
+function ocrPrep(file){
+  return new Promise(function(ok){
+    var url=URL.createObjectURL(file), im=new Image();
+    im.onload=function(){
+      var k=(im.width<1200) ? 2 : 1, c=document.createElement('canvas');
+      c.width=im.width*k; c.height=im.height*k;
+      var g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); g.imageSmoothingQuality='high'; g.drawImage(im,0,0,c.width,c.height);
+      URL.revokeObjectURL(url); ok(c);
+    };
+    im.onerror=function(){ URL.revokeObjectURL(url); ok(file); };
+    im.src=url;
+  });
+}
+/* 文字から タイムを 取り出します。
+   返す もの：{ rt, times:[{d,t}]（合図からの 合計）, step, warn } */
+function ocrParse(txt, dist){
+  var s=String(txt||'').replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); })
+    .replace(/[：]/g,':').replace(/[．。]/g,'.').replace(/[（]/g,'(').replace(/[）]/g,')')
+    .replace(/(\d)\s*([:.])\s+(\d)/g,'$1$2$3').replace(/(\d)\s+([:.])(\d)/g,'$1$2$3');
+  var rt=null, m=/\(\s*(\d\.\d{2})\s*\)/.exec(s);
+  if(m){ var r0=Number(m[1]); if(r0>0.3 && r0<1.5) rt=r0; }
+  s=s.replace(/\([^)]*\)/g,' ');
+  var re=/(?:(\d{1,2}):)?(\d{1,2})\.(\d{2})(?!\d)/g, vals=[], q;
+  while((q=re.exec(s))){
+    var v=(q[1]?Number(q[1])*60:0)+Number(q[2])+Number(q[3])/100;
+    if(!q[1] && v<10) continue;          /* 10秒より 短い 数（反応時間 など）は タイムでは ない */
+    if(q[1] && Number(q[2])>=60) continue;
+    vals.push(Math.round(v*100)/100);
+  }
+  var u=[]; vals.sort(function(a,b){ return a-b; }).forEach(function(v){ if(!u.length || Math.abs(v-u[u.length-1])>0.001) u.push(v); });
+  var out={ rt:rt, times:[], step:null, warn:'', n:u.length };
+  if(!u.length){ out.warn='タイムが見つかりませんでした。'; return out; }
+  dist=Number(dist)||0;
+  var steps=[50,25,100], st=null, i;
+  for(i=0;i<steps.length;i++) if(dist && u.length===dist/steps[i]){ st=steps[i]; break; }
+  if(!st){
+    /* 数が 合わない とき：50mごとと みなして、距離を 知らせます */
+    st=50;
+    if(dist && DIST_LIST.indexOf(u.length*50)>=0 && u.length*50!==dist) out.warn='タイムが'+u.length+'個で、50mごとなら'+(u.length*50)+'mです。記録の距離は'+dist+'mなので、入れるときに距離を変えるかをたずねます。';
+    else if(dist && u.length>dist/25) out.warn='タイムが'+u.length+'個あり、'+dist+'mには多すぎます。1人分の行だけを切り取った画像にしてください。';
+    else out.warn='タイムが'+u.length+'個です。'+(dist?dist+'mの':'')+'ラップの数と合いません。下の文字を直すか、距離を確かめてください。';
+  }
+  out.step=st;
+  for(i=0;i<u.length;i++) out.times.push({ d:(i+1)*st, t:u[i] });
+  /* ラップが ほかと 大きく ちがう 所（読みまちがい の うたがい） */
+  var laps=out.times.map(function(x,k){ return x.t-(k?out.times[k-1].t:0); }), mid=laps.slice(1).slice().sort(function(a,b){ return a-b; }), med=mid.length?mid[Math.floor(mid.length/2)]:laps[0];
+  out.times.forEach(function(x,k){ x.lap=laps[k]; x.odd=(k>0 && med>0 && (laps[k]<med*0.7 || laps[k]>med*1.35)); });
+  if(!out.warn && out.times.some(function(x){ return x.odd; })) out.warn='ほかと大きくちがうラップがあります（赤い行）。画像と見くらべて、下の文字を直してください。';
+  return out;
+}
+function ocrStat(t){ var e=$('ocrStat'); if(e) e.textContent=t||''; }
+function ocrPaint(){
+  var dist=Number($('vfDist').value)||0, R=ocrParse($('ocrTxt').value, dist), h='';
+  ocrRes=R;
+  if(R.times.length){
+    h+='<div class="ocrRow ocrHd"><span>距離</span><span>通過</span><span>ラップ</span></div>';
+    R.times.forEach(function(x){ h+='<div class="ocrRow'+(x.odd?' odd':'')+'"><span>'+x.d+'m</span><span>'+fmt(x.t)+'</span><span>'+fmt(x.lap)+'</span></div>'; });
+  }
+  $('ocrList').innerHTML=h;
+  $('ocrInfo').textContent=R.times.length ? ('タイム '+R.times.length+'個（'+R.step+'mごと）'+(R.rt!=null?'　反応時間 '+R.rt.toFixed(2)+'秒':'')+(R.times.length?'　記録 '+fmt(R.times[R.times.length-1].t):'')) : '';
+  $('ocrWarn').textContent=R.warn||''; $('ocrWarn').classList.toggle('hide', !R.warn);
+  $('ocrUse').disabled=!R.times.length;
+}
+function ocrOpen(){
+  $('ocrTxt').value=''; $('ocrList').innerHTML=''; $('ocrInfo').textContent=''; $('ocrWarn').classList.add('hide'); ocrStat(''); $('ocrUse').disabled=true;
+  $('ocrBox').classList.remove('hide');
+}
+$('vfOcr').onclick=ocrOpen;
+$('ocrX').onclick=function(){ $('ocrBox').classList.add('hide'); };
+$('ocrPick').onclick=function(){ $('ocrFile').value=''; $('ocrFile').click(); };
+$('ocrTxt').addEventListener('input', ocrPaint);
+$('ocrFile').onchange=function(){
+  var f=this.files && this.files[0]; if(!f) return;
+  ocrStat('読み取りの準備をしています（はじめての時は少し時間がかかります）…');
+  $('ocrPick').disabled=true;
+  Promise.all([ocrGetWorker(), ocrPrep(f)]).then(function(a){ return a[0].recognize(a[1]); }).then(function(r){
+    $('ocrTxt').value=(r && r.data && r.data.text) || '';
+    ocrStat('読み取りました。下の文字と表を、画像と見くらべてください。');
+    ocrPaint();
+  }).catch(function(){
+    ocrStat('読み取れませんでした。ネットにつながっているか確かめてください。写真の文字をコピーして、下に貼り付けても読めます。');
+  }).then(function(){ $('ocrPick').disabled=false; });
+};
+/* ラップに 入れる：読み取った 距離の 行を 入れかえ、ほかの 行（15m など）は 残します */
+$('ocrUse').onclick=function(){
+  var R=ocrRes; if(!R || !R.times.length) return;
+  var dist=Number($('vfDist').value)||0, last=R.times[R.times.length-1];
+  if(dist && last.d!==dist){
+    if(DIST_LIST.indexOf(last.d)>=0){
+      if(!confirm('読み取ったタイムは '+last.d+'m までです。記録の距離は '+dist+'m です。\n\n距離を '+last.d+'m に変えて入れますか？')) return;
+      distFill($('vfDist'), last.d); try{ vfUwPaint(vfUwRead()); }catch(e){}
+      dist=last.d;
+    }else if(!confirm('読み取ったタイムは '+last.d+'m までです。記録の距離は '+dist+'m です。\n\nこのまま入れますか？')) return;
+  }
+  /* 反応時間が 読めた ときは 先に 入れます（今の 行は 足離れからの 時間を 保ったまま 直ります） */
+  if(R.rt!=null){ $('vfRT').value=R.rt.toFixed(2); $('vfRT').dispatchEvent(new Event('change')); }
+  var w=$('vfSplWrap'), rows=w.querySelectorAll('.vfSplRow'), have={}, i;
+  R.times.forEach(function(x){ have[x.d]=1; });
+  for(i=0;i<rows.length;i++){ var d=Number(rows[i].querySelector('.vfSplD').value); if(!d || have[d]) rows[i].parentNode.removeChild(rows[i]); }
+  R.times.forEach(function(x){ w.appendChild(vfSplRow(x.d, x.t, dist||last.d)); });
+  /* 距離の 順に 並べ直します */
+  var all=[].slice.call(w.querySelectorAll('.vfSplRow')).sort(function(a,b){ return Number(a.querySelector('.vfSplD').value)-Number(b.querySelector('.vfSplD').value); });
+  all.forEach(function(r){ w.appendChild(r); });
+  if(!dist || last.d===dist) $('vfTime').value=fmt(last.t);
+  $('ocrBox').classList.add('hide');
+  toast('通過タイムを '+R.times.length+'個 入れました。保存を押すと記録に残ります');
+};
 $('vfSplAdd').onclick=function(){
   $('vfSplWrap').appendChild(vfSplRow(null, null, Number($('vfDist').value)||100));
 };

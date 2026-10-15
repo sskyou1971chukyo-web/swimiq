@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.15.4">
+<meta name="app-ver" content="2026.10.16.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -835,10 +835,24 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #admPw, #saveBox, #ocrBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #admPw, #saveBox, #ocrBox, #imBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide{ display:none !important; }
+#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide, #imBox.hide{ display:none !important; }
+.imGrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+@media (max-width:560px){ .imGrid{ grid-template-columns:1fr; } }
+.imGrid label{ display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:800; color:var(--dim); }
+.imGrid input, .imGrid select, .imRow input[type=text], .imRow select{ background:#16181d; color:#fff; border:2px solid #3a3d44; border-radius:10px; padding:8px 10px; font-size:16px; min-height:44px; box-sizing:border-box; width:100%; }
+#imList{ display:flex; flex-direction:column; gap:8px; margin:6px 0 10px; }
+.imRow{ border:2px solid #3a3d44; border-radius:12px; padding:10px; }
+.imRow.off{ opacity:.5; }
+.imTop{ display:grid; grid-template-columns:1fr 140px; gap:8px; }
+.imSub{ margin-top:6px; font-size:14px; font-weight:900; color:var(--am); }
+.imLaps{ margin-top:4px; font-size:12.5px; font-weight:700; color:var(--dim); line-height:1.6; font-variant-numeric:tabular-nums; }
+.imChk{ display:flex; align-items:center; gap:8px; font-size:15px; font-weight:900; margin-bottom:6px; }
+.imChk input{ width:24px; height:24px; }
+.ocrPickE{ width:100%; text-align:left; margin-bottom:6px; }
+#imGo:disabled{ opacity:.45; }
 #ocrBox{ z-index:80; }
 #ocrTxt{ width:100%; box-sizing:border-box; background:#16181d; color:#fff; border:2px solid #3a3d44; font-size:15px; padding:8px 10px; border-radius:10px; font-variant-numeric:tabular-nums; }
 #ocrList{ display:flex; flex-direction:column; margin:4px 0 10px; max-height:40vh; overflow-y:auto; }
@@ -3143,13 +3157,38 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 </div>
 
+<!-- 結果の 画像・PDFから 新しい 記録を 取り込む -->
+<div id="imBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="imH">
+  <div class="svWrap">
+    <h3 id="imH">画像・PDFから取り込む</h3>
+    <p class="lead">大会の結果のスクショか、結果のPDFを選びます。何人分が写っていても読み取れます。読み取ったあと、全部取り込むか、一部を選ぶかを選べます。</p>
+    <div class="imGrid">
+      <label>大会名<input type="text" id="imMeet" autocomplete="off" placeholder="例）関東学生選手権"></label>
+      <label>日付<input type="date" id="imDate"></label>
+      <label>プール<select id="imPool"><option value="50">50mプール</option><option value="25">25mプール</option></select></label>
+    </div>
+    <button class="btn g" type="button" id="imPick" style="width:100%;min-height:54px;margin-top:8px;">画像・PDFを選ぶ</button>
+    <input type="file" id="imFile" accept="image/*,application/pdf,.pdf" class="hide">
+    <p class="lead" id="imStat" aria-live="polite"></p>
+    <div id="imChoose" class="hide row" style="margin-bottom:8px;">
+      <button class="btn g" type="button" id="imAll">全部</button>
+      <button class="btn y" type="button" id="imSome">一部</button>
+    </div>
+    <div id="imList"></div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="imX" data-t="dMenuX"></button>
+      <button class="btn g hide" type="button" id="imGo">取り込む</button>
+    </div>
+  </div>
+</div>
+
 <!-- 結果の 画像から 通過タイムを 読み取る -->
 <div id="ocrBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="ocrH">
   <div class="svWrap">
     <h3 id="ocrH">結果の画像から通過タイムを読み取る</h3>
-    <p class="lead">1人分の行だけが写った画像を選んでください。iPhoneは、写真の文字を長押ししてコピーし、下の欄に貼り付けても読めます。</p>
-    <button class="btn g" type="button" id="ocrPick" style="width:100%;min-height:54px;">画像を選ぶ</button>
-    <input type="file" id="ocrFile" accept="image/*" class="hide">
+    <p class="lead">結果のスクショかPDFを選んでください。何人分かが写っているときは、読み取ったあとに入れる選手を選びます。iPhoneは、写真の文字を長押ししてコピーし、下の欄に貼り付けても読めます。</p>
+    <button class="btn g" type="button" id="ocrPick" style="width:100%;min-height:54px;">画像・PDFを選ぶ</button>
+    <input type="file" id="ocrFile" accept="image/*,application/pdf,.pdf" class="hide">
     <p class="lead" id="ocrStat" aria-live="polite"></p>
     <p class="q">読み取った文字（直せます）</p>
     <textarea id="ocrTxt" rows="4" spellcheck="false" autocomplete="off" placeholder="例）29.93 1:01.70 1:33.64 …"></textarea>
@@ -3270,6 +3309,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="reList">
       <button class="btn y" type="button" id="rmCmp"><span id="rmCmpB"></span><small id="rmCmpS"></small></button>
       <button class="btn y" type="button" id="rmFix"><span id="rmFixB"></span><small id="rmFixS"></small></button>
+      <button class="btn y" type="button" id="rmImp"><span>画像・PDFから取り込む</span><small>大会の結果のスクショやPDFを読み取って、新しい記録を作ります</small></button>
     </div>
     <div class="svBtns">
       <button class="btn" type="button" id="rmClose" data-t="dMenuX"></button>
@@ -4789,9 +4829,16 @@ var HELP=[
    'PDFの 1ページ目は 1500m版に なります。100mごとの ラップ、4区間の くらべ（ラスト200は 100mずつ）、SRと 1かきの距離の 変化です。1かきの距離と 効率指数は、50mごとの 通過しか ないので、ターンと 潜りを ふくむ 100m 全体で 出します。区間どうしの くらべに 使って ください。',
    '前に 全部 数えた 1500mの 記録は、そのまま 全部の かきで 計算します。'
  ]],
+ ['結果の 画像・PDFから 記録を 取りこむ',[
+   'ホームの <b>記録を見る</b> →<b>画像・PDFから取り込む</b> を おします。',
+   '大会名・日付・プールを 入れて、<b>画像・PDFを選ぶ</b> で 結果の スクショか PDFを 選びます。何人分・何種目分が 写って いても 読めます。',
+   'PDFに 文字が 入って いれば、名前も 正しく 読めます。スクショは 名前を 読みまちがえる ことが あるので、名前の 欄で 直して ください。登録した 選手の 名前が 見つかれば、その 選手に つながります。',
+   '2件いじょう 見つかった ときは <b>全部</b> か <b>一部</b> を 選びます。一部は、取りこむ 記録に チェックを 入れて、下の ボタンで 取りこみます。',
+   '取りこんだ 記録は 手入力の 記録と 同じ あつかいです。通過タイム・反応時間が 入ります。'
+ ]],
  ['結果の 画像から 通過タイムを 入れる',[
    '記録の 修正の 画面（記録を見る → 記録を 押す）の 通過タイムの 上に <b>結果の画像から読み取る</b> が あります。',
-   '<b>画像を選ぶ</b> で、大会の 結果の スクショを 選びます。1人分の 行だけが 写る ように 切り取って ください。ほかの 選手が 入ると タイムが 多すぎて 入れられません。',
+   '<b>画像・PDFを選ぶ</b> で、大会の 結果の スクショか PDFを 選びます。何人分か 写って いる ときは、読み取った あとに 入れる 選手を 押します。',
    'はじめて 使う ときは、読み取りの しくみを ネットから 読みこむので 少し 時間が かかります（約5MB）。',
    'iPhoneは、写真の 文字を 長押しして コピーし、読み取った文字 の 欄に 貼り付けても 読めます。',
    '下の 表に 距離・通過・ラップが 出ます。ほかと 大きく ちがう ラップは 赤く なります。画像と 見くらべて、まちがいは 文字の 欄で 直します。',
@@ -12346,16 +12393,263 @@ $('ocrPick').onclick=function(){ $('ocrFile').value=''; $('ocrFile').click(); };
 $('ocrTxt').addEventListener('input', ocrPaint);
 $('ocrFile').onchange=function(){
   var f=this.files && this.files[0]; if(!f) return;
-  ocrStat('読み取りの準備をしています（はじめての時は少し時間がかかります）…');
-  $('ocrPick').disabled=true;
-  Promise.all([ocrGetWorker(), ocrPrep(f)]).then(function(a){ return a[0].recognize(a[1]); }).then(function(r){
-    $('ocrTxt').value=(r && r.data && r.data.text) || '';
-    ocrStat('読み取りました。下の文字と表を、画像と見くらべてください。');
-    ocrPaint();
+  $('ocrPick').disabled=true; $('ocrList').innerHTML='';
+  rrRead(f, ocrStat).then(function(R){
+    var E=R.entries;
+    if(E.length===1){ ocrUseEntry(E[0]); ocrStat('読み取りました。下の文字と表を、画像と見くらべてください。'); return; }
+    if(!E.length){ $('ocrTxt').value=R.lines.map(function(L){ return L.nums; }).join('\n'); ocrPaint(); ocrStat('選手ごとに分けられませんでした。下の文字を直してください。'); return; }
+    /* 何人分か ある とき：入れる 選手を えらびます */
+    ocrStat(E.length+'人分の記録が見つかりました。入れる選手を押してください。');
+    $('ocrList').innerHTML=E.map(function(e,i){ return '<button type="button" class="btn y ocrPickE" data-i="'+i+'">'+esc((e.name||'名前なし')+'　'+evLabel(e.ev)+' '+e.dist+'m　'+fmt(e.total))+'</button>'; }).join('');
+    [].forEach.call($('ocrList').querySelectorAll('.ocrPickE'), function(b){ b.onclick=function(){ ocrUseEntry(E[Number(b.dataset.i)]); ocrStat('読み取りました。下の文字と表を、画像と見くらべてください。'); }; });
   }).catch(function(){
     ocrStat('読み取れませんでした。ネットにつながっているか確かめてください。写真の文字をコピーして、下に貼り付けても読めます。');
   }).then(function(){ $('ocrPick').disabled=false; });
 };
+/* ================================================================
+   結果の 画像・PDFを 読む（共通）
+   PDF … 文字が 入って いれば そのまま 読みます（名前も 正しく 出ます）。文字が ない PDF は 画像に して 読みます。
+   画像 … 数字は 英数字の 読み取り、名前や 種目は 日本語の 読み取りで、行の 高さを 合わせて つなげます。
+   1人分の かたまり：漢字の 入った 行（名前の 行）から、次の 名前の 行の 前まで。
+   ================================================================ */
+OCR_SRC.pdf='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+OCR_SRC.pdfWorker='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var ocrJpn=null;
+function rrScript(src, test){
+  if(test()) return Promise.resolve();
+  return new Promise(function(ok, ng){ var sc=document.createElement('script'); sc.src=src; sc.onload=function(){ ok(); }; sc.onerror=function(){ ng(new Error('load')); }; document.head.appendChild(sc); });
+}
+function rrJpnWorker(){
+  if(ocrJpn) return Promise.resolve(ocrJpn);
+  return ocrLoadLib().then(function(){
+    return Tesseract.createWorker('jpn', 1, { workerPath:OCR_SRC.worker, corePath:OCR_SRC.core, langPath:OCR_SRC.lang.replace('/eng@','/jpn@') });
+  }).then(function(w){ return w.setParameters({ tessedit_pageseg_mode:'6' }).then(function(){ ocrJpn=w; return w; }); });
+}
+function rrLines(data){
+  var out=[];
+  ((data && data.blocks) || []).forEach(function(b){ (b.paragraphs||[]).forEach(function(p){ (p.lines||[]).forEach(function(l){
+    out.push({ y0:l.bbox.y0, y1:l.bbox.y1, text:String(l.text||'').trim() });
+  }); }); });
+  return out;
+}
+/* 画像（または キャンバス）→ 行の ならび [{txt, nums}] */
+function rrFromImage(img, stat){
+  stat('読み取りの準備をしています（はじめての時は少し時間がかかります）…');
+  return Promise.all([ocrGetWorker(), rrJpnWorker()]).then(function(W){
+    stat('数字を読み取っています…');
+    return W[0].recognize(img, {}, { blocks:true }).then(function(rE){
+      stat('名前と種目を読み取っています…');
+      return W[1].recognize(img, {}, { blocks:true }).then(function(rJ){ return [rrLines(rE.data), rrLines(rJ.data)]; });
+    });
+  }).then(function(L){
+    var E=L[0], J=L[1], used={}, out=[];
+    function ov(a,b){ var h=Math.min(a.y1,b.y1)-Math.max(a.y0,b.y0); return h/Math.max(1, Math.min(a.y1-a.y0, b.y1-b.y0)); }
+    J.forEach(function(j){
+      var nums=[];
+      E.forEach(function(e,k){ if(ov(e,j)>0.5){ nums.push(e.text); used[k]=1; } });
+      out.push({ y:j.y0, txt:j.text, nums:nums.length ? nums.join(' ') : j.text });
+    });
+    E.forEach(function(e,k){ if(!used[k] && e.text) out.push({ y:e.y0, txt:'', nums:e.text }); });
+    out.sort(function(a,b){ return a.y-b.y; });
+    return out;
+  });
+}
+/* PDF → 行の ならび。文字の ない ページは 画像に して 読みます */
+function rrFromPdf(file, stat){
+  stat('PDFを開いています…');
+  return rrScript(OCR_SRC.pdf, function(){ return !!window.pdfjsLib; }).then(function(){
+    pdfjsLib.GlobalWorkerOptions.workerSrc=OCR_SRC.pdfWorker;
+    return file.arrayBuffer();
+  }).then(function(buf){ return pdfjsLib.getDocument({ data:buf }).promise; }).then(function(pdf){
+    var all=[], p=1;
+    function next(){
+      if(p>pdf.numPages || p>30) return Promise.resolve(all);
+      var no=p++;
+      stat('PDFを読んでいます… '+no+'/'+pdf.numPages+'ページ');
+      return pdf.getPage(no).then(function(pg){
+        return pg.getTextContent().then(function(tc){
+          var items=(tc.items||[]).filter(function(it){ return it.str && it.str.trim(); });
+          if(items.length<5){
+            /* 文字の ない ページ（スキャン）は 画像に します */
+            var vp=pg.getViewport({ scale:2.5 }), c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+            return pg.render({ canvasContext:c.getContext('2d'), viewport:vp }).promise.then(function(){ return rrFromImage(c, stat); }).then(function(L){ all=all.concat(L); });
+          }
+          /* 同じ 高さの 文字を 1行に まとめます */
+          var rows=[];
+          items.forEach(function(it){
+            var y=it.transform[5], x=it.transform[4], h=Math.abs(it.transform[3])||8, r=null;
+            for(var i=0;i<rows.length;i++) if(Math.abs(rows[i].y-y)<h*0.45){ r=rows[i]; break; }
+            if(!r){ r={ y:y, h:h, its:[] }; rows.push(r); }
+            r.its.push({ x:x, w:it.width||0, s:it.str });
+          });
+          rows.sort(function(a,b){ return b.y-a.y; });
+          rows.forEach(function(r){
+            r.its.sort(function(a,b){ return a.x-b.x; });
+            var t='', px=null;
+            r.its.forEach(function(q){ if(px!=null && q.x-px>r.h*0.25) t+=' '; t+=q.s; px=q.x+q.w; });
+            all.push({ y:(no*100000)-r.y, txt:t, nums:t });
+          });
+        });
+      }).then(next);
+    }
+    return next();
+  });
+}
+var EV_RE=[[/個人\s*メドレー|個メ|IM/,'im'],[/背泳|背泳ぎ|バック/,'back'],[/平泳|平泳ぎ|ブレスト/,'breast'],[/バタフライ|バタ/,'fly'],[/自由形|フリー/,'free']];
+function rrEvent(t){ t=String(t||'').replace(/[\s　]/g,''); for(var i=0;i<EV_RE.length;i++) if(EV_RE[i][0].test(t)) return EV_RE[i][1]; return null; }
+function rrNorm(s){
+  s=String(s||''); try{ s=s.normalize('NFKC'); }catch(e){}   /* PDFの「⼤」「⾃」などの 形の ちがう 字を ふつうの 字に */
+  return s.replace(/[０-９]/g,function(c){ return String.fromCharCode(c.charCodeAt(0)-0xFEE0); })
+    .replace(/[：]/g,':').replace(/[．。]/g,'.').replace(/[（]/g,'(').replace(/[）]/g,')')
+    .replace(/(\d)\s*([:.])\s+(\d)/g,'$1$2$3').replace(/(\d)\s+([:.])(\d)/g,'$1$2$3');
+}
+function rrTimes(s){
+  s=rrNorm(s).replace(/\([^)]*\)/g,' ');
+  var re=/(?:(\d{1,2}):)?(\d{1,2})\.(\d{2})(?!\d)/g, q, out=[];
+  while((q=re.exec(s))){
+    var v=(q[1]?Number(q[1])*60:0)+Number(q[2])+Number(q[3])/100;
+    if(!q[1] && v<10) continue;
+    if(q[1] && Number(q[2])>=60) continue;
+    out.push(Math.round(v*100)/100);
+  }
+  return out;
+}
+function rrRT(s){ var m=/\(\s*(\d\.\d{2})\s*\)/.exec(rrNorm(s)); if(!m) return null; var v=Number(m[1]); return (v>0.3 && v<1.5) ? v : null; }
+function cjk(s){ return (String(s).match(/[぀-ヿ㐀-鿿]/g)||[]).length; }
+function kanji(s){ return (String(s).match(/[㐀-鿿]/g)||[]).length; }
+/* 名前の 見当：登録した 選手の 名前が 行に あれば その 選手。なければ 短い 漢字・かなの 2つ並び（姓 名） */
+function rrName(line){
+  line=rrNorm(line).replace(/学\s*(北\s*海\s*道?|東\s*北|関\s*東|北\s*信\s*越?|中\s*部|東\s*海|関\s*西|中\s*四\s*国?|中\s*国|四\s*国|九\s*州)/g,' ');   /* 学連の 地区（学関東 など）は 名前では ない */
+  var flat=String(line||'').replace(/[\s　]/g,''), sws=[];
+  try{ sws=loadSwimmers()||[]; }catch(e){}
+  for(var i=0;i<sws.length;i++){ var nm=String(sws[i].name||'').replace(/[\s　]/g,''); if(nm.length>=2 && flat.indexOf(nm)>=0) return { id:sws[i].id, name:sws[i].name }; }
+  var tk=String(line||'').replace(/[0-9A-Za-z:.()\/\-_]+/g,' ').split(/[\s　]+/).filter(function(t){ return cjk(t)>0; });
+  tk=tk.filter(function(t){ return !/(大学|高校|高等|中学|小学|学園|SC|ＳＣ|スイミング|クラブ|水泳|スポーツ|決勝|予選|組)$/.test(t) && !/^学/.test(t) || t.length<=1; });
+  for(var k=0;k+1<tk.length;k++) if(tk[k].length<=3 && tk[k+1].length<=4 && !/^[大高中小]$/.test(tk[k+1]) && kanji(tk[k]+tk[k+1])>=1) return { id:'', name:tk[k]+' '+tk[k+1] };
+  return { id:'', name:(tk[0]||'') };
+}
+/* 行の ならび → 選手ごとの かたまり */
+function rrEntries(lines){
+  var ents=[], cur=null, ev=null, evDist=null;
+  function close(){ if(cur && cur.times.length) ents.push(cur); cur=null; }
+  lines.forEach(function(L){
+    var txt=rrNorm(L.txt||''), tm=rrTimes(L.nums), rt=rrRT(L.nums);
+    var e=rrEvent(txt), dm=/(\d{2,4})\s*m/.exec(txt) || /(\d{2,4})\s*m/.exec(rrNorm(L.nums));
+    if(e && !tm.length){ close(); ev=e; evDist=dm ? Number(dm[1]) : null; return; }   /* 種目の 見出し */
+    var head=kanji(txt)>=1 && cjk(txt)>=2;
+    /* 新しい 選手：前の 選手に 通過の 行が ある とき、または 行の はじめが 順位の 数字の とき（読みまちがえた ふりがなの 行で 切らない） */
+    var rankStart=/^\s*\d{1,3}[\s　]/.test(txt || L.nums || '');
+    if(head && (!cur || (cur.times.length && (cur.splitLine || rankStart)))){ close(); cur={ line:txt, times:[], rt:null, ev:ev, evDist:evDist }; }
+    else if(head && !tm.length && !cur.times.length) cur.line=txt;   /* タイムの ない 漢字の 行が つづく とき（表の 見出し など）は、あとの 行を 名前の 行に します */
+    if(!cur){ if(!tm.length) return; cur={ line:'', times:[], rt:null, ev:ev, evDist:evDist }; }
+    tm.forEach(function(v){ cur.times.push(v); });
+    if(!head && tm.length) cur.splitLine=true;
+    if(rt!=null && cur.rt==null) cur.rt=rt;
+  });
+  close();
+  return ents.map(function(c){
+    var u=[]; c.times.slice().sort(function(a,b){ return a-b; }).forEach(function(v){ if(!u.length || Math.abs(v-u[u.length-1])>0.001) u.push(v); });
+    var n=u.length, dist=null, step=null;
+    [50,25,100].some(function(s){ if(DIST_LIST.indexOf(n*s)>=0 && (!c.evDist || c.evDist===n*s)){ dist=n*s; step=s; return true; } return false; });
+    if(!dist && c.evDist && c.evDist%n===0){ dist=c.evDist; step=c.evDist/n; }
+    if(!dist){ step=50; dist=n*50; }
+    var nm=rrName(c.line);
+    return { name:nm.name, swId:nm.id, ev:c.ev||'free', dist:dist, rt:c.rt, total:u[n-1], times:u.map(function(v,i){ return { d:(i+1)*step, t:v }; }), line:c.line };
+  });
+}
+function rrRead(file, stat){
+  var isPdf=/pdf/i.test(file.type||'') || /\.pdf$/i.test(file.name||'');
+  return (isPdf ? rrFromPdf(file, stat) : ocrPrep(file).then(function(c){ return rrFromImage(c, stat); })).then(function(lines){
+    return { lines:lines, entries:rrEntries(lines) };
+  });
+}
+/* ===== 記録を見る → 画像・PDFから取り込む（新しい 記録を つくる） ===== */
+var imEnts=[], imPart=false;
+function imOpen(){
+  imEnts=[]; imPart=false;
+  $('imStat').textContent=''; $('imList').innerHTML=''; $('imChoose').classList.add('hide'); $('imGo').classList.add('hide');
+  var d=new Date(); $('imDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  $('imBox').classList.remove('hide');
+}
+function imPaint(){
+  var h='', sws=[]; try{ sws=loadSwimmers()||[]; }catch(e){}
+  var evs=[['free','自由形'],['back','背泳ぎ'],['breast','平泳ぎ'],['fly','バタフライ'],['im','個人メドレー'],['other','その他']];
+  imEnts.forEach(function(e,i){
+    h+='<div class="imRow'+(imPart&&!e.on?' off':'')+'" data-i="'+i+'">';
+    if(imPart) h+='<label class="imChk"><input type="checkbox" class="imOn"'+(e.on?' checked':'')+'> 取り込む</label>';
+    h+='<div class="imTop"><input type="text" class="imName" value="'+esc(e.name).replace(/"/g,'&quot;')+'" placeholder="名前" list="imSwList" aria-label="名前">'+
+       '<select class="imEv" aria-label="種目">'+evs.map(function(v){ return '<option value="'+v[0]+'"'+(v[0]===e.ev?' selected':'')+'>'+v[1]+'</option>'; }).join('')+'</select></div>';
+    h+='<div class="imSub">'+e.dist+'m　記録 '+fmt(e.total)+'　通過 '+e.times.length+'個'+(e.rt!=null?'　反応時間 '+e.rt.toFixed(2):'')+(e.swId?'　登録した選手':'')+'</div>';
+    h+='<div class="imLaps">'+e.times.map(function(x){ return x.d+'m '+fmt(x.t); }).join('　')+'</div></div>';
+  });
+  $('imList').innerHTML=h+'<datalist id="imSwList">'+sws.map(function(s){ return '<option value="'+esc(s.name||'')+'">'; }).join('')+'</datalist>';
+  [].forEach.call($('imList').querySelectorAll('.imRow'), function(row){
+    var i=Number(row.dataset.i);
+    row.querySelector('.imName').oninput=function(){ imEnts[i].name=this.value; imEnts[i].swId=''; };
+    row.querySelector('.imEv').onchange=function(){ imEnts[i].ev=this.value; };
+    var c=row.querySelector('.imOn'); if(c) c.onchange=function(){ imEnts[i].on=this.checked; row.classList.toggle('off', !this.checked); imCount(); };
+  });
+  var many=imEnts.length>1;
+  $('imChoose').classList.toggle('hide', !many || imPart);
+  $('imGo').classList.toggle('hide', many && !imPart);
+  imCount();
+}
+function imCount(){
+  var n=imPart ? imEnts.filter(function(e){ return e.on; }).length : imEnts.length;
+  $('imGo').textContent=(imEnts.length>1 ? (imPart ? '選んだ'+n+'件を取り込む' : n+'件を取り込む') : '取り込む');
+  $('imGo').disabled=!n;
+}
+function imSave(list){
+  var dv=$('imDate').value, at=(dv ? new Date(dv+'T12:00:00') : new Date()).getTime(), meet=($('imMeet').value||'').trim(), pool=Number($('imPool').value)||50;
+  var sws=[]; try{ sws=loadSwimmers()||[]; }catch(e){}
+  var job=Promise.resolve(), n=0, base=Date.now();
+  list.forEach(function(e, k){
+    var swId=e.swId, nm=(e.name||'').trim();
+    if(!swId){ var f=nm.replace(/[\s　]/g,''); for(var i=0;i<sws.length;i++) if(f && String(sws[i].name||'').replace(/[\s　]/g,'')===f){ swId=sws[i].id; nm=sws[i].name; break; } }
+    var rt=e.rt;
+    var rec={ id:'i'+(base+k), at:at, title:meet || (e.dist+'m　'+evLabel(e.ev)), round:'', pool:pool, dist:e.dist, event:e.ev,
+      manual:true, t0:null, rt:rt, splits:e.times.map(function(x){ return { d:x.d, t:Math.round((rt!=null ? x.t-rt : x.t)*100)/100 }; }),
+      strokes:[], manualSegs:[], manualN:null, manualST:null, videoUrl:'', swimmerId:swId||'', swimmerName:nm, updatedAt:Date.now(), thumb:'', from:'import' };
+    job=job.then(function(){ return dbPut(rec); }).then(function(){ afterSave(rec); n++; });
+  });
+  return job.then(function(){ return n; });
+}
+$('rmImp').onclick=function(){ $('rmBox').classList.add('hide'); imOpen(); };
+$('imX').onclick=function(){ $('imBox').classList.add('hide'); };
+$('imPick').onclick=function(){ $('imFile').value=''; $('imFile').click(); };
+$('imFile').onchange=function(){
+  var f=this.files && this.files[0]; if(!f) return;
+  $('imPick').disabled=true; imEnts=[]; imPart=false; imPaint();
+  rrRead(f, function(t){ $('imStat').textContent=t; }).then(function(R){
+    imEnts=R.entries.map(function(e){ e.on=true; return e; });
+    if(!imEnts.length) $('imStat').textContent='タイムが見つかりませんでした。結果の部分が大きく写った画像にしてください。';
+    else $('imStat').textContent=imEnts.length+'件の記録が見つかりました。名前・種目を確かめてください。'+(imEnts.length>1?'全部取り込むか、一部を選ぶかを選んでください。':'');
+    /* 大会名が 書いて あれば 入れます */
+    if(!$('imMeet').value){ var mt=null; R.lines.some(function(L){ var m=/(\S*(大会|選手権|記録会|競技会|カップ|杯)\S*)/.exec(rrNorm(L.txt||'').replace(/(\S)[ 　](?=\S)/g,function(x,c){ return /[\u3400-\u9fff\u3040-\u30ff]/.test(c)?c:x; })); if(m){ mt=m[1]; return true; } return false; }); if(mt) $('imMeet').value=mt; }
+    imPaint();
+  }).catch(function(){
+    $('imStat').textContent='読み取れませんでした。ネットにつながっているか確かめてください。';
+  }).then(function(){ $('imPick').disabled=false; });
+};
+$('imAll').onclick=function(){ imPart=false; imPaint(); imGoRun(); };
+$('imSome').onclick=function(){ imPart=true; imEnts.forEach(function(e){ e.on=false; }); imPaint(); $('imStat').textContent='取り込む記録にチェックを入れてください。'; };
+function imGoRun(){
+  var list=imPart ? imEnts.filter(function(e){ return e.on; }) : imEnts;
+  if(!list.length) return;
+  if(list.some(function(e){ return !(e.name||'').trim(); }) && !confirm('名前が空の記録があります。このまま取り込みますか？')) return;
+  $('imGo').disabled=true;
+  imSave(list).then(function(n){
+    $('imBox').classList.add('hide');
+    toast(n+'件の記録を取り込みました');
+    try{ paintList(); }catch(e){}
+  }).catch(function(){ toast('保存できませんでした'); $('imGo').disabled=false; });
+}
+$('imGo').onclick=imGoRun;
+/* ===== 修正の 画面の 読み取りでも PDFと 複数の 選手に 対応 ===== */
+function ocrUseEntry(e){
+  var txt=e.times.map(function(x){ return fmt(x.t); }).join(' ')+(e.rt!=null?' ('+e.rt.toFixed(2)+')':'');
+  $('ocrTxt').value=txt; ocrPaint();
+}
 /* ラップに 入れる：読み取った 距離の 行を 入れかえ、ほかの 行（15m など）は 残します */
 $('ocrUse').onclick=function(){
   var R=ocrRes; if(!R || !R.times.length) return;
@@ -14207,7 +14501,7 @@ function cmpOpen(prefill){
 }
 /* 「記録を見る（比較、修正）」：まず どちらを するかを えらびます */
 $('openCompare').onclick=function(){
-  $('rmLead').textContent=KA('くらべるか、きろくを 直すかを えらんでください。','比較するか、記録を直すかを選んでください。');
+  $('rmLead').textContent=KA('くらべるか、きろくを 直すか、取りこむかを えらんでください。','比較するか、記録を直すか、取り込むかを選んでください。');
   $('rmCmpB').textContent=KA('くらべる（PDFで 見る）','比較する（PDFで見る）');
   $('rmCmpS').textContent=KA('自分の 記録を 前の 記録・ベスト・世界記録などと くらべます','自分の記録を前回・ベスト・世界記録などと比較します');
   $('rmFixB').textContent=KA('きろくを 直す','記録を直す（修正）');

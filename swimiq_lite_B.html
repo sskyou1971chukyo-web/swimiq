@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.15.2">
+<meta name="app-ver" content="2026.10.15.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1831,6 +1831,9 @@ body.grid .gridL{ display:block; }
 #wave.moving{ opacity:.9; }
 #wave #wvSelL{ flex:1; min-width:0; font-size:14px; font-weight:900; color:#fff;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+#wave #wvHere{ flex:0 0 auto; min-height:30px; padding:0 12px; border-radius:8px;
+  border:2px solid #ffc400; background:transparent; color:#ffc400; font-size:13px; font-weight:900; }
+#wave.scan #wvHere, #wave.ask #wvHere{ display:none; }
 #wave #wvX{ flex:0 0 auto; min-height:30px; padding:0 12px; border-radius:8px;
   border:2px solid rgba(255,255,255,.3); background:transparent; color:#fff; font-size:13px; font-weight:800; }
 #wave .wvMain{ display:flex; gap:8px; align-items:stretch; }
@@ -2204,6 +2207,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <div class="wvTop">
         <b class="wvGrip" data-t="wvTitle"></b>
         <span id="wvSelL" aria-live="polite"></span>
+        <button type="button" id="wvHere">ここから読み取る</button>
         <button type="button" id="wvX" data-t="wvClose"></button>
       </div>
       <div class="wvMain">
@@ -3666,10 +3670,10 @@ var W={
  wvCand:['候補 ','候補 '],
  wvSelNone:['グラフを さわって 合図の 位置を えらんで ください','グラフに触れて合図の位置を選んでください'],
  wvLoading:['音を 読みこんで います…','音を読み込んでいます…'],
- wvNG:['音を 自動では 読みとれません。下の ボタンを おして ください','音を自動では読み取れません。下のボタンを押してください'],
+ wvNG:['音を 自動では 読みとれません。動画を 合図の 少し 前まで うごかしてから、下の ボタンを おして ください。その 場所から 読みとります','音を自動では読み取れません。動画を合図の少し前まで動かしてから、下のボタンを押してください。その場所から読み取ります'],
  wvNoAudio:['この 動画には 音が 入って いません。音つきで 撮った 動画を えらんで ください','この動画には音が入っていません。音つきで撮った動画を選んでください'],
  wvStop:['ここまでで 読みとり 終わり','ここまでで読み取り終了'],
- wvScanBtn:['音を 読みとる','音を読み取る'],
+ wvScanBtn:['この 場所から 音を 読みとる','この場所から音を読み取る'],
  wvScanning:['音を 読みとって います… ','音を読み取っています… '],
  wvScanDone:['音の 波形が できました','音の波形ができました'],
  wvScanFlat:['この 動画には 音が ほとんど 入って いません','この動画には音がほとんど入っていません'],
@@ -6628,22 +6632,31 @@ function wvScanStop(){
 }
 function wvScanStart(){
   if(wvScanning || !aBlob) return;
+  /* 読み取りは 今の 動画の 場所（の 1秒前）から はじめます。終わりの 近くに いる ときは 初めから */
   if(!rtAudioInit()){ wvPrompt(); toast(T('wvScanNG')); return; }
   var v=$('v'), blob=aBlob, dt=0.01;
   try{ var rp=rtAC.resume(); if(rp && rp.catch) rp.catch(function(){}); }catch(e){}
   var known=(isFinite(v.duration) && v.duration>0) ? v.duration : 0;
+  var cur0=v.currentTime||0, fromT=Math.max(0, cur0-1);
+  if(known && known-fromT<2) fromT=0;
   var n=Math.ceil((known||300)/dt)+10, L=new Float32Array(n), i;
   for(i=0;i<n;i++) L[i]=NaN;
+  /* 前に ほかの 場所を 読み取って いれば、その 波形も 残して つなげます */
+  var old=(wvBlob===aBlob && wvData && wvData.L && wvData.dt===dt) ? wvData : null;
+  if(old) for(i=0;i<Math.min(n, old.L.length);i++){ if(old.got ? old.got[i] : true) L[i]=old.L[i]; }
+  var s0=Math.round(fromT/dt), seen0=0;
   var N=Math.max(64, Math.round(rtAC.sampleRate*0.02));
   var buf=new Float32Array(wvAn.fftSize);
   var last=-1, mx=-60, quiet=0, t0=performance.now(), seen=0;
+  if(old) for(i=0;i<n;i++) if(L[i]===L[i]){ last=Math.max(last,i); seen0++; }
+  var lastNew=-1;
   wvData={ L:L, dt:dt, floor:-80, max:-40, ons:[], partial:true }; wvBlob=blob;
   $('wave').classList.remove('ask');
   $('wvMsg').classList.add('hide'); $('wvScan').classList.add('hide');
   wvScanning=true;
   $('wave').classList.add('scan');
   if(rtGain) rtGain.gain.value=0;
-  try{ v.pause(); v.currentTime=0; v.playbackRate=1; }catch(e){}
+  try{ v.pause(); v.currentTime=fromT; v.playbackRate=1; }catch(e){}
   var pp=v.play();
   if(pp && pp.catch) pp.catch(function(){ if(wvScanning){ wvScanStop(); wvPrompt(); toast(T('wvScanNG')); } });
   function lab(){
@@ -6654,18 +6667,20 @@ function wvScanStart(){
     if(!wvScanning) return;
     wvScanStop();
     if(blob!==aBlob) return;
-    if(!ok || last<20){ wvData=null; wvBlob=null; wvPrompt(); toast(T('wvScanNG')); return; }
-    var L2=new Float32Array(last+1), prev=-90, k;
-    for(k=0;k<=last;k++){ var q=L[k]; if(q!==q) q=prev; L2[k]=q; prev=q; }
-    var srt=Array.prototype.slice.call(L2).sort(function(a,b){ return a-b; });
+    if(!ok || lastNew-s0<20){ if(!old){ wvData=null; wvBlob=null; } else wvData=old; wvPrompt(); toast(T('wvScanNG')); return; }
+    /* 読み取って いない 所は 静かな 音（-90）で うめます。ものさし（いちばん 小さい・大きい 音）は 読み取った 所だけで 決めます */
+    var L2=new Float32Array(last+1), got=new Uint8Array(last+1), vals=[], prev=-90, k;
+    for(k=0;k<=last;k++){ var q=L[k]; if(q!==q){ q=-90; } else { got[k]=1; vals.push(q); } L2[k]=q; prev=q; }
+    var srt=vals.sort(function(a,b){ return a-b; });
     var fl=srt[Math.floor(srt.length*0.1)], top=srt[srt.length-1];
-    var r={ ons:sigOnsets({L:L2, dt:dt}), L:L2, dt:dt, floor:fl, max:top };
+    var ons=sigOnsets({L:L2, dt:dt}).filter(function(o){ var j=Math.round(o.t/dt); return got[j] && got[Math.max(0,j-10)]; });   /* 読み取りの はじまりを 音の 立ち上がりと まちがえない */
+    var r={ ons:ons, L:L2, dt:dt, floor:fl, max:top, got:got, part:true };
     sigCache=r; sigCacheBlob=blob; sigFail=null;
     wvData=r;
     var flat=(top-fl)<6;
     if(wvSel==null){ var p=(aSigT!=null)?{t:aSigT}:sigPick(r.ons, aT0); wvSel=p?p.t:null; }
-    try{ v.currentTime = (wvSel!=null) ? wvSel : 0; }catch(e){}
-    wvCenter(wvSel!=null ? wvSel : 0); wvLabel();
+    try{ v.currentTime = (wvSel!=null) ? wvSel : fromT; }catch(e){}
+    wvCenter(wvSel!=null ? wvSel : fromT); wvLabel();
     if(flat){ $('wvMsg').textContent=T('wvScanFlat'); $('wvMsg').classList.remove('hide'); $('wvMsg').classList.add('top'); }
     toast(T(flat?'wvScanFlat':'wvScanDone'));
   }
@@ -6678,15 +6693,16 @@ function wvScanStart(){
     /* 音の 回路が 動いて いない（ロックされて いる）とき */
     if(rtAC.state!=='running' && performance.now()-t0>1500){ finish(false); return; }
     /* 動画が 3秒 たっても すすまない（音の 回路に とめられて いる） */
-    if(ct<0.05 && performance.now()-t0>3000){ finish(false); return; }
+    if(ct<fromT+0.05 && performance.now()-t0>3000){ finish(false); return; }
     wvAn.getFloatTimeDomainData(buf);
     var sum=0, a0=buf.length-N, k2;
     for(k2=a0;k2<buf.length;k2++) sum+=buf[k2]*buf[k2];
     var db=10*Math.log10(sum/N+1e-12);
     var idx=Math.min(n-1, Math.max(0, Math.round(ct/dt)));
-    var from = last<0 ? idx : Math.min(last+1, idx);
+    var from = lastNew<0 ? idx : Math.min(lastNew+1, idx);
     for(k2=from;k2<=idx;k2++){ var o=L[k2]; L[k2]=(o!==o)?db:Math.max(o,db); }
     if(idx>last) last=idx;
+    if(idx>lastNew) lastNew=idx;
     if(db>mx) mx=db;
     wvData.max=Math.max(-40, mx);
     lab();
@@ -6892,6 +6908,8 @@ function wvStep(dir){
   $('wvNext').onclick=function(){ wvStep(1); };
   $('wvX').onclick=function(){ wvPinned=false; wvShow(false, true); };
   $('wvScan').onclick=function(){ wvScanStart(); };
+  /* 波形が ある ときも、動画を 動かした 場所から 読み取り直せます（前に 読み取った 所は 残します） */
+  $('wvHere').onclick=function(){ wvScanStart(); };
   $('wvStop').onclick=function(){ if(wvScanning && wvScanFin) wvScanFin(true); };
   $('wvSet').onclick=function(){
     if(wvSel==null) return;

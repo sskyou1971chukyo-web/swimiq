@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.15.1">
+<meta name="app-ver" content="2026.10.15.2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -986,6 +986,7 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 .reList .btn{ width:100%; min-height:62px; display:flex; flex-direction:column; align-items:flex-start;
   justify-content:center; gap:3px; padding:8px 14px; text-align:left; font-size:17px; font-weight:900; }
 .reList .btn small{ font-size:12.5px; font-weight:700; color:var(--dim); line-height:1.5; }
+.reList .btn.g small{ color:#3d3000; }
 /* 使い方の 中身 */
 .hpSec{ margin-top:18px; }
 .hpSec h4{ margin:0 0 8px; padding-left:9px; border-left:5px solid var(--am);
@@ -3257,15 +3258,34 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 <div id="reBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="reH">
   <div class="svWrap">
     <h3 id="reH" data-t="reTitle"></h3>
-    <p class="lead" data-t="reLead"></p>
-    <div class="reList">
-      <button class="btn y" type="button" id="reTime"><span data-t="reTimeB"></span><small data-t="reTimeS"></small></button>
-      <button class="btn y" type="button" id="rePart"><span data-t="rePartB"></span><small data-t="rePartS"></small></button>
-      <button class="btn y" type="button" id="reStroke"><span data-t="reStrB"></span><small data-t="reStrS"></small></button>
-      <button class="btn y" type="button" id="reInfo"><span data-t="reInfoB"></span><small data-t="reInfoS"></small></button>
-      <button class="btn y" type="button" id="reAll"><span data-t="reAllB"></span><small data-t="reAllS"></small></button>
+    <!-- 1だんめ：数値を 残すか、全部 消すか -->
+    <div id="reStep1">
+      <p class="lead">今の数値を残すか、全部消して初めからにするかを選びます。どちらも、保存を押すまでは今の記録は変わりません。</p>
+      <div class="reList">
+        <button class="btn g" type="button" id="reKeep"><span>数値を残しておく</span><small>今の通過・ストローク・足離れを残したまま、直したい所だけ直します</small></button>
+        <button class="btn r" type="button" id="reWipe"><span>全て削除</span><small>通過・ストローク・足離れ・合図を全部消して、初めから分析します</small></button>
+      </div>
+    </div>
+    <!-- 数値を 残す：直す ところを えらぶ -->
+    <div id="reStepKeep" class="hide">
+      <p class="lead" data-t="reLead"></p>
+      <div class="reList">
+        <button class="btn y" type="button" id="reAll"><span>数値を見ながら分析画面で直す</span><small data-t="reAllS"></small></button>
+        <button class="btn y" type="button" id="rePart"><span data-t="rePartB"></span><small data-t="rePartS"></small></button>
+        <button class="btn y" type="button" id="reStroke"><span data-t="reStrB"></span><small data-t="reStrS"></small></button>
+        <button class="btn y" type="button" id="reInfo"><span data-t="reInfoB"></span><small data-t="reInfoS"></small></button>
+      </div>
+    </div>
+    <!-- 全て 削除：何を 消すか -->
+    <div id="reStepWipe" class="hide">
+      <p class="lead">消すのは分析の画面の中だけです。保存を押すまでは、今の記録は残っています。</p>
+      <div class="reList">
+        <button class="btn r" type="button" id="reWipeAll"><span>全部消して初めから</span><small>通過・ストローク・足離れ・合図・浮き上がり・ターンの測定を全部消します</small></button>
+        <button class="btn r" type="button" id="reTime"><span>タイムだけ消す</span><small data-t="reTimeS"></small></button>
+      </div>
     </div>
     <div class="svBtns">
+      <button class="btn hide" type="button" id="reBack">戻る</button>
       <button class="btn" type="button" id="reCancel" data-t="dMenuX"></button>
     </div>
   </div>
@@ -5142,6 +5162,7 @@ bindVidError('v'); bindVidError('dv');
 function openAna(blob, opt){
   rpExtraD=null;
   opt = opt || {};
+  aWipe = !!opt.wipe;
   aDraftId = opt.draftId || null; aDraftAt = opt.draftAt || null; aDraftThumb = opt.thumb || ''; aNoDraft=false; aDraftSig='';
   aDraftVidFor = opt.vidStored ? (opt.draftId||'') : '';
   freeVideo('dv');
@@ -6956,7 +6977,7 @@ $('bStroke').onclick=function(){
    それいがい       … 再生と ていしの きりかえ */
 var pdCounted=false;
 var aStrokeAt=0;
-var aWin=null, aLastIns=null;   /* 1500mの 簡易測定の 4区間（ないときは null）／さいごに 入れた かき */
+var aWin=null, aLastIns=null, aWipe=false;   /* aWipe：〈全て削除〉で 初めから 分析して いる（保存の とき ターンの 測定なども 消します） */   /* 1500mの 簡易測定の 4区間（ないときは null）／さいごに 入れた かき */
 var anaWC=winCtl({ vid:function(){ return $('v'); }, rec:function(){ return anaRec(); }, plan:function(){ return aWin; },
   get:function(){ return aStrokes; }, set:function(a){ aStrokes=a; },
   stop:function(){ if($('bStroke').getAttribute('aria-pressed')==='true') $('bStroke').click(); }, paint:function(){ paintSR(); } });
@@ -7437,13 +7458,15 @@ $('anaSave').onclick=function(){
     if(uwDist!=null){ if(!uwArr[0] || Math.abs(uwArr[0].d-uwDist)>0.05) uwArr[0]={ d:uwDist, vt:null }; }
     else if(uwArr[0]) rec.uwDist=uwArr[0].d;
     rec.uw=uwArr;
+    /* 〈全て削除〉で 初めから 分析した ときは、前の 測定（ターンの 測定・手で 直した かき数）を 引きつがない */
+    if(aWipe){ rec.turn5=[]; rec.manualN=null; rec.manualST=null; rec.manualAt=null; }
     if(old){
       /* 分析で 決めない もの（メモ・動画リンク・手入力の しるし など）は もとの まま のこす */
       var k; for(k in old){ if(!(k in rec)) rec[k]=old[k]; }
       if(old.videoUrl) rec.videoUrl=old.videoUrl;
       if(!th && old.thumb) rec.thumb=old.thumb;
-      if(uwKick==null && old.uwKick!=null) rec.uwKick=old.uwKick;
-      if(uwDist==null && old.uwDist!=null) rec.uwDist=old.uwDist;
+      if(!aWipe && uwKick==null && old.uwKick!=null) rec.uwKick=old.uwKick;
+      if(!aWipe && uwDist==null && old.uwDist!=null) rec.uwDist=old.uwDist;
       if(old.manual && aT0!=null && aSplits.length) rec.manual=false;   /* 動画で 足離れと 通過を 入れ直したので、手入力の しるしを 外します */
       var sameStr = JSON.stringify(old.strokes||[])===JSON.stringify(rec.strokes||[]);
       if(!sameStr){ rec.strokesAt=Date.now(); rec.manualN=null; rec.manualST=null; rec.manualAt=null; }
@@ -8066,12 +8089,35 @@ $('dView').onclick=function(){ if(dRec) viewOpen(dRec); };
    ・ぜんぶ …… これまでと 同じ（いまの きろくを のせて 分析画面へ）
    どれも「保存」するまでは もとの きろくは かわりません。 */
 function reClose(){ $('reBox').classList.add('hide'); }
+/* やり直しの 画面の だん（'1'＝残すか消すか、'keep'＝直す ところ、'wipe'＝何を 消すか） */
+function reStep(k){
+  $('reStep1').classList.toggle('hide', k!=='1');
+  $('reStepKeep').classList.toggle('hide', k!=='keep');
+  $('reStepWipe').classList.toggle('hide', k!=='wipe');
+  $('reBack').classList.toggle('hide', k==='1');
+  var f={ '1':'reKeep', keep:'reAll', wipe:'reWipeAll' }[k];
+  setTimeout(function(){ try{ $(f).focus(); }catch(e){} }, 50);
+}
 $('dAgain').onclick=function(){
   if(!dRec) return;
   if($('detail').classList.contains('stroke')) return;
   $('dv').pause(); $('dPlay').innerHTML=T('playI');
+  reStep('1');
   $('reBox').classList.remove('hide');
-  setTimeout(function(){ try{ $('reTime').focus(); }catch(e){} }, 50);
+};
+$('reKeep').onclick=function(){ reStep('keep'); };
+$('reWipe').onclick=function(){ reStep('wipe'); };
+$('reBack').onclick=function(){ reStep('1'); };
+/* 全部 消して 初めから：設定（プール・距離・種目・分析の しかた・距離の 目もり）だけ 残して 分析画面へ */
+$('reWipeAll').onclick=function(){
+  reClose();
+  if(!dRec) return;
+  if(!hasVid(dRec)){ noVidGo(dRec); return; }
+  if(!confirm('通過・ストローク・足離れ・合図・浮き上がり・ターンの測定を全部消して、初めから分析します。\n\n保存を押すまでは、今の記録は残っています。')) return;
+  $('dv').pause();
+  openAna(dRec.video, { sUnit:null, sWin:null, amode:dRec.amode, tev:[], uw:[], uwDist:null, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+                        event:dRec.event, t0:null, splits:[], strokes:[], sigT:null, rt:null, wipe:true });
+  setTimeout(function(){ toast('全部消しました。初めから分析します。保存を押すまでは今の記録は残っています'); }, 400);
 };
 $('reCancel').onclick=reClose;
 $('reAll').onclick=function(){

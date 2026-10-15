@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.14.1">
+<meta name="app-ver" content="2026.10.15.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -765,6 +765,18 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
   background:rgba(0,0,0,.55); border:1.5px solid rgba(255,196,0,.65);
   -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
 #stMode, #stMode.hide{ display:none !important; }
+/* 1500mの 簡易測定（ストロークを 数える 4区間） */
+#winTag{ position:fixed; left:12px; top:calc(env(safe-area-inset-top) + 10px); z-index:93; pointer-events:none;
+  background:#16181d; border:2px solid var(--am); color:var(--am); font-weight:900; font-size:14px;
+  padding:5px 12px; border-radius:10px; max-width:60vw; }
+#winTag.hide{ display:none; }
+#winBan{ position:fixed; left:12px; right:12px; top:calc(env(safe-area-inset-top) + 52px); z-index:94; max-width:640px;
+  background:rgba(0,0,0,.88); border:3px solid var(--am); border-radius:14px; padding:10px 14px; color:#fff; }
+#winBan.hide{ display:none; }
+#winBan b{ color:var(--am); font-size:17px; font-weight:900; display:block; }
+#winBan p{ margin:4px 0 6px; font-size:13.5px; font-weight:700; line-height:1.5; }
+#winBanMap svg{ display:block; width:100%; height:auto; }
+#winBanX{ margin-top:6px; background:#2a2d33; color:#fff; border:0; border-radius:10px; padding:6px 14px; font-weight:900; font-size:13px; }
 #stMode i{ width:8px; height:8px; border-radius:999px; background:var(--am);
   animation:stBlink 1.1s ease-in-out infinite; }
 #stMode b{ font-size:13px; font-weight:900; color:var(--am); letter-spacing:.03em;
@@ -2839,6 +2851,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 <!-- ストロークを 数えて いる あいだ ずっと 出る しるし -->
 <div id="stMode" class="hide" aria-hidden="true"><i></i><b data-t="stModeLbl"></b></div>
 
+<!-- 1500mの 簡易測定：いま 数えて いる 区間の しるし と、区間の 前後の おしらせ（地図つき） -->
+<div id="winTag" class="hide" aria-live="polite"></div>
+<div id="winBan" class="hide" role="status"><b id="winBanT"></b><p id="winBanP"></p><div id="winBanMap"></div><button id="winBanX" type="button">とじる</button></div>
+
 <!-- かきを 数える たびに 大きく 出る 数（0.4秒で 消えます） -->
 <div id="stHud" class="hide" aria-hidden="true"><b id="stHudN">0</b><span id="stHudT"></span></div>
 
@@ -4353,6 +4369,7 @@ function shareText(text, title){
 function show(id){
   ['home','ana','detail','compare','vs','settings','swimmers','admin'].forEach(function(k){ $(k).classList.toggle('hide', k!==id); });
   document.body.classList.toggle('vs', id==='ana' || id==='detail');
+  try{ winBanHide(); winTagSet(''); if(typeof anaWC!=='undefined') anaWC.end(); if(typeof dWC!=='undefined') dWC.end(); }catch(e){}
   window.scrollTo(0,0);
 }
 
@@ -4623,7 +4640,7 @@ function tempoKinds(intervals, wantTurns){
 function tempoTable(strokes, wantTurns, u){
   var arr=strokes||[], iv=[], ds=[], i, d, k=(u==='arm')?2:1;
   if(u==='arm' && typeof wantTurns==='number') wantTurns*=2;
-  for(i=k;i<arr.length;i++){ d=arr[i]-arr[i-k]; if(d>0.05){ iv.push({ t:arr[i], d:d }); ds.push(d); } }
+  for(i=k;i<arr.length;i++){ d=arr[i]-arr[i-k]; if(d>0.05 && d<ST_GAP){ iv.push({ t:arr[i], d:d }); ds.push(d); } }
   var K=tempoKinds(ds, wantTurns);
   for(i=0;i<iv.length;i++){ iv[i].kind=K.kinds[i]; iv[i].no=i+1; }
   return iv;
@@ -4712,6 +4729,14 @@ var HELP=[
    '25mプールの 400mまでは 全部の ターン、それより ターンが 多い ときは 前半と 後半に 5回ずつ 散らした 10回を 測ります。見えない ターンは <b>見えないので飛ばす</b> で 飛ばして ください。',
    'これは 1500m世界選手権の 研究（Polach ら 2021）と 同じ 区切りです。PDFの 非泳区間に ある 「ターン平均」（5m前〜15m後）とは 区切りが ちがいます。'
  ]],
+ ['1500mの 簡易測定（4区間）',[
+   '1500mを <b>簡易分析</b> で 分析すると、通過は 50mごとだけ、ストロークは 4つの 区間だけ 数えます。入り 0〜100m・前半の巡航 400〜500m・後半の巡航 900〜1000m・ラスト200 1300〜1500m です。',
+   'さきに 足離れと 50mごとの 通過を 全部 記録します。そのあと <b>ストロークを計る</b> を 押すと、動画が 次の 区間の はじめまで 進み、区間の おわりの 通過で 自動で 止まります。',
+   '止まったら、もう一度 <b>ストロークを計る</b> を 押すと 次の 区間へ 進みます。区間の そとで 押した かきは 数えません。',
+   'ターンは 再生の 画面の <b>メニュー</b> →<b>ターンを測定</b> で 前半と 後半に 5回ずつ、10回を 測ります。',
+   'PDFの 1ページ目は 1500m版に なります。100mごとの ラップ、4区間の くらべ（ラスト200は 100mずつ）、SRと 1かきの距離の 変化です。1かきの距離と 効率指数は、50mごとの 通過しか ないので、ターンと 潜りを ふくむ 100m 全体で 出します。区間どうしの くらべに 使って ください。',
+   '前に 全部 数えた 1500mの 記録は、そのまま 全部の かきで 計算します。'
+ ]],
  ['動画を 携帯に 保存する',[
    'アプリで とった 動画は、<b>動画を携帯に保存</b>を おすと 携帯の 写真（カメラロール）に 入ります。',
    '再生の 画面の <b>メニュー</b>の 中にも <b>動画を保存</b>が あります。',
@@ -4789,7 +4814,7 @@ function stInts(arr, u){
   /* 数え方：'cycle'＝同じ手の 入水ごと（左右で 1回）／'arm'＝片手ずつ（自由形・背泳ぎ）。
      片手ずつの ときは 2つ前の 入水との 差を 1サイクルの 時間（ST）に します */
   var out=[], i, k=(u==='arm')?2:1;
-  for(i=k;i<(arr||[]).length;i++){ var d=arr[i]-arr[i-k]; if(d>0.05) out.push(d); }
+  for(i=k;i<(arr||[]).length;i++){ var d=arr[i]-arr[i-k]; if(d>0.05 && d<ST_GAP) out.push(d); }   /* 区間と 区間の あいだ（1500mの 簡易測定）は 間隔に しません */
   return out;
 }
 /* ストロークの 時刻と 通過タイムが 合わせられるかを 調べます。合わせられない ときは、その 理由（直し方つき）を 返します */
@@ -4811,6 +4836,126 @@ function sUnitOf(r){ return (r && r.sUnit==='arm') ? 'arm' : 'cycle'; }
 function wantT(dist, pool, u){ var w=wantTurnsOf(dist, pool); return (w!=null && u==='arm') ? w*2 : w; }
 /* 画面・PDFの かき数の 書きそえ */
 function sUnitLbl(r){ return sUnitOf(r)==='arm' ? '（片手）' : ''; }
+/* ================================================================
+   1500mの 簡易測定：ストロークを 数えるのは 4区間だけ
+   入り 0〜100m・前半の巡航 400〜500m・後半の巡航 900〜1000m・ラスト200 1300〜1500m
+   区間の そとの かきは 数えません。区間と 区間の あいだを 1つの かき間隔と みなさない ように、
+   かき間隔は ST_GAP 秒より 長い ものを 使いません（ふつうの レースの ターンでも 40秒は こえません）。
+   ================================================================ */
+var WIN1500=[[0,100],[400,500],[900,1000],[1300,1500]], WIN_NAMES=['入り','前半の巡航','後半の巡航','ラスト200'];
+var ST_GAP=40;
+function winPlanFor(dist, amode){ return (amode!=='detail' && Number(dist)===1500) ? WIN1500 : null; }
+function sWinOf(r){ return (r && r.sWin && r.sWin.length) ? r.sWin : null; }
+/* その 区間が 数えた 区間の 中に 入って いるか（区間の 決まりが ない 記録は いつも 入って いる） */
+function winCov(r, a, b){
+  var W=sWinOf(r); if(!W) return true;
+  for(var i=0;i<W.length;i++) if(a>=W[i][0] && b<=W[i][1]) return true;
+  return false;
+}
+/* 区間の はじめと おわりの 動画の 時刻（はじめ＝0mなら 足離れ） */
+function winRange(rr, w){
+  if(!rr || rr.t0==null) return null;
+  var by=splitBy(rr), t0=Number(rr.t0);
+  return { a:(w[0]===0 ? t0 : (by[w[0]]!=null ? t0+by[w[0]] : null)), b:(by[w[1]]!=null ? t0+by[w[1]] : null) };
+}
+function winHas(R, t){ return R && R.a!=null && t>=R.a-0.5 && (R.b==null || t<=R.b+CUT_LATE); }
+/* いま 動画が どの 区間の 中か（おわりの 通過を こえたら その 区間は おわり） */
+function winFind(rr, P, t){ for(var i=0;i<P.length;i++){ var R=winRange(rr,P[i]); if(R && R.a!=null && t>=R.a-0.5 && (R.b==null || t<R.b)) return i; } return -1; }
+function winNext(rr, P, t){ for(var i=0;i<P.length;i++){ var R=winRange(rr,P[i]); if(!R || R.a==null || R.a>t) return i; } return -1; }
+function winCount(rr, P, i, arr){ var R=winRange(rr,P[i]), n=0; (arr||[]).forEach(function(t){ if(winHas(R,t)) n++; }); return n; }
+function winLbl(P, i){ return '区間'+(i+1)+'　'+(WIN_NAMES[i]||'')+'　'+P[i][0]+'〜'+P[i][1]+'m'; }
+/* 1500mの 地図：50mごとの 目もり、数える 区間（黄。数え終わった 区間は こい黄）、いまの 区間（白い わく） */
+function winMapSvg(P, dist, done, cur){
+  var w=600, h=50, D=Number(dist)||1500, x=function(d){ return 14+d/D*(w-28); }, s='<svg viewBox="0 0 '+w+' '+h+'" xmlns="http://www.w3.org/2000/svg">';
+  s+='<rect x="'+x(0)+'" y="16" width="'+(x(D)-x(0))+'" height="12" rx="6" fill="#2a2d33"/>';
+  P.forEach(function(q,i){
+    s+='<rect x="'+x(q[0])+'" y="14" width="'+(x(q[1])-x(q[0]))+'" height="16" rx="5" fill="'+(done&&done[i]?'#f2b01e':'rgba(242,176,30,.45)')+'"'+(i===cur?' stroke="#fff" stroke-width="2.5"':'')+'/>';
+  });
+  for(var d=50; d<D; d+=50) s+='<line x1="'+x(d)+'" y1="'+(d%500===0?10:30)+'" x2="'+x(d)+'" y2="'+(d%500===0?34:33)+'" stroke="#9aa0ab" stroke-width="1"/>';
+  [0,500,1000,1500].forEach(function(d){ if(d<=D) s+='<text x="'+x(d)+'" y="46" font-size="11" font-weight="800" fill="#cfd3da" text-anchor="middle">'+d+'m</text>'; });
+  return s+'</svg>';
+}
+var winBanTm=null;
+function winBanShow(title, body, P, dist, done, cur, keep){
+  var b=$('winBan'); if(!b) return;
+  $('winBanT').textContent=title||''; $('winBanP').textContent=body||'';
+  $('winBanMap').innerHTML=P ? winMapSvg(P, dist, done, cur) : '';
+  b.classList.remove('hide');
+  if(winBanTm) clearTimeout(winBanTm);
+  if(!keep) winBanTm=setTimeout(function(){ b.classList.add('hide'); }, 6000);
+}
+function winBanHide(){ var b=$('winBan'); if(b) b.classList.add('hide'); if(winBanTm){ clearTimeout(winBanTm); winBanTm=null; } }
+$('winBanX').onclick=winBanHide;
+function winTagSet(tx){ var g=$('winTag'); if(!g) return; g.textContent=tx||''; g.classList.toggle('hide', !tx); }
+/* 画面ごとの 係（分析の 画面 と 再生の 画面で 同じ しくみを 使います）
+   o.vid() 動画、o.rec() 足離れ・通過の 入った もの、o.plan() 区間の 決まり（なければ null）、
+   o.get()/o.set(a) かきの 時刻、o.stop() 数えるのを やめる、o.paint() 数字を かきなおす */
+function winCtl(o){
+  var cur=-1, tm=null;
+  function doneOf(P){ var rr=o.rec(), A=o.get(); return P.map(function(q,i){ return winCount(rr,P,i,A)>0; }); }
+  function stopTimer(){ if(tm){ clearInterval(tm); tm=null; } }
+  var C={
+    cur:function(){ return cur; },
+    on:function(){ return cur>=0; },
+    /* 数えはじめ。数えられない ときは false（おしらせを 出します） */
+    start:function(){
+      stopTimer(); cur=-1; winTagSet('');
+      var P=o.plan(); if(!P) return true;
+      var v=o.vid(), rr=o.rec(), D=Number(rr.dist)||1500;
+      if(rr.t0==null){ winBanShow('先に 足離れを 記録してください', '1500mの 簡易測定は、4つの 区間だけ ストロークを 数えます。区間の はじめと おわりを 通過タイムで 決めるので、先に 足離れと 50mごとの 通過を 記録します。', P, D, doneOf(P), -1); return false; }
+      var i=winFind(rr,P,v.currentTime);
+      if(i<0){
+        var j=winNext(rr,P,v.currentTime);
+        if(j<0){ winBanShow('4つの 区間を 全部 数えました', 'やり直す ときは、その 区間の 中まで 動画を もどしてから〈ストロークを計る〉を 押します。', P, D, doneOf(P), -1); return false; }
+        var Rj=winRange(rr,P[j]);
+        if(!Rj || Rj.a==null){ winBanShow('先に '+P[j][0]+'mの 通過を 記録してください', '次に 数えるのは '+winLbl(P,j)+' です。区間の はじめを 通過タイムで 決めます。', P, D, doneOf(P), j); return false; }
+        try{ v.currentTime=Rj.a; }catch(e){}
+        i=j;
+      }
+      var R=winRange(rr,P[i]);
+      if(R.b==null){ winBanShow('先に '+P[i][1]+'mの 通過を 記録してください', winLbl(P,i)+' の おわりで 自動で 止めるために、おわりの 通過タイムを 使います。', P, D, doneOf(P), i); return false; }
+      cur=i;
+      var A=o.get(), n=winCount(rr,P,i,A);
+      if(n){
+        setTimeout(function(){
+          if(confirm(winLbl(P,i)+' の かき '+n+'回を 消して、数え直しますか？\n\n「キャンセル」を 押すと、つづけて 足します。')){
+            o.set(o.get().filter(function(t){ return !winHas(R,t); })); o.paint();
+          }
+        }, 60);
+      }
+      winTagSet(winLbl(P,i)+'　'+P[i][1]+'mで 自動で 止まります');
+      winBanHide();   /* 数えて いる 間は 画面を ふさがない ように、上の 小さな しるしだけに します */
+      tm=setInterval(function(){
+        if(cur<0){ stopTimer(); return; }
+        var vv=o.vid(); if(!vv) return;
+        if(vv.currentTime>R.b+0.6){
+          var k=cur, cnt=winCount(o.rec(),P,k,o.get());
+          C.end(); o.stop(); try{ vv.pause(); }catch(e){}
+          var nx=winNext(o.rec(),P,vv.currentTime);
+          winBanShow(winLbl(P,k)+' おわり（'+cnt+'回）', nx>=0 ? ('次は '+winLbl(P,nx)+' です。〈ストロークを計る〉を 押すと、'+P[nx][0]+'mの 通過まで 動画が 進みます。') : '4つの 区間を 全部 数えました。', P, D, doneOf(P), nx, true);
+        }
+      }, 100);
+      return true;
+    },
+    /* その 時刻の かきを 入れて よいか（区間の そとは 入れない） */
+    tapOK:function(t){ if(cur<0) return true; var P=o.plan(); return !!(P && winHas(winRange(o.rec(),P[cur]), t)); },
+    /* いまの 区間で 何かき目か */
+    nIn:function(){ var P=o.plan(); return (cur>=0 && P) ? winCount(o.rec(),P,cur,o.get()) : null; },
+    end:function(){ stopTimer(); cur=-1; winTagSet(''); }
+  };
+  return C;
+}
+/* 時こくの 順に かきを 入れます（区間を あとから 数えても 順番が くずれない ように）。入れた 場所を 返します */
+function stIns(arr, t){ var i=arr.length; while(i>0 && arr[i-1]>t) i--; arr.splice(i,0,t); return i; }
+/* 1つ戻す：さいごに 入れた かきを 消します */
+function stUndo(arr, last){ var i=(last!=null) ? arr.lastIndexOf(last) : -1; if(i>=0) arr.splice(i,1); else arr.pop(); }
+/* 保存の とき：区間の そとの かきを のぞきます（通過が そろって いる ときだけ） */
+function winTrim(rr, P, arr){
+  if(!P || !rr || rr.t0==null) return (arr||[]).slice();
+  var Rs=P.map(function(q){ return winRange(rr,q); });
+  if(Rs.some(function(R){ return !R || R.a==null || R.b==null; })) return (arr||[]).slice();
+  return (arr||[]).filter(function(t){ return Rs.some(function(R){ return winHas(R,t); }); });
+}
 /* けっかの 見出しに 出す かんたんな 1行
    れい： 1:00.62　1.29ST　46.5SR　0.53RT */
 function sumLine(last, ss, rt){
@@ -5004,6 +5149,7 @@ function openAna(blob, opt){
   aSplits = opt.splits ? opt.splits.slice() : [];
   aStrokes = opt.strokes ? opt.strokes.slice() : [];
   aSUnit = (opt.sUnit==='arm') ? 'arm' : 'cycle';
+  aWin = (opt.sWin && opt.sWin.length) ? opt.sWin.slice() : null; aLastIns=null;
   aT0 = (opt.t0!==undefined) ? opt.t0 : null;
   aSigT = (opt.sigT!=null) ? opt.sigT : null;
   sigAuto=false;
@@ -5121,7 +5267,7 @@ function draftSave(){
     aDraftThumb=th||'';
     var rec={ id:aDraftId, draft:true, draftOf:aId||null, at:aDraftAt, title:base,
       anaTitle:($('anaTitle').dataset.neu==='1'?'':$('anaTitle').textContent),
-      pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value, turnOut:turnOutM, uw:aUw.slice(), meas:aMeas, amode:aMode, tev:aTev.slice(), sUnit:aSUnit,
+      pool:Number($('pool').value), dist:Number($('dist').value), event:$('event').value, turnOut:turnOutM, uw:aUw.slice(), meas:aMeas, amode:aMode, tev:aTev.slice(), sUnit:aSUnit, sWin:aWin,
       t0:aT0, sigT:aSigT, rt:aRT, rtMode:(aRT!=null?rtMode:null),
       splits:aSplits.slice(), strokes:aStrokes.slice(), video:null, vidRef:vidRef, videoUrl:'', thumb:aDraftThumb, updatedAt:Date.now(),
       preSwId:(aPre.id||''), preSwName:(aPre.name||'') };
@@ -5144,7 +5290,7 @@ function draftResume(r){
     }, function(){ toast('この未分析には動画が入っていません'); });
     return;
   }
-  openAna(r.video, { sUnit:r.sUnit, amode:r.amode, tev:r.tev, uw:r.uw, uwDist:r.uwDist, meas:r.meas, turnOut:r.turnOut, id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb, vidStored:!!r.vidRef,
+  openAna(r.video, { sUnit:r.sUnit, sWin:r.sWin, amode:r.amode, tev:r.tev, uw:r.uw, uwDist:r.uwDist, meas:r.meas, turnOut:r.turnOut, id:r.draftOf||null, draftId:r.id, draftAt:r.at, thumb:r.thumb, vidStored:!!r.vidRef,
     splits:r.splits||[], strokes:r.strokes||[], t0:(r.t0!=null?r.t0:null), sigT:r.sigT, rt:r.rt,
     pool:r.pool, dist:r.dist, event:r.event, title:(r.anaTitle||null),
     pre:{ id:(r.preSwId||''), name:(r.preSwName||'') } });
@@ -5228,6 +5374,8 @@ function handTurn(ev){ return ev==='fly' || ev==='breast' || ev==='im'; }
 var turnOutM=15, turnOutAsked=false, anaSwimId='';
 function turnOutOf(r){ var v=Number(r && r.turnOut); return (v===10 || v===15) ? v : 15; }
 function lapDistsCore(dist, pool){
+  /* 1500mの 簡易測定は 50mごとの 通過だけ（ターンは〈ターンを測定〉で 10回） */
+  if(typeof aMode!=='undefined' && winPlanFor(dist, aMode)){ var o5=[]; for(var q5=50;q5<=Number(dist)+0.001;q5+=50) o5.push(q5); return o5; }
   var out=lapDistsBase(dist);
   dist=Number(dist)||0; if(!(dist>0)) return out;
   pool=Number(pool) || Number(($('pool')||{}).value) || 50;
@@ -5775,7 +5923,7 @@ function fixAskOpen(n, idx, tt){
   setTimeout(function(){ try{ $('faMsg').focus(); }catch(e){} }, 30);
 }
 $('bUndo').onclick=function(){
-  if($('ana').classList.contains('stroke') && aStrokes.length){ aStrokes.pop(); paintSR(); return; }
+  if($('ana').classList.contains('stroke') && aStrokes.length){ stUndo(aStrokes, aLastIns); aLastIns=null; paintSR(); return; }
   /* 1つ もどしたら、あいた ところから やり直せる ように めじるしを けします */
   if(aSplits.length){ aSplits.pop(); selManual=false; aLastSel=''; paintTbl(); }
 };
@@ -5993,7 +6141,7 @@ gridPaint();
 
 $('bClear').onclick=function(){
   if(!confirm(T('askClear'))) return;
-  aSplits=[]; aStrokes=[]; aT0=null; aSigT=null; aRT=null; selManual=false; aLastSel=''; paintTbl(); paintSR(); anaP.paint();
+  aSplits=[]; aStrokes=[]; aWin=null; aT0=null; aSigT=null; aRT=null; selManual=false; aLastSel=''; paintTbl(); paintSR(); anaP.paint();
 };
 
 /* ================================================================
@@ -6781,6 +6929,11 @@ $('bStroke').onclick=function(){
   /* iPhoneでは たずねる まどを 出すと 指の 操作が 切れて 再生できなく なるので、
      さきに 再生を はじめて から たずねます */
   if(on){
+    /* 1500mの 簡易測定：0から 数える ときに 4区間で 数えるかを 決めます。区間の そとでは 次の 区間へ 動画を 進めます */
+    if(!aStrokes.length) aWin=winPlanFor($('dist').value, aMode);
+    if(aWin && !anaWC.start()) return;
+  }else anaWC.end();
+  if(on){
     var v=$('v');
     if(v.paused){ v.play().catch(function(){}); $('bPlay').innerHTML=T('pauseI'); }
   }
@@ -6790,8 +6943,8 @@ $('bStroke').onclick=function(){
   hideQ(); stHudHide(); stModeShow(on);
   if(on){
     flashTag('ana', strokeTagFor($('event').value));
-    /* はじめる まえに、いままでの かきを けすか きく */
-    if(aStrokes.length){
+    /* はじめる まえに、いままでの かきを けすか きく（4区間の ときは 区間ごとに たずねます） */
+    if(aStrokes.length && !aWin){
       setTimeout(function(){
         if(confirm(T('askClearStroke'))){ aStrokes=[]; paintSR(); }
       }, 60);
@@ -6803,18 +6956,26 @@ $('bStroke').onclick=function(){
    それいがい       … 再生と ていしの きりかえ */
 var pdCounted=false;
 var aStrokeAt=0;
+var aWin=null, aLastIns=null;   /* 1500mの 簡易測定の 4区間（ないときは null）／さいごに 入れた かき */
+var anaWC=winCtl({ vid:function(){ return $('v'); }, rec:function(){ return anaRec(); }, plan:function(){ return aWin; },
+  get:function(){ return aStrokes; }, set:function(a){ aStrokes=a; },
+  stop:function(){ if($('bStroke').getAttribute('aria-pressed')==='true') $('bStroke').click(); }, paint:function(){ paintSR(); } });
 function addStroke(x,y){
+  var tN=$('v').currentTime;
+  if(anaWC.on() && !anaWC.tapOK(tN)) return;   /* 区間の そとは 数えません */
   if(!aStrokes.length) aSUnit = armEv($('event').value) ? 'arm' : 'cycle';   /* 0から 数える ときに 数え方を 決めます */
-  aStrokes.push($('v').currentTime); aStrokeAt=Date.now(); paintSR();
-  var n=aStrokes.length, kk=(aSUnit==='arm')?2:1;
-  var st=(n>kk) ? (aStrokes[n-1]-aStrokes[n-1-kk]) : null;   /* 片手ずつの ときは 2つ前（同じ手）との 差 */
+  var ix=stIns(aStrokes, tN); aLastIns=tN; aStrokeAt=Date.now(); paintSR();
+  var kk=(aSUnit==='arm')?2:1;
+  var st=(ix>=kk) ? (aStrokes[ix]-aStrokes[ix-kk]) : null;   /* 片手ずつの ときは 2つ前（同じ手）との 差 */
+  if(st!=null && st>=ST_GAP) st=null;
+  var n=anaWC.on() ? anaWC.nIn() : aStrokes.length;
   stHudShow(n, st, x, y);
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
 }
 /* 2本目の 指が ついた ときは「ひろげる」操作なので、
    すぐ前に 入った かきを 1つ 取り消します */
 function addStrokeUndo(){
-  if(aStrokes.length && Date.now()-aStrokeAt < 600){ aStrokes.pop(); paintSR(); stHudHide(); }
+  if(aStrokes.length && Date.now()-aStrokeAt < 600){ stUndo(aStrokes, aLastIns); aLastIns=null; paintSR(); stHudHide(); }
 }
 /* 指で さわった ときは touchstart で 数えます。
    機種に よって pointerdown しか 来ない ことも あるので、
@@ -6876,16 +7037,24 @@ function dPaintSR(){
     ((rtD!=null) ? ('<div><span>'+T('rtOutLbl')+'</span><b>'+rtD.toFixed(2)+'</b></div>') : '');
 }
 var dStrokeAt=0;
+var dWin=null, dLastIns=null;
+var dWC=winCtl({ vid:function(){ return $('dv'); }, rec:function(){ return dRec||{}; }, plan:function(){ return dWin; },
+  get:function(){ return dStrokes; }, set:function(a){ dStrokes=a; },
+  stop:function(){ if($('detail').classList.contains('stroke')) $('dStroke').click(); }, paint:function(){ dPaintSR(); } });
 function dAddStroke(x,y){
+  var tN=$('dv').currentTime;
+  if(dWC.on() && !dWC.tapOK(tN)) return;   /* 区間の そとは 数えません */
   if(!dStrokes.length) dSUnit = armEv(dRec && dRec.event) ? 'arm' : 'cycle';
-  dStrokes.push($('dv').currentTime); dStrokeAt=Date.now(); dPaintSR();
-  var dn=dStrokes.length, dk=(dSUnit==='arm')?2:1;
-  var dst=(dn>dk) ? (dStrokes[dn-1]-dStrokes[dn-1-dk]) : null;
+  var ix=stIns(dStrokes, tN); dLastIns=tN; dStrokeAt=Date.now(); dPaintSR();
+  var dk=(dSUnit==='arm')?2:1;
+  var dst=(ix>=dk) ? (dStrokes[ix]-dStrokes[ix-dk]) : null;
+  if(dst!=null && dst>=ST_GAP) dst=null;
+  var dn=dWC.on() ? dWC.nIn() : dStrokes.length;
   stHudShow(dn, dst, x, y);
   try{ if(navigator.vibrate) navigator.vibrate(12); }catch(e){}
 }
 function dAddStrokeUndo(){
-  if(dStrokes.length && Date.now()-dStrokeAt < 600){ dStrokes.pop(); dPaintSR(); stHudHide(); }
+  if(dStrokes.length && Date.now()-dStrokeAt < 600){ stUndo(dStrokes, dLastIns); dLastIns=null; dPaintSR(); stHudHide(); }
 }
 var dDownAt=0;
 $('dTap').addEventListener('pointerdown', function(e){
@@ -7121,6 +7290,11 @@ pStabSet(pStabOn, false);
   });
 })();
 $('dStroke').onclick=function(){
+  if(!$('detail').classList.contains('stroke')){
+    /* 1500mの 簡易測定（4区間）。0から 数える ときに 決めます */
+    if(!dStrokes.length) dWin=dRec ? winPlanFor(dRec.dist, dRec.amode) : null;
+    if(dWin && !dWC.start()) return;
+  }else dWC.end();
   var on=$('detail').classList.toggle('stroke');
   this.setAttribute('aria-pressed', on?'true':'false');
   this.textContent = T(on ? 'bStrokeEnd' : 'bStroke');
@@ -7128,7 +7302,7 @@ $('dStroke').onclick=function(){
   if(on){
     if($('dv').paused){ $('dv').play().catch(function(){}); $('dPlay').innerHTML=T('pauseI'); }
     flashTag('detail', strokeTagFor(dRec && dRec.event));
-    if(dStrokes.length){
+    if(dStrokes.length && !dWin){
       setTimeout(function(){
         if(confirm(T('askClearStroke'))){ dStrokes=[]; dPaintSR(); }
       }, 60);
@@ -7136,7 +7310,8 @@ $('dStroke').onclick=function(){
   }else{
     $('dv').pause();
     if(dRec){
-      dRec.strokes=dStrokes.slice(); dRec.sUnit=dSUnit;
+      if(dWin) dStrokes=winTrim(dRec, dWin, dStrokes);   /* 4区間の そとの かきは のぞきます */
+      dRec.strokes=dStrokes.slice(); dRec.sUnit=dSUnit; dRec.sWin=(dWin && dStrokes.length) ? dWin.slice() : null;
       dRec.updatedAt=Date.now(); dRec.strokesAt=Date.now();
       dRec.manualN=null; dRec.manualST=null; dRec.manualAt=null;     /* 計り直した 値を 使う */
       dbPut(dRec).then(function(){ afterSave(dRec); toast(T('msgStrSaved')); });
@@ -7146,9 +7321,9 @@ $('dStroke').onclick=function(){
 };
 $('dUndo').onclick=function(){
   if(!dStrokes.length) return;
-  dStrokes.pop(); dPaintSR();
+  stUndo(dStrokes, dLastIns); dLastIns=null; dPaintSR();
   if(dRec){
-    dRec.strokes=dStrokes.slice(); dRec.sUnit=dSUnit; dRec.updatedAt=Date.now(); dRec.strokesAt=Date.now();
+    dRec.strokes=dStrokes.slice(); dRec.sUnit=dSUnit; dRec.sWin=(dWin && dStrokes.length) ? dWin.slice() : null; dRec.updatedAt=Date.now(); dRec.strokesAt=Date.now();
     dRec.manualN=null; dRec.manualST=null; dRec.manualAt=null;
     dbPut(dRec).then(function(){ afterSave(dRec); });
   }
@@ -7244,7 +7419,8 @@ $('anaSave').onclick=function(){
       t0: aT0,
       sigT: aSigT, rt: aRT, rtMode: (aRT!=null ? rtMode : null),
       splits: aSplits.slice(),
-      strokes: aStrokes.slice(),
+      strokes: aWin ? winTrim(anaRec(), aWin, aStrokes) : aStrokes.slice(),   /* 4区間の ときは 区間の そとの かきを のぞきます */
+      sWin: (aWin && aStrokes.length) ? aWin.slice() : null,
       video: aBlob,
       videoUrl: '',
       updatedAt: Date.now(),
@@ -7801,7 +7977,7 @@ function openDetail(id){
     $('detail').classList.remove('stroke'); $('dStroke').setAttribute('aria-pressed','false');
     $('dStroke').textContent=T('bStroke');
     stHudHide(); stModeShow(false);
-    dStrokes=(r.strokes||[]).slice(); dSUnit=sUnitOf(r);
+    dStrokes=(r.strokes||[]).slice(); dSUnit=sUnitOf(r); dWin=sWinOf(r) ? r.sWin.slice() : null; dLastIns=null;
     // まとめ
     var i, last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
     $('dSum').textContent = sumLine(last, raceStroke(r), rtSec(r));
@@ -7867,7 +8043,7 @@ $('dBack').onclick=function(){
   /* ストロークを 計っている 途中なら、ここまでの 分を 保存するか たずねます（キャンセルは 前の 記録の まま） */
   if($('detail').classList.contains('stroke')){
     if(dStrokes.length && confirm('ストロークの計測中です。ここまでの'+dStrokes.length+'回を保存しますか？\n\n「キャンセル」を押すと、前の記録のままにします。')) $('dStroke').click();
-    else { $('detail').classList.remove('stroke'); $('dStroke').setAttribute('aria-pressed','false'); $('dStroke').textContent=T('bStroke'); if(dRec) dStrokes=(dRec.strokes||[]).slice(); }
+    else { dWC.end(); $('detail').classList.remove('stroke'); $('dStroke').setAttribute('aria-pressed','false'); $('dStroke').textContent=T('bStroke'); if(dRec) dStrokes=(dRec.strokes||[]).slice(); }
   }
   stHudHide(); stModeShow(false);
   if(msrDet()) msrCloseAll();
@@ -7903,7 +8079,7 @@ $('reAll').onclick=function(){
   if(!dRec) return;
   if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
-  openAna(dRec.video, { sUnit:dRec.sUnit, amode:dRec.amode, tev:dRec.tev, uw:dRec.uw, uwDist:dRec.uwDist, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+  openAna(dRec.video, { sUnit:dRec.sUnit, sWin:dRec.sWin, amode:dRec.amode, tev:dRec.tev, uw:dRec.uw, uwDist:dRec.uwDist, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
                         sigT:dRec.sigT, rt:dRec.rt });
 };
@@ -7913,7 +8089,7 @@ $('reTime').onclick=function(){
   if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
   /* タイムに かかわる もの（スタート・通過・合図・RT）だけ 空に して ひらきます */
-  openAna(dRec.video, { sUnit:dRec.sUnit, amode:dRec.amode, tev:dRec.tev, uw:dRec.uw, uwDist:dRec.uwDist, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+  openAna(dRec.video, { sUnit:dRec.sUnit, sWin:dRec.sWin, amode:dRec.amode, tev:dRec.tev, uw:dRec.uw, uwDist:dRec.uwDist, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:null, splits:[], strokes:dRec.strokes,
                         sigT:null, rt:null });
   setTimeout(function(){ toast(T('reTimeGo')); }, 400);
@@ -7924,7 +8100,7 @@ $('rePart').onclick=function(){
   if(!dRec) return;
   if(!hasVid(dRec)){ noVidGo(dRec); return; }
   $('dv').pause();
-  openAna(dRec.video, { sUnit:dRec.sUnit, amode:dRec.amode, tev:dRec.tev, uw:dRec.uw, uwDist:dRec.uwDist, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
+  openAna(dRec.video, { sUnit:dRec.sUnit, sWin:dRec.sWin, amode:dRec.amode, tev:dRec.tev, uw:dRec.uw, uwDist:dRec.uwDist, meas:dRec.meas, turnOut:dRec.turnOut, id:dRec.id, title:dRec.title, pool:dRec.pool, dist:dRec.dist,
                         event:dRec.event, t0:dRec.t0, splits:dRec.splits, strokes:dRec.strokes,
                         sigT:dRec.sigT, rt:dRec.rt });
   setTimeout(rpOpen, 500);
@@ -9427,7 +9603,7 @@ function raceStroke(r, measuredOnly){
       var a=r.strokes||[], s2=stInts(a, sUnitOf(r));
       var ts2=tempoStats(s2, wantT(r.dist, r.pool, sUnitOf(r)));
       if(st1==null && ts2.st!=null) st1=ts2.st;
-      if(n1==null && a.length) n1=a.length;
+      if(n1==null && a.length && !sWinOf(r)) n1=a.length;
     }
     return { st:st1, sr: st1?(60/st1):null, n:n1, turns:[] };
   }
@@ -9438,7 +9614,7 @@ function raceStroke(r, measuredOnly){
   var G=srSegs(r), sum=0, num=0;
   for(i=0;i<G.length;i++) if(G[i].clean){ sum+=G[i].clean.st*G[i].clean.n; num+=G[i].clean.n; }
   var st=num?sum/num:null;
-  return { st: st, sr: st?60/st:null, n: arr.length || null, turns: tp.turns, outs: tp.outs };
+  return { st: st, sr: st?60/st:null, n: (sWinOf(r) ? null : (arr.length || null)), win:!!sWinOf(r), turns: tp.turns, outs: tp.outs };   /* 4区間だけ 数えた 記録は レース全体の かき数が ないので 出しません */
 }
 /* ストローク数の かぞえかた：50mごとに 1くぎり
    （100m＝2くぎり、200m＝4くぎり、400m＝8くぎり、1500m＝30くぎり） */
@@ -10271,13 +10447,52 @@ function turnText(ts){
 }
 function anaRec(){
   return { splits:aSplits, strokes:aStrokes, dist:Number($('dist').value), pool:Number($('pool').value),
-           t0:aT0, sigT:aSigT, rt:aRTsec(), event:$('event').value, uw:aUw, uwDist:(aUw[0]&&aUw[0].d>0)?aUw[0].d:null, turnOut:turnOutM, amode:aMode, tev:aTev, sUnit:aSUnit };
+           t0:aT0, sigT:aSigT, rt:aRTsec(), event:$('event').value, uw:aUw, uwDist:(aUw[0]&&aUw[0].d>0)?aUw[0].d:null, turnOut:turnOutM, amode:aMode, tev:aTev, sUnit:aSUnit, sWin:aWin };
 }
 /* ===== 通過タイムで 区切った ストロークの まとまり =====
    れい：25mの 通過が 12.73秒 なら、12.73秒までの ストロークを 0-25m、
    のこりを 25-50m に 入れます。
    200mまでは 25mごと、それより 長い レースは 50mごとに 区切ります
    （その きょりの 通過が そろって いない ときは、記録の ある 通過で 区切ります）。 */
+/* ===== 1500mの 簡易測定の 数字（PDFの 1ページ目 と 同じ 1つの 計算） =====
+   区間は 100mずつ（ラスト200は 1300〜1400・1400〜1500 の 2行）。
+   かき数＝その 100mで 押した 数（片手ずつ なら 片手の 数）。ST＝ターンを 除いた かき間隔の 平均（左右で 1回）。
+   1かきの距離 と 効率指数 は、50mごとの 通過しか ないので、ターンと 潜りを ふくむ 100m 全体で 出します
+   （効率指数＝距離×距離÷（タイム×かき数）。かき数は 左右で 1回）。区間どうしの くらべに 使います。 */
+function winData(r){
+  var P=sWinOf(r); if(!P || !r || r.manual) return null;
+  var by=splitBy(r), cut=splitCut(r), a=strokeRel(r), u=sUnitOf(r), rt=rtSec(r)||0, D=Number(r.dist)||1500;
+  var iv=tempoTable(a, wantTurnsOf(D, r.pool), u), rows=[];
+  P.forEach(function(w,wi){
+    var two=(w[1]-w[0]>100);
+    for(var d0=w[0]; d0<w[1]-0.001; d0+=100){
+      var d1=Math.min(d0+100, w[1]), nm=two ? (d0===w[0] ? 'スパート前' : 'ラスト100') : WIN_NAMES[wi];
+      var o={ wi:wi, a:d0, b:d1, name:nm, t:null, n:null, cyc:null, st:null, sr:null, v:null, dps:null, ei:null };
+      if(by[d0]!=null && by[d1]!=null && cut[d1]!=null){
+        o.t=(by[d1]-by[d0])+(d0===0?rt:0);
+        var c0=(d0===0 ? -1e9 : cut[d0]), c1=cut[d1], n=0, sum=0, num=0, k;
+        for(k=0;k<a.length;k++) if(a[k]>c0 && a[k]<=c1) n++;
+        for(k=0;k<iv.length;k++) if(iv[k].t>c0 && iv[k].t<=c1 && iv[k].kind==='ok'){ sum+=iv[k].d; num++; }
+        if(n){ o.n=n; o.cyc=(u==='arm') ? n/2 : n; }
+        if(num){ o.st=sum/num; o.sr=60/o.st; }
+        if(o.t>0){ o.v=(d1-d0)/o.t; if(o.cyc>0){ o.dps=(d1-d0)/o.cyc; o.ei=o.v*o.dps; } }
+      }
+      rows.push(o);
+    }
+  });
+  /* 100mごとの ラップ（合図から） */
+  var laps=[], d;
+  for(d=100; d<=D+0.001; d+=100){ if(by[d]!=null && by[d-100]!=null) laps.push({ to:d, t:(by[d]-by[d-100])+(d===100?rt:0) }); }
+  var mid=laps.filter(function(x){ return x.to>100 && x.to<D; }), mavg=null, sd=null, spurt=null;
+  if(mid.length>=2){
+    mavg=mid.reduce(function(s,x){ return s+x.t; },0)/mid.length;
+    sd=Math.sqrt(mid.reduce(function(s,x){ return s+(x.t-mavg)*(x.t-mavg); },0)/mid.length);
+    var lastL=laps.filter(function(x){ return x.to===D; })[0];
+    if(lastL) spurt=lastL.t-mavg;
+  }
+  var base=rows.filter(function(x){ return x.wi===1; })[0]||null;
+  return { plan:P, rows:rows, laps:laps, mavg:mavg, cv:(sd!=null && mavg ? sd/mavg*100 : null), spurt:spurt, base:base, arm:(u==='arm'), total:raceBest(r), dist:D };
+}
 function srSegs(r){
   if(!r || r.manual) return [];
   var raw=r.strokes||[]; if(raw.length<2) return [];
@@ -10307,7 +10522,7 @@ function srSegs(r){
       if(ti>ca && ti<=cb){ nos.push(iv[k].no); if(iv[k].kind==='ok'){ sum+=iv[k].d; num++; } }
     }
     var cs=cleanSeg(r, B[i-1], B[i]), st=cs?cs.st:null;
-    out.push({ from:B[i-1], to:B[i], n:n, st:st, sr:st?60/st:null, nos:nos, clean:cs,
+    out.push({ from:B[i-1], to:B[i], n:(winCov(r,B[i-1],B[i]) ? n : null), st:st, sr:st?60/st:null, nos:nos, clean:cs,
                t:(b-a)+(B[i-1]===0?rtS:0), step:step });
   }
   return out;
@@ -10980,6 +11195,90 @@ function reportPages(r, prev, W, H, nP){
     y=y+8+srH+12;
   }
   var p1=s, y1=y+18; pages.push('');   /* 1ページ目は 最後に 式の 箱を 入れるか 決めてから しめます */
+  /* ================= 1500mの 簡易測定（4区間）の 1ページ目 ================= */
+  function winPage1(){
+    var WD=winData(r); if(!WD) return null;
+    var o=head('簡易（'+WD.dist+'m版）'), T5w=turn5Of(r);
+    function m2(t){ return t==null ? NA : fmt(t); }
+    var kp=[{k:'記録タイム',v:(WD.total!=null?fmt(WD.total):NA),sub:'',hl:true},
+            {k:'100mの平均',v:(WD.total!=null?fmt(WD.total/(WD.dist/100)):NA),sub:(WD.mavg!=null?'中盤 '+fmt(WD.mavg):'')},
+            {k:'ペースのばらつき',v:(WD.cv!=null?WD.cv.toFixed(1)+'%':NA),sub:'中盤の100mどうし'},
+            {k:'ラストスパート',v:(WD.spurt!=null?((WD.spurt<0?'−':'+')+Math.abs(WD.spurt).toFixed(2)+'秒'):NA),sub:'最後の100m−中盤平均',c:(WD.spurt!=null?(WD.spurt<0?GOOD:BAD):null)},
+            {k:'ターン（5m〜5m）',v:(T5w&&T5w.avg!=null?T5w.avg.toFixed(2)+'秒':NA),sub:(T5w&&T5w.n1&&T5w.n2?('前半'+T5w.a1.toFixed(2)+'→後半'+T5w.a2.toFixed(2)):(T5w&&T5w.list.length?T5w.list.length+'回':'〈ターンを測定〉で出ます'))}];
+    var kw=(cw-32)/5, ky=162;
+    kp.forEach(function(x,i){ var kx=mx+i*(kw+8);
+      o+='<rect x="'+kx+'" y="'+ky+'" width="'+kw+'" height="70" rx="10" fill="'+(x.hl?'#fffaf0':'#ffffff')+'" stroke="'+(x.hl?'#f2b01e':'#e4e6ea')+'" stroke-width="1.5"/>';
+      o+=T_(kx+10,ky+19,x.k,10,800,GR)+T_(kx+10,ky+46,x.v,(String(x.v).length>7?18:21),900,x.c||'#16181d');
+      var sf=fit([x.sub], kw-12, 9, 7); if(x.sub) o+=T_(kx+10,ky+62,x.sub,sf?sf.fs:7,700,GR); });
+    var y=ky+70+34;
+    /* 100mごとの ラップ（数えた 区間を 黄色の 帯で） */
+    var C=WD.laps;
+    o+=SEC(y,'100mごとのラップ','黄色の帯がストロークを数えた区間'); y+=12;
+    if(C.length>=2){
+      var ch=130, vs=C.map(function(c){ return c.t; }), lo=Math.floor(Math.min.apply(null,vs)-0.4), hi=Math.ceil(Math.max.apply(null,vs)+0.2), nL=WD.dist/100, bw=(cw-40)/nL;
+      if(hi-lo<2) hi=lo+2;
+      var X=function(to){ return mx+40+(to/100-1)*bw+bw/2; }, Y=function(v){ return y+ch-(v-lo)/(hi-lo)*ch; };
+      WD.plan.forEach(function(q){ o+='<rect x="'+(mx+40+q[0]/100*bw)+'" y="'+y+'" width="'+((q[1]-q[0])/100*bw)+'" height="'+ch+'" fill="#fff3cf"/>'; });
+      var gs=Math.max(1, Math.ceil((hi-lo)/6));
+      for(var g=lo; g<=hi; g+=gs) o+='<line x1="'+(mx+34)+'" y1="'+Y(g)+'" x2="'+(W-mx)+'" y2="'+Y(g)+'" stroke="#eceef1"/>'+T_(mx+28,Y(g)+3.5,fmt(g).replace(/\.00$/,''),9,700,'#9aa0ab','end');
+      if(WD.mavg!=null) o+='<line x1="'+(mx+34)+'" y1="'+Y(WD.mavg)+'" x2="'+(W-mx)+'" y2="'+Y(WD.mavg)+'" stroke="#16181d" stroke-dasharray="5 4"/>';
+      o+='<polyline points="'+C.map(function(c){ return X(c.to)+','+Y(c.t); }).join(' ')+'" fill="none" stroke="#c98a00" stroke-width="2.4"/>';
+      C.forEach(function(c){ o+='<circle cx="'+X(c.to)+'" cy="'+Y(c.t)+'" r="4" fill="#c98a00"/>'+T_(X(c.to),Y(c.t)-8,c.t.toFixed(2),8.5,800,'#16181d','middle')+T_(X(c.to),y+ch+12,String(c.to),8.5,700,'#9aa0ab','middle'); });
+      y+=ch+28;
+      o+=T_(mx,y,'点線は中盤（100〜'+(WD.dist-100)+'m）の平均。最初の100mは合図から（反応時間を含む）。',9,700,GR); y+=24;
+    }else{
+      o+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="30" rx="8" fill="#f4f5f7"/>'+T_(mx+12,y+19,NAL+'　100mごとの通過を記録すると出ます。',10.5,800,'#8a909b'); y+=50;
+    }
+    /* 数えた 区間の くらべ */
+    var B=WD.base;
+    o+=SEC(y,'ストロークを数えた区間のくらべ','くらべの基準は「前半の巡航」（'+(B?B.a+'〜'+B.b:'400〜500')+'m）'); y+=10;
+    var cols=[{h:'区間',w:0.22},{h:'100mのタイム',w:0.13},{h:'かき数',w:0.14},{h:'ST',w:0.09},{h:'SR',w:0.09},{h:'1かきの距離',w:0.13},{h:'効率指数',w:0.2,hl:true}];
+    var rows=WD.rows.map(function(q){
+      var pc='', ec=null;
+      if(B && q!==B && q.ei!=null && B.ei!=null){ var p=(q.ei-B.ei)/B.ei*100; pc='（'+(p>=0?'+':'−')+Math.abs(p).toFixed(1)+'%）'; ec=(p<0?BAD:GOOD); }
+      var nTx=(q.n==null) ? NA : (WD.arm ? q.n+'回（'+(q.cyc%1?q.cyc.toFixed(1):String(q.cyc))+'）' : q.n+'回');
+      var row=[q.name+'　'+q.a+'〜'+q.b+'m', m2(q.t), nTx, (q.st!=null?q.st.toFixed(2):NA), (q.sr!=null?q.sr.toFixed(1):NA), (q.dps!=null?q.dps.toFixed(2):NA), {t:(q.ei!=null?q.ei.toFixed(2)+pc:NA), c:ec}];
+      if(q===B) row.hl=true;
+      return row;
+    });
+    var tb=TBL(mx, y, cw, cols, rows, 28, 11); o+=tb.s; y=tb.y+14;
+    [(WD.arm?'かき数は片手ずつ数えた回数、（　）は左右で1回。':'')+'ST・SRはターンを除いたかき間隔（左右で1回）。',
+     '1かきの距離と効率指数は、ターンと潜りを含む100m全体で計算します（区間どうしのくらべ用）。効率指数＝距離×距離÷（タイム×かき数）。',
+     '（　）は前半の巡航とくらべた変化。「ー」は測定なし。'].forEach(function(t){ var f=fit([t], cw, 9, 7); o+=T_(mx,y,t,f?f.fs:7,700,GR); y+=12; });
+    y+=14;
+    /* SR と 1かきの距離の 変化 */
+    var R2=WD.rows;
+    o+=SEC(y,'テンポと1かきの距離の変化','区間ごと。左がSR、右が1かきの距離'); y+=14;
+    var gw=cw/2-10, gh=104;
+    [['SR（回/分）','sr','#1e6fe0',1],['1かきの距離（m）','dps','#c98a00',2]].forEach(function(m,k){
+      var ox=mx+k*(gw+20), pts=R2.map(function(q,i){ return { i:i, v:q[m[1]] }; }).filter(function(z){ return z.v!=null; });
+      o+='<rect x="'+ox+'" y="'+(y-4)+'" width="'+gw+'" height="'+(gh+30)+'" rx="8" fill="#f7f8fa"/>'+T_(ox+8,y+10,m[0],10,800,GR);
+      var Xx=function(i){ return ox+34+i*(gw-60)/Math.max(1,R2.length-1); };
+      R2.forEach(function(q,i){ o+=T_(Xx(i),y+gh+18,q.name,8.5,800,GR,'middle'); });
+      if(!pts.length){ o+=T_(ox+gw/2,y+gh/2,NAL,10,800,'#8a909b','middle'); return; }
+      var vs2=pts.map(function(z){ return z.v; }), mn=Math.min.apply(null,vs2), mxv=Math.max.apply(null,vs2), pad=(mxv-mn)*0.3+(m[3]===1?0.5:0.02);
+      var Yy=function(v){ return y+gh-(v-(mn-pad))/((mxv+pad)-(mn-pad))*(gh-20); };
+      if(pts.length>1) o+='<polyline points="'+pts.map(function(z){ return Xx(z.i)+','+Yy(z.v); }).join(' ')+'" fill="none" stroke="'+m[2]+'" stroke-width="2.6"/>';
+      pts.forEach(function(z){ o+='<circle cx="'+Xx(z.i)+'" cy="'+Yy(z.v)+'" r="4.5" fill="'+m[2]+'"/>'+T_(Xx(z.i),Yy(z.v)-9,(m[3]===1?z.v.toFixed(1):z.v.toFixed(2)),10,900,m[2],'middle'); });
+    });
+    y+=gh+44;
+    /* ひとこと（数字から そのまま 書きます） */
+    var s1=R2.filter(function(q){ return q.wi===1; })[0], s2=R2.filter(function(q){ return q.wi===2; })[0], s3=R2[R2.length-1], bits=[];
+    if(s1 && s2 && s1.sr!=null && s2.sr!=null) bits.push('前半の巡航から後半の巡航で、SRは'+s1.sr.toFixed(1)+'→'+s2.sr.toFixed(1)+(s1.dps!=null&&s2.dps!=null?'、1かきの距離は'+s1.dps.toFixed(2)+'→'+s2.dps.toFixed(2)+'m':'')+'。');
+    if(s3 && s2 && s3.sr!=null && s2.sr!=null) bits.push('ラスト100のSRは'+s3.sr.toFixed(1)+'（後半の巡航から'+((s3.sr-s2.sr)>=0?'+':'−')+Math.abs(s3.sr-s2.sr).toFixed(1)+'）。');
+    var msg=bits.join('') || '4つの区間のストロークを数えると、ここに区間どうしの変化が出ます。';
+    var mf=fit([msg], cw-20, 11, 8);
+    o+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="40" rx="9" fill="#fff8e6" stroke="#f2b01e"/>'+T_(mx+12,y+25,msg,mf?mf.fs:8,900); y+=56;
+    var src1='4区間は研究の結果をもとにした選び方です：1500mは最初と最後が速く中盤が一定（López-Belmonte ら 2021）、後半の500mでターンが遅くなりやすい（Polach ら 2021）、',
+        src2='最後のラップで上げるのがふつうでメダリストほど大きい（Neuloh ら 2020）、SRはレースの中で下がっていく（Staunton ら 2025）。';
+    var f1=fit([src1], cw-20, 9, 7), f2=fit([src2], cw-20, 9, 7);
+    o+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="46" rx="9" fill="#f4f6f8"/>'+T_(mx+10,y+18,src1,f1?f1.fs:7,700,'#3d4450')+T_(mx+10,y+34,src2,f2?f2.fs:7,700,'#3d4450');
+    y+=46;
+    var _si=strokeIssue(r);
+    if(_si){ var _sf=fit([_si], cw, 10, 7.5); o+=T_(mx,y+16,_si,_sf?_sf.fs:7.5,900,'#c0392b'); y+=16; }
+    return { s:o, y:y+18 };
+  }
+  if(sWinOf(r)){ var WP=winPage1(); if(WP){ p1=WP.s; y1=WP.y; } }
   /* ================= 2ページ目から：コーチ向けの くわしい 数字 ================= */
   var p2=head('くわしい数字'), y2=180, bottom=H-52-20;
   function room(h){ if(y2+h<=bottom) return; p2+=foot(); pages.push(p2); p2=head('くわしい数字（つづき）'); y2=180; }
@@ -11015,7 +11314,7 @@ function reportPages(r, prev, W, H, nP){
     y2+=18;
   }
   /* 1 通過タイム */
-  var isSC=(Number(r.pool)===25) && ((r.splits||[]).length<=36);
+  var isSC=(Number(r.pool)===25) && ((r.splits||[]).length<=36) && !sWinOf(r);   /* 1500mの 簡易測定（50mごとの 通過だけ）は ふつうの 通過表 */
   if(isSC){
     var sc=scTable(r);
     var cols9=[['距離',58],['通過',64],['50m',58],['25m',58],['ｶｳﾝﾄ',52],['ラップ',60],['泳速',56],['Sタイム',60],['S長',56]];
@@ -11061,10 +11360,11 @@ function reportPages(r, prev, W, H, nP){
     FLOW('通過タイム','合図から',[{h:'距離',w:0.22},{h:'通過',w:0.26},{h:'ラップ',w:0.26},{h:'速さ m/秒',w:0.26}],rows2,18,10.5,{ w:0.62, two:14 });
   }
   /* 2 区間ごとの 数字（1枚目の 表と 効率指数の 計算を 1つに） */
-  if(G.length){
-    var stp=G[0].step, b0=EIs[0];
-    var rows3=G.map(function(g,ix){ var e=EIs[ix], pc=(ix>0 && e && b0) ? ('（'+((e.ei-b0.ei)/b0.ei*100>=0?'+':'−')+Math.abs((e.ei-b0.ei)/b0.ei*100).toFixed(1)+'%）') : '';
-      return [g.from+'-'+g.to+'m', fmt(g.t), String(g.n), (g.st!=null?g.st.toFixed(2):NA), (g.sr!=null?g.sr.toFixed(1):NA), (e?e.v.toFixed(2):NA), (e?e.dps.toFixed(2):NA), (e?e.ei.toFixed(2)+pc:NA)]; });
+  var G3=G.filter(function(g){ return winCov(r, g.from, g.to); }), E3=G3.map(function(g){ return EIs[G.indexOf(g)]; });   /* 4区間だけ 数えた 記録は、数えた 区間だけ */
+  if(G3.length){
+    var stp=G3[0].step, b0=E3[0];
+    var rows3=G3.map(function(g,ix){ var e=E3[ix], pc=(ix>0 && e && b0) ? ('（'+((e.ei-b0.ei)/b0.ei*100>=0?'+':'−')+Math.abs((e.ei-b0.ei)/b0.ei*100).toFixed(1)+'%）') : '';
+      return [g.from+'-'+g.to+'m', fmt(g.t), (g.n!=null?String(g.n):NA), (g.st!=null?g.st.toFixed(2):NA), (g.sr!=null?g.sr.toFixed(1):NA), (e?e.v.toFixed(2):NA), (e?e.dps.toFixed(2):NA), (e?e.ei.toFixed(2)+pc:NA)]; });
     var rh3=G.length>12?17:20, fs3=G.length>12?10:11;
     FLOW((stp?stp+'mごとの区間':'区間ごと'),'通過タイムで区切って数えています',[{h:'区間',w:0.12},{h:'区間タイム',w:0.12},{h:'かき数',w:0.09},{h:'ST（秒）',w:0.1},{h:'SR',w:0.09},{h:'泳ぐ速さ',w:0.13},{h:'1かきの距離',w:0.14},{h:'効率指数',w:0.21,hl:true}],rows3,rh3,fs3,
       { notes:['区間タイムは合図から（最初の区間に反応時間を含みます）。泳ぐ速さは泳ぎ区間（浮き上がり、なければ15mから、壁の5m手前まで）。「ー」は測定なし。', '効率指数の（　）は最初の区間とくらべた変化。'] });
@@ -11120,7 +11420,7 @@ function reportPages(r, prev, W, H, nP){
            (sUnitOf(r)==='arm'
              ? '1かきの距離＝泳ぐ速さ×ST。かき数は片手ずつ数えた回数。ST・SR・1かきの距離は左右で1回（同じ手が入水するまで）で計算しています。'
              : '1かきの距離＝泳ぐ速さ×ST。ST はその区間のかき（ターンを除く）の平均。ストロークは1サイクル（同じ手が入水するたび）、平泳ぎ・バタフライは両手で1回。')];
-  if(tp.turns.length || tp.outs.length){ var _tn=turnNote(tp.turns, tp.outs); if(_tn.length>90) _tn=_tn.slice(0,88)+'…'; box.push('※ '+_tn); }
+  if(!sWinOf(r) && (tp.turns.length || tp.outs.length)){ var _tn=turnNote(tp.turns, tp.outs); if(_tn.length>90) _tn=_tn.slice(0,88)+'…'; box.push('※ '+_tn); }
   /* 式の 箱は 2ページ目の すきまに 入らなければ、1ページ目の 下（グラフの すぐ下）に 入れます。
      式の 箱 だけで 1ページ ふえるのを ふせぐため */
   var bh=box.length*16+14;
@@ -12405,6 +12705,7 @@ window.addEventListener('resize', function(){ if(msrOn) setTimeout(msrPaint, 60)
    まだ 決めて いなければ 15m か 10m を えらびます。15m と 決めて いれば 聞かずに 15m にします。 */
 function turnOutAsk(){
   if(turnOutAsked) return;
+  if(winPlanFor(($('dist')||{}).value, aMode)) return;   /* 1500mの 簡易測定は 50mごとの 通過だけなので 聞きません */
   var on=(Number(($('pool')||{}).value)===25) || turnOn;
   if(!on) return;
   var box=$('toDlg'), sel=$('toSwim'); if(!box || !sel) return;
@@ -13545,7 +13846,7 @@ $('exJson').onclick=function(){
                sigT:(r.sigT!=null?r.sigT:null), rt:(r.rt!=null?r.rt:null), rtMode:(r.rtMode||null),
                turnOut:(r.turnOut||null), memo:(r.memo||''), uwKick:(r.uwKick!=null?r.uwKick:null), uwDist:(r.uwDist!=null?r.uwDist:null),
                manualAt:(r.manualAt||null), strokesAt:(r.strokesAt||null),
-               uw:(r.uw||null), meas:(r.meas||null), turn5:(r.turn5||null), amode:(r.amode||null), tev:(r.tev||null), sUnit:(r.sUnit||null),
+               uw:(r.uw||null), meas:(r.meas||null), turn5:(r.turn5||null), amode:(r.amode||null), tev:(r.tev||null), sUnit:(r.sUnit||null), sWin:(r.sWin||null),
                updatedAt:(r.updatedAt||r.at) };
     });
     var payload = { app:'swimiq_lite_b', ver:APP_VER, exportedAt:new Date().toISOString(), records:records };
@@ -13585,7 +13886,7 @@ $('fImport').onchange=function(){
         sigT: (src.sigT!=null?src.sigT:null), rt: (src.rt!=null?src.rt:null), rtMode: (src.rtMode||null),
         turnOut: (src.turnOut||null), memo: (src.memo||''), uwKick: (src.uwKick!=null?src.uwKick:null), uwDist: (src.uwDist!=null?src.uwDist:null),
         manualAt: (src.manualAt||null), strokesAt: (src.strokesAt||null),
-        uw: (src.uw||[]), meas: (src.meas||null), turn5: (src.turn5||null), amode: (src.amode||null), tev: (src.tev||null), sUnit: (src.sUnit||null),
+        uw: (src.uw||[]), meas: (src.meas||null), turn5: (src.turn5||null), amode: (src.amode||null), tev: (src.tev||null), sUnit: (src.sUnit||null), sWin: (src.sWin||null),
         updatedAt: (src.updatedAt || src.at || Date.now()),
         thumb: ''
       };

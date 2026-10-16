@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.16.9">
+<meta name="app-ver" content="2026.10.16.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -14120,6 +14120,12 @@ function raceParts(r){
 }
 /* ③ 絵を かく 道具。数字は 点の そばに 書くので、たての めもりは 出しません */
 var GW=680, GPAD={l:14,r:14,t:30,b:26};
+/* 区間が 多い とき（800m・1500m）は、数字と 下の 字を まびいて 重ならない ように します
+   gK … 何本に 1本 書くか、gLab … 下の 字（多い ときは 区間の 終わりの 距離だけ）、gFs … 数字の 大きさ */
+function gK(n){ return n<=10 ? 1 : (n<=16 ? 2 : (n<=24 ? 3 : Math.ceil(n/8))); }
+function gShow(i, n){ var k=gK(n); return k===1 || i===n-1 || i%k===0; }
+function gLab(labels, i){ var n=labels.length; if(n<=10) return labels[i]; var m=/-(\d+)$/.exec(String(labels[i])); return m ? m[1] : labels[i]; }
+function gFs(n){ return n<=10 ? 18 : (n<=16 ? 16 : 14); }
 function gRange(vals){
   var v=[], i;
   for(i=0;i<vals.length;i++) if(vals[i]!=null && !isNaN(vals[i])) v.push(vals[i]);
@@ -14145,7 +14151,9 @@ function gXlab(labels, H){
     var a='middle';
     if(n>1 && i===0){   a='start'; x=GPAD.l; }
     if(n>1 && i===n-1){ a='end';   x=GW-GPAD.r; }
-    s+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+a+'" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i]+'</text>';
+    if(!gShow(i,n)) continue;
+    if(n>10 && i===n-1 && (n-1)%gK(n)!==0 && (n-1)%gK(n)<gK(n)/2) continue;   /* 最後の 字が 1つ前と 重なる ときは 出しません */
+    s+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" text-anchor="'+a+'" font-size="'+(n>10?13:15)+'" font-weight="800" fill="#c9c9c9">'+gLab(labels,i)+'</text>';
   }
   return s;
 }
@@ -14165,11 +14173,12 @@ function gLine(labels, vals, dec){
   for(i=0;i<n;i++){
     if(vals[i]==null || isNaN(vals[i])) continue;
     var x=X(i), y=Y(vals[i]);
-    s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="5.5" fill="#ffc400"/>';
-    var ty = (y-14 < GPAD.t) ? (y+22) : (y-14);
+    s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(n>16?4:5.5)+'" fill="#ffc400"/>';
+    if(!gShow(i,n)) continue;
+    var fs=gFs(n), ty = (y-14 < GPAD.t) ? (y+fs+4) : (y-14);
     var ta = (i===0) ? 'start' : (i===n-1 ? 'end' : 'middle');
     var tx = (i===0) ? (x-4) : (i===n-1 ? (x+4) : x);
-    s+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+ta+'" font-size="18" font-weight="900" fill="#ffffff">'+vals[i].toFixed(dec)+'</text>';
+    s+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+ta+'" font-size="'+fs+'" font-weight="900" fill="#ffffff">'+vals[i].toFixed(dec)+'</text>';
   }
   s+=gXlab(labels,H)+'</svg>';
   return s;
@@ -14186,10 +14195,11 @@ function gBar(labels, vals, dec){
     if(vals[i]==null || isNaN(vals[i])) continue;
     var cx=GPAD.l+step*(i+0.5), h=ih*vals[i]/mx, y=GPAD.t+ih-h;
     s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="4" fill="#ffc400"/>';
-    s+='<text x="'+cx.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle" font-size="18" font-weight="900" fill="#ffffff">'+vals[i].toFixed(dec)+'</text>';
+    if(gShow(i,n)) s+='<text x="'+cx.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle" font-size="'+gFs(n)+'" font-weight="900" fill="#ffffff">'+vals[i].toFixed(dec)+'</text>';
   }
   for(i=0;i<n;i++){
-    s+='<text x="'+(GPAD.l+step*(i+0.5)).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i]+'</text>';
+    if(!gShow(i,n)) continue;
+    s+='<text x="'+(GPAD.l+step*(i+0.5)).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle" font-size="'+(n>10?13:15)+'" font-weight="800" fill="#c9c9c9">'+gLab(labels,i)+'</text>';
   }
   s+='</svg>';
   return s;
@@ -14221,6 +14231,7 @@ function gLine2(labels, va, vb, dec){
     var o='', i;
     for(i=0;i<n;i++){
       var A=va[i], B=vb[i];
+      if(!gShow(i,n)) continue;
       var okA=(A!=null&&!isNaN(A)), okB=(B!=null&&!isNaN(B));
       var put=function(v,col,up){
         var x=X(i), yy=Y(v);
@@ -14229,7 +14240,7 @@ function gLine2(labels, va, vb, dec){
         if(ty > GPAD.t+ih+2) ty = yy-12;
         var ta=(i===0)?'start':(i===n-1?'end':'middle');
         var tx=(i===0)?(x-3):(i===n-1?(x+3):x);
-        o+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+ta+'" font-size="16" font-weight="900" fill="'+col+'">'+v.toFixed(dec)+'</text>';
+        o+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" text-anchor="'+ta+'" font-size="'+(n>10?13:16)+'" font-weight="900" fill="'+col+'">'+v.toFixed(dec)+'</text>';
       };
       if(okA && okB){
         if(Y(A) <= Y(B)){ put(A,G_A,true); put(B,G_B,false); }
@@ -14245,7 +14256,8 @@ function gLine2(labels, va, vb, dec){
     var x2 = n===1 ? GW/2 : GPAD.l + iw2*i2/(n-1), a2='middle';
     if(n>1 && i2===0){ a2='start'; x2=GPAD.l; }
     if(n>1 && i2===n-1){ a2='end'; x2=GW-GPAD.r; }
-    s+='<text x="'+x2.toFixed(1)+'" y="'+(GPAD.t+ih+20)+'" text-anchor="'+a2+'" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i2]+'</text>';
+    if(!gShow(i2,n)) continue;
+    s+='<text x="'+x2.toFixed(1)+'" y="'+(GPAD.t+ih+20)+'" text-anchor="'+a2+'" font-size="'+(n>10?13:15)+'" font-weight="800" fill="#c9c9c9">'+gLab(labels,i2)+'</text>';
   }
   s+='</svg>';
   return s;
@@ -14266,10 +14278,10 @@ function gBar2(labels, va, vb, dec){
       if(p[0]==null||isNaN(p[0])) return;
       var h2=ih*p[0]/mx, yy=GPAD.t+ih-h2, bx=cx+p[2]*(bw/2+2)-bw/2;
       s+='<rect x="'+bx.toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h2.toFixed(1)+'" rx="4" fill="'+p[1]+'"/>';
-      s+='<text x="'+(bx+bw/2).toFixed(1)+'" y="'+(yy-7).toFixed(1)+'" text-anchor="middle" font-size="15" font-weight="900" fill="'+p[1]+'">'+p[0].toFixed(dec)+'</text>';
+      if(gShow(i,n)) s+='<text x="'+(bx+bw/2).toFixed(1)+'" y="'+(yy-7).toFixed(1)+'" text-anchor="middle" font-size="'+(n>10?12:15)+'" font-weight="900" fill="'+p[1]+'">'+p[0].toFixed(dec)+'</text>';
     });
   }
-  for(i=0;i<n;i++) s+='<text x="'+(GPAD.l+step*(i+0.5)).toFixed(1)+'" y="'+(GPAD.t+ih+20)+'" text-anchor="middle" font-size="15" font-weight="800" fill="#c9c9c9">'+labels[i]+'</text>';
+  for(i=0;i<n;i++) if(gShow(i,n)) s+='<text x="'+(GPAD.l+step*(i+0.5)).toFixed(1)+'" y="'+(GPAD.t+ih+20)+'" text-anchor="middle" font-size="'+(n>10?13:15)+'" font-weight="800" fill="#c9c9c9">'+gLab(labels,i)+'</text>';
   s+='</svg>';
   return s;
 }

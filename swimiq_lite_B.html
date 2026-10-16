@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.16.10">
+<meta name="app-ver" content="2026.10.16.12">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -835,10 +835,10 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #admPw, #saveBox, #ocrBox, #imBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #bkBox, #admPw, #saveBox, #ocrBox, #imBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide, #imBox.hide{ display:none !important; }
+#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #bkBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide, #imBox.hide{ display:none !important; }
 .imGrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
 @media (max-width:560px){ .imGrid{ grid-template-columns:1fr; } }
 .imGrid label{ display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:800; color:var(--dim); }
@@ -3178,7 +3178,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <h3 id="imH">画像・PDFから取り込む</h3>
     <p class="lead">大会の結果のスクショか、結果のPDFを選びます。何人分が写っていても読み取れます。読み取ったあと、全部取り込むか、一部を選ぶかを選べます。</p>
     <div class="imGrid">
-      <label>大会名<input type="text" id="imMeet" autocomplete="off" placeholder="例）関東学生選手権"></label>
+      <label>大会名<input type="text" id="imMeet" autocomplete="off" list="imMeetList" placeholder="例）関東学生選手権（登録済みから選べます）"></label>
       <label>日付<input type="date" id="imDate"></label>
       <label>プール<select id="imPool"><option value="50">50mプール</option><option value="25">25mプール</option></select></label>
     </div>
@@ -3335,10 +3335,31 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <div class="svWrap">
     <h3 id="fxH"></h3>
     <p class="lead" id="fxLead"></p>
+    <button class="btn y" type="button" id="fxBulk" style="width:100%;margin:0 0 10px"><span>試合ごとにまとめて直す</span><small>同じ試合の記録のプール・日付・試合名を一度に直します</small></button>
     <input type="text" id="fxQ" autocomplete="off" placeholder="名前・試合名で探す">
     <div id="fxList"></div>
     <div class="svBtns">
       <button class="btn" type="button" id="fxClose" data-t="dMenuX"></button>
+    </div>
+  </div>
+</div>
+<datalist id="imMeetList"></datalist>
+<div id="bkBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="bkH">
+  <div class="svWrap">
+    <h3 id="bkH">試合ごとにまとめて直す</h3>
+    <p class="lead">試合を選ぶと、その試合の記録を全部まとめて直せます。変えない項目は「そのまま」にしておきます。</p>
+    <div class="imGrid">
+      <label>試合<select id="bkMeet"></select></label>
+      <label>プール<select id="bkPool"><option value="">そのまま</option><option value="50">50mプールに直す</option><option value="25">25mプールに直す</option></select></label>
+      <label>日付<input type="date" id="bkDate"></label>
+      <label>試合名を変える<input type="text" id="bkName" autocomplete="off" list="bkNameList" placeholder="空なら そのまま"></label>
+    </div>
+    <datalist id="bkNameList"></datalist>
+    <p class="lead" id="bkSum" style="margin-top:10px"></p>
+    <div id="bkList" style="max-height:30vh;overflow:auto;margin-bottom:10px"></div>
+    <div class="svBtns">
+      <button class="btn" type="button" id="bkClose">閉じる</button>
+      <button class="btn g" type="button" id="bkGo" style="flex:2">まとめて直す</button>
     </div>
   </div>
 </div>
@@ -4850,7 +4871,7 @@ var HELP=[
    'PDFに 文字が 入って いれば、名前も 正しく 読めます。スクショは 名前を 読みまちがえる ことが あるので、名前の 欄で 直して ください。登録した 選手の 名前が 見つかれば、その 選手に つながります。',
    '2件いじょう 見つかった ときは <b>全部</b> か <b>一部</b> を 選びます。一部は、取りこむ 記録に チェックを 入れて、下の ボタンで 取りこみます。',
    '取りこんだ 記録は 手入力の 記録と 同じ あつかいです。通過タイム・反応時間が 入ります。',
-   '日本水泳連盟 科学委員会の <b>競泳レース分析</b> の PDF（表が 絵に なって いる もの）も 読めます。表の 線を 見つけて マスごとに 数字を 読み、通過・ラップ・ストローク数・ストロークタイム・浮き上がり・反応時間を 選手ごとに まとめます。何組 あっても 組ごとに 分けます。50m・100m・200m・400m・800m・1500m の どれでも 読めます。表の 見出しが 読めなくても、数字の 並び方から 表の 種類を 見分けます。PDF は 横向きで 保存した ものが いちばん 確実です。ページの 境目で 切れた 表は、前の 表の 続きとして つなげます。ターンの 表や ラップの 表は、見出しが 読めなくても 数字の 大きさで 見分けます。ストローク数が 一部の 区間だけ の ときは、数えた 区間だけの 合計を「10/16区間の合計」の ように 出し、50mごとの グラフで どこを 数えたかを 見せます。',
+   '日本水泳連盟 科学委員会の <b>競泳レース分析</b> の PDF（表が 絵に なって いる もの）も 読めます。表の 線を 見つけて マスごとに 数字を 読み、通過・ラップ・ストローク数・ストロークタイム・浮き上がり・反応時間を 選手ごとに まとめます。何組 あっても 組ごとに 分けます。50m・100m・200m・400m・800m・1500m の どれでも 読めます。表の 見出しが 読めなくても、数字の 並び方から 表の 種類を 見分けます。PDF は 横向きで 保存した ものが いちばん 確実です。ページの 境目で 切れた 表は、前の 表の 続きとして つなげます。ターンの 表や ラップの 表は、見出しが 読めなくても 数字の 大きさで 見分けます。50m の 区間ラップ（4.6→4.9→5.0 の ように 少しずつ ふえる 数字）を 通過と まちがえない ように、通過は となりの 列と 2秒いじょう はなれて いる ことも たしかめます。ストローク数が 一部の 区間だけ の ときは、数えた 区間だけの 合計を「10/16区間の合計」の ように 出し、50mごとの グラフで どこを 数えたかを 見せます。',
    'レース分析の PDFは、ページを <b>横向き</b> で 保存して ください。縦向きだと 表の 右が 切れて、読めない 数字が 出ます。ページ数が 多いと 数分 かかります（58ページで 約3分）。',
    '読んだ あと、通過の 差と ラップ・区間ラップ・ターンの タイムを 計算で 突き合わせます。合わない 数字が ある 選手は 赤い 字で 知らせるので、PDFと 見くらべて ください。読めなかった 通過は ラップから 計算して 入れ、そう 書きます。',
    '名前と チーム名は 日本語の 読み取りなので、まちがう ことが あります（半角の カタカナは とくに）。取りこむ 前に 名前の 欄で 直して ください。区間ラップ・泳速度・ストローク長・ターンの タイムなども 記録の 中に 残して あります'
@@ -12740,7 +12761,7 @@ function jaGroups(T){
   for(k=0;k<n;k++){ var a=[], allInt=true, cnt=0; T.rows.forEach(function(r){ var c=r.cells[k]; if(!c || !/\d/.test(c.t)) return; cnt++; if(!/^\d{1,2}$/.test(c.t)) allInt=false; var v=jaNum(c.t,'split'); if(v!=null) a.push(v); });
     a.sort(function(x,y){ return x-y; }); med.push(a.length ? a[Math.floor(a.length/2)] : null); ints.push(cnt>0 && allInt); }
   /* ターンの 表の 左はしの 反応時間 */
-  if(K[0] && K[0].t==='b' && med[0]!=null && med[0]<1.2 && K.some(function(x){ return x.cls==='turn'; })) K[0].cls='rt';
+  if(K.some(function(x){ return x.cls==='turn'; })) for(k=0;k<n;k++){ if(K[k].t==='b' && !ints[k] && med[k]!=null && med[k]<1.2 && med[k]>0.3){ var nx=null; for(q=k+1;q<n;q++) if(K[q].t!=='b'){ nx=q; break; } if(nx!=null && K[nx].cls==='turn') K[k].cls='rt'; } }
   /* 見出しが 読めなかった 列は、となりの 列の しゅるいに そろえます（数字の 大きさが 近い ほう） */
   for(k=0;k<n;k++){
     if(K[k].cls) continue;
@@ -12753,6 +12774,9 @@ function jaGroups(T){
     K[k].cls = pick!=null ? K[pick].cls : 'blank';
     if(K[k].cls==='split') K[k].kind={ t:'d', d:null };
   }
+  /* 見出しの ない 列が ラップの 表に まぎれた とき：9秒 より 短ければ ターン（25mの ラップは 10秒いじょう） */
+  for(k=0;k<n;k++) if(K[k].t==='b' && K[k].cls==='lap' && !ints[k] && med[k]!=null && med[k]<9 && med[k]>=1.2) K[k].cls='turn';
+  if(K.some(function(x){ return x.cls==='turn'; })) for(k=0;k<n;k++){ if(K[k].t==='b' && K[k].cls!=='rt' && !ints[k] && med[k]!=null && med[k]<1.2 && med[k]>0.3){ var nx2=null; for(q=k+1;q<n;q++) if(K[q].t!=='b' || K[q].cls==='turn'){ nx2=q; break; } if(nx2!=null && K[nx2].cls==='turn') K[k].cls='rt'; } }
   for(k=0;k<n;k++) if(ints[k] && (K[k].cls==='lap' || K[k].cls==='seg')) K[k].cls='sc';
   /* しゅるいが 変わる所・同じ 区間が もう一度 出る所で 表を 分けます */
   var gs=[], g=null, rt=null;
@@ -12775,9 +12799,13 @@ function jaVals(rows, cols){ return rows.map(function(r){ return cols.map(functi
 function jaIsSplit(rows, cols){
   if(cols.length<1) return false;
   var V=jaVals(rows, cols), ok=0, n=0;
+  var steps=[];
   V.forEach(function(r){ var v=r.filter(function(x){ return x!=null; }); if(v.length<Math.max(1, cols.length-1)) return; n++;
-    var inc=v.every(function(x,q){ return q===0 || x>v[q-1]; }); if(inc && v[0]>4.5) ok++; });
-  return n>=2 && ok>=n*0.75 && (cols.length>=3 || V.some(function(r){ return r.some(function(x){ return x!=null && x>40; }); }));
+    var inc=v.every(function(x,q){ return q===0 || x>v[q-1]; }); if(inc && v[0]>4.5) ok++;
+    for(var q=1;q<v.length;q++) steps.push(v[q]-v[q-1]); });
+  /* 通過は となりの 列との 差が 2秒いじょう（5mでも 2秒は かかる）。区間ラップ（4.6→4.9→5.0 のように 少しずつ ふえる）を 通過と まちがえない ため */
+  steps.sort(function(a,b){ return a-b; }); var stepMed=steps.length ? steps[Math.floor(steps.length/2)] : 99;
+  return n>=2 && ok>=n*0.75 && stepMed>=2.0 && (cols.length>=3 || V.some(function(r){ return r.some(function(x){ return x!=null && x>40; }); }));
 }
 function jaMed(rows, cols){ var a=[]; jaVals(rows, cols).forEach(function(r){ r.forEach(function(x){ if(x!=null) a.push(x); }); }); a.sort(function(x,y){ return x-y; }); return a.length ? a[Math.floor(a.length/2)] : null; }
 function jaRangeOK(rows, cols, lo, hi){ var a=[]; jaVals(rows, cols).forEach(function(r){ r.forEach(function(x){ if(x!=null) a.push(x); }); }); return a.length>0 && a.every(function(x){ return x>=lo && x<=hi; }); }
@@ -12837,6 +12865,16 @@ function jaHeats(tabs, titleDist){
       var tpl={};
       H.il.concat(H.seg).forEach(function(G){ G.cols.forEach(function(c,j){ if(c.kind && c.kind.r) (tpl[G.cols.length]=tpl[G.cols.length]||[])[j]=c.kind.r; }); });
       H.il.concat(H.seg).forEach(function(G){ var t=tpl[G.cols.length]||[]; G.cols.forEach(function(c,j){ if(!(c.kind && c.kind.r) && t[j]) c.kind={ t:'r', r:t[j] }; }); });
+      /* それでも 分からない 列：読めた 区間が 同じ 幅・同じ 間かくで ならんで いれば、その ならびで うめます（50mの 15-25・25-35・35-45 など） */
+      H.il.concat(H.seg).forEach(function(G){
+        var kn=[]; G.cols.forEach(function(c,j){ if(c.kind && c.kind.r) kn.push({ j:j, r:c.kind.r }); });
+        if(kn.length<1 || kn.length===G.cols.length) return;
+        var w=kn[0].r[1]-kn[0].r[0], st=null, ok=kn.every(function(x){ return x.r[1]-x.r[0]===w; });
+        for(var q=1;q<kn.length && ok;q++){ var d=(kn[q].r[0]-kn[0].r[0])/(kn[q].j-kn[0].j); if(d!==Math.round(d) || d<=0) ok=false; else if(st==null) st=d; else if(st!==d) ok=false; }
+        if(!ok) return;
+        if(st==null){ if(kn.length===1 && G.cols.length<=3 && w>0 && w<=25) st=w; else return; }   /* 1列しか 読めない ときは、となり合う 区間と します（短い 種目だけ） */
+        G.cols.forEach(function(c,j){ if(!(c.kind && c.kind.r)){ var a=kn[0].r[0]+(j-kn[0].j)*st; if(a>=0) c.kind={ t:'r', r:[a, a+w] }; } });
+      });
     }
     fillTpl();
     /* 見出しの ない ターンの 表：壁の 5m前（3秒前後）と 壁から 15m（8秒前後）が ならぶ。反応時間（1秒未満）は 左はしだけ */
@@ -12844,7 +12882,7 @@ function jaHeats(tabs, titleDist){
       var ms=G.cols.map(function(c){ return jaMed(G.rows, [c]); });
       if(G.cols.length<2 || ms.some(function(m){ return m==null; })) return false;
       if(ms.some(function(m,j){ return m>10.5 || m<(j===0 ? 0.4 : 2.0); })) return false;
-      return ms.some(function(m){ return m>=6; }) && ms.some(function(m){ return m>=2.0 && m<=4.6; });
+      return ms.some(function(m){ return m>=5; }) && ms.some(function(m){ return m>=2.0 && m<=4.6; });
     }
     H.blank=H.blank.filter(function(G){
       if(!turnLike(G)) return true;
@@ -12861,19 +12899,11 @@ function jaHeats(tabs, titleDist){
     });
     H.lap.sort(function(a,b){ return (a.ord||0)-(b.ord||0); });
     var lc=[]; H.lap.forEach(function(G){ G.cols.forEach(function(c){ lc.push(c); }); });
-    if(lapDist && lc.length*50===lapDist){
-      var lb=0, lk=0; lc.forEach(function(c,j){ if(c.kind && c.kind.r){ lk++; if(c.kind.r[0]!==j*50 || c.kind.r[1]!==j*50+50) lb++; } });
-      if(lb<=Math.max(1, lk*0.1)) lc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:[j*50, j*50+50] }; });
+    if(lapDist===50 && lc.length===3){   /* 50mの ラップの 表は 0-25・25-50・0-50 */
+      var L50=[[0,25],[25,50],[0,50]], lb0=0; lc.forEach(function(c,j){ if(c.kind && c.kind.r && (c.kind.r[0]!==L50[j][0] || c.kind.r[1]!==L50[j][1])) lb0++; });
+      if(!lb0) lc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:L50[j] }; });
     }
-    /* 見出しの ない ラップの 表：50mの ラップ（22〜90秒）が ならぶ。区切りは 0mから 50mずつ */
-    var lapDist=H.titleDist||0; H.sg.forEach(function(G){ G.cols.forEach(function(c){ if(c.kind.d>lapDist) lapDist=c.kind.d; }); });
-    H.blank=H.blank.filter(function(G){
-      if(G.cols.length<2 || !jaRangeOK(G.rows, G.cols, 22, 90) || jaIsSplit(G.rows, G.cols)) return true;
-      H.lap.push(G); return false;
-    });
-    H.lap.sort(function(a,b){ return (a.ord||0)-(b.ord||0); });
-    var lc=[]; H.lap.forEach(function(G){ G.cols.forEach(function(c){ lc.push(c); }); });
-    if(lapDist && lc.length*50===lapDist){
+    else if(lapDist && lc.length*50===lapDist){
       var lb=0, lk=0; lc.forEach(function(c,j){ if(c.kind && c.kind.r){ lk++; if(c.kind.r[0]!==j*50 || c.kind.r[1]!==j*50+50) lb++; } });
       if(lb<=Math.max(1, lk*0.1)) lc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:[j*50, j*50+50] }; });
     }
@@ -12882,9 +12912,14 @@ function jaHeats(tabs, titleDist){
     if(segR.length && segR.every(function(r){ return r; })){
       var TL=[[0,15]]; segR.forEach(function(r,j){ TL.push([r[1], r[1]+5]); if(j+1<segR.length) TL.push([segR[j+1][0]-15, segR[j+1][0]]); });
       var tc=[]; H.turn.forEach(function(G){ G.cols.forEach(function(c){ tc.push(c); }); });
-      if(tc.length===TL.length){
+      function tryTL(TL){
+        if(tc.length!==TL.length) return false;
         var bad=0, kn=0; tc.forEach(function(c,j){ if(c.kind && c.kind.r){ kn++; if(c.kind.r[0]!==TL[j][0] || c.kind.r[1]!==TL[j][1]) bad++; } });
-        if(bad<=Math.max(1, kn*0.1)) tc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:TL[j] }; });
+        if(bad>Math.max(1, kn*0.1)) return false;
+        tc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:TL[j] }; }); return true;
+      }
+      if(!tryTL(TL) && lapDist){   /* 短い 種目は 壁ごと：スタート 0-15、壁の 5m前・15m後、最後の 5m */
+        var TW=[[0,15]]; for(var w2=50; w2<lapDist; w2+=50){ TW.push([w2-5,w2]); TW.push([w2,w2+15]); } TW.push([lapDist-5,lapDist]); tryTL(TW);
       }
     }
     H.blank.forEach(function(G){
@@ -13188,8 +13223,19 @@ function rrRead(file, stat){
 }
 /* ===== 記録を見る → 画像・PDFから取り込む（新しい 記録を つくる） ===== */
 var imEnts=[], imPart=false;
+/* 登録ずみの 試合名（新しい 順）。取り込みと まとめて 直す 画面で えらべます */
+function meetNames(all){
+  var seen={}, out=[];
+  all.slice().sort(function(a,b){ return (b.at||0)-(a.at||0); }).forEach(function(r){
+    if(!r || r.deleted || r.draft || r.vidOnly) return;
+    var m=meetName(r); if(!m || seen[m]) return; seen[m]=1; out.push(m);
+  });
+  return out;
+}
+function fillMeetList(id, names){ var dl=$(id); if(!dl) return; dl.innerHTML=names.map(function(m){ return '<option value="'+esc(m).replace(/"/g,'&quot;')+'">'; }).join(''); }
 function imOpen(){
   imEnts=[]; imPart=false;
+  dbAll().then(function(all){ fillMeetList('imMeetList', meetNames(all)); }, function(){});
   $('imStat').textContent=''; $('imList').innerHTML=''; $('imChoose').classList.add('hide'); $('imGo').classList.add('hide');
   var d=new Date(); $('imDate').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   $('imBox').classList.remove('hide');
@@ -15226,6 +15272,52 @@ function fxPaint(){
 }
 $('fxQ').addEventListener('input', fxPaint);
 $('fxClose').onclick=function(){ $('fxBox').classList.add('hide'); };
+/* ===== 試合ごとに まとめて 直す =====
+   同じ 試合名の 記録を 全部 えらんで、プール・日付・試合名を 一度に 直します。
+   1件ずつ 保存するのと 同じ 道（dbPut → afterSave）を 通るので、同期も 同じように 動きます。 */
+var bkAll=[];
+function bkGroup(){ var m=$('bkMeet').value; return bkAll.filter(function(r){ return meetName(r)===m; }); }
+function bkOpen(){
+  dbAll().then(function(all){
+    bkAll=all.filter(function(r){ return r && !r.vidOnly && !r.draft && !r.deleted; });
+    var names=meetNames(bkAll);
+    if(!names.length){ toast('試合名の入った記録がありません'); return; }
+    $('bkMeet').innerHTML=names.map(function(m){ var n=bkAll.filter(function(r){ return meetName(r)===m; }).length; return '<option value="'+esc(m).replace(/"/g,'&quot;')+'">'+esc(m)+'（'+n+'件）</option>'; }).join('');
+    fillMeetList('bkNameList', names);
+    $('bkPool').value=''; $('bkDate').value=''; $('bkName').value='';
+    bkPaint();
+    $('fxBox').classList.add('hide'); $('bkBox').classList.remove('hide');
+  });
+}
+function bkPaint(){
+  var G=bkGroup(), pool=$('bkPool').value, dv=$('bkDate').value, nm=($('bkName').value||'').trim(), ch=[];
+  if(pool) ch.push('プールを '+pool+'m に');
+  if(dv) ch.push('日付を '+dv.replace(/-/g,'/')+' に');
+  if(nm && nm!==$('bkMeet').value) ch.push('試合名を「'+nm+'」に');
+  var pools={}; G.forEach(function(r){ var k=(r.pool||50)+'m'; pools[k]=(pools[k]||0)+1; });
+  var pt=Object.keys(pools).map(function(k){ return k+'プール '+pools[k]+'件'; }).join('、');
+  $('bkSum').textContent=G.length+'件の記録（今は '+pt+'）。'+(ch.length ? ch.join('、')+' 直します。' : '直す項目を選んでください。');
+  $('bkGo').disabled=!ch.length || !G.length;
+  $('bkList').innerHTML=G.map(function(r){ var last=r.splits&&r.splits.length?r.splits[r.splits.length-1]:null;
+    return '<div class="fxRow btn" style="min-height:48px;padding:8px 12px"><span class="fxL"><span class="fxS">'+esc((r.swimmerName?r.swimmerName+'　':'')+evLabel(r.event)+'　'+(r.dist||'')+'m　'+(r.pool||50)+'mプール　'+mdShort(r.at))+'</span></span><span class="fxV" style="font-size:16px">'+(last?oneT(last.t, rtSec(r)):'--')+'</span></div>'; }).join('');
+}
+$('fxBulk').onclick=bkOpen;
+['bkMeet','bkPool','bkDate','bkName'].forEach(function(id){ $(id).addEventListener('change', bkPaint); $(id).addEventListener('input', bkPaint); });
+$('bkClose').onclick=function(){ $('bkBox').classList.add('hide'); $('fxBox').classList.remove('hide'); };
+$('bkGo').onclick=function(){
+  var G=bkGroup(), pool=Number($('bkPool').value)||0, dv=$('bkDate').value, nm=($('bkName').value||'').trim(), old=$('bkMeet').value;
+  if(!G.length) return;
+  if(!confirm(G.length+'件の記録をまとめて直します。よろしいですか？')) return;
+  var at=dv ? new Date(dv+'T12:00:00').getTime() : null, job=Promise.resolve(), n=0;
+  G.forEach(function(r){
+    if(pool) r.pool=pool;
+    if(at!=null) r.at=at;
+    if(nm && nm!==old){ var rd=roundOf(r); r.title=nm; if(rd && r.round===undefined) r.title=nm+'　'+rd; }
+    r.updatedAt=Date.now();
+    job=job.then(function(){ return dbPut(r); }).then(function(){ afterSave(r); n++; });
+  });
+  job.then(function(){ toast(n+'件を直しました'); $('bkBox').classList.add('hide'); fxOpen(); }, function(){ toast('直せませんでした'); });
+};
 /* 修正画面から 動画で 計り直す：その 記録を ひらいて「何をやり直しますか」を 出します */
 $('vfRe').onclick=function(){
   var id=vfEditId; if(!id) return;

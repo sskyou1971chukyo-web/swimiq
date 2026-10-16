@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.16.7">
+<meta name="app-ver" content="2026.10.16.9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -4850,7 +4850,7 @@ var HELP=[
    'PDFに 文字が 入って いれば、名前も 正しく 読めます。スクショは 名前を 読みまちがえる ことが あるので、名前の 欄で 直して ください。登録した 選手の 名前が 見つかれば、その 選手に つながります。',
    '2件いじょう 見つかった ときは <b>全部</b> か <b>一部</b> を 選びます。一部は、取りこむ 記録に チェックを 入れて、下の ボタンで 取りこみます。',
    '取りこんだ 記録は 手入力の 記録と 同じ あつかいです。通過タイム・反応時間が 入ります。',
-   '日本水泳連盟 科学委員会の <b>競泳レース分析</b> の PDF（表が 絵に なって いる もの）も 読めます。表の 線を 見つけて マスごとに 数字を 読み、通過・ラップ・ストローク数・ストロークタイム・浮き上がり・反応時間を 選手ごとに まとめます。何組 あっても 組ごとに 分けます。50m・100m・200m・400m・800m・1500m の どれでも 読めます。表の 見出しが 読めなくても、数字の 並び方から 表の 種類を 見分けます。PDF は 横向きで 保存した ものが いちばん 確実です。ストローク数が 一部の 区間だけ の ときは、数えた 区間だけの 合計を「10/16区間の合計」の ように 出し、50mごとの グラフで どこを 数えたかを 見せます。',
+   '日本水泳連盟 科学委員会の <b>競泳レース分析</b> の PDF（表が 絵に なって いる もの）も 読めます。表の 線を 見つけて マスごとに 数字を 読み、通過・ラップ・ストローク数・ストロークタイム・浮き上がり・反応時間を 選手ごとに まとめます。何組 あっても 組ごとに 分けます。50m・100m・200m・400m・800m・1500m の どれでも 読めます。表の 見出しが 読めなくても、数字の 並び方から 表の 種類を 見分けます。PDF は 横向きで 保存した ものが いちばん 確実です。ページの 境目で 切れた 表は、前の 表の 続きとして つなげます。ターンの 表や ラップの 表は、見出しが 読めなくても 数字の 大きさで 見分けます。ストローク数が 一部の 区間だけ の ときは、数えた 区間だけの 合計を「10/16区間の合計」の ように 出し、50mごとの グラフで どこを 数えたかを 見せます。',
    'レース分析の PDFは、ページを <b>横向き</b> で 保存して ください。縦向きだと 表の 右が 切れて、読めない 数字が 出ます。ページ数が 多いと 数分 かかります（58ページで 約3分）。',
    '読んだ あと、通過の 差と ラップ・区間ラップ・ターンの タイムを 計算で 突き合わせます。合わない 数字が ある 選手は 赤い 字で 知らせるので、PDFと 見くらべて ください。読めなかった 通過は ラップから 計算して 入れ、そう 書きます。',
    '名前と チーム名は 日本語の 読み取りなので、まちがう ことが あります（半角の カタカナは とくに）。取りこむ 前に 名前の 欄で 直して ください。区間ラップ・泳速度・ストローク長・ターンの タイムなども 記録の 中に 残して あります'
@@ -12674,22 +12674,42 @@ function jaRows(G, page){
       if(a.w>=150 && a.w<=260 && b.w>=130 && b.w<=215 && a.h<=64 && b.h<=64){ k=i; break; } }   /* 名前 190・チーム 169 ぐらい（200dpi） */
     if(k>=0 && r.cells[k].h<33) k=-1;   /* ページの はしで 切れた 行 */
     var skip=(k>=0 && !r.cells.slice(k+2).some(function(c){ return /\d/.test(c.t); }));   /* 数字の ない 行（空いた レーン・表の 見出し）は 使いません */
-    return { page:page, y:r.y, data:k>=0 && !skip, skip:skip, name:(k>=0?r.cells[k]:null), team:(k>=0?r.cells[k+1]:null), cells:(k>=0?r.cells.slice(k+2):r.cells), canvas:G.src };
+    var no=(k>=1 && /^\d{1,2}$/.test(String(r.cells[k-1].t||'').trim())) ? Number(String(r.cells[k-1].t).trim()) : null;   /* 左はしの 番号（1〜8） */
+    return { page:page, y:r.y, no:no, data:k>=0 && !skip, skip:skip, name:(k>=0?r.cells[k]:null), team:(k>=0?r.cells[k+1]:null), cells:(k>=0?r.cells.slice(k+2):r.cells), canvas:G.src };
   });
 }
 /* 行の ならび → 表の ならび（見出しの マスを 列ごとに つけます） */
 function jaTables(rows){
-  var tabs=[], cur=null, hd=[];
+  var tabs=[], cur=null, hd=[], hdPage=null;
   rows.forEach(function(r){
     if(r.skip) return;
-    if(!r.data){ if(r.cells.length>=2) { if(cur && cur.closed===false) cur.closed=true; hd=hd.concat(r.cells); } return; }
+    if(!r.data){ if(r.cells.length>=2) { if(cur && cur.closed===false) cur.closed=true; hd=hd.concat(r.cells); hdPage=r.page; } return; }
     if(!cur || cur.closed){
-      var cols=r.cells.map(function(c){ var cx=c.x+c.w/2, best=null;
-        hd.forEach(function(h){ if(cx>=h.x && cx<=h.x+h.w && (!best || h.y>best.y)) best=h; }); return best ? best.t : ''; });
-      cur={ head:cols, rows:[], closed:false }; tabs.push(cur); hd=[];
+      var hit=0, cols=r.cells.map(function(c){ var cx=c.x+c.w/2, best=null;
+        hd.forEach(function(h){ if(cx>=h.x && cx<=h.x+h.w && (!best || h.y>best.y)) best=h; }); if(best) hit++; return best ? best.t : ''; });
+      /* ページを またいで 続く 表（上に 見出しが なく、列の 位置が 前の 表と 同じで、番号が 続く）は、前の 表に つなげます。
+         ページの はしの 小さな マスで 表が 切れて しまうのを ふせぎます */
+      var pv=tabs.length ? tabs[tabs.length-1] : null, lr=pv ? pv.rows[pv.rows.length-1] : null;
+      /* ページの 右下の ▲ボタンが マスに かかって、1マス 多い・少ない ことが あるので、8割の 列が そろえば 同じ 表と します */
+      var al=lr ? r.cells.filter(function(c){ return lr.cells.some(function(d){ return Math.abs(c.x-d.x)<=12 && Math.abs(c.w-d.w)<=12; }); }).length : 0;
+      var same=!!(lr && !hit && lr.page!==r.page && r.cells.length>=3 && Math.abs(lr.cells.length-r.cells.length)<=1 &&
+        al>=Math.max(3, Math.ceil(Math.max(lr.cells.length, r.cells.length)*0.8)) &&
+        r.no!==1 && (r.no==null || lr.no==null || r.no===lr.no+1));
+      if(same){ cur=pv; cur.closed=false; hd=[]; }
+      else { cur={ head:cols, rows:[], closed:false, hdSame:(hdPage===r.page) }; tabs.push(cur); hd=[]; }
     }
     cur.rows.push(r);
   });
+  /* ページの 上で 続く 表の のこり（同じ ページの 上に 見出しが なく、列の 位置が 前の 表と そろう）は、
+     間に よけいな マスが 入って 切れて しまっても、前の 表に つなげます。
+     行の 数が いちばん 多い 表を こえない ときだけ（別の 組の 表と まぜない ため） */
+  var nMax=0; tabs.forEach(function(t){ if(t.rows.length>nMax) nMax=t.rows.length; });
+  for(var q=tabs.length-1;q>0;q--){
+    var A=tabs[q-1], B=tabs[q], la=A.rows[A.rows.length-1], fb=B.rows[0];
+    if(B.hdSame || !(fb.page>la.page) || A.rows.length+B.rows.length>nMax) continue;
+    var al=fb.cells.filter(function(c){ return la.cells.some(function(d){ return Math.abs(c.x-d.x)<=12 && Math.abs(c.w-d.w)<=12; }); }).length;
+    if(fb.cells.length>=3 && Math.abs(la.cells.length-fb.cells.length)<=1 && al>=Math.max(3, Math.ceil(Math.max(la.cells.length, fb.cells.length)*0.8))){ A.rows=A.rows.concat(B.rows); tabs.splice(q,1); }
+  }
   return tabs;
 }
 function jaNum(s, kind){
@@ -12761,9 +12781,9 @@ function jaIsSplit(rows, cols){
 }
 function jaMed(rows, cols){ var a=[]; jaVals(rows, cols).forEach(function(r){ r.forEach(function(x){ if(x!=null) a.push(x); }); }); a.sort(function(x,y){ return x-y; }); return a.length ? a[Math.floor(a.length/2)] : null; }
 function jaRangeOK(rows, cols, lo, hi){ var a=[]; jaVals(rows, cols).forEach(function(r){ r.forEach(function(x){ if(x!=null) a.push(x); }); }); return a.length>0 && a.every(function(x){ return x>=lo && x<=hi; }); }
-function jaHeats(tabs){
-  var heats=[], H=null;
-  function newHeat(){ H={ sg:[], il:[], lap:[], turn:[], seg:[], sc:[], st:[], blank:[], n:0, split:{} }; heats.push(H); }
+function jaHeats(tabs, titleDist){
+  var heats=[], H=null, ordN=0;
+  function newHeat(){ H={ sg:[], il:[], lap:[], turn:[], seg:[], sc:[], st:[], blank:[], n:0, split:{}, titleDist:titleDist||0 }; heats.push(H); }
   tabs.forEach(function(T){
     var gs=jaGroups(T), q;
     /* 通過の 表の すぐ 右の 見出しが 読めなかった 列（800m など）は、時間が ふえて いれば 通過の 表に 入れます */
@@ -12794,11 +12814,14 @@ function jaHeats(tabs){
       if(g.cls==='split'){
         var first=jaMed(T.rows, [g.cols[0]]);
         var rep=H && g.cols.some(function(c){ return c.kind.d!=null && H.sg.some(function(x){ return x.cols.some(function(y){ return y.kind.d===c.kind.d; }); }); });
-        if(!H || rep || H.blank.some(function(b){ return b.cols.length>=5; }) || (H.sg.length && first!=null && first<12)) newHeat();
+        /* 見出しの ない 表が あっても、通過が 前の 表の 続き（時間が 前の 表の 最後より 大きい）なら 同じ 組です */
+        var lastG=H && H.sg.length ? H.sg[H.sg.length-1] : null, prevLast=lastG ? jaMed(lastG.rows, [lastG.cols[lastG.cols.length-1]]) : null;
+        var restart=(first!=null && prevLast!=null && first<prevLast*0.9);
+        if(!H || rep || (H.blank.some(function(b){ return b.cols.length>=5; }) && (restart || prevLast==null)) || (H.sg.length && first!=null && first<12)) newHeat();
         H.sg.push({ rows:T.rows, cols:g.cols }); H.n=Math.max(H.n, T.rows.length); if(!H.rows) H.rows=T.rows; return;
       }
       if(!H) newHeat();
-      var G={ rows:T.rows, cols:g.cols, rt:g.rt };
+      var G={ rows:T.rows, cols:g.cols, rt:g.rt, ord:(++ordN) };
       if(g.cls==='lap') H.lap.push(G);
       else if(g.cls==='sc') H.sc.push(G);
       else if(g.cls==='turn') H.turn.push(G);
@@ -12810,14 +12833,66 @@ function jaHeats(tabs){
   heats.forEach(function(H){
     /* 見出しの ない 表：区間の 数が 同じで 数字が 小さい（0.5〜3.7）→ 泳速度・ST・ストローク長、それ いがいで 5列 いじょう → スタート */
     var nSeg=H.il[0] ? H.il[0].cols.length : (H.seg[0] ? H.seg[0].cols.length : 0), ref=H.il[0]||H.seg[0];
+    function fillTpl(){
+      var tpl={};
+      H.il.concat(H.seg).forEach(function(G){ G.cols.forEach(function(c,j){ if(c.kind && c.kind.r) (tpl[G.cols.length]=tpl[G.cols.length]||[])[j]=c.kind.r; }); });
+      H.il.concat(H.seg).forEach(function(G){ var t=tpl[G.cols.length]||[]; G.cols.forEach(function(c,j){ if(!(c.kind && c.kind.r) && t[j]) c.kind={ t:'r', r:t[j] }; }); });
+    }
+    fillTpl();
+    /* 見出しの ない ターンの 表：壁の 5m前（3秒前後）と 壁から 15m（8秒前後）が ならぶ。反応時間（1秒未満）は 左はしだけ */
+    function turnLike(G){
+      var ms=G.cols.map(function(c){ return jaMed(G.rows, [c]); });
+      if(G.cols.length<2 || ms.some(function(m){ return m==null; })) return false;
+      if(ms.some(function(m,j){ return m>10.5 || m<(j===0 ? 0.4 : 2.0); })) return false;
+      return ms.some(function(m){ return m>=6; }) && ms.some(function(m){ return m>=2.0 && m<=4.6; });
+    }
+    H.blank=H.blank.filter(function(G){
+      if(!turnLike(G)) return true;
+      if(!G.rt){ var m0=jaMed(G.rows, [G.cols[0]]); if(m0!=null && m0<1.2){ G.rt=G.cols[0]; G.cols=G.cols.slice(1); } }
+      H.turn.push(G); return false;
+    });
+    H.turn.sort(function(a,b){ return (a.ord||0)-(b.ord||0); });
+    H.turn.forEach(function(G,j){ if(j && G.rt){ G.cols=[G.rt].concat(G.cols); G.rt=null; } });
+    /* 見出しの ない ラップの 表：50mの ラップ（22〜90秒）が ならぶ。区切りは 0mから 50mずつ */
+    var lapDist=H.titleDist||0; H.sg.forEach(function(G){ G.cols.forEach(function(c){ if(c.kind.d>lapDist) lapDist=c.kind.d; }); });
+    H.blank=H.blank.filter(function(G){
+      if(G.cols.length<2 || !jaRangeOK(G.rows, G.cols, 22, 90) || jaIsSplit(G.rows, G.cols)) return true;
+      H.lap.push(G); return false;
+    });
+    H.lap.sort(function(a,b){ return (a.ord||0)-(b.ord||0); });
+    var lc=[]; H.lap.forEach(function(G){ G.cols.forEach(function(c){ lc.push(c); }); });
+    if(lapDist && lc.length*50===lapDist){
+      var lb=0, lk=0; lc.forEach(function(c,j){ if(c.kind && c.kind.r){ lk++; if(c.kind.r[0]!==j*50 || c.kind.r[1]!==j*50+50) lb++; } });
+      if(lb<=Math.max(1, lk*0.1)) lc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:[j*50, j*50+50] }; });
+    }
+    /* 見出しの ない ラップの 表：50mの ラップ（22〜90秒）が ならぶ。区切りは 0mから 50mずつ */
+    var lapDist=H.titleDist||0; H.sg.forEach(function(G){ G.cols.forEach(function(c){ if(c.kind.d>lapDist) lapDist=c.kind.d; }); });
+    H.blank=H.blank.filter(function(G){
+      if(G.cols.length<2 || !jaRangeOK(G.rows, G.cols, 22, 90) || jaIsSplit(G.rows, G.cols)) return true;
+      H.lap.push(G); return false;
+    });
+    H.lap.sort(function(a,b){ return (a.ord||0)-(b.ord||0); });
+    var lc=[]; H.lap.forEach(function(G){ G.cols.forEach(function(c){ lc.push(c); }); });
+    if(lapDist && lc.length*50===lapDist){
+      var lb=0, lk=0; lc.forEach(function(c,j){ if(c.kind && c.kind.r){ lk++; if(c.kind.r[0]!==j*50 || c.kind.r[1]!==j*50+50) lb++; } });
+      if(lb<=Math.max(1, lk*0.1)) lc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:[j*50, j*50+50] }; });
+    }
+    /* ターンの 区切りは 区間ラップの 区切りから 決まります（0-15、各区間の 終わり〜5m後、次の 区間の 15m前〜始まり、最後の 5m） */
+    var segR=ref ? ref.cols.map(function(c){ return c.kind && c.kind.r; }) : [];
+    if(segR.length && segR.every(function(r){ return r; })){
+      var TL=[[0,15]]; segR.forEach(function(r,j){ TL.push([r[1], r[1]+5]); if(j+1<segR.length) TL.push([segR[j+1][0]-15, segR[j+1][0]]); });
+      var tc=[]; H.turn.forEach(function(G){ G.cols.forEach(function(c){ tc.push(c); }); });
+      if(tc.length===TL.length){
+        var bad=0, kn=0; tc.forEach(function(c,j){ if(c.kind && c.kind.r){ kn++; if(c.kind.r[0]!==TL[j][0] || c.kind.r[1]!==TL[j][1]) bad++; } });
+        if(bad<=Math.max(1, kn*0.1)) tc.forEach(function(c,j){ if(!(c.kind && c.kind.r)) c.kind={ t:'r', r:TL[j] }; });
+      }
+    }
     H.blank.forEach(function(G){
       if(ref && G.cols.length===nSeg && jaRangeOK(G.rows, G.cols, 0.5, 3.7) && H.seg.length<3){ G.cols=G.cols.map(function(c,j){ return { k:c.k, kind:ref.cols[j].kind }; }); H.seg.push(G); }
       else if(G.cols.length>=5) H.st.push(G);
     });
+    fillTpl();
     /* 区間の 見出しが 読めなかった 列は、同じ 区間の 表（区間ラップは 3回、泳速度・ST・ストローク長と 同じ ならび）から うめます */
-    var tpl={};
-    H.il.concat(H.seg).forEach(function(G){ G.cols.forEach(function(c,j){ if(c.kind && c.kind.r) (tpl[G.cols.length]=tpl[G.cols.length]||[])[j]=c.kind.r; }); });
-    H.il.concat(H.seg).forEach(function(G){ var t=tpl[G.cols.length]||[]; G.cols.forEach(function(c,j){ if(!(c.kind && c.kind.r) && t[j]) c.kind={ t:'r', r:t[j] }; }); });
     /* ストローク数の 区切り：区間ラップの 区間を 50mごとに まとめた もの */
     var segT=(H.il[0]||H.seg[0]) ? (H.il[0]||H.seg[0]).cols.map(function(c){ return c.kind && c.kind.r; }).filter(function(x){ return x; }) : [];
     var blk=[]; segT.forEach(function(r){ var a=Math.floor(r[0]/50)*50; if(!blk.some(function(b){ return b[0]===a; })) blk.push([a,a+50]); });
@@ -12947,12 +13022,12 @@ function jaReadPdf(pdf, stat){
     }).then(function(G){
       if(G.cells.length<30){ if(no>=3 && !hit) p=pdf.numPages+1; return; }   /* 表の ない ページ（グラフ）は とばします */
       hit++;
-      return jaReadCells(G).then(function(){ if(window.__jaDrop) G.cells.forEach(function(c){ if(c.h>G.W*0.03 && (((c.x*7+c.y*13+no*31)%100)/100)<window.__jaDrop) c.t=''; }); all=all.concat(jaRows(G, no)); });
+      return jaReadCells(G).then(function(){ if(window.__jaDrop) G.cells.forEach(function(c){ if(c.h>G.W*0.03 && (((c.x*7+c.y*13+no*31+(window.__jaSeed||0)*17)%100)/100)<window.__jaDrop) c.t=''; }); all=all.concat(jaRows(G, no)); });
     }).then(next);
   }
   return next().then(function(){
     if(!hit) return null;
-    var tabs=jaTables(all), heats=jaHeats(tabs), ents=jaEntries(heats);
+    var tm=/(50|100|200|400|800|1500)m/.exec(String(title||'').replace(/\s/g,'')), tabs=jaTables(all), heats=jaHeats(tabs, tm ? Number(tm[1]) : 0), ents=jaEntries(heats);
     if(!ents.length) return null;
     return jaNames(ents, stat).then(function(){ return { title:title, ents:ents }; });
   });

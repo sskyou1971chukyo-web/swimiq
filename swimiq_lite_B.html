@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.16.5">
+<meta name="app-ver" content="2026.10.16.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1049,7 +1049,7 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 #vwScChart svg{ display:block; width:100%; height:auto; }
 .vwLeg{ display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12px; font-weight:800; color:var(--dim); margin:0 0 4px; }
 .vwLeg i{ display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
-.vwLeg i.on{ background:var(--am); } .vwLeg i.off{ background:var(--pane2); border:1px dashed #6b6d72; }
+.vwLeg i.on{ background:var(--am); } .vwLeg i.st{ background:#5ab0ff; border-radius:50%; } .vwLeg i.off{ background:var(--pane2); border:1px dashed #6b6d72; }
 .vwNote{ margin-top:10px; padding:9px 11px; border-radius:10px; font-size:13px; font-weight:800;
   color:var(--am); background:rgba(255,196,0,.08); border:1px solid var(--line2); line-height:1.6; }
 .vwBtns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:16px; }
@@ -2914,7 +2914,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <div id="vwScWrap" class="hide">
       <div class="vwGl">ストローク数（50mごと）</div>
-      <div class="vwLeg"><span><i class="on"></i>数えた区間</span><span><i class="off"></i>数えていない区間</span></div>
+      <div class="vwLeg"><span><i class="on"></i>数えた区間</span><span><i class="off"></i>数えていない区間</span><span><i class="st"></i>ストロークタイム</span></div>
       <div id="vwScChart"></div>
       <p class="vwNote" id="vwScCap"></p>
       <div class="vwTbl" id="vwScTbl"></div>
@@ -9846,12 +9846,35 @@ function partSC(r){
 }
 function partSCText(P){ return P ? ('数えた区間　'+P.ranges+'（'+P.of+'区間のうち'+P.k+'区間）　合計 '+P.n+'回　50mあたりの平均 '+P.avg.toFixed(1)+'回') : ''; }
 /* 50mごとの ストローク数の 棒グラフ（数えて いない 区間は 点線の 箱と ー）。dark＝アプリの 画面用 */
+/* 50mごとの ストローク数の 棒グラフ（数えて いない 区間は 点線の 箱と ー）。dark＝アプリの 画面用
+   上の 帯に ストロークタイム（ST）を 点と 線で 出します。測った 区間だけ（測って いない 区間で 線は 切ります） */
+function mscH(M, dark){ var hasST=M.some(function(q){ return q.st!=null; }); return dark ? (hasST?290:210) : (hasST?270:200); }
 function mscSvg(M, dark){
-  var n=M.length, W=dark?440:900, H=dark?210:200, L=dark?26:36, R=dark?16:20, T=22, B=28, iw=W-L-R, ih=H-T-B, bw=iw/n;
+  var hasST=M.some(function(q){ return q.st!=null; });
+  var n=M.length, W=dark?440:900, H=mscH(M,dark), L=dark?30:40, R=dark?16:20, T=22, B=28, iw=W-L-R, bw=iw/n;
+  var sH=hasST ? (dark?70:62) : 0, gapS=hasST?26:0, bTop=T+sH+gapS, ih=H-B-bTop;
   var mxv=Math.max(10, Math.ceil(Math.max.apply(null, M.map(function(q){ return q.n||0; }))/10)*10);
-  var C=dark ? { g:'#2c2d30', t:'#c9c9c9', on:'#ffc400', lb:'#ffffff', off:'#202124', os:'#6b6d72', ax:'#c9c9c9' }
-             : { g:'#eceef1', t:'#9aa0ab', on:'#f2b01e', lb:'#16181d', off:'#f4f5f7', os:'#b4b8c0', ax:'#16181d' };
-  var fs=dark ? (n>20 ? 7.5 : 11) : (n>20 ? 10 : 13), Y=function(v){ return T+ih-v/mxv*ih; }, o='<svg viewBox="0 0 '+W+' '+H+'">', g, i;
+  var C=dark ? { g:'#2c2d30', t:'#c9c9c9', on:'#ffc400', lb:'#ffffff', off:'#202124', os:'#6b6d72', ax:'#c9c9c9', st:'#5ab0ff', sb:'#14161a' }
+             : { g:'#eceef1', t:'#9aa0ab', on:'#f2b01e', lb:'#16181d', off:'#f4f5f7', os:'#b4b8c0', ax:'#16181d', st:'#1e6fe0', sb:'#f6f8fb' };
+  var fs=dark ? (n>20 ? 7.5 : 11) : (n>20 ? 10 : 13), Y=function(v){ return bTop+ih-v/mxv*ih; }, o='<svg viewBox="0 0 '+W+' '+H+'">', g, i;
+  /* ST の 帯 */
+  if(hasST){
+    var sv=M.filter(function(q){ return q.st!=null; }).map(function(q){ return q.st; });
+    var lo=Math.floor((Math.min.apply(null,sv)-0.05)*10)/10, hi=Math.ceil((Math.max.apply(null,sv)+0.05)*10)/10; if(hi-lo<0.2) hi=lo+0.2;
+    var SY=function(v){ return T+8+(hi-v)/(hi-lo)*(sH-16); };
+    o+='<rect x="'+L+'" y="'+T+'" width="'+iw+'" height="'+sH+'" rx="6" fill="'+C.sb+'"/>';
+    o+='<text x="'+(L-6)+'" y="'+(SY(hi)+4)+'" text-anchor="end" font-size="10" fill="'+C.t+'">'+hi.toFixed(1)+'</text><text x="'+(L-6)+'" y="'+(SY(lo)+4)+'" text-anchor="end" font-size="10" fill="'+C.t+'">'+lo.toFixed(1)+'</text>';
+    o+='<text x="'+L+'" y="'+(T-7)+'" font-size="11" font-weight="800" fill="'+C.st+'">ST（秒）測った区間だけ</text>';
+    var run=[];
+    function flush(){ if(run.length>1) o+='<polyline points="'+run.join(' ')+'" fill="none" stroke="'+C.st+'" stroke-width="2.2"/>'; run=[]; }
+    for(i=0;i<n;i++){ var q0=M[i]; if(q0.st==null){ flush(); continue; } run.push((L+i*bw+bw/2)+','+SY(q0.st)); }
+    flush();
+    var sfs=dark ? (n>20 ? 7 : 9.5) : (n>20 ? 9 : 11.5);
+    for(i=0;i<n;i++){ var q1=M[i]; if(q1.st==null) continue; var px=L+i*bw+bw/2, py=SY(q1.st);
+      o+='<circle cx="'+px+'" cy="'+py+'" r="'+(dark?3.2:4)+'" fill="'+C.st+'"/>';
+      if(n<=20 || i%2===0) o+='<text x="'+px+'" y="'+(py-6)+'" text-anchor="middle" font-size="'+sfs+'" font-weight="800" fill="'+C.st+'">'+q1.st.toFixed(2)+'</text>'; }
+    o+='<text x="'+L+'" y="'+(bTop-8)+'" font-size="11" font-weight="800" fill="'+C.t+'">ストローク数（回）</text>';
+  }
   for(g=0; g<=mxv; g+=10) o+='<line x1="'+L+'" y1="'+Y(g)+'" x2="'+(W-R)+'" y2="'+Y(g)+'" stroke="'+C.g+'"/><text x="'+(L-6)+'" y="'+(Y(g)+4)+'" text-anchor="end" font-size="11" fill="'+C.t+'">'+g+'</text>';
   var lbStep = dark ? (n>20 ? 10 : (n>8 ? 4 : 2)) : (n>20 ? 4 : 2);
   for(i=0;i<n;i++){
@@ -9860,7 +9883,7 @@ function mscSvg(M, dark){
     else o+='<rect x="'+x+'" y="'+Y(mxv*0.15)+'" width="'+w+'" height="'+(Y(0)-Y(mxv*0.15))+'" rx="3" fill="'+C.off+'" stroke="'+C.os+'" stroke-dasharray="4 3"/><text x="'+cx+'" y="'+(Y(mxv*0.15)-5)+'" text-anchor="middle" font-size="'+fs+'" font-weight="800" fill="'+C.os+'">ー</text>';
     if((i+1)%lbStep===0 || i===n-1) o+='<text x="'+(L+(i+1)*bw)+'" y="'+(H-B+17)+'" text-anchor="middle" font-size="11" font-weight="700" fill="'+C.t+'">'+q.b+'m</text>';
   }
-  o+='<line x1="'+L+'" y1="'+Y(0)+'" x2="'+(W-R)+'" y2="'+Y(0)+'" stroke="'+C.ax+'" stroke-width="1.5"/><text x="'+L+'" y="13" font-size="11" font-weight="700" fill="'+C.t+'">回</text></svg>';
+  o+='<line x1="'+L+'" y1="'+Y(0)+'" x2="'+(W-R)+'" y2="'+Y(0)+'" stroke="'+C.ax+'" stroke-width="1.5"/>'+(hasST?'':'<text x="'+L+'" y="13" font-size="11" font-weight="700" fill="'+C.t+'">回</text>')+'</svg>';
   return o;
 }
 function raceStrokeSegs(r){
@@ -11408,9 +11431,9 @@ function reportPages(r, prev, W, H, nP){
   /* 50mごとの ストローク数（手入力・取り込みの 記録。かきの 点が ない とき） */
   var MS=mSegRows(r), PSC=partSC(r);
   if(!srSvg && MS.length && PSC){
-    var mH=cw*200/900;
+    var mH=cw*mscH(MS,false)/900;
     if(y+16+mH+44 <= H-52-30){
-      s+=SEC(y,'ストローク数（50mごと）',PSC.part?'黄色が数えた区間、点線は数えていない区間':'');
+      s+=SEC(y,'ストローク数（50mごと）',(PSC.part?'黄色が数えた区間、点線は数えていない区間':'')+(MS.some(function(q){ return q.st!=null; })?((PSC.part?'。':'')+'青い点がストロークタイム（測った区間だけ）'):''));
       s+=place(mscSvg(MS,false), mx, y+8, cw, mH); y+=8+mH+14;
       var _c1=partSCText(PSC)+(sUnitOf(r)==='arm'?'（片手ずつ）':''), _f1=fit([_c1], cw, 10.5, 7.5);
       s+=T_(mx,y,_c1,_f1?_f1.fs:7.5,900,'#16181d'); y+=14;

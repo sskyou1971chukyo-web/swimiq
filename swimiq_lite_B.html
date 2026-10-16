@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.16.12">
+<meta name="app-ver" content="2026.10.16.13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1026,6 +1026,19 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 #viewBox .vwHd{ display:flex; align-items:center; gap:10px; }
 #viewBox .vwHd h3{ flex:1; min-width:0; }
 .vwSub{ margin:4px 0 12px; font-size:13px; font-weight:700; color:var(--dim); line-height:1.6; }
+.growBand{ border-radius:12px; padding:12px 14px; margin:0 0 12px; display:grid; gap:2px; }
+.growBand.up, .growBand.same{ background:var(--am); color:#000; }
+.growBand.dn{ background:#2a1612; color:#fff; border:2px solid var(--red); }
+.growBand.none{ background:var(--pane2); color:var(--dim); border:2px dashed var(--line); }
+.growBand .gbBig{ font-size:19px; font-weight:900; line-height:1.35; }
+.growBand .gbSub{ font-size:13px; font-weight:800; color:#3a2c00; }
+.growBand.dn .gbSub{ color:#ffb3a3; } .growBand.none .gbSub{ color:var(--dim); }
+#dGrow .growBand{ margin:0 0 8px; } #dGrow .gbBig{ font-size:15px; } #dGrow .gbSub{ font-size:11px; }
+.vwTbl .vr.gUp .c3{ color:#35e06a; } .vwTbl .vr.gDn .c3{ color:#ff8a70; }
+.vwTbl .vr.gTop .c3{ color:#000; background:var(--am); border-radius:6px; padding:0 6px; }
+.c2grow{ font-size:13px; font-weight:800; color:#fff; margin-top:4px; line-height:1.4; text-align:left; }
+.c2grow.dn, .c2grow.none{ color:var(--dim); }
+#vwMore{ text-align:left; } #vwMore small{ display:block; font-size:11px; font-weight:700; color:var(--dim); margin-top:2px; }
 .vwKpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)); gap:8px; margin-bottom:14px; }
 .vwKpi > div{ display:flex; flex-direction:column; align-items:center; gap:2px;
   background:var(--pane); border:2px solid var(--line2); border-radius:10px; padding:7px 4px; }
@@ -2081,36 +2094,13 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
 
   <div class="take">
-    <button class="btn homeBtn g big" id="openCam" type="button">
-      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+    <label class="btn homeBtn g big" for="fPick" id="openAna">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+      <span class="hbTxt" data-t="openAna"></span>
+    </label>
+    <button class="btn homeBtn dk" id="openCam" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
       <span class="hbTxt" data-t="openCam"></span>
-    </button>
-    <button class="btn homeBtn dk" id="openCompare" type="button">
-      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5 5 5-5"/><path d="M7 10l5-5 5 5"/></svg></span>
-      <span class="hbTxt" data-t="openCompare"></span>
-    </button>
-    <button class="btn homeBtn dk" id="openStopwatch" type="button">
-      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/><path d="M18.4 6.6l-1.3 1.3"/></svg></span>
-      <span class="hbTxt" data-t="swOpen"></span>
-    </button>
-    <button class="btn homeBtn dk" id="moreTakeBtn" type="button" aria-expanded="false">
-      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg></span>
-      <span class="hbTxt" data-t="moreOpen"></span>
-      <span class="hbArrow" aria-hidden="true">▾</span>
-    </button>
-    <div id="moreTakeBox" class="take hide">
-      <label class="btn homeBtn dk sub" for="fPick">
-        <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
-        <span class="hbTxt" data-t="pick"></span>
-      </label>
-      <button class="btn homeBtn dk sub" id="openManual" type="button">
-        <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></svg></span>
-        <span class="hbTxt" data-t="openManual"></span>
-      </button>
-    </div>
-    <button class="btn homeBtn dk" id="openHelp" type="button">
-      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17v.01"/></svg></span>
-      <span class="hbTxt" data-t="helpBtn"></span>
     </button>
   </div>
 
@@ -2128,6 +2118,31 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   </div>
   <p class="homeQNote" id="homeQNote"></p>
   <div id="list"></div>
+  <div class="take" id="moreTake" style="margin-top:14px">
+    <button class="btn homeBtn dk" id="moreTakeBtn" type="button" aria-expanded="false">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg></span>
+      <span class="hbTxt" data-t="moreOpen"></span>
+      <span class="hbArrow" aria-hidden="true">▾</span>
+    </button>
+    <div id="moreTakeBox" class="take hide">
+      <button class="btn homeBtn dk sub" id="openStopwatch" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/><path d="M18.4 6.6l-1.3 1.3"/></svg></span>
+      <span class="hbTxt" data-t="swOpen"></span>
+    </button>
+      <button class="btn homeBtn dk sub" id="openManual" type="button">
+        <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16z"/><path d="M13 7l4 4"/></svg></span>
+        <span class="hbTxt" data-t="openManual"></span>
+      </button>
+      <button class="btn homeBtn dk sub" id="openCompare" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5 5 5-5"/><path d="M7 10l5-5 5 5"/></svg></span>
+      <span class="hbTxt" data-t="openCompare"></span>
+    </button>
+      <button class="btn homeBtn dk sub" id="openHelp" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17v.01"/></svg></span>
+      <span class="hbTxt" data-t="helpBtn"></span>
+    </button>
+    </div>
+  </div>
   <p class="ver" id="verBottom">ver 2026.10.09.5</p>
 </div>
 
@@ -2331,6 +2346,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <div class="box glass" id="dBox">
         <div class="boxH"><span class="boxGrip" id="dGrip" data-ta="dragBox"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></g></svg></span><b data-t="result"></b><button class="sum sumBtn" type="button" id="dSum"></button><button type="button" data-fold="dBox" data-t="fold"></button></div>
         <div class="boxB">
+          <div id="dGrow"></div>
           <div class="sr3 sr4" id="dStat"></div>
           <div class="tbl" id="dTbl"></div>
           <p class="lead" style="margin-top:10px" data-t="vwTempoGl"></p>
@@ -2901,7 +2917,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="vwHd"><h3 id="vwH"></h3><button class="btn" type="button" id="vwClose" data-t="dMenuX"></button></div>
     <p class="vwSub" id="vwSub"></p>
     <p class="vwMemo hide" id="vwMemo"></p>
+    <div id="vwGrow"></div>
     <div class="vwKpi" id="vwKpi"></div>
+    <div id="vwGrowTbl"></div>
+    <button class="btn y" type="button" id="vwMore" style="width:100%;margin:6px 0 10px" aria-expanded="false"><span>くわしく見る</span><small>通過・ストローク・グラフ・効率指数・目標タイム</small></button>
+    <div id="vwDetail" class="hide">
     <div id="vwChart" class="hide"></div>
     <div class="vwGl" data-t="glSplit"></div>
     <p class="vwNote hide" id="vwRtNote"></p>
@@ -2936,6 +2956,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
         <button type="button" class="go" id="tgtGo" data-t="tgtBtn"></button>
       </div>
       <div class="vwTbl" id="tgtOut"></div>
+    </div>
     </div>
     <div class="vwBtns">
       <button class="btn g" type="button" id="vwPdf" data-t="pdfBtn"></button>
@@ -3559,10 +3580,11 @@ var W={
  homeQHit2:['けん 見つかりました。カードを おすと 動画が ひらきます','件見つかりました。カードを押すと動画が開きます'],
  homeQNone:['見つかりません。ちがう 書き方でも ためして ください','見つかりません。別の書き方でも試してください'],
  scAbbr:['SC','SC'],
- openCam:['カメラで とる<small>動画を とって 分析</small>','カメラで撮る<small>動画を撮って解析</small>'],
+ openCam:['カメラで とる<small>いま とって、そのまま 分析</small>','カメラで撮る<small>いま撮って、そのまま分析</small>'],
+ openAna:['動画を 分析する<small>とって ある 動画を えらぶと、のびた 区間が 出ます</small>','動画を分析する<small>撮ってある動画を選ぶと、伸びた区間が出ます</small>'],
  pick:['とってある 動画を 分析<small>あとから 分析したいとき</small>','保存済みの動画を分析<small>後から分析する場合</small>'],
  homeHint:['画面の 上に ストップウォッチが 出ます。ふえの音でも スタートできます。ストップを おすと、その動画で そのまま 分析が はじまります。','画面上部にストップウォッチを表示します。笛の音でも自動で計測を開始できます。ストップを押すと、その動画でそのまま分析が始まります。'],
- moreOpen:['ほかの きろくの しかたも 見る','他の記録方法を見る'],
+ moreOpen:['ほかの きのう','ほかの機能'],
  moreClose:['ほかの しかたを とじる','他の記録方法を閉じる'],
  settingsBtn:['せってい','設定'],
  setTitle:['せってい','設定'],
@@ -4821,6 +4843,7 @@ var HELP=[
  ['保存して 見る',[
    '右上の <b>保存</b>を おすと、試合名を きかれます。入れて OKを おすと きろくが のこります。',
    'ホームの <b>最近の記録</b>から その きろくを おすと、動画と 数字を 見られます。',
+   'ホームの いちばん上は <b>動画を分析する</b> です。撮ってある 動画を 選ぶと、分析の あとに 前回の 同じ 種目・距離の 記録と 自動で くらべて、「前回より 0.52秒 速い。いちばん伸びたのは 50〜65m の 0.31秒」のように、伸びた 区間を 一行で 最初に 出します。記録の 一覧の カードにも 同じ 一行が 出ます。前の 記録が ない ときは「次の レースから 出ます」と 出ます。',
    '<b>記録を見る、比較、取り込む</b>からは、動画が なくても 数字だけ 見られます。',
    'メニューの <b>PDFで表示</b>で 1枚の レポートに なります。'
  ]],
@@ -7867,6 +7890,55 @@ function meetName(r){
   for(var i=0;i<junk.length;i++) if(t===junk[i]) return '';
   return t;
 }
+/* ================================================================
+   のびた 区間を 一行で（売りの 一行）
+   同じ 選手・種目・きょり・プールの 1つ前の 記録と くらべて、
+   いちばん ちぢんだ 区間を ことばに します。前の 記録が なければ「次の レースから」。
+   ================================================================ */
+var growAll=null;   /* paintList で 読んだ 全部の 記録（カードの 一行用） */
+function growSegName(a, b, dist, pool){
+  var nm=a+'〜'+b+'m', tag='';
+  if(a===0 && b===15) tag='スタート';
+  else if(b===dist && b-a===5) tag='ゴール前';
+  else if(a>0 && a%pool===0 && b-a===15) tag='ターン後';
+  else if(b<dist && b%pool===0 && b-a===5) tag='ターン前';
+  return tag ? nm+'（'+tag+'）' : nm;
+}
+function growCalc(r, all){
+  if(!r || r.draft || !(r.splits && r.splits.length)) return null;
+  var prev=prevRaceOf(all||[], r);
+  if(!prev) return { kind:'none', txt:'次のレースから、伸びた区間がここに出ます', sub:'', segs:[] };
+  var tA=raceBest(r), tB=raceBest(prev); if(tA==null || tB==null) return null;
+  var d=Math.round((tA-tB)*100)/100;
+  var A={0:0}, B={0:0}, i; (r.splits||[]).forEach(function(x){ A[x.d]=x.t; }); (prev.splits||[]).forEach(function(x){ B[x.d]=x.t; });
+  var ds=Object.keys(A).map(Number).filter(function(x){ return x>0 && B[x]!=null; }).sort(function(a,b){ return a-b; });
+  var dist=Number(r.dist)||ds[ds.length-1]||0, pool=Number(r.pool)||50, segs=[], pd=0;
+  ds.forEach(function(x){ var ta=A[x]-A[pd], tb=B[x]-B[pd]; segs.push({ a:pd, b:x, t:ta, diff:Math.round((ta-tb)*100)/100, name:growSegName(pd,x,dist,pool) }); pd=x; });
+  var best=null, worst=null; segs.forEach(function(g){ if(!best || g.diff<best.diff) best=g; if(!worst || g.diff>worst.diff) worst=g; });
+  var nUp=segs.filter(function(g){ return g.diff<0; }).length;
+  var head = d<0 ? ('前回より '+Math.abs(d).toFixed(2)+'秒 速い。') : (d>0 ? ('前回より '+d.toFixed(2)+'秒 遅い。') : '前回と同じタイム。');
+  var tail='';
+  if(segs.length){
+    if(d<=0 && best && best.diff<0) tail='いちばん伸びたのは '+best.name+' の '+Math.abs(best.diff).toFixed(2)+'秒';
+    else if(d>0 && worst && worst.diff>0) tail='いちばん落ちたのは '+worst.name+' の '+worst.diff.toFixed(2)+'秒';
+    else if(best && best.diff<0) tail='伸びた区間は '+best.name+' の '+Math.abs(best.diff).toFixed(2)+'秒';
+  }
+  var sub='前回＝'+mdShort(prev.at)+(roundOf(prev)?' '+roundOf(prev):'')+' '+fmt(tB)+(segs.length?'　くらべた区間 '+segs.length+'つのうち '+nUp+'つが速くなりました':'　区間の通過がそろっていないので、全体だけくらべました');
+  return { kind:(d<0?'up':(d>0?'dn':'same')), txt:head+(tail?tail:''), sub:sub, segs:segs, best:best, worst:worst, prev:prev, d:d };
+}
+/* 画面の 上に 出す 帯（黄色＝速い、赤ふち＝遅い、灰色＝前の 記録なし） */
+function growBandHtml(G){
+  if(!G) return '';
+  var cls = G.kind==='up' ? 'up' : (G.kind==='dn' ? 'dn' : (G.kind==='none' ? 'none' : 'same'));
+  return '<div class="growBand '+cls+'"><div class="gbBig">'+esc(G.txt)+'</div>'+(G.sub?'<div class="gbSub">'+esc(G.sub)+'</div>':'')+'</div>';
+}
+function growTblHtml(G){
+  if(!G || !G.segs || !G.segs.length) return '';
+  var h='<div class="vwGl">区間ごとの差（前回と）</div><div class="vwTbl"><div class="vr hd"><span class="c1">区間</span><span class="c2">今回</span><span class="c3">前回との差</span></div>';
+  G.segs.forEach(function(g){ var top=(G.d<=0 && G.best===g && g.diff<0) || (G.d>0 && G.worst===g && g.diff>0);
+    h+='<div class="vr'+(g.diff<0?' gUp':(g.diff>0?' gDn':''))+(top?' gTop':'')+'"><span class="c1">'+g.a+'〜'+g.b+'m</span><span class="c2">'+fmt(g.t)+'</span><span class="c3">'+(g.diff<0?'−':(g.diff>0?'+':'±'))+Math.abs(g.diff).toFixed(2)+'</span></div>'; });
+  return h+'</div>';
+}
 function recCard(r){
   var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
   var ss = raceStroke(r);
@@ -7901,6 +7973,7 @@ function recCard(r){
     '<div class="c2top"><span class="c2head">'+head+'</span>'+timeHtml+'</div>'+
     subHtml+
     '<div class="c2sr">'+srLine+'</div>'+
+    (function(){ var G=growAll ? growCalc(r, growAll) : null; return G ? '<div class="c2grow '+G.kind+'">'+esc(G.txt)+'</div>' : ''; })()+
     memoHtml+
     '</div>';
   c.onclick=function(){
@@ -8037,6 +8110,7 @@ function paintList(){
   dbAll().then(function(all){
     all = all.filter(function(r){ return r && !r.vidOnly; }).sort(function(a,b){ return workAt(b)-workAt(a); });
     try{ bestIdxBuild(all); }catch(e){}
+    growAll=all;
     try{ pastBuild(all); }catch(e){}
     try{ colPaint(all); }catch(e){}
     box.innerHTML='';
@@ -8145,6 +8219,7 @@ function openDetail(id){
     // まとめ
     var i, last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
     $('dSum').textContent = sumLine(last, raceStroke(r), rtSec(r));
+    if($('dGrow')){ $('dGrow').innerHTML=''; dbAll().then(function(all){ if(!dRec || dRec.id!==r.id) return; $('dGrow').innerHTML=growBandHtml(growCalc(r, all.filter(function(x){ return x && !x.vidOnly && !x.draft && !x.deleted; }))); }, function(){}); }
     dPaintSR();
     // 表
     var b=$('dTbl'); b.innerHTML='';
@@ -14460,6 +14535,10 @@ function viewOpen(r){
   var h='', i;
   for(i=0;i<kp.length;i++) h+='<div><span>'+esc(kp[i][0])+'</span><b>'+esc(String(kp[i][1]))+'</b>'+(kp[i][1]===NA?'<small class="naS">'+NAS+'</small>':(kp[i][2]?'<small class="naS">'+esc(kp[i][2])+'</small>':''))+'</div>';
   $('vwKpi').innerHTML=h;
+  /* のびた 区間の 一行（前の 記録を さがすので、あとから 入れます） */
+  $('vwGrow').innerHTML=''; $('vwGrowTbl').innerHTML='';
+  $('vwDetail').classList.add('hide'); $('vwMore').setAttribute('aria-expanded','false');
+  dbAll().then(function(all){ if(vwRec!==r) return; var G=growCalc(r, all.filter(function(x){ return x && !x.vidOnly && !x.draft && !x.deleted; })); $('vwGrow').innerHTML=growBandHtml(G); $('vwGrowTbl').innerHTML=growTblHtml(G); }, function(){});
   /* 50mごとの ストローク数（手入力・取り込みの 記録） */
   (function(){
     var M=mSegRows(r), wrap=$('vwScWrap'); if(!wrap) return;
@@ -14567,6 +14646,7 @@ function viewOpen(r){
   $('viewBox').classList.remove('hide');
 }
 $('vwClose').onclick=function(){ $('viewBox').classList.add('hide'); };
+$('vwMore').onclick=function(){ var o=$('vwDetail').classList.toggle('hide'); this.setAttribute('aria-expanded', o?'false':'true'); this.querySelector('span').textContent = o ? 'くわしく見る' : 'くわしい数字をとじる'; };
 $('vwPdf').onclick=function(){ if(vwRec) downloadPDF(vwRec); };
 $('recNow').onclick=function(){ recFetch(false).then(function(c){ if(!c) toast(REC.records.length?'記録データは最新です':'取りこめませんでした。つながっているか確かめてください'); }); };
 recStatePaint();

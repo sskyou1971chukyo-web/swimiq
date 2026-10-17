@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.8">
+<meta name="app-ver" content="2026.10.17.9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -835,10 +835,10 @@ body.vsm .screen > video, body.vsm .screen > .gridL{ inset:auto; left:15%; width
 .fxP{ margin:8px 0 0; font-size:12px; font-weight:700; color:var(--dim); line-height:1.6; }
 
 /* ===== アンケート ===== */
-#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #bkBox, #admPw, #saveBox, #ocrBox, #imBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
+#colBox, #syncWiz, #pairBox, #survey, #manualBox, #vFix, #swmBox, #viewBox, #helpBox, #reBox, #reFix, #rpDlg, #rmBox, #fxBox, #bkBox, #wrBox, #admPw, #saveBox, #ocrBox, #imBox{ position:fixed; inset:0; z-index:70; display:flex; align-items:flex-start; justify-content:center;
   background:rgba(0,0,0,.9); overflow-y:auto; -webkit-overflow-scrolling:touch;
   padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px); }
-#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #bkBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide, #imBox.hide{ display:none !important; }
+#colBox.hide, #medalBox.hide, #syncWiz.hide, #pairBox.hide, #survey.hide, #manualBox.hide, #vFix.hide, #swmBox.hide, #viewBox.hide, #helpBox.hide, #reBox.hide, #reFix.hide, #rpDlg.hide, #rmBox.hide, #fxBox.hide, #bkBox.hide, #wrBox.hide, #admPw.hide, #saveBox.hide, #ocrBox.hide, #imBox.hide{ display:none !important; }
 .imGrid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
 @media (max-width:560px){ .imGrid{ grid-template-columns:1fr; } }
 .imGrid label{ display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:800; color:var(--dim); }
@@ -1022,6 +1022,25 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 .hpTip{ margin-top:10px; padding:10px 12px; border-radius:var(--rM);
   background:rgba(255,196,0,.08); border:1px solid var(--line2);
   font-size:14px; font-weight:700; color:var(--am); line-height:1.7; }
+/* 世界記録・日本記録を 見る まど */
+#wrBox .vwHd{ display:flex; align-items:center; gap:10px; }
+#wrBox .vwHd h3{ flex:1; min-width:0; }
+#wrBox .seg{ margin:0 0 8px; }
+#wrBox .seg button{ min-height:48px; font-size:16px; font-weight:900; }
+.wrRow{ display:grid; grid-template-columns:1fr auto; gap:2px 10px; width:100%; text-align:left; cursor:pointer;
+  background:var(--pane); color:#fff; border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin:0 0 6px; font:inherit; }
+.wrRow[aria-expanded="true"]{ border-color:var(--am); }
+.wrRow .wrEv{ font-size:16px; font-weight:900; }
+.wrRow .wrT{ font-size:22px; font-weight:900; color:var(--am); font-variant-numeric:tabular-nums; text-align:right; grid-row:span 2; align-self:center; }
+.wrRow .wrWho{ font-size:15px; font-weight:800; }
+.wrRow .wrMeta{ grid-column:1 / -1; font-size:13px; font-weight:700; color:var(--dim); line-height:1.5; }
+.wrBadge{ display:inline-block; margin-left:6px; padding:1px 7px; border-radius:5px; font-size:12px; font-weight:900; vertical-align:middle; }
+.wrBadge.pend{ background:var(--pane2); color:#fff; border:1px solid var(--dim); }
+.wrBadge.wk{ background:var(--am); color:#000; }
+.wrBadge.det{ background:transparent; color:var(--am); border:1px solid var(--am); }
+.wrMore{ margin:-2px 0 10px; padding:10px 12px; border:1px solid var(--am); border-top:0; border-radius:0 0 8px 8px; font-size:14px; font-weight:700; line-height:1.7; }
+.wrMore .btn{ width:100%; margin-top:8px; }
+.wrMore a{ color:var(--am); word-break:break-all; }
 /* きろくの ないようを 見る まど */
 #viewBox .vwHd{ display:flex; align-items:center; gap:10px; }
 #viewBox .vwHd h3{ flex:1; min-width:0; }
@@ -2121,6 +2140,10 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14l5 5 5-5"/><path d="M7 10l5-5 5 5"/></svg></span>
       <span class="hbTxt" data-t="openCompare"></span>
     </button>
+      <button class="btn homeBtn dk sub" id="openWR" type="button">
+      <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4"/><path d="M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4"/><path d="M8 20h8"/></svg></span>
+      <span class="hbTxt" data-t="openWR"></span>
+    </button>
       <button class="btn homeBtn dk sub" id="openHelp" type="button">
       <span class="hbIcon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#ffc400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7"/><path d="M12 17v.01"/></svg></span>
       <span class="hbTxt" data-t="helpBtn"></span>
@@ -2532,6 +2555,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
   <div class="gl" data-t="recGl"></div>
   <div class="take">
     <p class="hint" style="margin:0 2px 4px;" data-t="recHint"></p>
+    <button class="btn y" id="recView" type="button">世界記録・日本記録を見る</button>
     <button class="btn" id="recNow" type="button" data-t="recNow"></button>
     <p class="hint" id="recState" style="margin:6px 2px 0;" aria-live="polite"></p>
   </div>
@@ -2887,6 +2911,20 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
 <div id="saveBar" class="hide">
   <button type="button" class="sbGo" id="sbGo"><span data-t="saveBarB"></span><small data-t="saveBarS"></small></button>
   <button type="button" class="sbNo" id="sbNo" data-t="saveBarX"></button>
+</div>
+
+<!-- 世界記録・日本記録を 見る -->
+<div id="wrBox" class="hide" role="dialog" aria-modal="true" aria-labelledby="wrH">
+  <div class="svWrap">
+    <div class="vwHd"><h3 id="wrH">世界記録・日本記録</h3><button class="btn" type="button" id="wrClose" data-t="dMenuX"></button></div>
+    <p class="vwSub">Wikipediaの記録一覧から読んでいます。ページが書き換わると、アプリの記録も自動で新しくなります。</p>
+    <div class="seg" id="wrScope" role="group" aria-label="記録の種類"><button type="button" data-v="WR">世界記録</button><button type="button" data-v="JR">日本記録</button></div>
+    <div class="seg" id="wrCourse" role="group" aria-label="プール"><button type="button" data-v="LCM">長水路 50m</button><button type="button" data-v="SCM">短水路 25m</button></div>
+    <div class="seg" id="wrSex" role="group" aria-label="男女"><button type="button" data-v="M">男子</button><button type="button" data-v="F">女子</button></div>
+    <div id="wrList" aria-live="polite"></div>
+    <p class="vwNote" id="wrSrc" style="white-space:pre-line"></p>
+    <button class="btn y" type="button" id="wrCheck" style="width:100%;margin-top:10px">今すぐWikipediaを確かめる</button>
+  </div>
 </div>
 
 <!-- 使い方 -->
@@ -4012,8 +4050,9 @@ var W={
  vwWR:['世界記録と くらべる','世界記録と比較'],
  vwJR:['日本記録と くらべる','日本記録と比較'],
  recGl:['世界記録・日本記録の データ','世界記録・日本記録のデータ'],
- recHint:['つながって いる ときに 自動で 新しい 記録を 取りこみます。オフラインでも、前に 取りこんだ 記録で くらべられます。','つながっているときに自動で最新を取り込みます。オフラインでも、前に取り込んだ記録で比較できます。'],
+ recHint:['つながって いる ときに、Wikipediaの 記録一覧が 書きかわって いないか 1時間に 1回 確かめて、新しい 記録を 自動で 取りこみます。オフラインでも、前に 取りこんだ 記録で くらべられます。','つながっているときに、Wikipediaの記録一覧が書き換わっていないか1時間に1回確かめて、新しい記録を自動で取り込みます。オフラインでも、前に取り込んだ記録で比較できます。'],
  recNow:['今すぐ 取りこむ','今すぐ取り込む'],
+ openWR:['世界記録・日本記録を 見る<small>Wikipediaの 一覧から 自動で 新しく なります</small>','世界記録・日本記録を見る<small>Wikipediaの一覧から自動で新しくなります</small>'],
  vsTitle:['くらべる','比較'],
  vsGl1:['しゅもくと きょり','種目と距離'],
  vsGl2:['だれと だれを くらべる？','誰と誰を比較する？'],
@@ -12002,9 +12041,11 @@ function cmpPage(r, b, W, H, opt){
    ・取りこんだ 記録は「保持者の 記録」として 比較の 画面に 出ます。記録が 破られても 古い ものは 残ります
    ================================================================ */
 var REC_URL='records.json', REC={ updated:'', records:[] }, REC_EMBED=null;
+var REC_BASE=null;   /* records.json そのもの。REC は これに Wikipedia の 新しい 記録を 足した もの */
 function recLoadLocal(){
-  try{ var s=localStorage.getItem('swimiq_records'); if(s){ var j=JSON.parse(s); if(j && j.records) REC=j; } }catch(e){}
-  if(!REC.records.length && REC_EMBED) REC=REC_EMBED;
+  try{ var s=localStorage.getItem('swimiq_records'); if(s){ var j=JSON.parse(s); if(j && j.records) REC_BASE=j; } }catch(e){}
+  if((!REC_BASE || !REC_BASE.records.length) && REC_EMBED) REC_BASE=REC_EMBED;
+  wikiLoad(); recRebuild();
 }
 var recFetching=false;
 function recFetch(quiet){
@@ -12014,9 +12055,10 @@ function recFetch(quiet){
   return fetch(REC_URL+'?t='+Date.now(), { cache:'no-store' }).then(function(r){ return r.json(); }).then(function(j){
     recFetching=false;
     if(!j || !j.records || !j.records.length) return false;
-    var changed = (j.updated!==REC.updated) || (j.records.length!==REC.records.length);
+    var B0=REC_BASE||{updated:'',records:[]};
+    var changed = (j.updated!==B0.updated) || (j.records.length!==B0.records.length);
     if(changed){
-      REC=j;
+      REC_BASE=j; recRebuild();
       try{ localStorage.setItem('swimiq_records', JSON.stringify(j)); }catch(e){}
       if(!quiet) toast('世界記録・日本記録のデータを更新しました（'+j.updated+'）');
     }
@@ -12025,8 +12067,193 @@ function recFetch(quiet){
   }).catch(function(){ recFetching=false; recStatePaint(); return false; });
 }
 function recStatePaint(){
-  var el=$('recState'); if(!el) return;
-  el.textContent = REC.records.length ? ('記録データ '+REC.updated+'　'+REC.records.length+'件（世界記録・日本記録）'+(navigator.onLine===false?'　いまはオフライン':'')) : '記録データはまだ読みこめていません。つながったときに自動で取りこみます。';
+  var el=$('recState');
+  if(el) el.textContent = (REC.records.length ? ('記録データ '+REC.updated+'　'+REC.records.length+'件（世界記録・日本記録）'+(navigator.onLine===false?'　いまはオフライン':'')) : '記録データはまだ読みこめていません。つながったときに自動で取りこみます。')+'\n'+wikiStateText();
+  if(el) el.style.whiteSpace='pre-line';
+  if(typeof wrPaint==='function' && $('wrBox') && !$('wrBox').classList.contains('hide')) wrPaint();
+}
+/* ================================================================
+   Wikipedia の 記録一覧を アプリが 直接 読みます
+   ・Wikipedia の ページの 版（revid）が 変わった ときだけ、ページを 読み直します（1時間に 1回まで 確かめます）
+   ・読めた 記録のうち、今の 記録より 速い もの と 公認待ちの ものだけを 足します。遅い ものは 足しません
+     （Wikipedia の 日本記録の ページは、日本水泳連盟の 公式の 表より 遅れて 直される ことが あるため）
+   ・ページの 形が 変わって うまく 読めない ときは、何も 変えません
+   ================================================================ */
+var WIKI_PG={ WR:'List_of_world_records_in_swimming', JR:'List_of_Japanese_records_in_swimming' };
+var WIKI_API='https://en.wikipedia.org/w/api.php';
+var WIKI={ WR:null, JR:null, checked:0, err:'' };
+function wikiUrl(sc){ return 'https://en.wikipedia.org/wiki/'+WIKI_PG[sc]; }
+function wikiLoad(){ try{ var s=localStorage.getItem('swimiq_wiki'); if(s){ var j=JSON.parse(s); if(j && typeof j==='object') WIKI=j; } }catch(e){} }
+function wikiSave(){ try{ localStorage.setItem('swimiq_wiki', JSON.stringify(WIKI)); }catch(e){} }
+function wikiStateText(){
+  var bits=[];
+  ['WR','JR'].forEach(function(sc){ var w=WIKI[sc]; if(w && w.ts) bits.push(recScopeName(sc)+'のページ '+new Date(w.ts).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})+'の版'); });
+  var t='Wikipedia：'+(bits.length ? bits.join('、') : 'まだ読んでいません');
+  if(WIKI.checked) t+='　最後に確かめた時刻 '+new Date(WIKI.checked).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  if(WIKI.err) t+='\n'+WIKI.err;
+  return t;
+}
+var WK_MON=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+function wkDate(s){
+  s=String(s||'').replace(/\u00a0/g,' ');
+  var m=s.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return m[0];
+  var y, mo, d;
+  m=s.match(/(\d{1,2})\s+([A-Za-z]{3,})\.?,?\s+(\d{4})/);
+  if(m){ d=+m[1]; mo=WK_MON.indexOf(m[2].slice(0,3).toLowerCase())+1; y=+m[3]; }
+  else{ m=s.match(/([A-Za-z]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})/); if(m){ mo=WK_MON.indexOf(m[1].slice(0,3).toLowerCase())+1; d=+m[2]; y=+m[3]; } }
+  if(!y || !mo || !d) return '';
+  return y+'-'+('0'+mo).slice(-2)+'-'+('0'+d).slice(-2);
+}
+function wkTime(s){
+  var m=String(s||'').match(/(?:(\d{1,2}):)?(\d{1,2})\.(\d{2})/); if(!m) return null;
+  var sec=(m[1]?Number(m[1])*60:0)+Number(m[2]+'.'+m[3]);
+  return { time:m[0], sec:Math.round(sec*100)/100 };
+}
+function wkEvent(s){
+  s=String(s||'').toLowerCase().replace(/\u00a0/g,' ');
+  if(/relay|×|\bx\b|4x/.test(s)) return null;
+  var m=s.match(/(\d{2,4})\s*m\b/); if(!m) return null;
+  var ev=/individual medley|\bim\b|medley/.test(s)?'im':/freestyle/.test(s)?'free':/backstroke/.test(s)?'back':/breaststroke/.test(s)?'breast':/butterfly/.test(s)?'fly':null;
+  return ev ? { event:ev, dist:Number(m[1]) } : null;
+}
+/* 表の セル（rowspan・colspan も そろえて）を 文字の 表に します */
+function wkGrid(tb){
+  var out=[], carry=[];
+  Array.prototype.forEach.call(tb.rows, function(tr){
+    var row=[], c=0, k=0, cells=tr.cells;
+    while(true){
+      if(carry[c] && carry[c].left>0){ row[c]=carry[c].txt; carry[c].left--; c++; continue; }
+      if(k>=cells.length) break;
+      var td=cells[k++], tx=(td.textContent||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+      var rs=Number(td.getAttribute('rowspan'))||1, cs=Number(td.getAttribute('colspan'))||1, z;
+      for(z=0;z<cs;z++){ row[c]=tx; if(rs>1) carry[c]={ txt:tx, left:rs-1 }; c++; }
+    }
+    out.push(row);
+  });
+  return out;
+}
+/* ページの HTML から、個人種目の 記録を 取り出します。読めない ときは null */
+function wikiParse(sc, html){
+  var doc; try{ doc=new DOMParser().parseFromString(String(html||''),'text/html'); }catch(e){ return null; }
+  Array.prototype.forEach.call(doc.querySelectorAll('sup, style, script, .reference, .sortkey, [style*="display:none"], [style*="display: none"]'), function(x){ x.parentNode && x.parentNode.removeChild(x); });
+  var course=null, sex=null, cands=[];
+  Array.prototype.forEach.call(doc.querySelectorAll('h2, h3, h4, table'), function(el){
+    var tag=el.tagName.toLowerCase();
+    if(tag!=='table'){
+      var h=(el.textContent||'').toLowerCase();
+      var c2=/long course|\(50\s*m\)|50\s*m pool|\blcm\b/.test(h)?'LCM':(/short course|\(25\s*m\)|25\s*m pool|\bscm\b/.test(h)?'SCM':null);
+      if(c2){ course=c2; if(tag==='h2') sex=null; }
+      if(/mixed/.test(h)) sex='X'; else if(/women|female/.test(h)) sex='F'; else if(/\bmen\b|\bmale\b/.test(h)) sex='M';
+      else if(tag==='h2' && !c2){ course=null; sex=null; }
+      return;
+    }
+    if(el.parentNode && el.parentNode.closest && el.parentNode.closest('table')) return;   /* 表の 中の 表は 見ません */
+    var g=wkGrid(el), hi=-1, i;
+    for(i=0;i<Math.min(g.length,3);i++){ var hd=g[i].map(function(x){ return String(x||'').toLowerCase(); }); if(hd.indexOf('event')>=0 && hd.indexOf('time')>=0){ hi=i; break; } }
+    if(hi<0) return;
+    var H=g[hi].map(function(x){ return String(x||'').toLowerCase(); });
+    var col=function(re){ for(var q=0;q<H.length;q++) if(re.test(H[q])) return q; return -1; };
+    var iE=H.indexOf('event'), iT=H.indexOf('time'), iN=col(/^name|swimmer|athlete/), iC=col(/nation|club|team|country/), iD=col(/^date/), iM=col(/^meet|competition/), iL=col(/location|place|venue/);
+    var iK=(H[iT+1]==='' ? iT+1 : -1);
+    var cap=(el.caption ? el.caption.textContent : '').toLowerCase(), cc=course, cx=sex;
+    if(cap){ if(/long course/.test(cap)) cc='LCM'; else if(/short course/.test(cap)) cc='SCM'; if(/women/.test(cap)) cx='F'; else if(/\bmen\b/.test(cap)) cx='M'; else if(/mixed/.test(cap)) cx='X'; }
+    var rows=[];
+    g.slice(hi+1).forEach(function(r){
+      var ev=wkEvent(r[iE]), tm=wkTime(r[iT]); if(!ev || !tm) return;
+      var mk=iK>=0 ? String(r[iK]||'') : '', all=r.join(' ').toLowerCase();
+      var pend=/#/.test(mk+' '+(r[iT]||'')+' '+(r[iE]||'')) || /not (officially )?ratified|awaiting|pending|\bwb\b/.test(all) || /^wb$/i.test(mk.trim());
+      var gv=function(q){ return q>=0 ? String(r[q]||'').trim() : ''; };
+      rows.push({ scope:sc, event:ev.event, dist:ev.dist, time:tm.time, sec:tm.sec, name:gv(iN).replace(/[*†‡]+$/,'').trim(), nation:gv(iC).slice(0,40),
+                  date:wkDate(gv(iD)), meet:gv(iM).slice(0,80), place:gv(iL).slice(0,60), pending:pend });
+    });
+    if(rows.length>=5) cands.push({ course:cc, sex:cx, rows:rows });
+  });
+  cands=cands.filter(function(c){ return c.sex!=='X'; });
+  function check(groups){
+    var keys=['LCM_M','LCM_F','SCM_M','SCM_F'], ok=true;
+    keys.forEach(function(k){
+      var R=groups[k]; if(!R || R.filter(function(x){ return !x.pending; }).length<14){ ok=false; return; }
+      var im100=R.some(function(x){ return x.event==='im' && x.dist===100; });
+      if((k.indexOf('SCM')===0)!==im100) ok=false;
+    });
+    if(!ok) return false;
+    ['LCM','SCM'].forEach(function(c){
+      var f=function(R){ var x=R.filter(function(y){ return y.event==='free' && y.dist===50 && !y.pending; })[0]; return x ? x.sec : null; };
+      var m=f(groups[c+'_M']), w=f(groups[c+'_F']); if(m==null || w==null || !(m<w)) ok=false;
+    });
+    return ok;
+  }
+  function pack(groups){ var out=[]; Object.keys(groups).forEach(function(k){ var p=k.split('_'); groups[k].forEach(function(x){ x.course=p[0]; x.sex=p[1]; out.push(x); }); }); return out; }
+  var G={}, byHead=cands.every(function(c){ return c.course && (c.sex==='M'||c.sex==='F'); });
+  if(byHead){ cands.forEach(function(c){ var k=c.course+'_'+c.sex; G[k]=(G[k]||[]).concat(c.rows); }); if(check(G)) return pack(G); }
+  /* 見出しが 読めない ときは、ページの 並び（長水路 男子・女子、短水路 男子・女子）で 決めます */
+  if(cands.length===4){ G={ LCM_M:cands[0].rows, LCM_F:cands[1].rows, SCM_M:cands[2].rows, SCM_F:cands[3].rows }; if(check(G)) return pack(G); }
+  return null;
+}
+/* records.json に、Wikipedia で 見つけた 新しい 記録を 足して REC を 作ります */
+function recRebuild(){
+  var B=REC_BASE||{ updated:'', records:[] };
+  var recs=(B.records||[]).map(function(o){ var c={}; Object.keys(o).forEach(function(k){ c[k]=o[k]; }); return c; });
+  var ja={}, mj={}, added=0;
+  recs.forEach(function(r){ if(r.name && r.nameJa) ja[r.name]=r.nameJa; if(r.meet && r.meetJa) mj[r.meet]=r.meetJa; });
+  ['WR','JR'].forEach(function(sc){
+    var w=WIKI[sc]; if(!w || !w.rows) return;
+    w.rows.forEach(function(f){
+      var same=recs.filter(function(r){ return r.scope===sc && r.course===f.course && r.sex===f.sex && r.event===f.event && Number(r.dist)===f.dist; });
+      var ex=same.filter(function(r){ return Math.abs(Number(r.sec)-f.sec)<0.006; })[0];
+      var cur=same.filter(function(r){ return r.current; }), cmin=cur.length ? Math.min.apply(null, cur.map(function(r){ return Number(r.sec); })) : null;
+      if(ex){
+        /* 公認待ちだった 記録が、Wikipedia で 公認に なった */
+        if(ex.pending && !f.pending){ ex.pending=false; if(cmin==null || f.sec<cmin-0.001){ cur.forEach(function(c){ c.current=false; c.note=c.note||'その後に更新された記録'; }); ex.current=true; } ex.note='公認されました（Wikipediaで確認）'; ex.wikiUp=true; }
+        return;
+      }
+      var faster=(cmin==null || f.sec<cmin-0.001);
+      if(!f.pending && !faster) return;
+      if(!f.pending) cur.forEach(function(c){ c.current=false; c.note=c.note||'その後に更新された記録'; });
+      recs.push({ id:'WK_'+sc+'_'+f.course+'_'+f.sex+'_'+f.event+'_'+f.dist+'_'+(f.date||'nodate')+'_'+String(f.name).replace(/[^A-Za-z]/g,'').slice(0,12),
+        scope:sc, course:f.course, sex:f.sex, event:f.event, dist:f.dist, time:f.time, sec:f.sec, name:f.name, nameJa:ja[f.name]||'', nation:f.nation,
+        date:f.date, meet:f.meet, meetJa:mj[f.meet]||'', place:f.place, current:!f.pending, pending:f.pending,
+        note:f.pending?'公認待ち（Wikipediaによる）':'Wikipediaから自動で追加', sources:[wikiUrl(sc)], splits:null, strokes:null, splitSource:'', wiki:true });
+      added++;
+    });
+  });
+  REC={ format:B.format||1, updated:B.updated||'', note:B.note||'', records:recs, wikiAdded:added };
+}
+var wikiBusy=false;
+function wikiCheck(force){
+  if(wikiBusy) return Promise.resolve(false);
+  if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve(false);
+  if(!force && Date.now()-(WIKI.checked||0) < 3600*1000) return Promise.resolve(false);
+  if(typeof fetch!=='function' || typeof DOMParser==='undefined') return Promise.resolve(false);
+  wikiBusy=true;
+  var q=WIKI_API+'?action=query&prop=revisions&rvprop=ids%7Ctimestamp&format=json&formatversion=2&origin=*&titles='+encodeURIComponent(WIKI_PG.WR+'|'+WIKI_PG.JR);
+  var before=JSON.stringify(REC.records.map(function(o){ return o.id+(o.current?1:0)+(o.pending?1:0); }));
+  return fetch(q).then(function(r){ return r.json(); }).then(function(j){
+    var pages=(j && j.query && j.query.pages) || [], jobs=[], bad=[];
+    ['WR','JR'].forEach(function(sc){
+      var want=WIKI_PG[sc].replace(/_/g,' '), p=pages.filter(function(x){ return x.title===want; })[0];
+      if(!p || !p.revisions || !p.revisions[0]){ bad.push(sc); return; }
+      var rv=p.revisions[0];
+      if(WIKI[sc] && WIKI[sc].revid===rv.revid && WIKI[sc].rows) return;
+      if(WIKI[sc+'Bad']===rv.revid && !force) { bad.push(sc); return; }
+      jobs.push(fetch(WIKI_API+'?action=parse&oldid='+rv.revid+'&prop=text&format=json&formatversion=2&origin=*').then(function(r){ return r.json(); }).then(function(k){
+        var rows=wikiParse(sc, k && k.parse && k.parse.text);
+        if(rows){ WIKI[sc]={ revid:rv.revid, ts:rv.timestamp, rows:rows, n:rows.length }; delete WIKI[sc+'Bad']; }
+        else{ WIKI[sc+'Bad']=rv.revid; bad.push(sc); }
+      }, function(){ bad.push(sc); }));
+    });
+    return Promise.all(jobs).then(function(){
+      WIKI.checked=Date.now();
+      WIKI.err = bad.length ? (bad.map(recScopeName).join('・')+'のページの形が読めなかったので、前の記録のままにしています。') : '';
+      wikiSave(); recRebuild();
+      var after=JSON.stringify(REC.records.map(function(o){ return o.id+(o.current?1:0)+(o.pending?1:0); }));
+      wikiBusy=false;
+      var ch=(after!==before);
+      if(ch) toast('Wikipediaの記録一覧が更新されたので、アプリの記録も新しくしました');
+      recStatePaint();
+      return ch;
+    });
+  }).catch(function(){ wikiBusy=false; WIKI.err='Wikipediaにつながりませんでした。前に読んだ記録のままです。'; recStatePaint(); return false; });
 }
 function recScopeName(s){ return s==='WR' ? '世界記録' : (s==='JR' ? '日本記録' : s); }
 /* records.json の 1件を、アプリの 記録と 同じ 形に します */
@@ -12128,7 +12355,7 @@ function refLine(r){
   return bits.join('　');
 }
 recLoadLocal();
-window.addEventListener('online', function(){ recFetch(false); });
+window.addEventListener('online', function(){ recFetch(false); wikiCheck(false); });
 /* オフラインでも 開けるように、画面と records.json を 端末に とって おきます（つながっている ときは いつも 最新を 取ります） */
 if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){
   try{ navigator.serviceWorker.register('sw.js').catch(function(){}); }catch(e){}
@@ -14838,7 +15065,57 @@ function viewOpen(r){
 $('vwClose').onclick=function(){ $('viewBox').classList.add('hide'); };
 $('vwMore').onclick=function(){ var o=$('vwDetail').classList.toggle('hide'); this.setAttribute('aria-expanded', o?'false':'true'); this.querySelector('span').textContent = o ? 'くわしく見る' : 'くわしい数字をとじる'; };
 $('vwPdf').onclick=function(){ if(vwRec) downloadPDF(vwRec); };
-$('recNow').onclick=function(){ recFetch(false).then(function(c){ if(!c) toast(REC.records.length?'記録データは最新です':'取りこめませんでした。つながっているか確かめてください'); }); };
+$('recNow').onclick=function(){ Promise.all([recFetch(false), wikiCheck(true)]).then(function(c){ if(!c[0] && !c[1]) toast(REC.records.length?'記録データは最新です':'取りこめませんでした。つながっているか確かめてください'); }); };
+/* ===== 世界記録・日本記録を 見る ===== */
+var WR_SEL={ scope:'WR', course:'LCM', sex:'M' }, wrOpenId=null, wrDet={};
+try{ var _ws=JSON.parse(localStorage.getItem('swimiq_wrsel')||'null'); if(_ws && _ws.scope) WR_SEL=_ws; }catch(e){}
+var WR_EVO={ free:1, back:2, breast:3, fly:4, im:5 };
+function wrDay(d){ var m=String(d||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (Number(m[1])+'年'+Number(m[2])+'月'+Number(m[3])+'日') : ''; }
+function wrPaint(){
+  ['scope','course','sex'].forEach(function(k){ var box=$('wr'+k.charAt(0).toUpperCase()+k.slice(1)); Array.prototype.forEach.call(box.querySelectorAll('button'), function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-v')===WR_SEL[k]?'true':'false'); }); });
+  var L=(REC.records||[]).filter(function(o){ return o.scope===WR_SEL.scope && o.course===WR_SEL.course && o.sex===WR_SEL.sex && (o.current || o.pending); });
+  L.sort(function(a,b){ return ((WR_EVO[a.event]||9)-(WR_EVO[b.event]||9)) || (a.dist-b.dist) || ((a.pending?1:0)-(b.pending?1:0)) || (a.sec-b.sec); });
+  var h='';
+  if(!L.length) h='<p class="vwSub">記録がまだ読みこめていません。つながっているときに「今すぐWikipediaを確かめる」を押してください。</p>';
+  L.forEach(function(o){
+    var op=(wrOpenId===o.id), det=wrDet[o.id];
+    h+='<button type="button" class="wrRow" data-id="'+esc(o.id)+'" aria-expanded="'+(op?'true':'false')+'">'+
+       '<span class="wrEv">'+o.dist+'m '+esc(evLabel(o.event))+(o.pending?'<span class="wrBadge pend">公認待ち</span>':'')+(o.wiki&&!o.pending?'<span class="wrBadge wk">Wikipediaで更新</span>':'')+(det?'<span class="wrBadge det">くわしい記録あり</span>':'')+'</span>'+
+       '<b class="wrT">'+esc(o.time||fmt(o.sec))+'</b>'+
+       '<span class="wrWho">'+esc(o.nameJa||o.name||'')+(o.nation?'（'+esc(o.nation)+'）':'')+'</span>'+
+       '<span class="wrMeta">'+esc([wrDay(o.date), o.meetJa||o.meet, o.place].filter(Boolean).join('　'))+'</span></button>';
+    if(op){
+      h+='<div class="wrMore">';
+      if(o.splits && o.splits.length) h+='50mごとの通過（合図から）<br>'+o.splits.map(function(x){ return x.d+'m '+fmt(Number(x.t)); }).join('　')+(o.splitSource?'<br><small>通過の出どころ：'+esc(o.splitSource)+'</small>':'')+'<br>';
+      else h+='この記録の通過タイムは一覧に入っていません。<br>';
+      if(o.note) h+=esc(o.note)+'<br>';
+      h+='出どころ：'+(o.sources||[]).map(function(u){ return /^https?:/.test(u) ? '<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>' : esc(u); }).join('<br>');
+      if(det) h+='<button type="button" class="btn y" data-det="'+esc(o.id)+'">取り込んだくわしい記録を開く</button>';
+      h+='</div>';
+    }
+  });
+  $('wrList').innerHTML=h;
+  $('wrSrc').textContent='出どころ：'+(WR_SEL.scope==='WR' ? 'Wikipedia「List of world records in swimming」（World Aquaticsの公認記録をまとめたページ）' : 'Wikipedia「List of Japanese records in swimming」と日本水泳連盟の公式記録表')+
+    '\nWikipediaはだれでも書き換えられるページです。公式の発表とちがうときは、公式が正しいです。\n'+wikiStateText();
+}
+function wrOpen(){
+  $('wrBox').classList.remove('hide'); wrOpenId=null; wrPaint();
+  dbAll().then(function(all){ wrDet={}; (REC.records||[]).forEach(function(o){ var d=recDetailOf(o, all); if(d) wrDet[o.id]=d; }); wrPaint(); }, function(){});
+  if(Date.now()-(WIKI.checked||0) > 10*60*1000) wikiCheck(true);
+}
+['wrScope','wrCourse','wrSex'].forEach(function(id){
+  $(id).onclick=function(e){ var b=e.target.closest('button'); if(!b) return; var k=id==='wrScope'?'scope':(id==='wrCourse'?'course':'sex'); WR_SEL[k]=b.getAttribute('data-v'); wrOpenId=null; try{ localStorage.setItem('swimiq_wrsel', JSON.stringify(WR_SEL)); }catch(e2){} wrPaint(); };
+});
+$('wrList').onclick=function(e){
+  var d=e.target.closest('[data-det]'); if(d){ var r=wrDet[d.getAttribute('data-det')]; if(r) viewOpen(r); return; }
+  var b=e.target.closest('.wrRow'); if(!b) return; var id=b.getAttribute('data-id'); wrOpenId=(wrOpenId===id?null:id); wrPaint();
+};
+$('wrClose').onclick=function(){ $('wrBox').classList.add('hide'); };
+$('wrCheck').onclick=function(){ toast('Wikipediaを確かめています'); wikiCheck(true).then(function(c){ if(!c) toast(WIKI.err ? WIKI.err : '新しい記録はありませんでした（Wikipediaの記録一覧と同じです）'); }); };
+$('openWR').onclick=wrOpen;
+$('recView').onclick=wrOpen;
+setTimeout(function(){ wikiCheck(false); }, 2500);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') wikiCheck(false); });
 recStatePaint();
 $('vwWR').onclick=function(){ if(vwRec) refCompare(vwRec,'WR'); };
 $('vwJR').onclick=function(){ if(vwRec) refCompare(vwRec,'JR'); };

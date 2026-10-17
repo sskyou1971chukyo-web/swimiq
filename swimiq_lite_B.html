@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.1">
+<meta name="app-ver" content="2026.10.17.3">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -3201,8 +3201,16 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <label>日付<input type="date" id="imDate"></label>
       <label>プール<select id="imPool"><option value="50">50mプール</option><option value="25">25mプール</option></select></label>
     </div>
-    <button class="btn g" type="button" id="imPick" style="width:100%;min-height:54px;margin-top:8px;">画像・PDFを選ぶ</button>
-    <input type="file" id="imFile" accept="image/*,application/pdf,.pdf" class="hide">
+    <div class="imGrid" style="grid-template-columns:1fr auto;margin-top:8px">
+      <label>レース分析のページのアドレス<input type="url" id="imUrl" autocomplete="off" inputmode="url" placeholder="https://kizahashi.co.jp/JASF/service/wholesheet.php?…"></label>
+      <button class="btn g" type="button" id="imUrlGo" style="align-self:end;min-height:48px">アドレスから読む</button>
+    </div>
+    <p class="lead" style="margin:6px 0 0">アドレスから読めないときは、ページを「HTML」で保存して、下のボタンで選んでください。文字のまま読むので、名前も数字もまちがいなく入ります。</p>
+    <button class="btn y" type="button" id="imPick" style="width:100%;min-height:54px;margin-top:8px;">画像・PDF・HTMLを選ぶ</button>
+    <input type="file" id="imFile" accept="image/*,application/pdf,.pdf,text/html,.html,.htm" class="hide">
+    <details style="margin-top:8px"><summary style="font-size:13px;color:var(--dim);font-weight:800;cursor:pointer">中継のアドレス（アドレスから直接読めないときに使います）</summary>
+      <div class="imGrid" style="grid-template-columns:1fr;margin-top:6px"><label>中継（Apps Script の ウェブアプリの URL）<input type="url" id="imRelay" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec"></label></div>
+    </details>
     <p class="lead" id="imStat" aria-live="polite"></p>
     <div id="imChoose" class="hide row" style="margin-bottom:8px;">
       <button class="btn g" type="button" id="imAll">全部</button>
@@ -4892,7 +4900,8 @@ var HELP=[
    'PDFに 文字が 入って いれば、名前も 正しく 読めます。スクショは 名前を 読みまちがえる ことが あるので、名前の 欄で 直して ください。登録した 選手の 名前が 見つかれば、その 選手に つながります。',
    '2件いじょう 見つかった ときは <b>全部</b> か <b>一部</b> を 選びます。一部は、取りこむ 記録に チェックを 入れて、下の ボタンで 取りこみます。',
    '取りこんだ 記録は 手入力の 記録と 同じ あつかいです。通過タイム・反応時間が 入ります。',
-   '日本水泳連盟 科学委員会の <b>競泳レース分析</b> の PDF（表が 絵に なって いる もの）も 読めます。表の 線を 見つけて マスごとに 数字を 読み、通過・ラップ・ストローク数・ストロークタイム・浮き上がり・反応時間を 選手ごとに まとめます。何組 あっても 組ごとに 分けます。50m・100m・200m・400m・800m・1500m の どれでも 読めます。表の 見出しが 読めなくても、数字の 並び方から 表の 種類を 見分けます。PDF は 横向きで 保存した ものが いちばん 確実です。ページの 境目で 切れた 表は、前の 表の 続きとして つなげます。ターンの 表や ラップの 表は、見出しが 読めなくても 数字の 大きさで 見分けます。50m の 区間ラップ（4.6→4.9→5.0 の ように 少しずつ ふえる 数字）を 通過と まちがえない ように、通過は となりの 列と 2秒いじょう はなれて いる ことも たしかめます。ストローク数が 一部の 区間だけ の ときは、数えた 区間だけの 合計を「10/16区間の合計」の ように 出し、50mごとの グラフで どこを 数えたかを 見せます。',
+   '日本水泳連盟 科学委員会の <b>競泳レース分析</b> は、PDFに しなくても 読めます。取り込みの 画面に ページの アドレス（kizahashi.co.jp の wholesheet.php…）を 貼って「アドレスから読む」を 押すか、ページを HTMLで 保存して 選びます。文字の まま 読むので、名前・所属・数字が まちがいなく 入り、数秒で 終わります。アドレスから 直接 読めない ときは、中継（Apps Script）の アドレスを 入れると 読めます。'+
+   '同じ 競泳レース分析の PDF（表が 絵に なって いる もの）も 読めます。表の 線を 見つけて マスごとに 数字を 読み、通過・ラップ・ストローク数・ストロークタイム・浮き上がり・反応時間を 選手ごとに まとめます。何組 あっても 組ごとに 分けます。50m・100m・200m・400m・800m・1500m の どれでも 読めます。表の 見出しが 読めなくても、数字の 並び方から 表の 種類を 見分けます。PDF は 横向きで 保存した ものが いちばん 確実です。ページの 境目で 切れた 表は、前の 表の 続きとして つなげます。ターンの 表や ラップの 表は、見出しが 読めなくても 数字の 大きさで 見分けます。50m の 区間ラップ（4.6→4.9→5.0 の ように 少しずつ ふえる 数字）を 通過と まちがえない ように、通過は となりの 列と 2秒いじょう はなれて いる ことも たしかめます。ストローク数が 一部の 区間だけ の ときは、数えた 区間だけの 合計を「10/16区間の合計」の ように 出し、50mごとの グラフで どこを 数えたかを 見せます。',
    'レース分析の PDFは、ページを <b>横向き</b> で 保存して ください。縦向きだと 表の 右が 切れて、読めない 数字が 出ます。ページ数が 多いと 数分 かかります（58ページで 約3分）。',
    '読んだ あと、通過の 差と ラップ・区間ラップ・ターンの タイムを 計算で 突き合わせます。合わない 数字が ある 選手は 赤い 字で 知らせるので、PDFと 見くらべて ください。読めなかった 通過は ラップから 計算して 入れ、そう 書きます。',
    '名前と チーム名は 日本語の 読み取りなので、まちがう ことが あります（半角の カタカナは とくに）。取りこむ 前に 名前の 欄で 直して ください。区間ラップ・泳速度・ストローク長・ターンの タイムなども 記録の 中に 残して あります'
@@ -13289,10 +13298,87 @@ function rrEntries(lines){
 }
 function rrRead(file, stat){
   var isPdf=/pdf/i.test(file.type||'') || /\.pdf$/i.test(file.name||'');
+  var isHtml=/html/i.test(file.type||'') || /\.html?$/i.test(file.name||'');
+  if(isHtml){ stat('ページを読んでいます…'); return file.text().then(function(t){ var R=kzParse(t); if(!R || !R.ents.length) throw new Error('nodata'); var X=jaToEntries(R); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:R.title }; }); }
   return (isPdf ? rrFromPdf(file, stat) : ocrPrep(file).then(function(c){ return rrFromImage(c, stat); })).then(function(lines){
     if(lines && lines.ja){ var X=jaToEntries(lines.ja); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:lines.ja.title }; }
     return { lines:lines, entries:rrEntries(lines) };
   });
+}
+/* ================================================================
+   競泳レース分析の ウェブページ（kizahashi.co.jp）を 文字の まま 読む
+   PDFの 読み取りと 同じ 形（jaReadPdf の 答え）に そろえて、あとは 同じ 道を 通します。
+   ================================================================ */
+function kzParse(htmlText){
+  var doc; try{ doc=new DOMParser().parseFromString(htmlText, 'text/html'); }catch(e){ return null; }
+  function tx(el){ return rrNorm((el ? (el.textContent||'') : '').replace(/\s+/g,' ')).trim(); }
+  var meet=tx(doc.querySelector('h2')), ev=tx(doc.querySelector('h4.mb-3, h4')), title=(meet+'\n'+ev).trim();
+  function rng(t){ t=t.replace(/\s/g,''); var m=/^(\d+)-(\d+)m?$/.exec(t); return m ? [Number(m[1]),Number(m[2])] : null; }
+  function dist(t){ t=t.replace(/\s/g,''); var m=/^(\d+)m(通過|正式)?$/.exec(t); return m ? Number(m[1]) : null; }
+  var heatDivs=Array.prototype.slice.call(doc.querySelectorAll('div[id^="heat"]'));
+  var tabs=Array.prototype.filter.call(doc.querySelectorAll('table'), function(t){ return !t.querySelector('table'); });
+  var H=[], byName={};   /* 組ごとの 選手（lane → entry）と、名前 → entry */
+  function heatOf(T){ var d=T.closest ? T.closest('div[id^="heat"]') : null; var hi=d ? heatDivs.indexOf(d) : -1; return hi<0 ? Math.max(0, H.length-1) : hi; }
+  function ent(hi, i, lane, name, team){
+    if(!H[hi]) H[hi]={ P:{}, order:[] };
+    var h=H[hi], k=lane||h.order[i]||('r'+i);
+    if(name && byName[name] && !h.P[k]) return byName[name];   /* 組の 外の 表（スタート）は 名前で つなぎます */
+    if(!h.P[k]){ h.P[k]={ heat:hi+1, row:i, sp:{}, lap:{}, segs:[], sc:[], turn:[], start:[], rt:null, bad:0, fix:[], name:'', team:'' }; if(lane) h.order[i]=k; }
+    var e=h.P[k]; if(name){ e.name=name; byName[name]=e; } if(team) e.team=team; return e;
+  }
+  var startBlock={};
+  tabs.forEach(function(T){
+    var rows=Array.prototype.slice.call(T.querySelectorAll('tr')), hdRows=[], dRows=[], blkNo=0, lastData=false;
+    rows.forEach(function(r){ var num=Array.prototype.filter.call(r.children, function(c){ return /right/.test(c.className||''); }); if(num.length){ dRows.push({ r:r, num:num, blk:blkNo }); lastData=true; } else { if(lastData) blkNo++; lastData=false; hdRows.push(r); } });
+    if(!dRows.length) return;
+    var hi=heatOf(T), hdTxt=hdRows.map(function(r){ return tx(r); }).join(' ');
+    /* 見出しは rrNorm で 半角カナが 全角に なって います */
+    var kind = /飛距離|水中距離|手離れ|入水/.test(hdTxt) ? 'start' : (/通過|正式/.test(hdTxt) && !/区間ラップ/.test(hdTxt)) ? 'split' : /区間ラップ/.test(hdTxt) ? 'il' : /ラップタイム/.test(hdTxt) ? 'lap' : /リアク|スタート|ターン|フィニッシュ/.test(hdTxt) ? 'turn' : /泳速度/.test(hdTxt) ? 'v' : /ストロークタイム/.test(hdTxt) ? 'st' : /ストローク長/.test(hdTxt) ? 'sl' : /ｽﾄﾛｰｸ|ストローク\(回\)/.test(hdTxt) ? 'sc' : null;
+    if(!kind) return;
+    /* ① スタートの 表は 2つの かたまり（前半 10列・後半 10列） */
+    if(kind==='start'){ var base=(startBlock[hi]||0); startBlock[hi]=base+blkNo+1;
+      dRows.forEach(function(dr){ var lane=tx(dr.r.querySelector('.lane')), nm=tx(dr.r.querySelector('.name2, .name')), tm=tx(dr.r.querySelector('.team2, .team')); var e=ent(hi, 0, lane, nm, tm); var vals=dr.num.map(function(c){ return jaNum(tx(c)); }); if((base+dr.blk)%2===0) e.start=vals.concat(e.start.slice(10)); else e.start=e.start.slice(0,10).concat(vals); });
+      return; }
+    /* 列の 見出し（区間 か 距離）。読めた ものだけ ならべます */
+    var rg=[]; hdRows.forEach(function(r){ Array.prototype.forEach.call(r.children, function(c){ var t=tx(c), x={ r:rng(t), d:dist(t) }; if(x.r || x.d!=null) rg.push(x); }); });
+    var nData=dRows[0].num.length, hasRt=(kind==='turn' && /リアク/.test(hdTxt) && rg.length===nData-1);
+    dRows.forEach(function(dr, i){
+      var lane=tx(dr.r.querySelector('.lane')), nm=tx(dr.r.querySelector('.name2, .name')), tm=tx(dr.r.querySelector('.team2, .team'));
+      var e=ent(hi, i, lane, nm, tm), vals=dr.num.map(function(c){ return tx(c); }), off=hasRt?1:0;
+      if(hasRt){ var rt=jaNum(vals[0]); if(rt!=null && rt<1.5) e.rt=rt; }
+      for(var j=off;j<vals.length;j++){
+        var h=rg[j-off]||{}, v=jaNum(vals[j], kind==='split'?'split':(kind==='sc'?'int':undefined));
+        if(v==null) continue;
+        if(kind==='split' && h.d!=null) e.sp[h.d]=v;
+        else if(kind==='lap' && h.r) e.lap[h.r[0]+'-'+h.r[1]]=v;
+        else if(kind==='turn' && h.r) e.turn.push({ a:h.r[0], b:h.r[1], t:v });
+        else if(kind==='sc' && h.r) e.sc.push({ a:h.r[0], b:h.r[1], n:v });
+        else if((kind==='il'||kind==='v'||kind==='st'||kind==='sl') && h.r){
+          var sg=e.segs.filter(function(x){ return x.a===h.r[0] && x.b===h.r[1]; })[0]; if(!sg){ sg={ a:h.r[0], b:h.r[1], il:null, v:null, st:null, sl:null }; e.segs.push(sg); }
+          sg[kind==='il'?'il':kind]=v;
+        }
+      }
+    });
+  });
+  var out=[];
+  H.forEach(function(h){ Object.keys(h.P).forEach(function(k){ var e=h.P[k]; if(!Object.keys(e.sp).length) return;
+    /* スタートの 表が そろって いなければ 使いません（飛距離＋水中距離＝浮き上がりの 距離 を たしかめます） */
+    if(!(e.start.length>=8 && e.start[0]!=null && e.start[4]!=null && e.start[7]!=null && Math.abs(e.start[0]+e.start[4]-e.start[7])<0.05)) e.start=[];
+    e.segs.sort(function(a,b){ return a.a-b.a; }); e.sc.sort(function(a,b){ return a.a-b.a; }); e.turn.sort(function(a,b){ return a.a-b.a; });
+    /* 計算で 突き合わせ（PDFと 同じ） */
+    function df(a,b){ return (a!=null && b!=null) ? a-b : null; } function ck(a,x,tol){ if(a==null || x==null) return; if(Math.abs(a-x)>(tol||0.015)) e.bad++; }
+    Object.keys(e.lap).forEach(function(kk){ var a=Number(kk.split('-')[0]), b=Number(kk.split('-')[1]); ck(df(e.sp[b], a?e.sp[a]:0), e.lap[kk]); });
+    e.segs.forEach(function(sg){ ck(df(e.sp[sg.b], e.sp[sg.a]), sg.il); if(sg.v!=null && sg.st!=null) ck(sg.v*sg.st, sg.sl, 0.03); });
+    e.turn.forEach(function(t){ ck(df(e.sp[t.b], t.a?e.sp[t.a]:0), t.t); });
+    out.push(e); }); });
+  return { title:title, ents:out };
+}
+/* アドレスから 読む：まず そのまま、だめなら 中継（Apps Script）を 通します */
+function kzFetch(url, stat){
+  var relay=''; try{ relay=localStorage.getItem('swimiq_relay')||''; }catch(e){}
+  function viaRelay(){ if(!relay) return Promise.reject(new Error('norelay')); stat('中継を通して読んでいます…'); return fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'url='+encodeURIComponent(url)).then(function(r){ if(!r.ok) throw new Error('relay'); return r.text(); }).then(function(t){ if(/^bad url/.test(t)) throw new Error('badurl'); if(t.length<2000) throw new Error('relay'); return t; }); }
+  stat('ページを読んでいます…');
+  return fetch(url, { mode:'cors' }).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).catch(viaRelay);
 }
 /* ===== 記録を見る → 画像・PDFから取り込む（新しい 記録を つくる） ===== */
 var imEnts=[], imPart=false;
@@ -13383,8 +13469,29 @@ $('imX').onclick=function(){ $('imBox').classList.add('hide'); };
 $('imPick').onclick=function(){ $('imFile').value=''; $('imFile').click(); };
 $('imFile').onchange=function(){
   var f=this.files && this.files[0]; if(!f) return;
+  imRun(rrRead(f, function(t){ $('imStat').textContent=t; }));
+};
+try{ $('imRelay').value=localStorage.getItem('swimiq_relay')||''; if($('imRelay').value){ var _dt=$('imRelay').closest('details'); if(_dt) _dt.open=true; } }catch(e){}
+$('imRelay').addEventListener('change', function(){ try{ localStorage.setItem('swimiq_relay', (this.value||'').trim()); }catch(e){} });
+$('imUrlGo').onclick=function(){
+  var u=($('imUrl').value||'').trim(); if(!/^https?:\/\//.test(u)){ toast('アドレスを入れてください'); return; }
+  /* 中継（Apps Script）の アドレスを 上の 欄に 入れた ときは、中継として おぼえて、ページの アドレスを たのみます */
+  if(/^https:\/\/script\.google(usercontent)?\.com\//.test(u)){
+    try{ localStorage.setItem('swimiq_relay', u); }catch(e){}
+    $('imRelay').value=u; var dt=$('imRelay').closest('details'); if(dt) dt.open=true;
+    $('imUrl').value=''; $('imStat').textContent='これは中継のアドレスなので、下の「中継のアドレス」に入れました。上の欄には、レース分析のページのアドレス（kizahashi.co.jp で始まるもの）を貼ってください。';
+    $('imUrl').focus(); return;
+  }
+  imRun(kzFetch(u, function(t){ $('imStat').textContent=t; }).then(function(html){ var R=kzParse(html); if(!R || !R.ents.length) throw new Error('nodata'); var X=jaToEntries(R); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:R.title }; }).catch(function(e){
+    var hasRelay=''; try{ hasRelay=localStorage.getItem('swimiq_relay')||''; }catch(e2){}
+    if(e && e.message==='badurl'){ $('imStat').textContent='中継が「このアドレスは通せません」と答えました。kizahashi.co.jp のレース分析のページのアドレスか確かめてください。'; $('imPick').disabled=false; throw { quiet:true }; }
+    if(e && e.message==='nodata'){ $('imStat').textContent='ページは読めましたが、レース分析の表が見つかりませんでした。種目のページ（wholesheet.php…）のアドレスか確かめてください。'; $('imPick').disabled=false; throw { quiet:true }; }
+    if(e && (e.message==='norelay' || e.message==='http' || e.message==='relay' || /fetch/i.test(String(e)))) { $('imStat').textContent=(hasRelay ? '直接も中継も読めませんでした。' : 'このアドレスは直接は読めませんでした。')+'ページを「HTML」で保存して「画像・PDF・HTMLを選ぶ」で選んでください。'+(hasRelay?'':'中継のアドレスを入れると、読める場合があります。'); $('imPick').disabled=false; throw { quiet:true }; }
+    throw e; }));
+};
+function imRun(job){
   $('imPick').disabled=true; imEnts=[]; imPart=false; imPaint();
-  rrRead(f, function(t){ $('imStat').textContent=t; }).then(function(R){
+  job.then(function(R){
     imEnts=R.entries.map(function(e){ e.on=true; return e; });
     if(!imEnts.length) $('imStat').textContent='タイムが見つかりませんでした。結果の部分が大きく写った画像にしてください。';
     else $('imStat').textContent=imEnts.length+'件の記録が見つかりました。名前・種目を確かめてください。'+(imEnts.length>1?'全部取り込むか、一部を選ぶかを選んでください。':'');
@@ -13394,10 +13501,11 @@ $('imFile').onchange=function(){
     if(R.meet && !$('imMeet').value) $('imMeet').value=R.meet;
     if(!$('imMeet').value){ var mt=null; R.lines.some(function(L){ var m=/(\S*(大会|選手権|記録会|競技会|カップ|杯)\S*)/.exec(rrNorm(L.txt||'').replace(/(\S)[ 　](?=\S)/g,function(x,c){ return /[\u3400-\u9fff\u3040-\u30ff]/.test(c)?c:x; })); if(m){ mt=m[1]; return true; } return false; }); if(mt) $('imMeet').value=mt; }
     imPaint();
-  }).catch(function(){
+  }).catch(function(e){
+    if(e && e.quiet) return;
     $('imStat').textContent='読み取れませんでした。ネットにつながっているか確かめてください。';
   }).then(function(){ $('imPick').disabled=false; });
-};
+}
 $('imAll').onclick=function(){ imPart=false; imPaint(); imGoRun(); };
 $('imSome').onclick=function(){ imPart=true; imEnts.forEach(function(e){ e.on=false; }); imPaint(); $('imStat').textContent='取り込む記録にチェックを入れてください。'; };
 function imGoRun(){

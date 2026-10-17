@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.11">
+<meta name="app-ver" content="2026.10.18.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1155,6 +1155,8 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 .vsCard .t{ font-size:32px; font-weight:900; color:#fff; font-variant-numeric:tabular-nums; line-height:1.1; margin-top:2px; }
 .vsCard .sub{ font-size:12px; color:var(--dim); margin:4px 0 8px; flex:1; overflow-wrap:anywhere; }
 .vsCard .btn{ width:100%; min-height:44px; padding:6px 8px; font-size:14px; }
+.vsSex{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:0 0 8px; }
+.vsSex .btn{ min-height:52px; font-size:17px; font-weight:900; }
 .vsMid{ display:flex; align-items:center; font-size:22px; font-weight:900; color:var(--am); }
 .vsGo{ width:100%; min-height:64px; font-size:22px; margin-top:4px; }
 .vsChips{ display:flex; flex-wrap:wrap; gap:8px; }
@@ -2445,6 +2447,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
         <div class="nm" id="vsRn">—</div>
         <div class="t" id="vsRt">—</div>
         <div class="sub" id="vsRs"></div>
+        <div class="vsSex hide" id="vsSex"><button class="btn g" type="button" data-sx="M">男子</button><button class="btn g" type="button" data-sx="F">女子</button></div>
         <button class="btn b" type="button" id="vsRchg" data-t="vsRchg"></button>
       </div>
     </div>
@@ -15992,9 +15995,12 @@ function vsPaint(){
   }else{
     $('vsRn').textContent = kn;
     $('vsRt').textContent = '—';
-    $('vsRs').textContent = (vsR.kind==='WR'||vsR.kind==='JR') ? (sx ? KA('この しゅもく・きょり・プールの 記録が ありません','この種目・距離・プールの記録がありません') : KA('男子か 女子かが 未登録です。「くらべる」を おすと 1回だけ 聞きます','性別が未登録です。「比較する」を押すと一度だけ聞きます')) : KA('あてはまる 記録が ありません','当てはまる記録がありません');
+    $('vsRs').textContent = (vsR.kind==='WR'||vsR.kind==='JR') ? (sx ? KA('この しゅもく・きょり・プールの 記録が ありません','この種目・距離・プールの記録がありません') : KA((whoOf(L)||'この 選手')+'は 男子ですか、女子ですか。えらぶと 記録が 出ます（1回だけ）',(whoOf(L)||'この選手')+'は男子ですか、女子ですか。選ぶと記録が出ます（一度だけ）')) : KA('あてはまる 記録が ありません','当てはまる記録がありません');
   }
-  $('vsGo').disabled = !L;
+  var needSex=!!(L && (vsR.kind==='WR'||vsR.kind==='JR') && !sx);
+  $('vsSex').classList.toggle('hide', !needSex);
+  /* 相手 → 性別 → 比較 の じゅん。性別が 決まるまでは「比較する」を 押せません */
+  $('vsGo').disabled = !L || needSex;
 }
 function vsPanel(which){
   $('vsMain').classList.toggle('hide', which!=='main');
@@ -16064,7 +16070,17 @@ $('vsOppList').onclick=function(e){
   var b=e.target.closest('[data-k]'); if(!b || b.disabled) return;
   var k=b.dataset.k;
   if(k==='team'||k==='ref'){ vsPaintRsub(k); return; }
+  /* 世界記録・日本記録は、選んだ すぐあとに 男子か 女子かを 聞きます */
+  if((k==='WR'||k==='JR') && vsL && !refSexOf(vsL)){
+    refSexAsk(vsL).then(function(s2){ if(!s2) return; vsR={ kind:k, rec:null }; vsPanel('main'); vsPaint(); });
+    return;
+  }
   vsR={ kind:k, rec:null }; vsPanel('main'); vsPaint();
+};
+$('vsSex').onclick=function(e){
+  var b=e.target.closest('[data-sx]'); if(!b || !vsL) return;
+  try{ localStorage.setItem('swimiq_refsex_'+whoOf(vsL), b.getAttribute('data-sx')); }catch(e2){}
+  vsPaint();
 };
 $('vsGo').onclick=function(){
   if(!vsL) return;

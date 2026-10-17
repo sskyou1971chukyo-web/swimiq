@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.6">
+<meta name="app-ver" content="2026.10.17.7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -13360,7 +13360,15 @@ function kzParse(htmlText){
   var startBlock={};
   tabs.forEach(function(T){
     var rows=Array.prototype.slice.call(T.querySelectorAll('tr')), hdRows=[], dRows=[], blkNo=0, lastData=false;
-    rows.forEach(function(r){ var num=Array.prototype.filter.call(r.children, function(c){ return /right/.test(c.className||''); }); if(num.length){ dRows.push({ r:r, num:num, blk:blkNo }); lastData=true; } else { if(lastData) blkNo++; lastData=false; hdRows.push(r); } });
+    /* 見出しの 行＝全部の マスが 見出し（center・head・選手名・チーム名）。それ いがいは 数字の 行。
+       数字が 空の 行（ストローク数を 数えて いない 選手）も 数字の 行として 数え、行の 順番が ずれない ように します */
+    rows.forEach(function(r){
+      var cells=Array.prototype.slice.call(r.children);
+      var isHead=cells.length>0 && cells.some(function(c){ return tx(c)!==''; }) && cells.every(function(c){ var cl=c.className||'', t=tx(c); return /center|head/.test(cl) || ((/lane|name|team/.test(cl)) && (t==='' || t==='選手名' || t==='チーム名')); });
+      if(isHead){ if(lastData) blkNo++; lastData=false; hdRows.push(r); return; }
+      var num=cells.filter(function(c){ return !/lane|name|team/.test(c.className||''); });
+      dRows.push({ r:r, num:num, blk:blkNo }); lastData=true;
+    });
     if(!dRows.length) return;
     var hi=heatOf(T), hdTxt=hdRows.map(function(r){ return tx(r); }).join(' ');
     /* 見出しは rrNorm で 半角カナが 全角に なって います */

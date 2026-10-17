@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.3">
+<meta name="app-ver" content="2026.10.17.4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -13376,7 +13376,13 @@ function kzParse(htmlText){
 /* アドレスから 読む：まず そのまま、だめなら 中継（Apps Script）を 通します */
 function kzFetch(url, stat){
   var relay=''; try{ relay=localStorage.getItem('swimiq_relay')||''; }catch(e){}
-  function viaRelay(){ if(!relay) return Promise.reject(new Error('norelay')); stat('中継を通して読んでいます…'); return fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'url='+encodeURIComponent(url)).then(function(r){ if(!r.ok) throw new Error('relay'); return r.text(); }).then(function(t){ if(/^bad url/.test(t)) throw new Error('badurl'); if(t.length<2000) throw new Error('relay'); return t; }); }
+  function viaRelay(){ if(!relay) return Promise.reject(new Error('norelay')); stat('中継を通して読んでいます…'); return fetch(relay+(relay.indexOf('?')>=0?'&':'?')+'url='+encodeURIComponent(url)).then(function(r){ if(!r.ok) throw new Error('relay'); return r.text(); }).then(function(t){
+      if(/^bad url/.test(t)) throw new Error('badurl');
+      if(/^\s*\{/.test(t)){   /* 版2の 中継：JSONで 状態も 返します */
+        var o=null; try{ o=JSON.parse(t); }catch(e){}
+        if(o){ if(o.error==='bad url') throw new Error('badurl'); if(o.ok && o.html && o.html.length>2000) return o.html; var er=new Error('relaysite'); er.status=o.status||0; er.detail=o.error||''; throw er; }
+      }
+      if(t.length<2000) throw new Error('relay'); return t; }); }
   stat('ページを読んでいます…');
   return fetch(url, { mode:'cors' }).then(function(r){ if(!r.ok) throw new Error('http'); return r.text(); }).catch(viaRelay);
 }
@@ -13484,6 +13490,7 @@ $('imUrlGo').onclick=function(){
   }
   imRun(kzFetch(u, function(t){ $('imStat').textContent=t; }).then(function(html){ var R=kzParse(html); if(!R || !R.ents.length) throw new Error('nodata'); var X=jaToEntries(R); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:R.title }; }).catch(function(e){
     var hasRelay=''; try{ hasRelay=localStorage.getItem('swimiq_relay')||''; }catch(e2){}
+    if(e && e.message==='relaysite'){ $('imStat').textContent='中継は動きましたが、kizahashi.co.jp が答えを返しませんでした（'+(e.status?('状態 '+e.status):(e.detail||'つながらない'))+'）。相手のサイトがGoogleからの読み取りを断っているので、ページを「HTML」で保存して「画像・PDF・HTMLを選ぶ」で選んでください。'; $('imPick').disabled=false; throw { quiet:true }; }
     if(e && e.message==='badurl'){ $('imStat').textContent='中継が「このアドレスは通せません」と答えました。kizahashi.co.jp のレース分析のページのアドレスか確かめてください。'; $('imPick').disabled=false; throw { quiet:true }; }
     if(e && e.message==='nodata'){ $('imStat').textContent='ページは読めましたが、レース分析の表が見つかりませんでした。種目のページ（wholesheet.php…）のアドレスか確かめてください。'; $('imPick').disabled=false; throw { quiet:true }; }
     if(e && (e.message==='norelay' || e.message==='http' || e.message==='relay' || /fetch/i.test(String(e)))) { $('imStat').textContent=(hasRelay ? '直接も中継も読めませんでした。' : 'このアドレスは直接は読めませんでした。')+'ページを「HTML」で保存して「画像・PDF・HTMLを選ぶ」で選んでください。'+(hasRelay?'':'中継のアドレスを入れると、読める場合があります。'); $('imPick').disabled=false; throw { quiet:true }; }

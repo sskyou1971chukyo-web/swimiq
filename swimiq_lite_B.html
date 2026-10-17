@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.4">
+<meta name="app-ver" content="2026.10.17.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -2929,6 +2929,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <div id="vwTurnSum"></div>
       <div class="vwTbl" id="vwTurn"></div>
       <p class="vwNote">非泳区間＝スタート0〜15m＋各ターン（壁の5m前〜15m後の20m）＋タッチ（ゴールの5m前から）。残りを泳ぎ区間としています。</p>
+    </div>
+    <div id="vwStartWrap" class="hide">
+      <div class="vwGl">スタート・浮き上がり（レース分析）</div>
+      <div class="vwTbl" id="vwStart"></div>
+      <p class="vwNote">日本水泳連盟 科学委員会「競泳レース分析」の値です。時間は合図からで、反応時間を含みます。「足離れ〜浮き上がり」だけはアプリが反応時間を引いて出した数字です。速度変化率は、手離れ前の速さに対する最初の1かきの速さの割合で、100に近いほど速さを落としていません。</p>
     </div>
     <div id="vwScWrap" class="hide">
       <div class="vwGl">ストローク数（50mごと）</div>
@@ -7946,6 +7951,22 @@ function growTblHtml(G){
     h+='<div class="vr'+(g.diff<0?' gUp':(g.diff>0?' gDn':''))+(top?' gTop':'')+'"><span class="c1">'+g.a+'〜'+g.b+'m</span><span class="c2">'+fmt(g.t)+'</span><span class="c3">'+(g.diff<0?'−':(g.diff>0?'+':'±'))+Math.abs(g.diff).toFixed(2)+'</span></div>'; });
   return h+'</div>';
 }
+/* ===== レース分析の スタート・浮き上がり分析（20個）を 行に ===== */
+function startRows(r){
+  var S=(r && r.ja && r.ja.start) || []; if(S.length<20 || S[7]==null) return [];
+  var rt=rtSec(r), f2=function(x){ return x==null ? NA : Number(x).toFixed(2); };
+  var rows=[
+    { g:'①a', k:'スタート〜手先入水（飛距離）', d:S[0], t:S[1], v:S[2] },
+    { g:'①b', k:'手〜足入水（入水幅）', d:S[3], t:null, v:null },
+    { g:'②', k:'手先入水〜浮き上がり（水中）', d:S[4], t:S[5], v:S[6] },
+    { g:'③', k:'合図〜浮き上がり', d:S[7], t:S[8], v:null, sub:'初速 '+f2(S[9])+'m/秒' },
+    { g:'④', k:'スタート〜手離れ（水中キック）', d:S[10], t:S[11], v:S[12] },
+    { g:'⑤', k:'手離れ〜1かき後（最初の1かき）', d:S[13], t:S[14], v:S[15], sub:'速度変化率 '+f2(S[16])+'%' },
+    { g:'⑥', k:'合図〜1かき終了', d:S[17], t:S[18], v:S[19] }
+  ];
+  if(rt!=null && S[8]!=null && S[8]-rt>0){ var tt=Math.round((S[8]-rt)*100)/100; rows.splice(4,0,{ g:'', k:'足離れ〜浮き上がり（反応時間を引く）', d:S[7], t:tt, v:Math.round(S[7]/tt*100)/100, calc:true }); }
+  return rows;
+}
 function recCard(r){
   var last = r.splits && r.splits.length ? r.splits[r.splits.length-1] : null;
   var ss = raceStroke(r);
@@ -10512,7 +10533,9 @@ function boOf(r, lap){
   if(!u) return null;
   var d=Number(u.d); if(!(d>0 && d<p-5)) return null;
   var W=lap*p, abs=Math.round((W+d)*10)/10, t=null, est=false, bad=false;
-  if(u.vt!=null && r.t0!=null) t=Number(u.vt)-Number(r.t0);
+  if(u.t!=null && Number(u.t)>0) t=Number(u.t);               /* レース分析から 取りこんだ 実測の 時間（足離れから） */
+  else if(lap===0 && r.ja && r.ja.start && r.ja.start[8]!=null && rtSec(r)!=null && r.ja.start[8]-rtSec(r)>0) t=Math.round((r.ja.start[8]-rtSec(r))*100)/100;   /* 前に 取りこんだ 記録も 同じ 計算 */
+  else if(u.vt!=null && r.t0!=null) t=Number(u.vt)-Number(r.t0);
   /* 動画の 時刻が 通過タイムと 合わない とき は 使わず、通過から 見つもります。
      れい：50〜75mの 浮き上がりを、ちがう 場面で 止めた まま 登録した とき。
      目もりや 通過の 押し方で 1mくらいは ずれるので、浮き上がりの 前後 3mの ゆとりを 持たせます */
@@ -11389,7 +11412,7 @@ function actualParts(r){
   P.push({ k:'潜り', sub:(Math.round(uwD*10)/10)+'m（'+n+'回）', t:uwT, c:'#1f4fa8', fc:'#ffffff' });
   if(nSp) P.push({ k:'壁の時間', sub:'×'+nSp, t:spT, c:'#7d8796', fc:'#ffffff' });
   P.push({ k:'泳ぎ', sub:swD+'m', t:swT, c:'#f2b01e', fc:'#16181d' });
-  return { parts:P, total:ts.total, uwD:Math.round(uwD*10)/10, uwT:uwT, swD:swD, swT:swT, spT:spT, nSp:nSp, est:est, n:n };
+  return { parts:P, total:ts.total, uwD:Math.round(uwD*10)/10, uwDraw:uwD, uwT:uwT, swD:swD, swT:swT, spT:spT, nSp:nSp, est:est, n:n };
 }
 function reportPages(r, prev, W, H, nP){
   var mx=54, cw=W-mx*2, PG='@@PG@@', NP='@@NP@@';
@@ -11502,7 +11525,7 @@ function reportPages(r, prev, W, H, nP){
     s+=T_(mx,y+12,'2　実際に泳いだ距離で分ける（潜った距離と泳いだ距離）',10.5,900,'#16181d'); y+=18;
     if(AP && AP.parts){
       s+=partBar(AP.parts, y, 36); y+=36+13;
-      s+=T_(mx,y,'潜り '+AP.uwD+'m '+(AP.est?'約':'')+fmt(AP.uwT)+'（'+(AP.uwD/AP.uwT).toFixed(2)+'m/秒）　泳ぎ '+AP.swD+'m '+fmt(AP.swT)+'（'+(AP.swD/AP.swT).toFixed(2)+'m/秒）'+(AP.nSp?'　壁の時間 '+fmt(AP.spT):'')+'　潜りの割合 距離'+Math.round(AP.uwD/Number(r.dist)*100)+'%',10,800,'#3d4450');
+      s+=T_(mx,y,'潜り '+AP.uwD+'m '+(AP.est?'約':'')+fmt(AP.uwT)+'（'+((AP.uwDraw||AP.uwD)/AP.uwT).toFixed(2)+'m/秒）　泳ぎ '+AP.swD+'m '+fmt(AP.swT)+'（'+(AP.swD/AP.swT).toFixed(2)+'m/秒）'+(AP.nSp?'　壁の時間 '+fmt(AP.spT):'')+'　潜りの割合 距離'+Math.round(AP.uwD/Number(r.dist)*100)+'%',10,800,'#3d4450');
       y+=16;
     }else{
       s+='<rect x="'+mx+'" y="'+y+'" width="'+cw+'" height="30" rx="8" fill="#f4f5f7"/>'+T_(mx+12,y+19,NAL+'　'+(AP&&AP.missing?('浮き上がりを測っていないラップが '+AP.missing+' つあります。全部のラップで測ると出ます。'):'浮き上がりを全部のラップで測ると出ます。'),10.5,800,'#8a909b');
@@ -11722,6 +11745,14 @@ function reportPages(r, prev, W, H, nP){
     notesM.push('ST＝1かきの時間（左右で1回）、SR＝1分あたりのかき回数'+(hasV?'、S長＝1かきで進む距離、泳速度はm/秒':'')+'。'+(sUnitOf(r)==='arm'?'かき数は片手ずつ数えた回数です。':'')+'「ー」は数えていない区間です。');
     if(r.ja) notesM.push('出どころ　日本水泳連盟 科学委員会「競泳レース分析」の値をそのまま使っています。');
     FLOW('50mごとのストローク', (PSC && PSC.part) ? (PSC.ranges.split('、').length<=3 ? ('数えた区間 '+PSC.ranges) : ('数えた区間 '+PSC.k+'/'+PSC.of)) : '', colsM, rowsM, 18, 10.5, { two:12, notes:notesM });
+  }
+  /* 1c スタート・浮き上がり分析（レース分析から 取りこんだ 記録） */
+  var SR=startRows(r);
+  if(SR.length){
+    var f2s=function(x){ return x==null ? NA : Number(x).toFixed(2); };
+    var rowsS=SR.map(function(q){ var row=[(q.g?q.g+' ':'')+q.k+(q.sub?'　'+q.sub:''), (q.d!=null?f2s(q.d):NA), (q.t!=null?f2s(q.t):NA), (q.v!=null?f2s(q.v):NA)]; if(q.calc) row.hl=true; return row; });
+    FLOW('スタート・浮き上がり分析','日本水泳連盟 科学委員会の値',[{h:'区間',w:0.58},{h:'距離 m',w:0.14},{h:'時間 秒',w:0.14},{h:'速さ m/秒',w:0.14}],rowsS,18,10.5,
+      { notes:['時間は合図からで、反応時間を含みます。黄色の行だけはアプリが反応時間を引いて足離れからにした数字です。','速度変化率＝最初の1かきの平均速度÷手離れまでの平均速度×100。初速＝頭が水面に出た直後の速さ。'] });
   }
   /* 2 区間ごとの 数字（1枚目の 表と 効率指数の 計算を 1つに） */
   var G3=G.filter(function(g){ return winCov(r, g.from, g.to); }), E3=G3.map(function(g){ return EIs[G.indexOf(g)]; });   /* 4区間だけ 数えた 記録は、数えた 区間だけ */
@@ -13440,7 +13471,7 @@ function imCount(){
    ストローク数・ST は 50mごと（manualSegs）。自由形・背泳ぎの ストローク数は 片手ずつ、ST は 左右で 1回（レース分析と 同じ）。
    ほかの 数字（区間ラップ・泳速度・ストローク長・ターン・スタート）は 記録の ja に そのまま 残します */
 function jaFill(rec, e){
-  var J=e.ja, segN=Math.max(1, Math.round(rec.dist/50)), segs=[], i, nAll=0, nOk=true, stS=0, stN=0;
+  var J=e.ja, rt=(rec.rt!=null ? Number(rec.rt) : null), segN=Math.max(1, Math.round(rec.dist/50)), segs=[], i, nAll=0, nOk=true, stS=0, stN=0;
   for(i=0;i<segN;i++){
     var a=i*50, b=a+50, sc=(J.sc||[]).filter(function(x){ return x.a===a && x.b===b; })[0];
     var sts=(J.segs||[]).filter(function(x){ return x.a>=a && x.b<=b && x.st!=null; }).map(function(x){ return x.st; });
@@ -13451,7 +13482,8 @@ function jaFill(rec, e){
   }
   rec.manualSegs=segs; rec.manualN=(nOk && nAll) ? nAll : null; rec.manualST=stN ? Math.round(stS/stN*100)/100 : null;
   rec.sUnit=armEv(rec.event) ? 'arm' : 'cycle';
-  if(J.start && J.start.length>=8 && J.start[7]>0){ rec.uwDist=J.start[7]; rec.uw=[{ d:J.start[7], vt:null }]; }
+  /* 浮き上がりまでの 距離と 時間（レース分析の 時間は 合図からなので、反応時間を 引いて 足離れからに そろえます） */
+  if(J.start && J.start.length>=8 && J.start[7]>0){ var uwT=(J.start[8]!=null && rt!=null && J.start[8]-rt>0) ? Math.round((J.start[8]-rt)*100)/100 : null; rec.uwDist=J.start[7]; rec.uw=[{ d:J.start[7], vt:null, t:uwT }]; }
   rec.ja={ heat:e.heat, row:J.row, segs:J.segs, lap:J.lap, turn:J.turn, sc:J.sc, start:J.start, bad:J.bad, fix:J.fix };
 }
 function imSave(list){
@@ -14652,6 +14684,15 @@ function viewOpen(r){
   $('vwGrow').innerHTML=''; $('vwGrowTbl').innerHTML='';
   $('vwDetail').classList.add('hide'); $('vwMore').setAttribute('aria-expanded','false');
   dbAll().then(function(all){ if(vwRec!==r) return; var G=growCalc(r, all.filter(function(x){ return x && !x.vidOnly && !x.draft && !x.deleted; })); $('vwGrow').innerHTML=growBandHtml(G); $('vwGrowTbl').innerHTML=growTblHtml(G); }, function(){});
+  /* スタート・浮き上がり分析（レース分析から 取りこんだ 記録） */
+  (function(){
+    var R=startRows(r), wrap=$('vwStartWrap'); if(!wrap) return;
+    wrap.classList.toggle('hide', !R.length); if(!R.length) return;
+    var f2=function(x){ return x==null ? NA : Number(x).toFixed(2); };
+    var hh='<div class="vr hd"><span class="c1">区間</span><span class="c2">距離</span><span class="c3">時間</span><span class="c4">速さ</span></div>';
+    R.forEach(function(q){ hh+='<div class="vr'+(q.calc?' gTop':'')+'"><span class="c1" style="flex:1 1 auto;min-width:0;white-space:normal;line-height:1.3">'+esc((q.g?q.g+' ':'')+q.k)+(q.sub?'<br><small style="color:var(--dim)">'+esc(q.sub)+'</small>':'')+'</span><span class="c2" style="flex:0 0 64px;text-align:right">'+(q.d!=null?f2(q.d)+'m':NA)+'</span><span class="c3" style="flex:0 0 64px">'+(q.t!=null?f2(q.t)+'秒':NA)+'</span><span class="c4">'+(q.v!=null?f2(q.v):NA)+'</span></div>'; });
+    $('vwStart').innerHTML=hh;
+  })();
   /* 50mごとの ストローク数（手入力・取り込みの 記録） */
   (function(){
     var M=mSegRows(r), wrap=$('vwScWrap'); if(!wrap) return;

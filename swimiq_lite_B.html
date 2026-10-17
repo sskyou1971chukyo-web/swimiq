@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.17.10">
+<meta name="app-ver" content="2026.10.17.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -8018,7 +8018,7 @@ function recCard(r){
   /* その 選手・種目・きょりの いちばん はやい きろくには 印を つけます */
   if(typeof bestIdx==='object' && bestIdx && bestIdx[r.id])
     badge = '<span class="c2badge bst">'+T('bstTag')+'</span>' + badge;
-  var _rh=recHit(r); if(_rh) badge = '<span class="c2badge rec">'+recScopeName(_rh.scope)+(_rh.current?'':'（当時）')+'</span>' + badge;
+  var _rh=recHitName(r); if(_rh) badge = '<span class="c2badge rec">'+_rh+'</span>' + badge;
   var nm = r.swimmerName ? (r.swimmerName+'　') : '';
   var mt = recLabel(r); if(!meetName(r) && !roundOf(r)) mt='';
   var info = nm + evLabel(r.event)+'　'+(r.dist||(last?last.d:'')||'')+'m　'+mdShort(r.at);
@@ -12312,6 +12312,26 @@ function recToRec(o){
 }
 function recAll(){ return (REC.records||[]).map(recToRec); }
 /* アプリの 記録が、一覧の 世界記録・日本記録 その ものか：プール・種目・距離・タイム（0.01秒まで）が 同じで、日付も 同じ日 */
+/* 当たる 一覧の 記録を 全部（世界記録、アジア記録、日本記録の じゅん）。同じ レースが アジア記録と 日本記録の 両方に なる ことが あります */
+function recHits(r){
+  if(!r || r.ref || !(REC.records||[]).length) return [];
+  var t=raceBest(r); if(t==null) return [];
+  var pool=Number(r.pool)||50, course=(pool===25?'SCM':'LCM'), ev=r.event||'free', dist=Number(r.dist), day=new Date(r.at).toISOString().slice(0,10), out=[], PR={ WR:3, AR:2, JR:1 };
+  (REC.records||[]).forEach(function(o){
+    if(o.course!==course || o.event!==ev || Number(o.dist)!==dist) return;
+    if(Math.abs(Number(o.sec)-t)>0.006) return;
+    if(o.date && o.date!==day){ var d2=new Date(r.at); d2.setDate(d2.getDate()+1); if(o.date!==d2.toISOString().slice(0,10)) return; }
+    out.push(o);
+  });
+  out.sort(function(a,b){ return (PR[b.scope]||0)-(PR[a.scope]||0) || ((b.current?1:0)-(a.current?1:0)); });
+  return out;
+}
+/* 「アジア記録・日本記録」のような 名前 */
+function recHitName(r){
+  var seen={}, names=[];
+  recHits(r).forEach(function(o){ if(seen[o.scope]) return; seen[o.scope]=1; names.push(recScopeName(o.scope)+(o.current?'':'（当時）')); });
+  return names.join('・');
+}
 function recHit(r){
   if(!r || r.ref || !(REC.records||[]).length) return null;
   var t=raceBest(r); if(t==null) return null;
@@ -12328,7 +12348,7 @@ function recHit(r){
 /* 一覧の 記録に 当たる、アプリの 中の くわしい 記録（レース分析から 取りこんだ もの など）を さがします */
 function recDetailOf(o, all){
   var hit=null;
-  (all||[]).forEach(function(r){ if(!r || r.ref || r.draft || r.deleted || r.vidOnly) return; var h=recHit(r); if(h && h.id===o.id && (!hit || (r.ja && !hit.ja))) hit=r; });
+  (all||[]).forEach(function(r){ if(!r || r.ref || r.draft || r.deleted || r.vidOnly) return; if(recHits(r).some(function(h){ return h.id===o.id; }) && (!hit || (r.ja && !hit.ja))) hit=r; });
   return hit;
 }
 function isRef(r){ return !!(r && r.ref); }
@@ -14967,7 +14987,7 @@ function viewOpen(r){
   bits.push((r.pool||50)+'mプール');
   if(r.manual) bits.push(T('mBadge'));
   if(!r.manual && !hasVid(r)) bits.push(T('noVidBadge'));
-  var _rh2=recHit(r); if(_rh2) bits.push(recScopeName(_rh2.scope)+(_rh2.current?'':'（当時）'));
+  var _rh2=recHitName(r); if(_rh2) bits.push(_rh2);
   $('vwSub').textContent = bits.join('　');
 
   /* 数字の ならび */
@@ -15123,7 +15143,7 @@ function wrPaint(){
   L.forEach(function(o){
     var op=(wrOpenId===o.id), det=wrDet[o.id];
     h+='<button type="button" class="wrRow" data-id="'+esc(o.id)+'" aria-expanded="'+(op?'true':'false')+'">'+
-       '<span class="wrEv">'+o.dist+'m '+esc(evLabel(o.event))+(o.pending?'<span class="wrBadge pend">公認待ち</span>':'')+(o.wiki&&!o.pending&&o.scope!=='AR'?'<span class="wrBadge wk">Wikipediaで更新</span>':'')+(det?'<span class="wrBadge det">くわしい記録あり</span>':'')+'</span>'+
+       '<span class="wrEv">'+o.dist+'m '+esc(evLabel(o.event))+(o.pending?'<span class="wrBadge pend">公認待ち</span>':'')+(det?'<span class="wrBadge det">分析データあり</span>':'')+'</span>'+
        '<b class="wrT">'+esc(o.time||fmt(o.sec))+'</b>'+
        '<span class="wrWho">'+esc(o.nameJa||o.name||'')+(o.nation?'（'+esc(o.nation)+'）':'')+'</span>'+
        '<span class="wrMeta">'+esc([wrDay(o.date), o.meetJa||o.meet, o.place].filter(Boolean).join('　'))+'</span></button>';
@@ -15133,7 +15153,7 @@ function wrPaint(){
       else h+='この記録の通過タイムは一覧に入っていません。<br>';
       if(o.note) h+=esc(o.note)+'<br>';
       h+='出どころ：'+(o.sources||[]).map(function(u){ return /^https?:/.test(u) ? '<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>' : esc(u); }).join('<br>');
-      if(det) h+='<button type="button" class="btn y" data-det="'+esc(o.id)+'">取り込んだくわしい記録を開く</button>';
+      if(det) h+='<button type="button" class="btn y" data-det="'+esc(o.id)+'">この記録の分析データを開く</button>';
       h+='</div>';
     }
   });

@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.18.9">
+<meta name="app-ver" content="2026.10.18.10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -15411,7 +15411,15 @@ var stdGhAt=0;
 function stdFromGh(force){
   if(!force && STD.gh && Date.now()-stdGhAt < 3600*1000) return Promise.resolve(true);
   if(typeof navigator!=='undefined' && navigator.onLine===false) return Promise.resolve(!!STD.gh);
-  return fetch('standards.json?t='+Date.now(), { cache:'no-store' }).then(function(r){ if(!r.ok) throw new Error('nofile'); return r.json(); }).then(function(j){
+  /* 近くの standards.json → GitHubの ページの もの → GitHubの 置き場の もの の じゅんに 探します
+     （パソコンに 保存した アプリを ダブルクリックで 開いた ときも 読めるように） */
+  var T='?t='+Date.now(), SRC=['standards.json'+T, 'https://sskyou1971chukyo-web.github.io/swimiq/standards.json'+T, 'https://raw.githubusercontent.com/sskyou1971chukyo-web/swimiq/main/standards.json'+T];
+  if(location.protocol==='file:') SRC.shift();
+  var get=function(i){
+    if(i>=SRC.length) return Promise.reject(new Error('nofile'));
+    return fetch(SRC[i], { cache:'no-store' }).then(function(r){ if(!r.ok) throw new Error('nofile'); return r.json(); }).then(function(j){ if(!j || !j.list || !j.list.length || !j.pages) throw new Error('nofile'); return j; }).catch(function(){ return get(i+1); });
+  };
+  return get(0).then(function(j){
     if(!j || !j.list || !j.list.length || !j.pages) throw new Error('nofile');
     var before=JSON.stringify(STD.pages), n=0;
     j.list.forEach(function(it){

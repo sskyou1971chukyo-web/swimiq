@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.18.5">
+<meta name="app-ver" content="2026.10.18.6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -3586,6 +3586,11 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <div class="sq">
       <p class="q" data-t="swmName"></p>
       <input type="text" id="swName">
+    </div>
+    <div class="sq">
+      <p class="q">ふりがな（ひらがな）</p>
+      <input type="text" id="swKana" placeholder="例　せき かいや" autocomplete="off">
+      <p class="hint" style="margin:4px 2px 0;">入れると、選手を選ぶ欄があいうえお順に並びます。カタカナで入れても、ひらがなに直します。</p>
     </div>
     <div class="sq">
       <p class="q" data-t="swmSex"></p>
@@ -10264,11 +10269,38 @@ function paintSwimmers(){
   });
 }
 var swmEditId=null;
+/* カタカナを ひらがなに */
+function toHira(t){ return String(t||'').replace(/[\u30a1-\u30f6]/g, function(c){ return String.fromCharCode(c.charCodeAt(0)-0x60); }); }
+/* 名前の 読みがな：選手の 登録の ふりがな → 取り込んだ 記録の 読みがな → かなだけの 名前は そのまま。分からなければ '' */
+function nameKana(name, recs){
+  var f=String(name||'').replace(/[\s　]/g,''); if(!f) return '';
+  var a=loadSwimmers()||[], i;
+  for(i=0;i<a.length;i++) if(a[i].kana && String(a[i].name||'').replace(/[\s　]/g,'')===f) return toHira(a[i].kana).replace(/[\s　]/g,'');
+  for(i=0;i<(recs||[]).length;i++){ var r=recs[i]; if(r && r.swimmerKana && whoOf(r).replace(/[\s　]/g,'')===f) return toHira(r.swimmerKana).replace(/[\s　]/g,''); }
+  if(/^[ぁ-んァ-ヶー・]+$/.test(f)) return toHira(f);
+  return '';
+}
+var GYO=[['あ行','ぁあぃいぅうゔぇえぉお'],['か行','かがきぎくぐけげこご'],['さ行','さざしじすずせぜそぞ'],['た行','ただちぢっつづてでとど'],['な行','なにぬねの'],['は行','はばぱひびぴふぶぷへべぺほぼぽ'],['ま行','まみむめも'],['や行','ゃやゅゆょよ'],['ら行','らりるれろ'],['わ行','ゎわゐゑをん']];
+/* 名前の 選ぶ欄を、あ行・か行…で 区切って 作ります。読みがなの ない 名前は いちばん 下 */
+function nameOptionsHtml(names, selected, recs){
+  var G=GYO.map(function(g){ return { lb:g[0], ch:g[1], L:[] }; }), other=[];
+  names.forEach(function(n){
+    var k=nameKana(n, recs), g=null;
+    if(k) G.forEach(function(x){ if(!g && x.ch.indexOf(k.charAt(0))>=0) g=x; });
+    if(g) g.L.push({ n:n, k:k }); else other.push({ n:n, k:'' });
+  });
+  var opt=function(x){ return '<option value="'+esc(x.n)+'"'+(x.n===selected?' selected':'')+'>'+esc(x.n)+'</option>'; };
+  var h='';
+  G.forEach(function(x){ if(!x.L.length) return; x.L.sort(function(a,b){ return a.k.localeCompare(b.k,'ja') || a.n.localeCompare(b.n,'ja'); }); h+='<optgroup label="'+x.lb+'">'+x.L.map(opt).join('')+'</optgroup>'; });
+  if(other.length){ other.sort(function(a,b){ return a.n.localeCompare(b.n,'ja'); }); h+='<optgroup label="英字・読みがな未登録">'+other.map(opt).join('')+'</optgroup>'; }
+  return h;
+}
 function swmOpen(id){
   var s = id ? swById(id) : null;
   swmEditId = s ? s.id : null;
   $('swmH').textContent = T(s ? 'swmEdit' : 'swmNew');
   $('swName').value  = s ? (s.name||'') : '';
+  $('swKana').value  = s ? (s.kana||'') : '';
   $('swSex').value   = s ? (s.sex||'') : '';
   $('swBirth').value = s ? (s.birth||'') : '';
   $('swHeight').value= s ? (s.height||'') : '';
@@ -10290,7 +10322,7 @@ $('swmSave').onclick=function(){
   var a=loadSwimmers();
   var rec={
     id: swmEditId || ('s'+Date.now()),
-    name:name, sex:$('swSex').value,
+    name:name, kana:toHira(($('swKana').value||'').trim()), sex:$('swSex').value,
     birth:$('swBirth').value,
     height:($('swHeight').value||'').trim(),
     weight:($('swWeight').value||'').trim(),
@@ -13899,7 +13931,7 @@ function imSave(list){
     var rt=e.rt;
     var rec={ id:'i'+(base+k), at:at, title:meet || (e.dist+'m　'+evLabel(e.ev)), round:e.round||'', pool:pool, dist:e.dist, event:e.ev,
       manual:true, t0:null, rt:rt, splits:e.times.map(function(x){ return { d:x.d, t:Math.round((rt!=null ? x.t-rt : x.t)*100)/100 }; }),
-      strokes:[], manualSegs:[], manualN:null, manualST:null, videoUrl:'', swimmerId:swId||'', swimmerName:nm, team:e.team||'', grade:e.grade||'', updatedAt:Date.now(), thumb:'', from:'import' };
+      strokes:[], manualSegs:[], manualN:null, manualST:null, videoUrl:'', swimmerId:swId||'', swimmerName:nm, swimmerKana:(e.kana?toHira(e.kana):''), team:e.team||'', grade:e.grade||'', updatedAt:Date.now(), thumb:'', from:'import' };
     if(e.ja) jaFill(rec, e);
     job=job.then(function(){ return dbPut(rec); }).then(function(){ afterSave(rec); n++; });
   });
@@ -15459,8 +15491,7 @@ function stdFillMeet(){
 function stdFillSw(){
   var seen={}, names=[];
   stdRecs.forEach(function(r){ var n=whoOf(r); if(n && !seen[n]){ seen[n]=1; names.push(n); } });
-  names.sort(function(a,b){ return a.localeCompare(b,'ja'); });
-  $('stdSw').innerHTML='<option value="">選ばない</option>'+names.map(function(n){ return '<option value="'+esc(n)+'"'+(n===STD_SEL.sw?' selected':'')+'>'+esc(n)+'</option>'; }).join('');
+  $('stdSw').innerHTML='<option value="">選ばない</option>'+nameOptionsHtml(names, STD_SEL.sw, stdRecs);
 }
 function stdSwBest(name, ev, dist, course){
   var best=null, pool=(course==='SCM'?25:50);

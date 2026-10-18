@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.18.10">
+<meta name="app-ver" content="2026.10.18.11">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -2964,7 +2964,8 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     <select id="stdSw" aria-label="くらべる選手"></select>
     <div id="stdList" aria-live="polite"></div>
     <p class="vwNote" id="stdSrc" style="white-space:pre-line"></p>
-    <button class="btn y" type="button" id="stdCheck" style="width:100%;margin-top:10px">今すぐ日本水泳連盟のページを確かめる</button>
+    <button class="btn y" type="button" id="stdCheck" style="width:100%;margin-top:10px">GitHubの最新の標準記録を読み直す</button>
+    <p class="vwSub" style="margin:6px 2px 0">日本水泳連盟のページを読みに行くのは、毎朝6時ごろのGitHubです。このボタンは、GitHubにあるいちばん新しい記録を、アプリに読み直させます。</p>
   </div>
 </div>
 
@@ -15600,7 +15601,15 @@ $('stdSw').onchange=function(){
   $(id).onclick=function(e){ var b=e.target.closest('button'); if(!b) return; var k=id==='stdSex'?'sex':'course'; STD_SEL[k]=b.getAttribute('data-v'); stdSelSave(); stdPaint(); };
 });
 $('stdCat').onchange=function(){ STD_SEL.cat=this.value; stdSelSave(); stdPaint(); };
-$('stdCheck').onclick=function(){ toast('日本水泳連盟のページを確かめています'); stdCheckIndex(true).then(function(){ stdPickDefault(); stdFillMeet(); return stdCheckPage(STD_SEL.url, true); }).then(function(ok){ stdPaint(); toast(ok ? '標準記録を読み直しました' : (STD.err||'読めませんでした')); }); };
+$('stdCheck').onclick=function(){
+  var before=STD.gh ? STD.gh.at : '';
+  toast('GitHubの最新の標準記録を読み直しています');
+  stdCheckIndex(true).then(function(){ stdPickDefault(); stdFillMeet(); return stdCheckPage(STD_SEL.url, true); }).then(function(ok){
+    stdPaint();
+    if(STD.gh) toast(STD.gh.at!==before && before ? '新しい標準記録を読みました（GitHubが '+stdDay(STD.gh.at)+' に読んだもの）' : 'いまの標準記録がいちばん新しいものです（GitHubが '+stdDay(STD.gh.at)+' に読んだもの）');
+    else toast(STD.ghErr || STD.err || '読めませんでした');
+  });
+};
 setTimeout(function(){ stdCheckIndex(false).then(stdPrefetch); }, 4000);
 
 recStatePaint();

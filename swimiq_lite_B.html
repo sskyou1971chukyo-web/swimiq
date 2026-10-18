@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.18.15">
+<meta name="app-ver" content="2026.10.18.16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -12445,14 +12445,34 @@ function recToRec(o){
 function recAll(){ return (REC.records||[]).map(recToRec); }
 /* アプリの 記録が、一覧の 世界記録・日本記録 その ものか：プール・種目・距離・タイム（0.01秒まで）が 同じで、日付も 同じ日 */
 /* 当たる 一覧の 記録を 全部（世界記録、アジア記録、日本記録の じゅん）。同じ レースが アジア記録と 日本記録の 両方に なる ことが あります */
+/* 選手の 国：所属が 国の 記号（JPN・CHN など 3文字）なら それ。名前か 所属に 日本の 文字（かな・漢字）が あれば 日本。わからなければ null */
+var REC_ASIA={AFG:1,BRN:1,BAN:1,BHU:1,BRU:1,CAM:1,CHN:1,TPE:1,HKG:1,IND:1,INA:1,IRI:1,IRQ:1,JPN:1,JOR:1,KAZ:1,PRK:1,KOR:1,KUW:1,KGZ:1,LAO:1,LBN:1,MAC:1,MAS:1,MDV:1,MGL:1,MYA:1,NEP:1,OMA:1,PAK:1,PLE:1,PHI:1,QAT:1,KSA:1,SGP:1,SRI:1,SYR:1,TJK:1,THA:1,TLS:1,TKM:1,UAE:1,UZB:1,VIE:1,YEM:1};   /* アジア・オリンピック評議会（OCA）の 45の 国と 地域 */
+function recNat(r){
+  var sw=(r && r.swimmerId && typeof swById==='function') ? swById(r.swimmerId) : null;
+  var tms=[r && r.team, sw && sw.team].map(function(x){ return String(x||'').replace(/[\s　]+/g,''); });
+  var jp=/[぀-ヿ㐀-鿿]/;
+  /* 名前が かな・漢字なら 日本の 選手（所属の JSS・NSI などは スイミングクラブの 名前なので 国とは 見ません） */
+  if(jp.test((r && r.swimmerName)||'') || jp.test((sw && sw.name)||'')) return 'JPN';
+  for(var i=0;i<tms.length;i++){ if(/^[A-Za-z]{3}$/.test(tms[i])) return tms[i].toUpperCase(); }
+  if(tms.some(function(x){ return jp.test(x); })) return 'JPN';
+  return null;
+}
+/* 日本記録は 日本の 選手だけ、アジア記録は アジアの 選手だけ。世界記録は だれでも */
+function recOk(o, nat){
+  if(o.scope==='JR') return nat==='JPN';
+  if(o.scope==='AR') return !!(nat && REC_ASIA[nat]);
+  return true;
+}
 function recHits(r){
   if(!r || r.ref || !(REC.records||[]).length) return [];
+  var nat=recNat(r);
   var t=raceBest(r); if(t==null) return [];
   var pool=Number(r.pool)||50, course=(pool===25?'SCM':'LCM'), ev=r.event||'free', dist=Number(r.dist), day=new Date(r.at).toISOString().slice(0,10), out=[], PR={ WR:3, AR:2, JR:1 };
   (REC.records||[]).forEach(function(o){
     if(o.course!==course || o.event!==ev || Number(o.dist)!==dist) return;
     if(Math.abs(Number(o.sec)-t)>0.006) return;
     if(o.date && o.date!==day){ var d2=new Date(r.at); d2.setDate(d2.getDate()+1); if(o.date!==d2.toISOString().slice(0,10)) return; }
+    if(!recOk(o, nat)) return;
     out.push(o);
   });
   out.sort(function(a,b){ return (PR[b.scope]||0)-(PR[a.scope]||0) || ((b.current?1:0)-(a.current?1:0)); });
@@ -12466,12 +12486,14 @@ function recHitName(r){
 }
 function recHit(r){
   if(!r || r.ref || !(REC.records||[]).length) return null;
+  var nat=recNat(r);
   var t=raceBest(r); if(t==null) return null;
   var pool=Number(r.pool)||50, course=(pool===25?'SCM':'LCM'), ev=r.event||'free', dist=Number(r.dist), day=new Date(r.at).toISOString().slice(0,10), best=null;
   (REC.records||[]).forEach(function(o){
     if(o.course!==course || o.event!==ev || Number(o.dist)!==dist) return;
     if(Math.abs(Number(o.sec)-t)>0.006) return;
     if(o.date && o.date!==day){ var d2=new Date(r.at); d2.setDate(d2.getDate()+1); if(o.date!==d2.toISOString().slice(0,10)) return; }   /* 時差で 1日 ずれる ことが あります */
+    if(!recOk(o, nat)) return;
     var PR={ WR:3, AR:2, JR:1 };
     if(!best || (PR[o.scope]||0)>(PR[best.scope]||0)) best=o;
   });

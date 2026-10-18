@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.18.13">
+<meta name="app-ver" content="2026.10.18.15">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -3317,6 +3317,16 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
     </div>
     <button class="btn y" type="button" id="imKzOpen" style="width:100%;min-height:52px;margin-top:8px;text-align:left;display:block">競泳レース分析プロジェクトを開く<small style="display:block;font-size:12px;font-weight:700;color:var(--dim);margin-top:2px">https://kizahashi.co.jp/JASF/PDF/　大会と種目を選んで、そのページのアドレスをコピーして上の欄に貼ります</small></button>
     <p class="lead" style="margin:6px 0 0">アドレスから読めないときは、ページを「HTML」で保存して、下のボタンで選んでください。文字のまま読むので、名前も数字もまちがいなく入ります。</p>
+    <details id="imSaveHow" style="margin-top:8px;border:1px solid var(--line,#444);border-radius:10px;padding:8px 10px"><summary style="font-size:14px;font-weight:800;cursor:pointer">ページを「別名で保存」するやり方</summary>
+      <ol style="margin:8px 0 0;padding-left:22px;font-size:14px;line-height:1.7">
+        <li>パソコンのChromeで、結果のページを開きます。名前とタイムが全部出るまで待ちます。</li>
+        <li>上のメニューの「ファイル」から「ページを別名で保存」を選びます。キーボードなら、Macはコマンドキーを押しながらS、WindowsはCtrlキーを押しながらSです。</li>
+        <li>保存の画面の下にある「フォーマット」で「ウェブページ、完全」を選びます。「HTMLのみ」だと、名前もタイムも入っていないことがあります。</li>
+        <li>保存の場所はデスクトップなど、あとで見つけやすい所にして「保存」を押します。</li>
+        <li>このアプリにもどり、下の「画像・PDF・HTMLを選ぶ」を押して、保存したファイル（名前の最後が .html のもの）を選びます。いっしょにできるフォルダは選ばなくてかまいません。</li>
+      </ol>
+      <p class="lead" style="margin:6px 0 0">スマホでは保存ができないことが多いので、パソコンで行ってください。</p>
+    </details>
     <button class="btn y" type="button" id="imPick" style="width:100%;min-height:54px;margin-top:8px;">画像・PDF・HTMLを選ぶ</button>
     <input type="file" id="imFile" accept="image/*,application/pdf,.pdf,text/html,.html,.htm" class="hide">
     <details style="margin-top:8px"><summary style="font-size:13px;color:var(--dim);font-weight:800;cursor:pointer">中継のアドレス（アドレスから直接読めないときに使います）</summary>
@@ -13781,11 +13791,223 @@ function rrEntries(lines){
     return { name:nm.name, swId:nm.id, team:c.team||'', grade:c.grade||'', kana:c.kana||'', round:c.rd||'', ev:c.ev||'free', dist:dist, rt:c.rt, total:u[n-1], times:u.map(function(v,i){ return { d:(i+1)*step, t:v }; }), line:c.line };
   });
 }
+/* ================================================================
+   国際大会の 結果の 画面（RANK・NOC・NAME・RESULT・GAP・LANE・REACTION TIME の 表）の スクショを 読む
+   1. 画像を 2倍に して、薄い 灰色の 字（国の 記号・距離・Rk）を 消した 絵を 作ります
+   2. ふつうの 文字の 読み取りで、表の 見出しと 選手の 行（順位・名前）を 見つけます
+   3. 数字だけの 読み取りを 2回（消した 絵／もとの 絵）して、同じ 場所の 数字を 重ね合わせます
+   4. 通過は 順に 増える・ラップが そろう・最後の 通過＝記録、で 読みまちがいを 直します
+   ================================================================ */
+var waTxtW=null, waNumW=null;
+function waTxtWorker(){
+  if(waTxtW) return Promise.resolve(waTxtW);
+  return ocrLoadLib().then(function(){ return Tesseract.createWorker('eng', 1, { workerPath:OCR_SRC.worker, corePath:OCR_SRC.core, langPath:OCR_SRC.lang }); })
+    .then(function(w){ return w.setParameters({ tessedit_pageseg_mode:'6' }).then(function(){ waTxtW=w; return w; }); });
+}
+function waNumWorker(){
+  if(waNumW) return Promise.resolve(waNumW);
+  return ocrLoadLib().then(function(){ return Tesseract.createWorker('eng', 1, { workerPath:OCR_SRC.worker, corePath:OCR_SRC.core, langPath:OCR_SRC.lang }); })
+    .then(function(w){ return w.setParameters({ tessedit_pageseg_mode:'6', tessedit_char_whitelist:'0123456789:.+ ' }).then(function(){ waNumW=w; return w; }); });
+}
+/* 絵を k倍に。thr の とき 濃い 字だけ 残します（色の ついた 旗・灰色の 字は 白に） */
+function waCanvas(src, k, thr){
+  var w=src.width, h=src.height, c=document.createElement('canvas'); c.width=w*k; c.height=h*k;
+  var g=c.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,c.width,c.height); g.imageSmoothingQuality='high'; g.drawImage(src,0,0,c.width,c.height);
+  if(thr){
+    var d=g.getImageData(0,0,c.width,c.height), a=d.data, i;
+    for(i=0;i<a.length;i+=4){ var y=0.299*a[i]+0.587*a[i+1]+0.114*a[i+2], sat=Math.max(a[i],a[i+1],a[i+2])-Math.min(a[i],a[i+1],a[i+2]); var v=(sat>60)?255:(y<150?0:255); a[i]=a[i+1]=a[i+2]=v; }
+    g.putImageData(d,0,0);
+  }
+  return c;
+}
+/* 読み取りの 行（rrLines の 形）を、k で 割って 1倍の 場所に そろえます */
+function waLines(data, k){
+  var out=[];
+  ((data && data.blocks) || []).forEach(function(b){ (b.paragraphs||[]).forEach(function(p){ (p.lines||[]).forEach(function(l){
+    out.push({ y0:l.bbox.y0/k, y1:l.bbox.y1/k, text:String(l.text||'').trim(), words:(l.words||[]).map(function(w){ return { x0:w.bbox.x0/k, x1:w.bbox.x1/k, y0:w.bbox.y0/k, y1:w.bbox.y1/k, s:String(w.text||'').trim() }; }) });
+  }); }); });
+  return out;
+}
+function waIsHeader(lines){ return lines.some(function(l){ var t=l.text.toUpperCase(); return /RESULT/.test(t) && /(REACTION|NOC|RANK|LANE)/.test(t); }); }
+/* 文字 → 秒。「7:2913」「13:54 18」の ような 欠けも 直します。読めなければ null */
+function waSec(s){
+  s=String(s||'').replace(/\s+/g,'');
+  var m;
+  if((m=/^(\d{1,2}):(\d{2})\.(\d{2})$/.exec(s))) return Number(m[1])*60+Number(m[2])+Number(m[3])/100;
+  if((m=/^(\d{1,2}):(\d{2})(\d{2})$/.exec(s))) return Number(m[1])*60+Number(m[2])+Number(m[3])/100;
+  if((m=/^(\d{1,2})\.(\d{2})\.(\d{2})$/.exec(s))) return Number(m[1])*60+Number(m[2])+Number(m[3])/100;
+  if((m=/^(\d{2})\.(\d{2})$/.exec(s))) return Number(m[1])+Number(m[2])/100;
+  if((m=/^(\d{1})\.(\d{2})$/.exec(s))) return Number(m[1])+Number(m[2])/100;
+  return null;
+}
+/* 1行の 単語を、タイムの かたまりに まとめます（近い 単語の 切れ端を つなぐ） */
+function waTokens(line){
+  var W=line.words.filter(function(w){ return w.s; }), out=[], i=0;
+  while(i<W.length){
+    var w=W[i], s=w.s, x0=w.x0, x1=w.x1, j=i+1;
+    while(j<W.length){
+      var n=W[j], gap=n.x0-x1, h=Math.max(8, w.y1-w.y0);
+      var cat=s+n.s;
+      if(gap<h*0.9 && (/^\d{1,2}:\d{2}\.?$/.test(s) || /^\.\d{0,2}$/.test(n.s) || /^\d{1,2}:\d{2}$/.test(s)) && waSec(cat)!=null){ s=cat; x1=n.x1; j++; }
+      else break;
+    }
+    out.push({ s:s, x:(x0+x1)/2, y:(line.y0+line.y1)/2, x0:x0, x1:x1 });
+    i=j;
+  }
+  return out;
+}
+function waName(text){
+  var t=String(text||'').replace(/^\s*\d{1,2}\b/,' ').replace(/[^A-Za-z'\-\s]/g,' ').replace(/\s+/g,' ').trim();
+  var re=/\b([A-Z]{2,}(?:[ '\-][A-Z]{2,})*)\s+([A-Z][a-z][A-Za-z'\-]*(?:\s+[A-Z][a-z][A-Za-z'\-]*)*)/, m=re.exec(t);
+  if(!m) return { name:t, noc:'' };
+  var sur=m[1].split(' '), noc='';
+  if(sur.length>1 && sur[0].length===3){ noc=sur.shift(); }   /* HKG LI Sum Yiu の HKG は 国の 記号 */
+  if(!noc){ var pre=t.slice(0, m.index).trim().split(' ').pop()||''; if(/^[A-Z]{3}$/.test(pre)) noc=pre; }
+  return { name:sur.join(' ')+' '+m[2], noc:noc };
+}
+/* 通過の 候補（場所ごとに いくつか）から、つじつまの 合う ならびを 選びます */
+function waPick(slots, result){
+  var n=slots.length, i;
+  if(!n) return { times:[], bad:0 };
+  /* まず 候補が そろって いる 場所で、ふつうの ラップの 長さを 見つもります */
+  var agree=slots.map(function(c){ var u=c.filter(function(v){ return v!=null; }); return (u.length && u.every(function(v){ return Math.abs(v-u[0])<0.005; })) ? u[0] : null; });
+  var laps=[]; for(i=2;i<n;i++){ if(agree[i]!=null && agree[i-1]!=null) laps.push(agree[i]-agree[i-1]); }
+  laps.sort(function(a,b){ return a-b; }); var med=laps.length ? laps[Math.floor(laps.length/2)] : null;
+  var out=[], bad=0, prev=0;
+  for(i=0;i<n;i++){
+    var C=[]; slots[i].forEach(function(v){ if(v==null) return; [0,60,-60,600,-600].forEach(function(d){ var x=Math.round((v+d)*100)/100; if(x>0 && C.indexOf(x)<0) C.push(x); }); });
+    if(i===n-1 && result!=null && C.indexOf(result)<0) C.push(result);
+    var nextAgree=null; for(var j=i+1;j<n;j++){ if(agree[j]!=null){ nextAgree={ v:agree[j], k:j-i }; break; } }
+    var best=null, bs=1e9;
+    C.forEach(function(x, ci){
+      var orig=slots[i].some(function(v){ return v!=null && Math.abs(v-x)<0.005; }), sc=orig?0:5;
+      if(x<=prev) sc+=100;
+      if(med!=null && i>0){ var lp=x-prev, r=lp/med; if(r<0.75 || r>1.35) sc+=20+Math.abs(1-r)*10; }
+      if(nextAgree && x>=nextAgree.v) sc+=100;
+      if(nextAgree && med!=null){ var r2=(nextAgree.v-x)/(med*nextAgree.k); if(r2<0.7 || r2>1.4) sc+=10; }
+      if(i===n-1 && result!=null && Math.abs(x-result)>0.005) sc+=30;
+      /* 2つの 読み取りが 同じ 数を 出して いれば 強く 信じます */
+      var votes=slots[i].filter(function(v){ return v!=null && Math.abs(v-x)<0.005; }).length; sc-=votes*3;
+      if(sc<bs){ bs=sc; best=x; }
+    });
+    if(best==null){ bad++; out.push(null); continue; }
+    if(bs>=15) bad++;
+    out.push(best); prev=best;
+  }
+  return { times:out, bad:bad };
+}
+/* 本体：画像（canvas か Image）→ 選手の 一覧（rrEntries と 同じ 形） */
+function waRead(img, stat){
+  var A=waCanvas(img, 2, true), B=waCanvas(img, 1, false);
+  stat && stat('名前を読み取っています…');
+  return waTxtWorker().then(function(w){ return w.recognize(A, {}, { blocks:true }); }).then(function(rT){
+    var T=waLines(rT.data, 2);
+    if(!waIsHeader(T)) return null;
+    stat && stat('タイムを読み取っています（2回読んで照らし合わせます）…');
+    return waNumWorker().then(function(w){ return w.recognize(A, {}, { blocks:true }).then(function(r1){ return w.recognize(B, {}, { blocks:true }).then(function(r2){ return [waLines(r1.data,2), waLines(r2.data,1)]; }); }); })
+      .then(function(NN){ return waBuild(T, NN); });
+  });
+}
+function waBuild(T, NN){
+  var hdr=T.filter(function(l){ return /RESULT/i.test(l.text); })[0], top=hdr ? hdr.y1 : 0;
+  /* 選手の 行：順位で はじまり、タイムが ある 行 */
+  /* 順位の 数字で はじまり、「大文字の 名字＋名前」が ある 行（タイムが 読み落とされて いても 選手の 行と みます） */
+  var heads=T.filter(function(l){ return l.y0>=top-2 && /^\s*\d{1,2}\b/.test(l.text) && /\b[A-Z]{2,}(?:[ '\-][A-Z]{2,})*\s+[A-Z][a-z]/.test(l.text.replace(/[^A-Za-z'\-\s\d.:]/g,' ')); });
+  var ents=[];
+  heads.forEach(function(h, hi){
+    var yEnd=(heads[hi+1] ? heads[hi+1].y0 : 1e9), hy=(h.y0+h.y1)/2, hh=h.y1-h.y0;
+    var nm=waName(h.text.split(/\s(\d{1,2}:)?\d{2,3}[.,]?\d{0,2}\b/)[0]);
+    /* 見出しの 行の 数字（記録・差・レーン・反応時間）。数字の 読み取りの 同じ 高さの 行から */
+    var res=[], rt=null, lane=null;
+    NN.forEach(function(N){
+      var L=N.filter(function(l){ var c=(l.y0+l.y1)/2; return Math.abs(c-hy)<hh*0.6; })[0]; if(!L) return;
+      var tk=waTokens(L).map(function(t){ return t.s; });
+      tk.forEach(function(s){ if(/^0\.\d{2}$/.test(s)) rt=Number(s); });
+      var tv=tk.map(waSec).filter(function(v){ return v!=null && v>=15; }); if(tv.length) res.push(Math.round(tv[0]*100)/100);
+      var ints=tk.filter(function(s){ return /^\d{1,2}$/.test(s) && Number(s)>=1 && Number(s)<=10; }); if(ints.length>=2 && lane==null) lane=Number(ints[ints.length-1]);
+    });
+    var tT=(h.text.match(/(\d{1,2}:)?\d{2}\.\d{2}/)||[])[0]; if(tT){ var v=waSec(tT); if(v!=null) res.push(Math.round(v*100)/100); }
+    var mrt=/\b0\.\d{2}\b/.exec(h.text); if(rt==null && mrt) rt=Number(mrt[0]);
+    /* 通過：見出しの 下から 次の 選手まで の 行の タイム。2回分を 場所で 重ねます */
+    var slots=[];
+    NN.forEach(function(N, ni){
+      N.forEach(function(l){
+        var c=(l.y0+l.y1)/2; if(c<=h.y1+2 || c>=yEnd-2) return;
+        waTokens(l).forEach(function(t){
+          var v=waSec(t.s); if(v==null && !/^\d{3,4}$/.test(t.s.replace(/[.:\s]/g,''))) return;
+          var s=slots.filter(function(q){ return Math.abs(q.y-t.y)<hh*0.8 && Math.abs(q.x-t.x)<60; })[0];
+          if(!s){ s={ x:t.x, y:t.y, c:[] }; slots.push(s); }
+          s.c.push(v==null ? null : Math.round(v*100)/100);
+        });
+      });
+    });
+    /* 数字の 読めない かたまりは、同じ 高さに 読めた タイムが ある とき だけ 残します（距離の 見出しを 拾わない） */
+    slots=slots.filter(function(q){ if(q.c.some(function(v){ return v!=null; })) return true; return slots.some(function(o){ return o!==q && Math.abs(o.y-q.y)<hh*0.6 && o.c.some(function(v){ return v!=null; }); }); });
+    slots.sort(function(a,b){ return (Math.abs(a.y-b.y)<hh*0.8) ? a.x-b.x : a.y-b.y; });
+    /* 記録：候補の うち いちばん 多い もの */
+    var result=null; if(res.length){ var cnt={}; res.forEach(function(v){ cnt[v]=(cnt[v]||0)+1; }); result=Number(Object.keys(cnt).sort(function(a,b){ return cnt[b]-cnt[a]; })[0]); }
+    var P=waPick(slots.map(function(s){ return s.c; }), result);
+    var nSlot=P.times.length, times=P.times.map(function(v,i){ return v==null ? null : { d:(i+1)*50, t:v }; }).filter(Boolean).map(function(o){ return o; });
+    if(!times.length && result!=null){ times=[{ d:0, t:result }]; nSlot=1; }
+    if(result==null && times.length) result=times[times.length-1].t;
+    if(times.length && result!=null && Math.abs(times[times.length-1].t-result)>0.005) P.bad++;
+    if(!times.length) return;
+    var dist=nSlot*50;
+    if(nSlot===1){ dist = result<40 ? 50 : (result<75 ? 100 : (result<160 ? 200 : 400)); times[0].d=dist; }
+    var mt=rrMatch(nm.name);
+    ents.push({ name:mt.name||nm.name, swId:mt.id||'', team:nm.noc||'', grade:'', kana:'', round:'', ev:'free', dist:dist, rt:rt, total:result, times:times, line:h.text, waBad:P.bad, waOne:(nSlot===1) });
+  });
+  return ents;
+}
+
+/* 画像が この形の 結果なら 読み取って 返します。ちがう 形なら null（今までの 読み方に まかせます） */
+
+/* 国際大会の 結果の ページ（アジア大会など。保存した HTML）を 文字の まま 読みます。この形で なければ null */
+function waHtml(htmlText){
+  var doc; try{ doc=new DOMParser().parseFromString(htmlText, 'text/html'); }catch(e){ return null; }
+  var unit=doc.querySelector('.swm-results-unit, .b-ath-results'); if(!unit) return null;
+  function tx(el){ return el ? String(el.textContent||'').replace(/ /g,' ').replace(/\s+/g,' ').trim() : ''; }
+  var evd=tx(doc.querySelector('.event-desc')).replace(/\s*-\s*$/,''), ph=tx(doc.querySelector('.phase-desc p')), title=tx(doc.querySelector('title'));
+  if(/relay/i.test(evd)) return { ents:[], note:'relay' };
+  var em=/(\d{2,4})\s*m\s+(freestyle|backstroke|breaststroke|butterfly|individual medley)/i.exec(evd);
+  var ev=em ? ({ freestyle:'free', backstroke:'back', breaststroke:'breast', butterfly:'fly', 'individual medley':'im' })[em[2].toLowerCase()] : 'free', evDist=em ? Number(em[1]) : null;
+  var rd=/final/i.test(ph) ? (/semi/i.test(ph) ? '準決勝' : '決勝') : (/heat/i.test(ph) ? '予選' : (/swim-?off/i.test(ph) ? 'スイムオフ' : ''));
+  /* 日付：「Sep 24, 17:45」と ページの 名前の 年 */
+  var bd=tx(doc.querySelector('.badges-timing .b-badge')), yr=(/(20\d\d)/.exec(title)||[])[1], date='';
+  var dm=/([A-Za-z]{3})[a-z]*\s+(\d{1,2})/.exec(bd); if(dm && yr){ var mo=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'].indexOf(dm[1].toLowerCase())+1; if(mo) date=yr+'-'+('0'+mo).slice(-2)+'-'+('0'+dm[2]).slice(-2); }
+  var ents=[];
+  Array.prototype.forEach.call(unit.querySelectorAll('.grid-row'), function(row){
+    if(row.classList.contains('titles')) return;
+    var full=row.querySelector('.hide-mobile .b-player-name') || row.querySelector('.b-player-name'); if(!full) return;
+    var name=(tx(full.querySelector('.surname'))+' '+tx(full.querySelector('.name'))).trim();
+    var res=waSec(tx(row.querySelector('.col.result'))), rt=Number(tx(row.querySelector('.ReactionTime')))||null, noc=tx(row.querySelector('.org-code'));
+    var times=[];
+    Array.prototype.forEach.call(row.querySelectorAll('.split-item'), function(it){
+      var d=/(\d{2,4})/.exec(tx(it.querySelector('.split-desc'))), v=waSec(tx(it.querySelector('.split-result')));
+      if(d && v!=null) times.push({ d:Number(d[1]), t:Math.round(v*100)/100 });
+    });
+    if(res==null) return;   /* 失格・棄権 など */
+    res=Math.round(res*100)/100;
+    var dist=evDist || (times.length ? times[times.length-1].d : null);
+    if(!times.length || times[times.length-1].d!==dist) times.push({ d:dist, t:res });
+    var mt=rrMatch(name);
+    ents.push({ name:mt.name||name, swId:mt.id||'', team:noc, grade:'', kana:'', round:rd, ev:ev, dist:dist, rt:rt, total:res, times:times, line:name, waBad:0, waHtml:true });
+  });
+  return { ents:ents, meet:title, date:date, evd:evd };
+}
+function waTry(file, stat){
+  if(typeof createImageBitmap!=='function') return Promise.resolve(null);
+  return createImageBitmap(file).then(function(bm){ return waRead(bm, stat); }).then(function(E){ return (E && E.length) ? E : null; }).catch(function(){ return null; });
+}
 function rrRead(file, stat){
   var isPdf=/pdf/i.test(file.type||'') || /\.pdf$/i.test(file.name||'');
   var isHtml=/html/i.test(file.type||'') || /\.html?$/i.test(file.name||'');
-  if(isHtml){ stat('ページを読んでいます…'); return file.text().then(function(t){ var R=kzParse(t); if(!R || !R.ents.length) throw new Error('nodata'); var X=jaToEntries(R); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:R.title }; }); }
-  return (isPdf ? rrFromPdf(file, stat) : ocrPrep(file).then(function(c){ return rrFromImage(c, stat); })).then(function(lines){
+  if(isHtml){ stat('ページを読んでいます…'); return file.text().then(function(t){
+    var A=waHtml(t);
+    if(A){ if(!A.ents.length) throw new Error(A.note==='relay' ? 'relay' : 'nodata'); return { lines:A.date ? [{ txt:A.date }] : [], entries:A.ents, meet:A.meet, wa:true }; }
+    var R=kzParse(t); if(!R || !R.ents.length) throw new Error('nodata'); var X=jaToEntries(R); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:R.title }; }); }
+  return (isPdf ? rrFromPdf(file, stat) : waTry(file, stat).then(function(W){ return W ? { wa:W } : ocrPrep(file).then(function(c){ return rrFromImage(c, stat); }); })).then(function(lines){
+    if(lines && lines.wa) return { lines:[], entries:lines.wa, wa:true };
     if(lines && lines.ja){ var X=jaToEntries(lines.ja); return { lines:[], entries:X.ents, meet:X.meet, ja:true, title:lines.ja.title }; }
     return { lines:lines, entries:rrEntries(lines) };
   });
@@ -13908,6 +14130,11 @@ function imPaint(){
        '<select class="imEv" aria-label="種目">'+evs.map(function(v){ return '<option value="'+v[0]+'"'+(v[0]===e.ev?' selected':'')+'>'+v[1]+'</option>'; }).join('')+'</select></div>';
     if(e.team || e.grade || e.kana) h+='<div class="imTeam">'+(e.kana?'<span>'+esc(e.kana)+'</span>':'')+(e.team?'<span>所属 '+esc(e.team)+'</span>':'')+(e.grade?'<span>'+esc(e.grade)+'</span>':'')+'</div>';
     h+='<div class="imSub">'+(e.heat?e.heat+'組　':'')+e.dist+'m'+(e.round?' '+esc(e.round):'')+'　記録 '+fmt(e.total)+'　通過 '+e.times.length+'個'+(e.rt!=null?'　反応時間 '+e.rt.toFixed(2):'')+(e.swId?'　登録した選手':'')+'</div>';
+    if(e.waHtml) h+='<div class="imSub">ページの文字をそのまま読みました（読みまちがいは起きません）</div>';
+    else if(e.waBad!=null){
+      h+='<div class="imSub" style="color:'+(e.waBad?'#ff8e78':'var(--dim)')+'">'+(e.waBad ? '読み取りを直した所・あやしい所が '+e.waBad+'か所あります（画像と見くらべてください）' : '通過の順・ラップ・記録が、全部つじつまが合っています')+'</div>';
+      if(e.waOne) h+='<div class="imSub" style="color:#ff8e78">通過が写っていないので、距離はタイムから '+e.dist+'m と見つもりました。ちがうときは、取り込んだあとに記録を直してください</div>';
+    }
     if(e.ja){ var jn=[]; if(e.ja.sc && e.ja.sc.length) jn.push('ストローク数 '+e.ja.sc.filter(function(x){ return x.n!=null; }).length+'区間'); if(e.ja.segs && e.ja.segs.length) jn.push('泳ぎ区間 '+e.ja.segs.length+'区間'); if(e.ja.turn && e.ja.turn.length) jn.push('ターン '+e.ja.turn.length); if(e.ja.start && e.ja.start.length) jn.push('スタート');
       h+='<div class="imSub" style="color:'+(e.bad?'#ff8e78':'var(--dim)')+'">'+jn.join('　')+(e.bad?'　計算と合わない数字が '+e.bad+'か所（画像と見くらべてください）':'　計算と全部合っています')+(e.fix&&e.fix.length?'　'+e.fix.join('m・')+'mの通過はラップから計算':'')+'</div>'; }
     h+='<div class="imLaps">'+e.times.map(function(x){ return x.d+'m '+fmt(x.t); }).join('　')+'</div></div>';

@@ -641,6 +641,19 @@ ul.plist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
 .b3v{font-size:1.1rem;font-weight:800}
 .b3fs{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0}
 .b3fs legend{font-weight:800;padding:0 6px}
+/* ============ 記録：カードのサムネイル（小さな折れ線と絵、2026年10月19日） ============ */
+.navrow.pic{grid-template-columns:1fr auto;grid-template-rows:auto auto auto;gap:2px 10px;padding-top:12px}
+.navrow.pic .pth{grid-column:1/-1;grid-row:1;display:flex;align-items:center;min-height:52px;margin-bottom:6px}
+.navrow.pic .pth svg{display:block;color:var(--sub)}
+.navrow.pic .pth.ico{width:48px;height:48px;min-height:0;border-radius:12px;background:#0b0b0c;border:1px solid #2f3033;align-items:center;justify-content:center}
+.navrow.pic .pth.ico svg{width:30px;height:30px}
+.navrow.pic .nk{grid-row:2}
+.navrow.pic strong{grid-row:3}
+.navrow.pic .chev{grid-column:2;grid-row:2/span 2}
+.spk{display:block;max-width:100%}
+.wkspk{margin-top:14px;padding-top:12px;border-top:1px solid #2f3033}
+.wkspk .k{display:block;font-size:.82rem;color:var(--sub);font-weight:700;margin-bottom:4px}
+.wkspk svg{display:block;width:100%;height:auto}
 </style>
 </head>
 <body>
@@ -4640,6 +4653,53 @@ VIEWS.activity = ()=>{ const v = _activityT();
 /* 種目の説明の画面から、その種目の推移へ */
 const _detailT = VIEWS.detail;
 VIEWS.detail = cur=>{ const v = _detailT(cur); if(trPoints(cur.id,'max').length) v.html = v.html.replace('<h2>水泳との関連</h2>', '<button type="button" class="navrow" data-go="trend" data-id="'+cur.id+'"><span class="nk">この種目の推移</span><strong>折れ線で見る</strong>'+UI.chev+'</button><h2>水泳との関連</h2>'); return v; };
+
+/* ============ 記録：カードのサムネイル（小さな折れ線と絵、2026年10月19日） ============
+ 「種目の推移」のカードには、最後に重さを入れた種目の直近8回の折れ線。
+ 「動かした重さ」のカードには、表示している週までの直近8週の折れ線。
+ ほかのカードには、中身をイメージしやすい線の絵。絵は読み上げには出さず、文字で説明する。 */
+const PIC = {
+  big3:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2"/><rect x="4" y="8" width="2.5" height="8" rx="1"/><rect x="17.5" y="8" width="2.5" height="8" rx="1"/><rect x="6.5" y="6" width="2.5" height="12" rx="1"/><rect x="15" y="6" width="2.5" height="12" rx="1"/><path d="M9 12h6"/></svg>',
+  tests:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 11a5 5 0 0 1 10 0"/><path d="M12 11l2.5-3.5"/><path d="M7 17h10"/></svg>',
+  data:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 10l4 4 4-4"/><path d="M4 15v3a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-3"/></svg>',
+  line:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M4 15l5-5 4 3 7-8"/><circle cx="20" cy="5" r="1.6" fill="#ffc400" stroke="#ffc400"/></svg>'
+};
+/* 小さな折れ線。vals は数字の並び。最後の点だけ黄色 */
+function sparkSVG(vals, W, H){
+  W = W||120; H = H||44; const n = vals.length; if(!n) return '';
+  const lo = Math.min(...vals), hi = Math.max(...vals); const span = (hi-lo) || Math.max(1, hi*0.2);
+  const X = i=> n===1 ? W/2 : 6+i/(n-1)*(W-12); const Y = v=> H-7-(v-lo)/span*(H-14);
+  const pts = vals.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1));
+  const area = n>1 ? '<polygon points="'+X(0).toFixed(1)+','+(H-2)+' '+pts.join(' ')+' '+X(n-1).toFixed(1)+','+(H-2)+'" fill="#7da6d9" opacity=".18"/>' : '';
+  const line = n>1 ? '<polyline points="'+pts.join(' ')+'" fill="none" stroke="#7da6d9" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' : '';
+  const dots = vals.map((v,i)=> i===n-1 ? '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="4.5" fill="#ffc400" stroke="#000" stroke-width="1.5"/>' : '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="2.2" fill="#e3ecf7"/>').join('');
+  return '<svg class="spk" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" aria-hidden="true">'+area+line+dots+'</svg>';
+}
+function picCard(go, nk, txt, pic, sr, id){
+  return '<button type="button" class="navrow pic" data-go="'+go+'"'+(id?' data-id="'+id+'"':'')+'><span class="pth'+(pic.indexOf('<svg class="spk"')===0?'':' ico')+'">'+pic+'</span><span class="nk">'+nk+'</span><strong>'+txt+'</strong>'+(sr?'<span class="sr">'+esc(sr)+'</span>':'')+UI.chev+'</button>';
+}
+const _activityP = VIEWS.activity;
+VIEWS.activity = ()=>{ const v = _activityP();
+  /* 種目の推移：最後に重さを入れた種目の直近8回 */
+  const ids = trExercises(); let trPic = PIC.line, trTxt = '折れ線で見る', trSr = '', trId = '';
+  if(ids.length){ const e = EXMAP[ids[0]]; const pts = trPoints(e.id,'max').slice(-8);
+    if(pts.length){ trPic = sparkSVG(pts.map(p=>p.v)); trTxt = esc(e.name); trId = e.id;
+      trSr = '直近'+pts.length+'回の、いちばん重い重さの折れ線。最新 '+kgTxt(pts[pts.length-1].v)+' kg'+(pts.length>1?'、はじめ '+kgTxt(pts[0].v)+' kg':'')+'。'; } }
+  const T = b3Tests(); const lt = T[T.length-1];
+  const oldNav = /<div class="two" style="margin-top:12px"><button type="button" class="navrow" data-go="trend">[\s\S]*?<\/div>/;
+  const newNav = '<div class="two" style="margin-top:12px">'+picCard('trend','種目の推移',trTxt,trPic,trSr,trId)+picCard('big3','ビッグ3のテスト',(lt?'最新 '+fmtMD(lt.date):'まだなし'),PIC.big3,'')+'</div>';
+  v.html = v.html.replace(oldNav, newNav);
+  const oldBtm = /<div class="two" style="margin-top:16px"><button type="button" class="navrow" data-go="tests">[\s\S]*?<\/div>/;
+  v.html = v.html.replace(oldBtm, '<div class="two" style="margin-top:16px">'+picCard('tests','測定','測定を記録する',PIC.tests,'')+picCard('data','データ','保存と持ち出し',PIC.data,'')+'</div>');
+  /* 動かした重さ：表示している週までの直近8週 */
+  const w0 = weekStart(new Date()); w0.setDate(w0.getDate()+uiWk*7);
+  const wk = []; for(let i=7;i>=0;i--){ const d = new Date(w0); d.setDate(d.getDate()-i*7); const k = dayOf(d); wk.push({k, v: Math.round(sessOfWeek(k).reduce((t,s)=>t+Number(s.vol||0),0)*10)/10}); }
+  if(wk.filter(x=>x.v>0).length>=2){
+    const aria = '直近8週の動かした重さの折れ線。'+wk.map(x=>uiDate(x.k)+'の週 '+kgTxt(x.v)+' kg').join('、')+'。';
+    const svg = '<div class="wkspk" role="img" aria-label="'+esc(aria)+'"><span class="k" aria-hidden="true">直近8週の動き（右端がこの週）</span>'+sparkSVG(wk.map(x=>x.v), 300, 64)+'</div>';
+    v.html = v.html.replace('<div class="dots" style="margin-top:12px"', svg+'<div class="dots" style="margin-top:12px"');
+  }
+  return v; };
 
 render(false);
 </script>

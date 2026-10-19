@@ -544,6 +544,41 @@ ul.xsets{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
 .pain5 .lv4,.pain5 .lv5{border-color:#6b3a33}
 .lbset{border-top:1px solid #2f3033;padding-top:12px;margin-top:14px}
 .stopcard{border-color:var(--redline);background:var(--redbg)}
+/* ============ 部位から選ぶ、お気に入り、運動時間（2026年10月19日） ============ */
+ul.pgrid{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.pbtn{width:100%;min-height:96px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:2px 12px;align-items:center;text-align:left;background:var(--soft);border:1px solid #2f3033;border-radius:16px;padding:12px 14px;color:#fff}
+.pbtn svg{grid-row:1/span 2;width:40px;height:40px;color:var(--sub)}
+.pbtn .pn{font-size:1.25rem;font-weight:800;line-height:1.2}
+.pbtn .pc{font-size:.9rem;color:var(--sub);font-weight:700}
+.subchips{margin-top:12px;gap:8px}
+.subchips .chip{min-width:0;min-height:48px;padding:4px 14px;font-size:.92rem}
+ul.plist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+.prow2{display:grid;grid-template-columns:1fr 52px 96px;gap:6px;align-items:center;background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:8px}
+.pmain{display:flex;gap:10px;align-items:center;min-width:0;text-align:left;background:none;border:0;padding:4px;color:#fff;border-radius:10px}
+.pmain .th.sm{width:56px;height:56px}
+.pmain strong{display:block;line-height:1.35}
+.icb.fav{font-size:1.6rem;color:var(--sub)}
+.icb.fav.on{color:var(--am)}
+.addb{min-height:56px;border:2px solid var(--am);border-radius:12px;background:none;color:var(--am);font-weight:800;font-size:.85rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1.2}
+.addb .plus{font-size:1.4rem}
+.addb.on{border-color:var(--green);color:var(--green)}
+.addb.on svg{width:22px;height:22px}
+@media(max-width:400px){.prow2{grid-template-columns:1fr 46px 82px}.pmain .th.sm{display:none}}
+.mtotal{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--soft);border:1px solid #2f3033;border-radius:16px;padding:14px 16px;margin-top:14px}
+.mtv{margin:2px 0 0;font-size:1.8rem;font-weight:800;line-height:1.2}
+.mtv span{font-size:1rem;color:var(--sub)}
+.bdg.tm{border-color:var(--am);color:var(--am)}
+.esheet{display:grid;gap:10px;margin-top:8px}
+.erow{display:grid;grid-template-columns:4.5em 56px 1fr auto 56px;gap:8px;align-items:center}
+.erow .ek{font-weight:700}
+.erow output{text-align:center;font-size:1.8rem;font-weight:800}
+.erow .eu{color:var(--sub);font-size:.9rem;min-width:2.6em}
+.eb{height:56px;border:1px solid var(--line);border-radius:10px;background:var(--pane2);color:#fff;font-size:1.6rem;font-weight:700}
+.pbtn{grid-template-columns:30px 1fr;gap:2px 10px;padding:12px}
+.pbtn svg{width:30px;height:30px}
+.pbtn .pn{font-size:1.1rem;word-break:keep-all;overflow-wrap:anywhere}
+.mtv{white-space:normal}.mtv b{white-space:nowrap;font-weight:800}
+.etime{background:var(--pane2);border-radius:10px;padding:10px 12px;margin:4px 0 0;font-weight:700}
 </style>
 </head>
 <body>
@@ -1138,7 +1173,7 @@ function exRow(e){
     '<span class="rowtxt"><strong>'+esc(e.name)+'</strong><span class="sub">'+esc(CATS[e.cat])+'</span>'+
     '<span class="sub">'+esc(e.muscles)+'</span>'+
     '<span class="tags">'+evTag(e)+
-    (db.saved.includes(e.id)?'<span class="tag">保存済み</span>':'')+(done?'<span class="tag">実施'+done+'回</span>':'')+'</span></span></button></li>';
+    (db.saved.includes(e.id)?'<span class="tag">お気に入り</span>':'')+(done?'<span class="tag">実施'+done+'回</span>':'')+'</span></span></button></li>';
 }
 function refItem(k, link){
   const n = REF_ORDER.indexOf(k)+1, kind = refKind(k);
@@ -1217,7 +1252,7 @@ VIEWS.browse = ()=>{
       (t?'<img src="'+THUMBS[t.id]+'" alt="">':'')+'<span class="catname">'+esc(CATS[c])+'</span><span class="catn">'+n+'種目</span></button></li>';
   }).join('');
   const doneIds = new Set(db.logs.filter(l=>l.kind==='done').map(l=>l.id));
-  const mine = [['all','すべての種目（体操を除く）',BASE_N],['saved','保存済み',db.saved.length],['prog','プログラムに入れた種目',new Set(db.prog.map(r=>r.id)).size],['done','実施したことがある種目',doneIds.size]];
+  const mine = [['all','すべての種目（体操を除く）',BASE_N],['saved','お気に入り',db.saved.length],['prog','プログラムに入れた種目',new Set(db.prog.map(r=>r.id)).size],['done','実施したことがある種目',doneIds.size]];
   return {title:'種目', html:
     '<label class="search"><span>種目を名前や筋肉で探す</span><input type="search" id="q" placeholder="例：ローラー、広背筋"></label>'+
     '<h2>カテゴリーごとに見る</h2><ul class="cats">'+cats+'</ul>'+
@@ -1257,7 +1292,7 @@ function sheetHTML(){
     '<h3>カテゴリー</h3><div class="chips">'+Object.keys(CATS).filter(c=>!GYM_CATS[c]).map(c=>chip('cat',c,CATS[c].split('（')[0])).join('')+'</div>'+
     '<h3>泳法・場面</h3><div class="chips">'+Object.keys(STROKE_LABEL).map(s=>chip('stroke',s,STROKE_LABEL[s])).join('')+'</div>'+
     '<h3>根拠</h3><div class="chips">'+chip('paper','direct','星3つ：この種目の論文あり')+chip('paper','related','星2つ：関連研究または書籍')+chip('paper','none','星1つ：伝統的な練習')+chip('asp','true','講演で紹介')+'</div>'+
-    '<h3>あなたの記録</h3><div class="chips">'+chip('saved','true','保存済み')+chip('inProg','true','プログラムに入れた')+chip('done','true','実施したことがある')+'</div>'+
+    '<h3>あなたの記録</h3><div class="chips">'+chip('saved','true','お気に入り')+chip('inProg','true','プログラムに入れた')+chip('done','true','実施したことがある')+'</div>'+
     '<h3>並べ替え</h3><div class="chips">'+chip('sort','default','カテゴリー順')+chip('sort','name','名前順')+chip('sort','done','実施回数が多い順')+'</div></div>';
 }
 function openSheet(){
@@ -1319,7 +1354,7 @@ VIEWS.detail = cur=>{
       '<button type="submit" class="cta wide">実施を記録する</button></form>'+
     '<h2>この種目の記録</h2>'+(hist.length ? '<ul class="hist">'+[...hist].reverse().slice(0,10).map(logLine).join('')+'</ul>' : '<p class="sub">まだ記録がありません。</p>'),
     after(){
-      $('#bSave').addEventListener('click',()=>{ const i = db.saved.indexOf(e.id); if(i<0){ db.saved.push(e.id); say('保存しました'); } else { db.saved.splice(i,1); say('保存を外しました'); } save(); render(false); $('#bSave').focus(); });
+      $('#bSave').addEventListener('click',()=>{ const i = db.saved.indexOf(e.id); if(i<0){ db.saved.push(e.id); say('お気に入りに入れました'); } else { db.saved.splice(i,1); say('お気に入りから外しました'); } save(); render(false); $('#bSave').focus(); });
       $('#bProg').addEventListener('click',()=>{ if(db.prog.some(x=>x.id===e.id)){ db.prog = db.prog.filter(x=>x.id!==e.id); say('プログラムから外しました'); } else { db.prog.push({id:e.id}); say('プログラムに追加しました'); } save(); render(false); $('#bProg').focus(); });
       $('#logForm').addEventListener('submit',ev=>{ ev.preventDefault(); addLog({id:e.id, kind:'done', sets:$('#lSets').value, reps:$('#lReps').value, load:$('#lLoad').value, memo:$('#lMemo').value}); say('実施を記録しました'); render(false); });
     }
@@ -1484,7 +1519,7 @@ document.addEventListener('click',e=>{
   if((b = e.target.closest('[data-golist]'))){
     const k = b.dataset.golist;
     if(k==='cat'){ resetFilt({cat:b.dataset.cat}); go('list',{label:CATS[b.dataset.cat]}); }
-    else if(k==='saved'){ resetFilt({saved:true}); go('list',{label:'保存済み'}); }
+    else if(k==='saved'){ resetFilt({saved:true}); go('favs'); }
     else if(k==='prog'){ resetFilt({inProg:true}); go('list',{label:'プログラムに入れた種目'}); }
     else if(k==='done'){ resetFilt({done:true}); go('list',{label:'実施したことがある種目'}); }
     else if(k==='gym'){ resetFilt({gym:true}); go('list',{label:'体操の種目'}); }
@@ -2655,14 +2690,14 @@ VIEWS.program = ()=>{
     const e = EXMAP[r.id]; const dn = db.logs.some(l=>l.id===e.id && l.kind==='done' && dayOf(l.t)===td);
     return '<li class="wrow'+(dn?' isdone':'')+'" data-wid="'+e.id+'">'+
       '<button type="button" class="ck" data-ck="'+e.id+'" aria-pressed="'+dn+'" aria-label="'+esc(e.name)+'を実施済みにする">'+UI.check+'</button>'+
-      '<button type="button" class="wmain" data-go="exec" data-id="'+e.id+'" aria-label="'+esc(e.name)+'を行う">'+thumb(e,'sm')+'<span class="rowtxt"><strong>'+esc(e.name)+'</strong><span class="badges">'+uiBadges(e)+'</span></span></button>'+
+      '<button type="button" class="wmain" data-go="exec" data-id="'+e.id+'" aria-label="'+esc(e.name)+'を行う">'+thumb(e,'sm')+'<span class="rowtxt"><strong>'+esc(e.name)+'</strong><span class="badges">'+menuBadges(r)+'</span></span></button>'+
       '<button type="button" class="icb" data-play="'+e.id+'" aria-label="'+esc(e.name)+'の動画を見る">'+ICON.play+'</button>'+
       '<button type="button" class="icb" data-wmenu="'+e.id+'" aria-label="'+esc(e.name)+'のメニューを開く">'+UI.more+'</button></li>';
   }).join('')+'</ul>').join('');
   const tpl = '<details class="more"'+(rows.length?'':' open')+'><summary>ひな形から入れる</summary><div class="inner stackbtns">'+Object.keys(TEMPLATES).map(k=>'<button type="button" class="ghost" data-tpl="'+k+'">'+TEMPLATES[k].label+'（'+TEMPLATES[k].ids.length+'種目）</button>').join('')+
     '<button type="button" class="ghost" data-go="browse">種目を1つずつ選ぶ</button></div></details>';
   const etc = rows.length ? '<details class="more"><summary>そのほか</summary><div class="inner stackbtns"><button type="button" class="ghost" id="pPrint">印刷する</button><button type="button" class="ghost" id="pClear">'+(uiClear?'もう一度押すと空にします':'ワークアウトを空にする')+'</button></div></details>' : '';
-  return {title:'ワークアウト', html: uiSub('program')+bar+goal+undo+list+tpl+etc,
+  return {title:'今日のメニュー', html: uiSub('program')+menuTotalHTML()+bar+goal+undo+list+tpl+etc,
     after(){
       const b = $('#sessStart'); if(b) b.addEventListener('click',()=>{ db.sessNow = {start:new Date().toISOString()}; save(); say('練習を始めました。時間を計っています'); render(false); $('#sessT').focus(); });
       const c = $('#sessCancel'); if(c) c.addEventListener('click',()=>{ delete db.sessNow; save(); say('始めた時刻を取り消しました'); render(false); $('#sessStart').focus(); });
@@ -3338,7 +3373,7 @@ VIEWS.exec = cur=>{
         '<button type="button" class="bdg" id="xAdd" aria-label="セットを足す">＋ セット</button></div>'+
     '</section>'+
     (!allDone && done.length ? '<div class="stackbtns" style="margin-top:12px"><button type="button" class="ghost" id="xFinish">ここまでで、この種目を終える（'+done.length+'セット）</button></div>' : '')+
-    '<div class="frow"><span>今日 '+done.reduce((s,a)=>s+Number(a.r||0),0)+' 回　'+vol+' kg'+(pr.w?'　自己ベスト '+pr.w.w+' kg':'')+(pr.est?'　推定1RM '+pr.est.v:'')+'</span>'+
+    '<div class="frow"><span>'+execTimeTxt(e.id)+'今日 '+done.reduce((s,a)=>s+Number(a.r||0),0)+' 回　'+vol+' kg'+(pr.w?'　自己ベスト '+pr.w.w+' kg':'')+(pr.est?'　推定1RM '+pr.est.v:'')+'</span>'+
       '<span>'+uiInfo('自己ベストと推定1RMの説明を開く','自己ベストと推定の最大挙上重量',E1RM_INFO,'推定の説明')+uiInfo('動作の速さの指定の説明を開く','動作の速さ（テンポ）の指定',TEMPO_INFO,'テンポ')+'<button type="button" class="link" data-go="detail" data-id="'+e.id+'">説明と根拠</button><button type="button" class="link" data-play="'+e.id+'">動画</button></span></div>'+
     '<div class="fnav">'+(prev?'<button type="button" class="ghost" data-go="exec" data-id="'+prev+'">前の種目</button>':'<button type="button" class="ghost" data-go="program">一覧へ</button>')+(next?'<button type="button" class="ghost" data-go="exec" data-id="'+next+'">次の種目</button>':'<button type="button" class="ghost" data-go="finish">練習を記録する</button>')+'</div>'+
     '<details class="more"><summary>動作の速さとメモを決める（コーチ）</summary><div class="inner"><form id="xRx" class="intake" novalidate>'+
@@ -4120,6 +4155,227 @@ VIEWS.data = ()=>{ const v = _dataL();
 const _addexL = VIEWS.addex;
 VIEWS.addex = ()=>{ const v = _addexL(); const u = uexEdit ? (db.userEx||[]).find(x=>x.id===uexEdit) : null; const cur = (uexDraft && uexDraft.lumbar) || (u && u.lumbar) || '';
   v.html = v.html.replace('<label>5　主な筋肉', '<label>腰の負担<select name="lumbar">'+[['','未設定'],['低','低'],['中','中'],['高','高']].map(o=>'<option value="'+o[0]+'"'+(cur===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label><label>5　主な筋肉');
+  return v; };
+
+
+/* ============ 部位から選ぶ、お気に入り、今日のメニュー、運動時間の自動計算（2026年10月19日） ============
+ 部位の分け方は、コーチから渡された体系表（6大部位と細かい部位）に合わせた。競泳の補強で使う「ジャンプ・パワー」と「可動性」を足した。
+ どの種目がどの部位に入るかは、アプリの種目データにある「主な筋肉」の文字から決める。新しい情報は作っていない。
+ 主な筋肉の最初に書かれた筋肉の部位を「主」、2番目以降を「補助」とする。主な筋肉が未登録の体操の種目は、部位には出ない。
+ 運動時間は、1回の動作の時間（初期値2秒、設定で変更）×回数×セット数に、休憩×（セット数−1）を足す。コーチがテンポを決めた種目はテンポの合計秒数を使う。
+ db.prog の各行に、今日の回数、セット数、休憩、重さを持たせる（r.sets, r.reps, r.rest, r.w）。 */
+const PARTS = [
+  {k:'chest', name:'胸', subs:[['cu','大胸筋（上部）',['大胸筋上部','鎖骨部']],['cl','大胸筋（下部）',['大胸筋下部']],['cm','大胸筋（中部・全体）',['大胸筋']],['cs','前鋸筋・小胸筋',['前鋸筋','小胸筋']]]},
+  {k:'back', name:'背中', subs:[['bu','背中上部（僧帽筋・菱形筋）',['僧帽筋','菱形筋']],['bl','背中広域（広背筋・大円筋）',['広背筋','大円筋']]]},
+  {k:'legs', name:'脚・臀部', subs:[['lq','大腿前面（大腿四頭筋）',['大腿四頭筋','大腿直筋']],['lh','大腿後面（ハムストリングス）',['ハムストリングス','大腿二頭筋','半腱様筋']],['lg','臀部（臀筋群）',['臀筋','大臀筋','中臀筋']],['la','内転筋・股関節',['内転筋','股関節屈筋']],['lc','下腿（ふくらはぎ）',['ヒラメ筋','腓腹筋','下腿三頭筋']]]},
+  {k:'shoulder', name:'肩', subs:[['sd','三角筋',['三角筋']],['sr','回旋筋腱板（インナーマッスル）',['棘下筋','小円筋','棘上筋','肩甲下筋','外旋筋','内旋筋']]]},
+  {k:'arms', name:'腕', subs:[['ab','上腕前面（上腕二頭筋）',['上腕二頭筋']],['at','上腕後面（上腕三頭筋）',['上腕三頭筋']],['af','前腕・握力',['前腕','握力']]]},
+  {k:'core', name:'体幹', subs:[['ka','腹直筋',['腹直筋']],['ko','腹斜筋・腹横筋',['腹斜筋','腹横筋']],['kb','下背部',['脊柱起立筋','腰方形筋','多裂筋']]]},
+  {k:'power', name:'ジャンプ・パワー', subs:[['pj','ジャンプ',[]],['po','クイックリフト',[]],['pm','メディシンボール・投げ',[]]]},
+  {k:'mob', name:'可動性', subs:[['mt','胸椎・背中',['胸椎','胸郭','広背筋','キャットカウ','オープンブック','スレッドザニードル','ブリッジ']],['ms','肩',['肩甲下筋','大胸筋','小胸筋','肩','外旋','ショルダー','クロスボディ','ウォールスライド']],['mh','股関節・脚・足首',['股関節','ハムストリングス','内転筋','臀','スプリット','フロッグ','90/90','ハーフニーリング','カウチ','ヒップ','パイク','SLR','ジャックナイフ','エレファント','パンケーキ','ストラドル','アダクター','ニートゥウォール','足関節','カーフ']],['mo','手首・そのほか',[]]]}
+];
+/* 主な筋肉が未登録の体操の種目は、体操の分類の名前から大きな部位だけを決める（細かい部位は未登録と表示する） */
+const GYM_TO_PART = {'体幹・姿勢保持':'core','上肢支持力':'chest','上肢牽引力':'back','下肢筋力':'legs'};
+PARTS.forEach(p=>{ if(Object.values(GYM_TO_PART).includes(p.k)) p.subs.push(['gx','体操の分類から（細かい部位は未登録）',[]]); });
+const PART_ICON = {
+  chest:'<path d="M4 7c3-2 5-2 8 0 3-2 5-2 8 0v5c-2 3-5 4-8 4s-6-1-8-4z"/>',
+  back:'<path d="M12 3v18M6 6l6 3 6-3M5 11l7 3 7-3M7 16l5 2 5-2"/>',
+  legs:'<path d="M8 3h8l-1 8 2 10h-3l-2-8-2 8H7l2-10z"/>',
+  shoulder:'<circle cx="12" cy="6" r="3"/><path d="M4 18c0-5 3-8 8-8s8 3 8 8"/>',
+  arms:'<path d="M5 16c2-6 5-9 9-9 2 0 4 1 5 3l-3 2c-1-1-2-1-3 0-2 2-3 4-4 7z"/>',
+  core:'<rect x="7" y="3" width="10" height="18" rx="4"/><path d="M12 6v12M8.5 10h7M8.5 14h7"/>',
+  power:'<path d="M13 2L5 14h6l-1 8 8-12h-6z"/>',
+  mob:'<path d="M4 12a8 8 0 0 1 14-5M20 12a8 8 0 0 1-14 5"/><path d="M18 3v4h-4M6 21v-4h4"/>'
+};
+const STAR = (on)=>'<svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1L3.2 9.4l6.1-.8z" fill="'+(on?'currentColor':'none')+'" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+function muscleList(e){ return String(e.muscles||'').replace(/^器具は[^。]*。/,'').replace(/（[^）]*）/g,'').split(/[・、,，]/).map(s=>s.trim()).filter(Boolean); }
+function gymCatName(e){ return e.gym ? (GYM_CATS[e.cat]||'') : ''; }
+/* 部位に出す種目：体操の種目のうち、元の種目の写し（twin）と、同じ名前の重なりは出さない */
+let PART_POOL = null;
+function partPool(){
+  if(PART_POOL) return PART_POOL;
+  const seen = new Set(); const out = [];
+  EX.filter(e=>!e.gym).concat(EX.filter(e=>e.gym && !e.twin)).forEach(e=>{ const n = e.name.split('（')[0]; if(seen.has(n)) return; seen.add(n); out.push(e); });
+  PART_POOL = out; return out;
+}
+function placeOf(e){
+  /* 返り値：[{part, sub, main}] */
+  const out = [];
+  const mob = e.type==='mobility' || gymCatName(e)==='柔軟性・可動性';
+  const pow = ['plyo','olympic','mb'].includes(e.type) || e.cat==='plyo' || e.cat==='olympic' || e.cat==='mb' || gymCatName(e)==='爆発的パワー';
+  if(mob){ const ms = muscleList(e); const P = PARTS.find(p=>p.k==='mob'); let hit = null;
+    for(const s of P.subs){ if(s[2].some(w=>ms.some(m=>m.includes(w)) || e.name.includes(w))){ hit = s[0]; break; } }
+    out.push({part:'mob', sub:hit||'mo', main:true}); return out; }
+  if(pow){ const sub = (e.type==='olympic'||e.cat==='olympic'||/クリーン|スナッチ|プル$|プッシュプレス|スラスター/.test(e.name)) ? 'po' : (e.type==='mb'||e.cat==='mb'||/メディシン|スロー|スラム|パス/.test(e.name)) ? 'pm' : 'pj';
+    out.push({part:'power', sub, main:true}); }
+  const ms = muscleList(e);
+  ms.forEach((m, idx)=>{
+    for(const P of PARTS){ if(P.k==='power'||P.k==='mob') continue;
+      const s = P.subs.find(s=>s[2].some(w=>m.includes(w)));
+      if(s){ if(!out.some(o=>o.sub===s[0])) out.push({part:P.k, sub:s[0], main: !pow && idx===0}); break; } }
+  });
+  if(!out.length && e.gym && GYM_TO_PART[gymCatName(e)]) out.push({part:GYM_TO_PART[gymCatName(e)], sub:'gx', main:false, gx:true});
+  return out;
+}
+let PLACES = null;
+function places(){ if(PLACES) return PLACES; PLACES = {}; partPool().forEach(e=>{ PLACES[e.id] = placeOf(e); }); return PLACES; }
+function partItems(pk, sk){
+  const P = places(); const list = [];
+  partPool().forEach(e=>{ const ps = (P[e.id]||[]).filter(x=>x.part===pk && (!sk || x.sub===sk)); if(ps.length) list.push({e, main:ps.some(x=>x.main), sub:ps[0].sub}); });
+  return list.sort((a,b)=>(b.main-a.main) || ((b.e.gym?0:1)-(a.e.gym?0:1)) || (LV_N[evLevel(b.e)]-LV_N[evLevel(a.e)]));
+}
+const _uexApplyP = uexApply;
+uexApply = function(){ _uexApplyP(); PART_POOL = null; PLACES = null; };
+
+/* ---- 1行の部品：お気に入りと、今日のメニューに追加 ---- */
+function isFav(id){ return (db.saved||[]).includes(id); }
+function inMenu(id){ return db.prog.some(r=>r.id===id); }
+function pickRow(e, extra){
+  const fav = isFav(e.id), inm = inMenu(e.id);
+  return '<li class="prow2">'+
+    '<button type="button" class="pmain" data-go="detail" data-id="'+e.id+'">'+thumb(e,'sm')+'<span class="rowtxt"><strong>'+esc(e.name)+'</strong><span class="badges">'+(extra||'')+'<span class="bdg">'+starHTML(evLevel(e))+'</span>'+(e.gym?'<span class="bdg warn">体操の移行データ</span>':'')+(e.user?'<span class="bdg">自分で登録</span>':'')+'</span></span></button>'+
+    '<button type="button" class="icb fav'+(fav?' on':'')+'" data-fav="'+e.id+'" aria-pressed="'+fav+'" aria-label="'+esc(e.name)+'をお気に入りに入れる">'+STAR(fav)+'</button>'+
+    '<button type="button" class="addb'+(inm?' on':'')+'" data-addm="'+e.id+'" aria-pressed="'+inm+'" aria-label="'+esc(e.name)+(inm?'を今日のメニューから外す':'を今日のメニューに追加する')+'">'+(inm?UI.check+'<span>追加済み</span>':'<span class="plus" aria-hidden="true">＋</span><span>今日に追加</span>')+'</button></li>';
+}
+
+/* ---- 種目：部位のボタン ---- */
+let partSub = {};
+const _browseP = VIEWS.browse;
+VIEWS.browse = ()=>{
+  const v = _browseP();
+  const P = places(); const cnt = pk=>partPool().filter(e=>(P[e.id]||[]).some(x=>x.part===pk)).length;
+  const grid = '<h2 style="margin-top:18px">部位から選ぶ</h2><ul class="pgrid">'+PARTS.map(p=>'<li><button type="button" class="pbtn" data-go="part" data-part="'+p.k+'" aria-label="'+p.name+'、'+cnt(p.k)+'種目"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+PART_ICON[p.k]+'</svg><span class="pn">'+p.name+'</span><span class="pc">'+cnt(p.k)+'</span></button></li>').join('')+'</ul>'+
+    '<div class="two" style="margin-top:12px"><button type="button" class="navrow" data-go="favs"><span class="nk">お気に入り</span><strong>'+(db.saved||[]).length+' 種目</strong>'+UI.chev+'</button><button type="button" class="navrow" data-go="program"><span class="nk">今日のメニュー</span><strong>'+db.prog.filter(r=>EXMAP[r.id]).length+' 種目</strong>'+UI.chev+'</button></div>';
+  const m = v.html.match(/^([\s\S]*?<\/label>)([\s\S]*)$/);
+  if(m) v.html = m[1] + grid + '<details class="more" style="margin-top:16px"><summary>これまでの分け方で見る（カテゴリー、体操）</summary><div class="inner">'+m[2]+'</div></details>';
+  return v;
+};
+VIEWS.part = cur=>{
+  const p = PARTS.find(x=>x.k===cur.part) || PARTS[0]; const sk = partSub[p.k] || '';
+  const all = partItems(p.k, ''); const list = sk ? partItems(p.k, sk) : all;
+  const subs = p.subs.map(s=>({s, n:partItems(p.k, s[0]).length})).filter(x=>x.n);
+  const subName = id=>{ const s = p.subs.find(s=>s[0]===id); return s ? s[1] : ''; };
+  return {title:p.name, html:
+    '<div class="chips subchips" role="group" aria-label="'+p.name+'の部位">'+
+      '<button type="button" class="chip'+(sk?'':' on')+'" aria-pressed="'+!sk+'" data-psub="'+p.k+':">すべて '+all.length+'</button>'+
+      subs.map(x=>'<button type="button" class="chip'+(sk===x.s[0]?' on':'')+'" aria-pressed="'+(sk===x.s[0])+'" data-psub="'+p.k+':'+x.s[0]+'">'+esc(x.s[1])+' '+x.n+'</button>').join('')+'</div>'+
+    '<p class="sub" role="status" id="partN" style="margin-top:10px">'+(sk?esc(subName(sk))+'　':'')+list.length+'種目。主に鍛える種目が先、補助的に使う種目が後に並びます。'+uiInfo('部位の分け方の説明を開く','部位の分け方','<p>6大部位と細かい部位の分け方は、コーチの体系表に合わせています。どの種目がどの部位に入るかは、種目データの「主な筋肉」の文字から決めています。主な筋肉の最初に書かれた筋肉の部位を「主」、2番目以降を「補助」としています。</p><p>主な筋肉が登録されていない体操の種目のうち、体幹・姿勢保持は体幹、上肢支持力（押す動作）は胸、上肢牽引力（引く動作）は背中、下肢筋力は脚・臀部に入れ、「体操の分類から」と表示しています。細かい部位は決めていません。バランス、倒立、回旋、着地、筋持久力、複合動作の体操の種目は部位には出ず、「これまでの分け方で見る」の体操の棚にあります。</p><div class="note warn">胸の日のプレス系では肩と上腕三頭筋も疲れるので、部位を分けて組むときは重なりに気をつけてください（コーチの体系表の注意）。</div>','分け方')+'</p>'+
+    (list.length ? '<ul class="plist">'+list.map(x=>pickRow(x.e, (x.sub==='gx' ? '<span class="bdg">体操の分類：'+esc(gymCatName(x.e))+'</span>' : (sk?'':'<span class="bdg">'+esc(subName(x.sub).split('（')[0])+'</span>')+'<span class="bdg'+(x.main?' ok':'')+'">'+(x.main?'主':'補助')+'</span>'))).join('')+'</ul>' : '<div class="note">この部位の種目は、まだありません。</div>')+
+    '<div class="stackbtns" style="margin-top:14px"><button type="button" class="ghost" data-go="addex">この部位の種目を自分で登録する</button></div>'
+  };
+};
+VIEWS.favs = ()=>{
+  const list = (db.saved||[]).map(id=>EXMAP[id]).filter(Boolean);
+  return {title:'お気に入り', html: list.length ? '<p class="sub" style="margin-top:12px">星を押すとお気に入りから外れます。</p><ul class="plist">'+list.map(e=>pickRow(e)).join('')+'</ul>' : '<div class="note" style="margin-top:14px">お気に入りはまだありません。種目の一覧で星を押すと、ここに集まります。</div><button type="button" class="ghost" data-go="browse">部位から選ぶ</button>'};
+};
+UI_NEW.push('part','favs');
+document.addEventListener('click',e=>{
+  let b;
+  if((b = e.target.closest('[data-go="part"]'))){ e.stopPropagation(); go('part',{part:b.dataset.part}); return; }
+  if((b = e.target.closest('[data-psub]'))){ e.stopPropagation(); const [pk, sk] = b.dataset.psub.split(':'); partSub[pk] = sk; render(false); const f = document.querySelector('[data-psub="'+pk+':'+sk+'"]'); if(f) f.focus(); return; }
+  if((b = e.target.closest('[data-fav]'))){ e.stopPropagation(); const id = b.dataset.fav; db.saved = db.saved||[]; const i = db.saved.indexOf(id);
+    if(i<0){ db.saved.push(id); say(EXMAP[id].name+'をお気に入りに入れました'); } else { db.saved.splice(i,1); say(EXMAP[id].name+'をお気に入りから外しました'); }
+    save(); render(false); const f = document.querySelector('[data-fav="'+id+'"]'); if(f) f.focus(); return; }
+  if((b = e.target.closest('[data-addm]'))){ e.stopPropagation(); const id = b.dataset.addm;
+    if(inMenu(id)){ db.prog = db.prog.filter(r=>r.id!==id); say(EXMAP[id].name+'を今日のメニューから外しました'); }
+    else { db.prog.push({id}); say(EXMAP[id].name+'を今日のメニューに追加しました。今日 '+db.prog.filter(r=>EXMAP[r.id]).length+' 種目、約'+fmtDur(menuTotal().sec)); }
+    save(); render(false); const f = document.querySelector('[data-addm="'+id+'"]'); if(f) f.focus(); return; }
+},true);
+
+/* ---- 運動時間の自動計算 ---- */
+function repSecBase(){ return Number(db.repSec)>0 ? Number(db.repSec) : 2; }
+function repSecOf(id){ const t = (db.rx||{})[id]; const d = t && String(t.tempo||'').replace(/\D/g,''); if(d && d.length===4){ const s = d.split('').reduce((a,c)=>a+Number(c),0); if(s>0) return {sec:s, tempo:true}; } return {sec:repSecBase(), tempo:false}; }
+function menuRow(id){ return db.prog.find(r=>r.id===id) || {id}; }
+function menuRx(id){
+  const e = EXMAP[id]; const r = menuRow(id); const rx = rxFor(e, db.goal); const f = labFinal(id); const t = (db.rx||{})[id] || {};
+  const pick = (ov, fin, base)=> ov!=null && ov!=='' ? Number(ov) : (fin!=null ? fin : base);
+  const secMode = (r.reps==null || r.reps==='') && !f && /秒/.test(String(rx.reps)) && !/回/.test(String(rx.reps).split('または')[0]);
+  const sets = pick(r.sets, f?nums(f.sets)[0]:null, nums(rx.sets)[0]);
+  const reps = pick(r.reps, f?nums(f.reps)[0]:null, nums(rx.reps)[0]);
+  const rest = pick(r.rest, null, restSec(rx));
+  const last = lastSetLog(id);
+  const w = pick(r.w, f?nums(f.weight)[0]:null, last && last.setList && last.setList.length ? last.setList[last.setList.length-1].w : (last && Number(last.load)>0 ? Number(last.load) : null));
+  const rs = repSecOf(id);
+  return {sets, reps, rest, w, secMode, rs, hold:Number(t.hold)||0, edited: r.sets!=null||r.reps!=null||r.rest!=null||r.w!=null, final:!!f};
+}
+function exTime(id){
+  const m = menuRx(id);
+  if(!(m.sets>0) || !(m.reps>0)) return null;
+  const per = m.secMode ? m.reps : m.reps*m.rs.sec + m.hold;
+  const work = per*m.sets, restT = (m.rest||0)*Math.max(0, m.sets-1);
+  return {sec: work+restT, work, restT, m, per};
+}
+function fmtDur(s){ s = Math.round(s); const m = Math.floor(s/60), r = s%60; return m ? m+'分'+(r?r+'秒':'') : r+'秒'; }
+function exTimeFormula(id){
+  const t = exTime(id); if(!t) return '処方が未登録のため計算していません。「回数・セット・休憩を変える」で入れると計算します。';
+  const m = t.m;
+  const one = m.secMode ? m.reps+'秒' : '（'+m.reps+'回×'+m.rs.sec+'秒'+(m.rs.tempo?'（テンポ）':'')+(m.hold?'＋上で'+m.hold+'秒':'')+'）';
+  return one+'×'+m.sets+'セット＝'+fmtDur(t.work)+(m.sets>1&&m.rest?'、休憩'+fmtDur(m.rest)+'×'+(m.sets-1)+'＝'+fmtDur(t.restT):'')+'、合計 '+fmtDur(t.sec);
+}
+function menuTotal(){ let sec = 0, n = 0, miss = 0; db.prog.filter(r=>EXMAP[r.id]).forEach(r=>{ const t = exTime(r.id); if(t){ sec += t.sec; n++; } else miss++; }); return {sec, n, miss}; }
+function menuBadges(r){
+  const e = EXMAP[r.id]; const m = menuRx(r.id); const t = exTime(r.id);
+  if(!(m.sets>0)) return uiBadges(e)+'<span class="bdg warn">時間は未計算</span>';
+  return (m.w!=null&&m.w!==''&&!m.secMode?'<span class="bdg">'+m.w+' kg</span>':'')+'<span class="bdg">'+(m.secMode?m.reps+' 秒':m.reps+' 回')+'</span><span class="bdg">'+m.sets+' セット</span>'+(m.rest?'<span class="bdg">休憩 '+fmtDur(m.rest)+'</span>':'')+
+    (t?'<span class="bdg tm">約 '+fmtDur(t.sec)+'</span>':'')+(m.final?'<span class="bdg ok">コーチ承認</span>':m.edited?'<span class="bdg">今日用に変更</span>':'');
+}
+function menuTotalHTML(){
+  const rows = db.prog.filter(r=>EXMAP[r.id]); if(!rows.length) return '';
+  const T = menuTotal();
+  const info = '<p>運動時間は、次の式で計算しています。</p><p>（回数×1回の動作の時間）×セット数＋休憩×（セット数−1）</p><p>1回の動作の時間は、持ち上げて元に戻すまでを'+repSecBase()+'秒としています（設定の「運動時間の計算」で変えられます）。コーチがテンポを決めた種目は、テンポの4つの数字の合計を使います。秒で決める種目（プランクなど）は、その秒数をそのまま使います。</p>'+
+    '<div class="note warn">種目と種目の間の移動や準備、重りの付け替えの時間は入っていません。実際の練習時間は、これより長くなります。</div><ul class="hist">'+rows.map(r=>'<li><strong>'+esc(EXMAP[r.id].name)+'</strong><br><span class="sub">'+esc(exTimeFormula(r.id))+'</span></li>').join('')+'</ul>';
+  return '<section class="mtotal" aria-labelledby="mtT"><div><p class="kicker" id="mtT" style="margin:0">今日のメニュー</p><p class="mtv">'+rows.length+'<span> 種目</span>　<b>約 '+fmtDur(T.sec)+'</b></p>'+(T.miss?'<p class="sub">'+T.miss+'種目は処方が未登録のため、時間に入っていません。</p>':'')+'</div>'+uiInfo('運動時間の計算のしかたを開く','運動時間の計算', info, '計算のしかた')+'</section>';
+}
+/* 今日用に、回数・セット・休憩・重さを変える */
+function editSheet(id){
+  const e = EXMAP[id]; const m = menuRx(id);
+  const row = (k, label, val, unit, step)=>'<div class="erow"><span class="ek">'+label+'</span><button type="button" class="eb" data-me="'+id+':'+k+':-'+step+'" aria-label="'+label+'を'+step+unit+'減らす">−</button><output id="me_'+k+'" aria-live="polite">'+(val==null||val===''?'—':val)+'</output><span class="eu">'+unit+'</span><button type="button" class="eb" data-me="'+id+':'+k+':'+step+'" aria-label="'+label+'を'+step+unit+'増やす">＋</button></div>';
+  return '<div class="esheet">'+row('w','重さ',m.w,'kg',2.5)+row('reps',m.secMode?'秒数':'回数',m.reps,m.secMode?'秒':'回',1)+row('sets','セット',m.sets,'セット',1)+row('rest','休憩',m.rest,'秒',15)+
+    '<p class="etime" id="meTime" aria-live="polite">'+esc(exTimeFormula(id))+'</p><div class="menu"><button type="button" class="cta" data-meok="'+id+'">決定</button><button type="button" class="ghost" data-mereset="'+id+'">処方に戻す</button></div></div>';
+}
+document.addEventListener('click',e=>{
+  let b;
+  if((b = e.target.closest('[data-meopen]'))){ e.stopPropagation(); const id = b.dataset.meopen; uiOpen(EXMAP[id].name+'　今日の内容', editSheet(id)); return; }
+  if((b = e.target.closest('[data-me]'))){ e.stopPropagation(); const [id, k, d] = b.dataset.me.split(':'); const r = db.prog.find(x=>x.id===id); if(!r) return;
+    const m = menuRx(id); const cur = k==='w'?m.w:k==='reps'?m.reps:k==='sets'?m.sets:m.rest;
+    let v = (cur==null||cur===''?0:Number(cur)) + Number(d); v = Math.max(k==='sets'||k==='reps'?1:0, Math.round(v*100)/100); r[k] = v;
+    if(db.execNow && db.execNow.id===id && db.execNow.date===today() && !db.execNow.sets.some(q=>q.done)) delete db.execNow;
+    save(); const o = $('#me_'+k); if(o) o.textContent = v; const t = $('#meTime'); if(t) t.textContent = exTimeFormula(id); return; }
+  if((b = e.target.closest('[data-meok]'))){ e.stopPropagation(); uiClose(false); say('今日の内容を決めました。約'+fmtDur((exTime(b.dataset.meok)||{sec:0}).sec)); render(false); const f = document.querySelector('[data-wid="'+b.dataset.meok+'"] .wmain'); if(f) f.focus(); return; }
+  if((b = e.target.closest('[data-mereset]'))){ e.stopPropagation(); const id = b.dataset.mereset; const r = db.prog.find(x=>x.id===id); if(r){ delete r.sets; delete r.reps; delete r.rest; delete r.w; } if(db.execNow && db.execNow.id===id && !db.execNow.sets.some(q=>q.done)) delete db.execNow; save(); uiOpen(EXMAP[id].name+'　今日の内容', editSheet(id)); say('処方に戻しました'); return; }
+},true);
+const _rowMenuP = uiRowMenu;
+uiRowMenu = function(id){ _rowMenuP(id); const box = $('#infoB .menu'); if(box) box.insertAdjacentHTML('afterbegin','<button type="button" class="cta" style="margin:0" data-meopen="'+id+'">回数・セット・休憩を変える</button>'); };
+/* 種目を行う画面：今日用に変えた内容を使う（コーチの承認が先） */
+const _execNowP = execNowFor;
+execNowFor = function(id){
+  const had = db.execNow && db.execNow.id===id && db.execNow.date===today();
+  const x = _execNowP(id);
+  if(!had && !x.labFinal){ const r = menuRow(id); if(r.sets!=null||r.reps!=null||r.w!=null){ const m = menuRx(id);
+      if(r.sets!=null){ while(x.sets.length>m.sets) x.sets.pop(); while(x.sets.length<m.sets){ const l = x.sets[x.sets.length-1]||{}; x.sets.push(Object.assign({}, l, {done:false})); } }
+      x.sets.forEach(q=>{ if(r.w!=null) q.w = m.w; if(r.reps!=null) q.r = m.reps; }); save(); } }
+  return x;
+};
+function execTimeTxt(id){ const t = exTime(id); return t ? 'この種目 約'+fmtDur(t.sec)+'　' : ''; }
+/* ホームの黄色のボタンに、今日の時間を添える */
+const _homeNextP = homeNext;
+homeNext = function(){ const r = _homeNextP(); if((r.go==='startgo'||r.go==='labpre') && db.prog.length){ const T = menuTotal(); if(T.sec) r.l2 += '　約'+fmtDur(T.sec); } return r; };
+/* 設定：1回の動作の時間 */
+VIEWS.timeset = ()=>({title:'運動時間の計算', html:
+  '<section class="card" aria-labelledby="tsT"><h2 id="tsT" tabindex="-1">1回の動作の時間</h2><p class="sub">持ち上げて元に戻すまでの時間です。テンポを決めた種目は、テンポの合計を使います。</p>'+
+  '<div class="stp planstp"><button type="button" data-rs="-0.5" aria-label="0.5秒減らす">−</button><output id="rsV" aria-live="polite">'+repSecBase()+' 秒</output><button type="button" data-rs="0.5" aria-label="0.5秒増やす">＋</button></div>'+
+  '<p class="sub" id="rsEx">例：ベンチプレス 10回、5セット、休憩1分なら（10回×'+repSecBase()+'秒）×5＋1分×4＝'+fmtDur(10*repSecBase()*5+240)+'</p></section>',
+  after(){ $('#view').onclick = e=>{ const b = e.target.closest('[data-rs]'); if(!b) return; db.repSec = Math.min(10, Math.max(0.5, repSecBase()+Number(b.dataset.rs))); save();
+    $('#rsV').textContent = repSecBase()+' 秒'; $('#rsEx').textContent = '例：ベンチプレス 10回、5セット、休憩1分なら（10回×'+repSecBase()+'秒）×5＋1分×4＝'+fmtDur(10*repSecBase()*5+240); say(repSecBase()+'秒にしました'); }; }
+});
+UI_NEW.push('timeset');
+const _settingsP = VIEWS.settings;
+VIEWS.settings = ()=>{ const v = _settingsP(); v.html = v.html.replace('<h2>選手</h2>', '<button type="button" class="navrow" data-go="timeset"><span class="nk">運動時間の計算</span><strong>1回の動作 '+repSecBase()+' 秒</strong>'+UI.chev+'</button><h2>選手</h2>'); return v; };
+/* 種目の説明の画面の言葉を合わせる */
+const _detailP = VIEWS.detail;
+VIEWS.detail = cur=>{ const v = _detailP(cur);
+  v.html = v.html.replace('プログラムから外す','今日のメニューから外す').replace('プログラムに追加','今日のメニューに追加').replace(ICON.markOn+' 保存済み', STAR(true)+' お気に入り').replace(ICON.mark+' 保存する', STAR(false)+' お気に入りに入れる');
+  const t = exTime(cur.id); if(t && inMenu(cur.id)) v.html = v.html.replace('<h2>水泳との関連</h2>', '<p class="sub">今日の内容　'+esc(exTimeFormula(cur.id))+'</p><h2>水泳との関連</h2>');
   return v; };
 
 render(false);

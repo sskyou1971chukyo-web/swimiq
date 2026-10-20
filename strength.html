@@ -710,6 +710,12 @@ ul.plist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
 .ytopen .pl span{width:80px;height:80px;border-radius:50%;background:rgba(0,0,0,.72);border:3px solid var(--am);color:var(--am);display:flex;align-items:center;justify-content:center;font-size:2.2rem}
 .ytopen .lb{position:absolute;left:12px;bottom:12px;background:var(--am);color:#000;font-weight:800;border-radius:6px;padding:4px 14px}
 #player textarea.txt{display:block;width:100%;min-height:90px;border:2px solid var(--line);border-radius:6px;padding:8px 12px;background:var(--soft);color:#fff;font:inherit;margin-top:6px}
+/* ============ 推定1RM（2026年10月20日） ============ */
+.rmstats .v.up{color:var(--green)}.rmstats .v.dn{color:var(--red)}
+.rmstats .p .bdg{margin-top:4px}
+.fgrid:has(.rir){grid-template-columns:1fr 1fr 1fr}
+.fnum.rir input{font-size:2.2rem}
+@media(max-width:400px){.fgrid:has(.rir) .fnum input{font-size:2rem;min-height:64px}.fnum .pm button{height:50px}}
 </style>
 </head>
 <body>
@@ -5215,6 +5221,214 @@ drawPlayer = function(){
 document.getElementById('player').addEventListener('click', e=>{
   if(e.target.id==='pNoteSave'){ db.videoNotes = db.videoNotes||{}; const t = $('#pNoteTxt').value.trim(); if(t) db.videoNotes[playing.id] = t; else delete db.videoNotes[playing.id]; save(); say('ポイントを保存しました'); drawPlayer(); $('#pTitle').focus(); }
 });
+
+/* ============ 推定1RM、ベースライン、自動メニュー（2026年10月20日） ============
+ 画面は数字とグラフが第一。説明と根拠は details（押すと開く）の中。
+ 記録は既存の db.logs の setList（w 重さ、r 回数、rir 余裕回数）を使う。余裕回数は「種目を行う」画面に欄を足した。
+ ベースラインは db.rmBase、メニューの設定は db.rmPlan、2-for-2 用の完了記録は db.rmSess に保存する（既存のバックアップに一緒に入る）。 */
+const RM_GOALS = {
+  max:{label:'最大筋力', pct:87.5, reps:4, sets:4, rest:'3〜5分', speed:'できるだけ速く挙げる（0.5 m/s 未満の領域）'},
+  powH:{label:'パワー重め', pct:80, reps:3, sets:4, rest:'3〜5分', speed:'毎回全力で速く（0.75〜1.0 m/s）。速度が落ちたら終了'},
+  powL:{label:'パワー軽め', pct:45, reps:4, sets:4, rest:'2〜3分', speed:'最大速度（1.0〜1.3 m/s）。ベンチプレスなら投げ上げ系が本来の形'},
+  hyp:{label:'筋肥大', pct:75, reps:10, sets:4, rest:'60〜90秒', speed:'下ろしに2〜3秒'},
+  end:{label:'筋持久力', pct:60, reps:15, sets:3, rest:'30秒以内', speed:''}
+};
+const RM_PLATES = [2.5, 1.25, 5, 1];
+const RM_EVIDENCE = '<p>ベースライン警告の考え方はECSSとACSMの共同声明（Meeusen ら、2013）。オーバーリーチングとオーバートレーニングの中心的な定義をパフォーマンスの低下とし、短期の低下は回復後に向上につながる機能的オーバーリーチング、長引く低下は非機能的オーバーリーチングやオーバートレーニング症候群と区別。単一の検査で判定できる指標はなく、別の日に複数回行う運動テストが有用。</p>'+
+  '<p>4週間の区切りは Mujika と Padilla の総説（2001）。筋力は約4週間の不活動まではおおむね維持されるが、高度に鍛えられた選手ではそれ以上で低下が出る。</p>'+
+  '<p>許容幅の根拠は、ベンチプレスでの推定式の推定標準誤差が2.7〜3.2kg程度という報告（Lacio ら、2010）。5パーセントまたは3kgという境目はこれをもとにアプリで決めた便宜的な値。</p>'+
+  '<p>推定式の精度は回数10回以下で高い（Mayhew ら、1995）。</p>'+
+  '<p>メニューの割合・回数・セット・休憩はNSCAの教科書 Essentials of Strength Training and Conditioning の目的別負荷表の範囲内。範囲の中で選んだ初期値は便宜的な選択。速度の目安は Bryan Mann らの速度ゾーン。González-Badillo の報告では1RM付近の速度はベンチプレス約0.15m/s、スクワット約0.3m/s。</p>'+
+  '<p>段階の区分は Mark Rippetoe らの「初心者は練習ごとに、中級者は週ごとに、上級者は月単位でしか伸びない」という考え方。週あたりの伸び率の境目（1.5パーセント、0.4パーセント）はアプリ独自の便宜的な値で、研究で定められた数値ではない。</p>'+
+  '<p>2-for-2ルール（最後のセットで目標より2回以上多くできた練習が2回続いたら負荷を上げる）はNSCAの教科書の進め方。</p>';
+const RM_STATUS_INFO = {
+  '維持':'ベースラインの許容幅の中、または上です。',
+  '注意':'直近1回だけ下回りました。疲労や睡眠不足など一時的な低下の可能性があります。次回も下回るか確認してください。',
+  '警告':'2回以上連続で下回っていて、期間は4週間未満です。疲労の蓄積、コンディション低下、練習と回復のバランスの崩れが考えられます。睡眠、食事、水中練習の負荷、体重、痛みを確認し、必要なら負荷を落とす週を検討してください。この段階では筋力低下よりコンディション低下の可能性が高いです。',
+  '重大':'4週間以上下回り続けています。一時的な疲労だけでなく、実際の筋力低下、または長引く非機能的オーバーリーチングの可能性があります。計画の見直しと体調の確認をしてください。'
+};
+const RM_PHASE_INFO = {
+  '判定前':'記録の期間が2週間未満です。日付の違う記録が3日分以上、2週間以上たまると判定します。',
+  '初心者型':'練習ごとに伸びる時期です。毎回少しずつ重さを足す進め方が合います。',
+  '中級者型':'週ごとに伸びる時期です。週の中で重い日と軽い日を分け、週単位で重さを上げる進め方が合います。',
+  '上級者型':'月単位でしか伸びにくい時期です。数週間の周期で負荷を上げ下げする進め方が合います。',
+  '停滞':'直近4回、3週間以上ベストが出ていません。負荷を落とす週を入れる、種目や回数を変える、睡眠と食事を見直す、のどれかを検討してください。'
+};
+function rmRound(v, plate){ plate = plate||2.5; return Math.round(v/plate)*plate; }
+function rmBrz(w, reps){ return reps<37 ? w*36/(37-reps) : null; }
+/* 日ごとの代表値（その日の最高） */
+function rmDaily(id){
+  const by = {};
+  doneLogs(id).forEach(l=>{ const d = dayOf(l.t); const L = (l.setList||[]).filter(q=>Number(q.w)>0 && Number(q.r)>0);
+    const sets = L.length ? L : (Number(l.load)>0 && nums(l.reps)[0]>0 ? [{w:Number(l.load), r:nums(l.reps)[0], rir:''}] : []);
+    sets.forEach(q=>{ const w = Number(q.w), reps = Number(q.r)+(Number(q.rir)||0); const ep = w*(1+reps/30), br = rmBrz(w, reps);
+      const o = by[d] = by[d] || {d, ep:0, br:null, w:0, r:0, rir:0, big:false};
+      if(ep>o.ep){ o.ep = ep; o.br = br; o.w = w; o.r = Number(q.r); o.rir = Number(q.rir)||0; o.big = reps>10; } }); });
+  return Object.keys(by).sort().map(d=>{ const o = by[d]; o.ep = Math.round(o.ep*10)/10; o.br = o.br==null?null:Math.round(o.br*10)/10; return o; });
+}
+function rmExercises(){ const ids = {}; db.logs.forEach(l=>{ if(l.kind==='done' && EXMAP[l.id] && ((l.setList||[]).some(q=>Number(q.w)>0) || Number(l.load)>0)) ids[l.id] = l.t; }); return Object.keys(ids).sort((a,b)=>ids[a]<ids[b]?1:-1); }
+/* ベースライン */
+function rmBase(id){ db.rmBase = db.rmBase||{}; const D = rmDaily(id); if(!D.length) return null;
+  const b = db.rmBase[id]; if(b && b.v>0) return b;
+  const first = {v:D[0].ep, src:'first', d:D[0].d}; db.rmBase[id] = first; save(); return first; }
+function rmTol(v){ return Math.max(v*0.05, 3); }
+function rmStatus(id){
+  const D = rmDaily(id); const b = rmBase(id); if(!b || !D.length) return null;
+  const tol = rmTol(b.v); const below = D.map(x=>x.ep < b.v - tol);
+  let n = 0; for(let i=D.length-1;i>=0 && below[i];i--) n++;
+  let st = '維持';
+  if(n===1) st = '注意';
+  else if(n>=2){ const span = dNum(D[D.length-1].d) - dNum(D[D.length-n].d); st = span>=28 ? '重大' : '警告'; }
+  const last = D[D.length-1]; const diff = Math.round((last.ep - b.v)*10)/10;
+  return {base:b, tol, status:st, diff, last, D, below, streak:n};
+}
+/* 傾向線（最小二乗法）と段階 */
+function rmTrend(id){
+  const D = rmDaily(id); if(D.length<2) return null;
+  const xs = D.map(x=>dNum(x.d)), ys = D.map(x=>x.ep); const n = xs.length;
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let sxx = 0, sxy = 0; xs.forEach((x,i)=>{ sxx += (x-mx)*(x-mx); sxy += (x-mx)*(ys[i]-my); });
+  const slope = sxx ? sxy/sxx : 0; const icpt = my - slope*mx;
+  const span = xs[n-1]-xs[0]; const wk = slope*7; const base = icpt + slope*xs[0]; const pct = base>0 ? wk/base*100 : 0;
+  let best = -1, prDays = 0, lastPr = null; D.forEach(x=>{ if(x.ep>best){ best = x.ep; prDays++; lastPr = x.d; } });
+  let phase;
+  if(span<14 || n<3) phase = '判定前';
+  else if(n>=4 && lastPr && (dNum(D[n-1].d)-dNum(lastPr))>=21 && !D.slice(-4).some(x=>x.d===lastPr)) phase = '停滞';
+  else if(pct>=1.5 && prDays>=n/2) phase = '初心者型';
+  else if(pct>=0.4) phase = '中級者型';
+  else phase = '上級者型';
+  return {slope, icpt, wk:Math.round(wk*10)/10, pct:Math.round(pct*10)/10, phase, span, prDays, n};
+}
+/* グラフ */
+function rmChartSVG(id, small){
+  const S = rmStatus(id); if(!S) return '';
+  const D = S.D, b = S.base, tol = S.tol, T = rmTrend(id);
+  const W = small?300:340, H = small?70:280, L = small?4:52, R = small?4:14, Tp = small?6:24, B = small?4:40;
+  const vs = D.map(x=>x.ep).concat(D.map(x=>x.br).filter(v=>v!=null)).concat([b.v-tol, b.v+tol]);
+  let lo = Math.min(...vs), hi = Math.max(...vs); if(hi-lo<5){ lo -= 3; hi += 3; }
+  const st = small?0:niceStep(hi-lo); if(!small){ lo = Math.floor(lo/st)*st; hi = Math.ceil(hi/st)*st; }
+  const x0 = dNum(D[0].d), x1 = dNum(D[D.length-1].d);
+  const X = d=> D.length===1 ? (L+W-R)/2 : L+10+(dNum(d)-x0)/(x1-x0)*(W-R-L-20);
+  const Y = v=> Tp+(hi-v)/(hi-lo)*(H-Tp-B);
+  let s = '';
+  if(!small){ for(let v=lo; v<=hi+1e-9; v+=st){ const y = Y(v).toFixed(1); s += '<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="#3a3c40"/><text x="'+(L-6)+'" y="'+(+y+5)+'" text-anchor="end" fill="#c9cbcf" font-size="13" font-weight="700">'+kgTxt(Math.round(v*10)/10)+'</text>'; } }
+  /* 許容幅の帯とベースライン */
+  s += '<rect x="'+L+'" y="'+Y(b.v+tol).toFixed(1)+'" width="'+(W-R-L)+'" height="'+Math.max(1,(Y(b.v-tol)-Y(b.v+tol))).toFixed(1)+'" fill="#ff4b2b" opacity=".14"/>';
+  s += '<line x1="'+L+'" y1="'+Y(b.v).toFixed(1)+'" x2="'+(W-R)+'" y2="'+Y(b.v).toFixed(1)+'" stroke="#ff4b2b" stroke-width="2" stroke-dasharray="6 5"/>';
+  /* 傾向線 */
+  if(T && D.length>=2){ const ya = T.icpt+T.slope*x0, yb = T.icpt+T.slope*x1; s += '<line x1="'+X(D[0].d).toFixed(1)+'" y1="'+Y(ya).toFixed(1)+'" x2="'+X(D[D.length-1].d).toFixed(1)+'" y2="'+Y(yb).toFixed(1)+'" stroke="#c9cbcf" stroke-width="1" opacity=".8"/>'; }
+  /* Brzycki 点線、Epley 実線 */
+  const brPts = D.filter(x=>x.br!=null); if(brPts.length>1) s += '<polyline points="'+brPts.map(p=>X(p.d).toFixed(1)+','+Y(p.br).toFixed(1)).join(' ')+'" fill="none" stroke="#7da6d9" stroke-width="'+(small?1.5:2.5)+'" stroke-dasharray="4 4" opacity=".8"/>';
+  if(D.length>1) s += '<polyline points="'+D.map(p=>X(p.d).toFixed(1)+','+Y(p.ep).toFixed(1)).join(' ')+'" fill="none" stroke="#7da6d9" stroke-width="'+(small?2.5:4)+'" stroke-linejoin="round" stroke-linecap="round"/>';
+  /* 点：ベスト更新は緑の大きな丸、下回りは赤、ほかは白 */
+  let best = -1; s += D.map((p,i)=>{ const pr = p.ep>best; if(pr) best = p.ep; const bl = S.below[i]; const x = X(p.d).toFixed(1), y = Y(p.ep).toFixed(1); const last = i===D.length-1;
+    const r = small ? (pr?4:3) : (pr?10:bl?8:6); const fill = bl ? '#ff4b2b' : pr ? '#35e06a' : '#fff';
+    return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+fill+'" stroke="#000" stroke-width="'+(small?1:2.5)+'"/>'+(!small && (last||pr) ? '<text x="'+x+'" y="'+(y-14)+'" text-anchor="middle" fill="#fff" font-size="14" font-weight="800">'+kgTxt(p.ep)+'</text>' : ''); }).join('');
+  if(!small){ const tk = D.length<=4 ? D : [D[0], D[Math.floor((D.length-1)/2)], D[D.length-1]]; s += tk.map(p=>'<text x="'+X(p.d).toFixed(1)+'" y="'+(H-16)+'" text-anchor="middle" fill="#c9cbcf" font-size="13" font-weight="700">'+fmtMD(p.d)+'</text>').join(''); }
+  const aria = EXMAP[id].name+'の推定1RMの折れ線。'+D.map(p=>fmtMD(p.d)+' '+p.ep+'キログラム').join('、')+'。ベースライン '+kgTxt(b.v)+'キログラム。';
+  return '<svg class="'+(small?'spk':'trsvg')+'" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+esc(aria)+'">'+s+'</svg>';
+}
+/* 推定1RMの画面 */
+let rmSel = null;
+VIEWS.rm = cur=>{
+  const ids = rmExercises(); if(cur && cur.id && EXMAP[cur.id]) rmSel = cur.id; if(!rmSel || !ids.includes(rmSel)) rmSel = ids[0]||null;
+  if(!rmSel) return {title:'推定1RM', html:'<div class="note" style="margin-top:14px">重さと回数を入れた記録がまだありません。種目を行う画面でセットを記録すると、ここに出ます。</div>'};
+  const e = EXMAP[rmSel]; const S = rmStatus(rmSel); const T = rmTrend(rmSel); const b = S.base; const last = S.last; const pr = prOf(rmSel);
+  const sel = '<label class="trlab">種目<select id="rmSel" class="txt">'+ids.map(id=>'<option value="'+id+'"'+(id===rmSel?' selected':'')+'>'+esc(EXMAP[id].name)+'</option>').join('')+'</select></label>';
+  const cls = S.status==='維持'?'ok':S.status==='注意'?'warn':'stop';
+  const cards = '<ul class="stats rmstats" aria-label="推定1RMの数字">'+
+    '<li><span class="k">推定1RM</span><span class="v">'+kgTxt(last.ep)+'<small> kg</small></span><span class="p">'+last.w+'×'+last.r+(last.rir?'（余裕'+last.rir+'）':'')+(last.big?'　誤差大きめ':'')+'</span></li>'+
+    '<li><span class="k">ベースライン比</span><span class="v '+(S.diff>=0?'up':'dn')+'">'+(S.diff>=0?'＋':'−')+kgTxt(Math.abs(S.diff))+'<small> kg</small></span><span class="p"><span class="bdg '+cls+'">'+S.status+'</span></span></li>'+
+    '<li><span class="k">段階</span><span class="v" style="font-size:1.2rem">'+(T?T.phase:'判定前')+'</span><span class="p">'+(T&&T.phase!=='判定前'?'週 '+(T.wk>=0?'＋':'−')+kgTxt(Math.abs(T.wk))+' kg（'+(T.pct>=0?'＋':'−')+Math.abs(T.pct)+'%）':'')+'</span></li></ul>';
+  const chart = '<section class="card trcard"><div class="cardhead"><h2>推移</h2><span class="sub">実線 Epley　点線 Brzycki</span></div>'+rmChartSVG(rmSel)+'</section>';
+  const baseBox = '<details class="more"><summary>ベースライン '+kgTxt(b.v)+' kg（許容幅 ±'+kgTxt(Math.round(S.tol*10)/10)+' kg）</summary><div class="inner">'+
+    '<p class="sub">'+(b.src==='first'?'最初の記録日の推定1RM':b.src==='pr'?'自己ベストの推定1RM':'手で入れた実測の1RM')+(b.d?'　'+fmtMD(b.d):'')+'</p>'+
+    '<form id="rmBaseF" class="intake"><label>実測した1RM（kg）<input type="number" class="txt" name="v" step="0.5" min="0" inputmode="decimal" placeholder="例 100"></label>'+
+    '<div class="stackbtns"><button type="submit" class="ghost">この値をベースラインにする</button><button type="button" class="ghost" data-rmbase="pr">自己ベストにする'+(pr.est?'（'+kgTxt(pr.est.v)+' kg）':'')+'</button><button type="button" class="ghost" data-rmbase="first">最初の値に戻す</button></div></form>'+
+    '<p>'+esc(RM_STATUS_INFO[S.status])+'</p><p class="sub">許容幅はベースラインの5パーセントか3kgの大きい方。これを超えて下回った日だけ「下回った」と数えます。腰の既往がある選手の既存の中止・減量の決まりがあるときは、そちらを優先します。</p></div></details>';
+  const phaseBox = T ? '<details class="more"><summary>段階の見方　'+T.phase+'</summary><div class="inner"><p>'+esc(RM_PHASE_INFO[T.phase])+'</p><p class="sub">判定前は期間2週間未満。停滞は直近4回かつ3週間以上ベストなし。初心者型は週1.5パーセント以上の伸びかつ練習日の半分以上でベスト更新。中級者型は週0.4パーセント以上。それ未満は上級者型。</p></div></details>' : '';
+  const calcBox = '<details class="more"><summary>計算のしかた</summary><div class="inner"><p>Epley の式は 重さ×（1＋回数÷30）、Brzycki の式は 重さ×36÷（37−回数）。回数には余裕回数（あと何回できたか）を足してから計算します。同じ日に複数の記録があれば、その日の最高値を代表値にします。回数が10回を超えたときは誤差大きめと示します。</p></div></details>';
+  const evBox = '<details class="more"><summary>判定の根拠</summary><div class="inner">'+RM_EVIDENCE+'</div></details>';
+  const list = '<details class="more"><summary>日ごとの記録（'+S.D.length+'日）</summary><div class="inner"><ol class="trlist">'+S.D.slice().reverse().map((p,i)=>'<li><span class="sub">'+fmtMD(p.d)+'</span><strong>'+kgTxt(p.ep)+' kg</strong><b>'+(S.below[S.D.length-1-i]?'<span class="bdg stop">下回り</span>':'')+(p.big?'<span class="bdg warn">誤差大</span>':'')+'</b></li>').join('')+'</ol></div></details>';
+  return {title:'推定1RM', html: sel+cards+chart+'<div class="stackbtns" style="margin-top:12px"><button type="button" class="cta" data-go="rmplan" data-id="'+rmSel+'">この1RMで今日のメニューを作る</button></div>'+baseBox+phaseBox+calcBox+evBox+list,
+    after(){ $('#rmSel').addEventListener('change',ev=>{ rmSel = ev.target.value; render(false); const s = $('#rmSel'); if(s) s.focus(); say(EXMAP[rmSel].name+'にしました'); });
+      $('#rmBaseF').addEventListener('submit',ev=>{ ev.preventDefault(); const v = Number(ev.target.v.value); if(!(v>0)){ say('1RMの数字を入れてください'); return; } db.rmBase[rmSel] = {v, src:'manual', d:today()}; save(); say('ベースラインを '+kgTxt(v)+' kg にしました'); render(false); });
+      $('#view').addEventListener('click',ev=>{ const b = ev.target.closest('[data-rmbase]'); if(!b) return; const k = b.dataset.rmbase;
+        if(k==='pr'){ const p = prOf(rmSel); if(!p.est){ say('自己ベストがまだありません'); return; } db.rmBase[rmSel] = {v:p.est.v, src:'pr', d:dayOf(p.est.t)}; }
+        else { const D = rmDaily(rmSel); db.rmBase[rmSel] = {v:D[0].ep, src:'first', d:D[0].d}; }
+        save(); say('ベースラインを変えました'); render(false); }); }
+  };
+};
+/* 今日のメニューの自動設定 */
+function rmPlanOf(id){ db.rmPlan = db.rmPlan||{}; return db.rmPlan[id] || (db.rmPlan[id] = {goal:'max', basis:'latest', plate:2.5, bump:0}); }
+function rmBasisVal(id, basis){ const S = rmStatus(id); const p = prOf(id); if(!S) return null;
+  return basis==='pr' ? (p.est?p.est.v:S.last.ep) : basis==='base' ? S.base.v : S.last.ep; }
+function rmMenu(id){ const P = rmPlanOf(id); const G = RM_GOALS[P.goal]; const v = rmBasisVal(id, P.basis); if(v==null) return null;
+  const pct = G.pct + (P.bump||0); const w = rmRound(v*pct/100, P.plate);
+  return {w, reps:G.reps, sets:G.sets, rest:G.rest, speed:G.speed, pct, base:v, G}; }
+VIEWS.rmplan = cur=>{
+  const ids = rmExercises(); if(cur && cur.id && EXMAP[cur.id]) rmSel = cur.id; if(!rmSel || !ids.includes(rmSel)) rmSel = ids[0]||null;
+  if(!rmSel) return {title:'自動メニュー', html:'<div class="note" style="margin-top:14px">重さと回数を入れた記録がまだありません。まず種目を行う画面でセットを記録してください。</div>'};
+  const e = EXMAP[rmSel]; const P = rmPlanOf(rmSel); const M = rmMenu(rmSel); const inm = db.prog.some(r=>r.id===rmSel);
+  const sel = '<label class="trlab">種目<select id="rmSel2" class="txt">'+ids.map(id=>'<option value="'+id+'"'+(id===rmSel?' selected':'')+'>'+esc(EXMAP[id].name)+'</option>').join('')+'</select></label>';
+  const goals = '<div class="chips trchips" role="group" aria-label="今日の目的">'+Object.keys(RM_GOALS).map(k=>'<button type="button" class="chip'+(k===P.goal?' on':'')+'" aria-pressed="'+(k===P.goal)+'" data-rmgoal="'+k+'">'+RM_GOALS[k].label+'</button>').join('')+'</div>';
+  const basis = '<div class="stktabs tr3" role="group" aria-label="基準にする1RM">'+[['latest','最新の推定'],['pr','自己ベスト'],['base','ベースライン']].map(x=>'<button type="button" data-rmbasis="'+x[0]+'" aria-pressed="'+(x[0]===P.basis)+'">'+x[1]+'</button>').join('')+'</div>';
+  const big = '<section class="topnum" aria-labelledby="rmpT"><p class="kicker" id="rmpT">'+esc(e.name)+'　'+M.G.label+'　'+M.pct+'%</p>'+
+    '<p class="big" style="font-size:2.2rem;line-height:1.2;overflow-wrap:anywhere">'+kgTxt(M.w)+'<span> kg</span> × '+M.reps+'<span> 回</span> × '+M.sets+'<span> セット</span></p>'+
+    '<p class="diff">休憩 '+M.rest+(M.speed?'　'+esc(M.speed):'')+'</p><p class="sub">基準 '+kgTxt(M.base)+' kg　刻み '+P.plate+' kg'+(P.bump?'　2-for-2 で ＋'+P.bump+' ポイント':'')+'</p></section>';
+  const plate = '<div class="chips trchips" role="group" aria-label="プレートの刻み">'+RM_PLATES.map(p=>'<button type="button" class="chip'+(p===P.plate?' on':'')+'" aria-pressed="'+(p===P.plate)+'" data-rmplate="'+p+'">'+p+' kg</button>').join('')+'</div>';
+  const info = '<details class="more"><summary>初期値と根拠</summary><div class="inner"><p>最大筋力 87.5% 4回4セット 休憩3〜5分。パワー重め 80% 3回4セット 休憩3〜5分。パワー軽め 45% 4回4セット 休憩2〜3分。筋肥大 75% 10回4セット 休憩60〜90秒。筋持久力 60% 15回3セット 休憩30秒以内。重さはプレートの刻みに丸めます。</p><p>終わったら、最後のセットの実際の回数と余裕回数を入れるだけで記録され、推定1RMが計算し直されて次回が更新されます。最後のセットで目標より2回以上多くできた練習が2回続いたら、次回の割合を2.5ポイント上げます（2-for-2ルール）。</p>'+RM_EVIDENCE+'</div></details>';
+  return {title:'自動メニュー', html: sel+goals+basis+big+plate+
+    '<div class="stackbtns" style="margin-top:12px"><button type="button" class="cta" id="rmApply">'+(inm?'今日のメニューのこの種目に、この重さを入れる':'今日のメニューに入れて、この重さで始める')+'</button><button type="button" class="ghost" data-go="rm" data-id="'+rmSel+'">推定1RMの推移を見る</button></div>'+info,
+    after(){ $('#rmSel2').addEventListener('change',ev=>{ rmSel = ev.target.value; render(false); const s = $('#rmSel2'); if(s) s.focus(); });
+      $('#view').addEventListener('click',ev=>{ let b;
+        if((b = ev.target.closest('[data-rmgoal]'))){ rmPlanOf(rmSel).goal = b.dataset.rmgoal; save(); render(false); return; }
+        if((b = ev.target.closest('[data-rmbasis]'))){ rmPlanOf(rmSel).basis = b.dataset.rmbasis; save(); render(false); return; }
+        if((b = ev.target.closest('[data-rmplate]'))){ rmPlanOf(rmSel).plate = Number(b.dataset.rmplate); save(); render(false); return; }
+        if(ev.target.closest('#rmApply')){ const M = rmMenu(rmSel); let r = db.prog.find(x=>x.id===rmSel); if(!r){ r = {id:rmSel}; db.prog.push(r); }
+          r.sets = M.sets; r.reps = M.reps; r.w = M.w; r.rest = restSec({rest:M.rest.replace('〜','').replace(/以内/,'')}) || r.rest; r.rmTarget = M.reps; r.edited = true;
+          if(db.execNow && db.execNow.id===rmSel) delete db.execNow; save(); say(e.name+'を '+kgTxt(M.w)+' kg × '+M.reps+' 回 × '+M.sets+' セットにしました'); go('exec',{id:rmSel}); } }); }
+  };
+};
+UI_NEW.push('rm','rmplan'); TABMAP.rm = 'activity'; TABMAP.rmplan = 'program';
+/* 種目を行う画面：余裕回数の欄と、自動メニューへの入口 */
+const _execR = VIEWS.exec;
+VIEWS.exec = cur=>{ const v = _execR(cur); const e = EXMAP[cur.id]; if(!e) return v; const x = db.execNow; if(!x) return v;
+  const i = Math.max(0, x.sets.findIndex(q=>!q.done)); const q = x.sets[i] || {}; const allDone = x.sets.every(s=>s.done);
+  v.html = v.html.replace(/(<div class="fnum"><span class="k">回<\/span>[\s\S]*?<\/div><\/div>)<\/div>/, '$1<div class="fnum rir"><span class="k">余裕</span><input type="number" min="0" step="1" inputmode="numeric" data-fk="rir" data-i="'+i+'" value="'+esc(q.rir==null?'':q.rir)+'" aria-label="'+(i+1)+'セット目の余裕回数、あと何回できたか"'+(allDone?' disabled':'')+'><div class="pm"><button type="button" data-pm="rir:-1" aria-label="余裕回数を1減らす">−</button><button type="button" data-pm="rir:1" aria-label="余裕回数を1増やす">＋</button></div></div></div>');
+  v.html = v.html.replace('<button type="button" class="link" data-play="'+e.id+'">動画</button>', '<button type="button" class="link" data-play="'+e.id+'">動画</button>'+(rmExercises().includes(e.id)?'<button type="button" class="link" data-go="rmplan" data-id="'+e.id+'">自動メニュー</button>':''));
+  return v; };
+/* 記録に余裕回数を残し、2-for-2 を数える */
+const _addLogR = addLog;
+addLog = function(o){
+  if(o && o.setList && db.execNow && db.execNow.id===o.id){ const dn = db.execNow.sets.filter(s=>s.done); o.setList.forEach((s,i)=>{ const q = dn[i]; if(q && q.rir!=='' && q.rir!=null) s.rir = Number(q.rir); });
+    const r = db.prog.find(x=>x.id===o.id); if(r && r.rmTarget>0 && o.setList.length){ db.rmSess = db.rmSess||{}; const A = db.rmSess[o.id] = db.rmSess[o.id]||[]; const lastSet = o.setList[o.setList.length-1];
+      A.push({d:today(), target:r.rmTarget, actual:lastSet.r}); if(A.length>20) A.shift();
+      const two = A.slice(-2); if(two.length===2 && two.every(z=>z.actual>=z.target+2)){ const P = rmPlanOf(o.id); P.bump = Math.round(((P.bump||0)+2.5)*10)/10; A.length = 0; setTimeout(()=>say('2回続けて目標より2回以上多くできたので、次回の割合を2.5ポイント上げます'), 1200); } } }
+  _addLogR(o);
+};
+/* 記録の画面：動かした重さの横に推定1RM、ベースライン比のカード（小さな折れ線つき） */
+const _activityR = VIEWS.activity;
+VIEWS.activity = ()=>{ const v = _activityR(); const ids = rmExercises(); if(!ids.length) return v;
+  const id = ids[0]; const S = rmStatus(id); const e = EXMAP[id]; if(!S) return v;
+  const cls = S.status==='維持'?'ok':S.status==='注意'?'warn':'stop';
+  v.html = v.html.replace('<p class="big">', '<p class="sub" style="margin:0">推定1RM　'+esc(e.name)+'　<strong style="font-size:1.3rem;color:#fff">'+kgTxt(S.last.ep)+' kg</strong>'+(S.last.big?'　<span class="bdg warn">誤差大きめ</span>':'')+'</p><p class="big">');
+  const card = '<button type="button" class="navrow pic" data-go="rm" data-id="'+id+'" aria-label="'+esc(e.name)+'の推定1RM '+kgTxt(S.last.ep)+'キログラム、ベースライン比 '+(S.diff>=0?'プラス':'マイナス')+kgTxt(Math.abs(S.diff))+'キログラム、'+S.status+'。押すと推移を開く"><span class="pth">'+rmChartSVG(id, true)+'</span><span class="nk">ベースライン比　'+esc(e.name)+'</span><strong>'+(S.diff>=0?'＋':'−')+kgTxt(Math.abs(S.diff))+' kg　<span class="bdg '+cls+'">'+S.status+'</span></strong>'+UI.chev+'</button>';
+  const mk = '<div class="badges" style="margin-top:12px">';
+  v.html = v.html.includes(mk) ? v.html.replace(mk, card+mk) : v.html+card;
+  return v; };
+/* CSV に推定1RMとベースラインを足す */
+const _dataR = VIEWS.data;
+VIEWS.data = ()=>{ const v = _dataR();
+  v.html = v.html.replace('<button type="button" class="ghost" id="xCsv">種目ごとの記録を保存</button>', '<button type="button" class="ghost" id="xCsv">種目ごとの記録を保存</button><button type="button" class="ghost" id="xRm">推定1RMとベースラインを保存</button>');
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const q = t=>'"'+String(t==null?'':t).replace(/"/g,'""')+'"';
+    $('#xRm').addEventListener('click',()=>{ const rows = [['日付','種目','重さkg','回数','余裕回数','推定1RM Epley','推定1RM Brzycki','ベースライン','差','判定']];
+      rmExercises().forEach(id=>{ const S = rmStatus(id); if(!S) return; S.D.forEach((p,i)=>rows.push([p.d, EXMAP[id].name, p.w, p.r, p.rir, p.ep, p.br==null?'':p.br, S.base.v, Math.round((p.ep-S.base.v)*10)/10, S.below[i]?'下回り':''])); });
+      dl('swimiq_strength_1rm_'+today()+'.csv', '﻿'+rows.map(r=>r.map(q).join(',')).join('\r\n'), 'text/csv'); }); };
+  return v; };
+/* 設定と種目の画面から行ける入口 */
+const _settingsR = VIEWS.settings;
+VIEWS.settings = ()=>{ const v = _settingsR(); v.html = v.html.replace('<h2>データ</h2>', '<h2>強さの見える化</h2><button type="button" class="navrow" data-go="rm"><span class="nk">推定1RM</span><strong>推移、ベースライン、段階</strong>'+UI.chev+'</button><button type="button" class="navrow" data-go="rmplan"><span class="nk">自動メニュー</span><strong>1RMと目的から重さを決める</strong>'+UI.chev+'</button><h2>データ</h2>'); return v; };
 
 render(false);
 </script>

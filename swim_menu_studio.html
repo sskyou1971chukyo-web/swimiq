@@ -175,6 +175,14 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 .ltPrint h3{margin:8px 0 4px;font-size:1.05em}
 .ltPrint .ltSvg{max-width:100%}
 .ltPrint .ltP{font-size:24px}
+.setPick #libPickSel{height:40px;border-radius:9px;border:2px solid #fff;font-size:15px;font-weight:700;padding:0 8px;color:var(--navy);background:#fff;max-width:220px}
+.slList{list-style:none;padding:0;margin:10px 0 0;max-height:60vh;overflow:auto}
+.slList li{display:flex;gap:6px;margin-bottom:6px}
+.slItem{flex:1;display:flex;justify-content:space-between;gap:10px;text-align:left;background:#fff;border:2px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+.slItem:hover,.slItem:focus-visible{border-color:var(--blue);background:#eef5fd}
+.slT{font-family:Menlo,Consolas,monospace;font-size:17px;white-space:pre-wrap}
+.slD{color:var(--muted);font-size:13px;white-space:nowrap;align-self:center}
+.slDel{border:2px solid var(--line);background:#fff;color:#b81c22;border-radius:8px;width:44px;font-size:18px;font-weight:700;cursor:pointer}
 .libPick select{font-size:17px;max-width:100%}
 .libCard{display:flex;gap:16px;align-items:flex-start;border:2px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
 .libThumb{flex-shrink:0;width:180px;padding:0;border:2px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;cursor:pointer;line-height:0}
@@ -622,6 +630,7 @@ body.desk .dLong{display:none}
   .dBar #mStartBox{font-size:0;white-space:nowrap}
   .dBar #mStartBox::before{content:"開始";font-size:14px;font-weight:700;color:var(--muted)}
   .dBar #mPoolBox{font-size:0}
+  .dBar #libPickSel{border-color:var(--line);flex-shrink:0}
   .dBar .btn{height:40px;font-size:15px;padding:0 12px;white-space:nowrap;flex-shrink:0}
   .dBar #mDate,.dBar #mStartBox,.dBar #mPoolBox{flex-shrink:0}
   .dBar .weekRow{margin:0;flex-wrap:nowrap;gap:4px;min-width:0;overflow-x:auto;scrollbar-width:thin;flex:0 1 auto}
@@ -742,6 +751,7 @@ body.desk .dLong{display:none}
       <span class="bandLabel" id="makeBandL">メニュー作成</span>
       <button class="btn big mk" id="btnCalc" aria-label="計算ボタンで入力"><span class="dShort">計算</span><span class="dLong">計算ボタンで入力</span></button>
       <button class="btn mk msec" id="btnAddPanel">アレンジの列を追加</button>
+      <label class="setPick" id="libPick"><span class="sr">項目から入れる</span><select id="libPickSel" aria-label="項目から入れる。見出しを選ぶと、今までに書いたセットが出ます"></select></label>
       <button class="btn mk msec" id="btnNew">新しいメニュー</button>
       <button class="btn mk pcOnly" id="wsEdit2" aria-label="週間スケジュールの設定">週間の設定</button>
       <label class="row pcOnly syncLbl" id="syncBox"><input type="checkbox" id="chkSync"> 列のスクロールをそろえる</label>
@@ -1135,6 +1145,14 @@ body.desk .dLong{display:none}
       <button class="btn red" id="yeDel">この予定を消す</button>
       <button class="btn primary big" id="yeSave">保存</button>
     </div>
+  </div>
+</div>
+<div class="ov hidden" id="slOv" role="dialog" aria-modal="true" aria-labelledby="slTitle">
+  <div class="dlg">
+    <h2><span id="slTitle"></span> <button class="btn ghost small" data-close="slOv">閉じる</button></h2>
+    <p class="muted">押すと、カーソルのある行の下に入ります（空の行なら、その行に入ります）。×で項目から消せます。</p>
+    <label class="fld">しぼりこむ<input type="text" id="slFilter" placeholder="例：Kick、IM"></label>
+    <ul id="slList" class="slList"></ul>
   </div>
 </div>
 <div class="ov hidden" id="evOv" role="dialog" aria-modal="true" aria-labelledby="evTitle">
@@ -2404,6 +2422,7 @@ function openMenu(date, session){
 }
 function commitMenu(){
   M.updated = Date.now();
+  if(typeof scheduleSetLib === 'function') scheduleSetLib();
   clearTimeout(commitMenu._w); commitMenu._w = setTimeout(renderWeekRow, 400);
   if(menuHasContent(M)) S.menus[M.id] = M; else delete S.menus[M.id];
   scheduleSave();
@@ -5917,7 +5936,7 @@ const DESK_MQ = window.matchMedia('(min-width:701px)');
 const DESK_MOVES = [
   // [部品のid, パソコンでの置き場所のid]
   ['btnPrint', 'dTopBtns'], ['btnLine', 'dTopBtns'],
-  ['mDate', 'dBar'], ['mDateJpBox', 'dBar'], ['mStartBox', 'dBar'], ['mPoolBox', 'dBar'], ['weekRow', 'dBar'], ['dBarSp', 'dBar'], ['dockShow', 'dBar'], ['btnAddPanel', 'dBar'],
+  ['mDate', 'dBar'], ['mDateJpBox', 'dBar'], ['mStartBox', 'dBar'], ['mPoolBox', 'dBar'], ['weekRow', 'dBar'], ['dBarSp', 'dBar'], ['libPick', 'dBar'], ['dockShow', 'dBar'], ['btnAddPanel', 'dBar'],
   ['btnToday', 'dOtherA'], ['mTitleBox', 'dOtherA'],
   ['btnCompare', 'dOtherB'], ['btnPlanned', 'dOtherB'], ['btnAdvToggle', 'dOtherB'], ['btnList', 'dOtherB'], ['btnHelp', 'dOtherB'], ['btnNew', 'dOtherB'], ['wsEdit2', 'dOtherB'],
   ['perSelBox', 'dOtherC'], ['printCount', 'dOtherC'], ['syncBox', 'dOtherC'],
@@ -5999,6 +6018,101 @@ function layoutBind(){
   DESK_MQ.addEventListener ? DESK_MQ.addEventListener('change', applyDeskLayout) : DESK_MQ.addListener(applyDeskLayout);
   window.addEventListener('resize', () => { if(deskOn){ fitEditor(); dockApply(); } });
   applyDeskLayout();
+}
+
+/* =====================================================================
+   練習の項目の自動登録
+   見出し（W-up、MAIN など）の下に書いたセットの行を、その見出しの項目に自動で登録する。
+   2行目の「項目から入れる」で見出しを選ぶと、今まで登録された行が出て、押すと入力欄に入る。
+   ===================================================================== */
+const SETLIB_MAX = 200;
+function setLib(){ if(!S.setLib || typeof S.setLib !== 'object') S.setLib = {cats:{}}; if(!S.setLib.cats) S.setLib.cats = {}; return S.setLib; }
+function catKey(title){ return normalize(title || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
+/* メニューの文章から（見出し、行）の組を取り出す。[ ] で何行かをまとめたセットは、まとめて1つにする */
+function setEntries(text){
+  const tot = analyzeText(text, teamNames()[0] || '全員', '6:00', '');
+  const lines = String(text || '').split('\n'), out = [];
+  tot.lines.forEach(l => {
+    if(l.type !== 'set') return;
+    if(l.grp && l.grpPos !== 'first') return;
+    const body = l.grp ? lines.slice(l.grp.first, l.grp.last + 1).map(s => s.replace(/\s+$/, '')).join('\n').trim() : lines[l.i].trim();
+    out.push({title:l.ctxTitle || '', t:body, i:l.i, last:l.grp ? l.grp.last : l.i});
+  });
+  return out;
+}
+function setLibAdd(title, t, when){
+  if(!t) return;
+  const L = setLib(), k = catKey(title) || '（見出しなし）';
+  const c = L.cats[k] || (L.cats[k] = {name:(title || '').trim() || '（見出しなし）', items:[]});
+  const key = normalize(t).replace(/\s+/g, ' ').trim();
+  let it = c.items.find(x => normalize(x.t).replace(/\s+/g, ' ').trim() === key);
+  if(it){ if(when && (!it.last || when > it.last)) it.last = when; }
+  else { c.items.push({t, n:1, last:when || todayYmd()}); if(c.items.length > SETLIB_MAX){ c.items.sort((a, b) => (b.last || '').localeCompare(a.last || '')); c.items.length = SETLIB_MAX; } }
+}
+/* 書き終えた行だけを登録する（カーソルのある行は書きかけかもしれないので、あとで） */
+let setLibTimer = null;
+function scheduleSetLib(){ clearTimeout(setLibTimer); setLibTimer = setTimeout(setLibFromMenu, 1500); }
+function setLibFromMenu(){
+  if(!M) return;
+  let changed = false;
+  M.panels.forEach((p, pi) => {
+    setEntries(p.text).forEach(e => {
+      if(pi === curPanel && curLine >= e.i && curLine <= e.last) return;
+      const before = JSON.stringify(setLib().cats[catKey(e.title) || '（見出しなし）'] || null);
+      setLibAdd(e.title, e.t, M.date);
+      if(JSON.stringify(setLib().cats[catKey(e.title) || '（見出しなし）']) !== before) changed = true;
+    });
+  });
+  if(changed){ scheduleSave(); renderSetLibCats(); }
+}
+/* はじめて使うとき、今までに保存したメニューから登録する */
+function setLibSeed(){
+  const L = setLib(); if(L.seeded) return;
+  Object.values(S.menus || {}).sort((a, b) => (a.date || '').localeCompare(b.date || '')).forEach(m => (m.panels || []).forEach(p => setEntries(p.text).forEach(e => setLibAdd(e.title, e.t, m.date))));
+  L.seeded = true; scheduleSave();
+}
+/* ---------- 画面 ---------- */
+function renderSetLibCats(){
+  const sel = $('libPickSel'); if(!sel) return;
+  const L = setLib(), cur = sel.value;
+  const keys = Object.keys(L.cats).filter(k => L.cats[k].items.length).sort((a, b) => L.cats[b].items.length - L.cats[a].items.length);
+  sel.innerHTML = '<option value="">項目から入れる ▾</option>' + keys.map(k => '<option value="' + esc(k) + '">' + esc(L.cats[k].name) + '（' + L.cats[k].items.length + '）</option>').join('');
+  if(keys.includes(cur)) sel.value = cur;
+}
+function openSetLib(k){
+  const c = setLib().cats[k]; if(!c) return;
+  const items = c.items.slice().sort((a, b) => (b.last || '').localeCompare(a.last || ''));
+  $('slTitle').textContent = c.name + ' の項目（' + items.length + '）';
+  $('slList').innerHTML = items.map((x, i) => '<li><button type="button" class="slItem" data-sl="' + i + '" aria-label="' + esc(x.t.replace(/\n/g, ' ') + '　を入力欄に入れる　最後に使った日 ' + (x.last ? jpDate(x.last) : '')) + '"><span class="slT">' + esc(x.t) + '</span><span class="slD">' + (x.last ? shortDate(x.last) : '') + '</span></button><button type="button" class="slDel" data-sldel="' + i + '" aria-label="' + esc(x.t.replace(/\n/g, ' ')) + 'を項目から消す">×</button></li>').join('');
+  $('slOv').dataset.k = k; $('slOv')._items = items;
+  $('slFilter').value = '';
+  showOv('slOv');
+  setTimeout(() => $('slFilter').focus(), 30);
+}
+function insertSetLine(t){
+  const ta = panelTA(curPanel); if(!ta) return;
+  const all = ta.value.split('\n');
+  const at = curLine >= 0 ? Math.min(curLine, all.length - 1) : all.length - 1;
+  const add = t.split('\n');
+  let start;
+  if(!all[at] || !all[at].trim()){ all.splice(at, 1, ...add); start = at; }
+  else { all.splice(at + 1, 0, ...add); start = at + 1; }
+  const caret = all.slice(0, start + add.length).join('\n').length;
+  replaceValue(ta, all.join('\n'), caret);
+}
+function setLibBind(){
+  $('libPickSel').addEventListener('change', () => { const k = $('libPickSel').value; if(k) openSetLib(k); $('libPickSel').value = ''; });
+  $('slList').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    const items = $('slOv')._items, k = $('slOv').dataset.k, c = setLib().cats[k];
+    if(b.dataset.sl != null){ const x = items[+b.dataset.sl]; closeOv('slOv'); insertSetLine(x.t); toast('入れました：' + x.t.replace(/\n/g, ' ')); return; }
+    if(b.dataset.sldel != null){ const x = items[+b.dataset.sldel]; c.items = c.items.filter(y => y !== x); if(!c.items.length) delete setLib().cats[k]; scheduleSave(); renderSetLibCats(); if(setLib().cats[k]) openSetLib(k); else closeOv('slOv'); toast('項目から消しました'); }
+  });
+  $('slFilter').addEventListener('input', () => {
+    const q = normalize($('slFilter').value).trim().toLowerCase();
+    $('slList').querySelectorAll('li').forEach(li => { li.style.display = !q || normalize(li.querySelector('.slT').textContent).toLowerCase().includes(q) ? '' : 'none'; });
+  });
+  setLibSeed(); renderSetLibCats();
 }
 
 /* =====================================================================
@@ -6200,6 +6314,7 @@ function backupLoad(file){
       ensurePlanMaps();
       (o.races || []).forEach(r => { if(!S.races.find(x => x.name === r.name && x.date === r.date)) S.races.push(r); });
       if(o.lt){ const L = ltStore(); ['steps', 'races', 'turns', 'cs', 'speed'].forEach(k => (o.lt[k] || []).forEach(x => { if(!L[k].some(y => y.id === x.id)) L[k].push(x); })); Object.keys(o.lt.profiles || {}).forEach(n => { if(!L.profiles[n]) L.profiles[n] = o.lt.profiles[n]; }); }
+      if(o.setLib && o.setLib.cats) Object.keys(o.setLib.cats).forEach(k => (o.setLib.cats[k].items || []).forEach(x => setLibAdd(o.setLib.cats[k].name, x.t, x.last)));
       (o.events || []).forEach(e => { if(!yEvents().find(x => x.id === e.id)) yEvents().push(e); });
       (o.athletes || []).forEach(x => { if(!athletes().find(y => y.name === x.name)) athletes().push(x); });
       Object.keys(o.activePlans || {}).forEach(t => { if(!S.activePlans[t]) S.activePlans[t] = o.activePlans[t]; });
@@ -6267,7 +6382,7 @@ function init(){
   $('panelTabs').addEventListener('click', e => { const b = e.target.closest('[data-pt]'); if(b) selectPanel(+b.dataset.pt); });
   $('btnPlanned').addEventListener('click', openPlanned);
   $('wsEdit2').addEventListener('click', openWeekSched);
-  yearBind(); testsBind(); layoutBind(); document.body.classList.add('vMenuOn');
+  yearBind(); testsBind(); setLibBind(); layoutBind(); document.body.classList.add('vMenuOn');
   libBind(); libInit();
   /* 取りやめたClaude相談機能の名残りを消す */
   ['prompts','promptSel','consults','apiModel','apiToolset','apiAutoFix','apiSpent'].forEach(k => delete S.settings[k]);

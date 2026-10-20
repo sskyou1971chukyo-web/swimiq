@@ -788,6 +788,7 @@ ul.sl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
 .qarow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch;margin-top:6px}
 .qarow input{font-size:1.15rem;min-width:0;height:52px;margin-top:0;background:var(--soft);color:#fff;border-color:var(--line);border-radius:12px;color-scheme:dark}
 .qarow .cta{margin:0;min-width:5.2em;padding:0 18px;height:52px;white-space:nowrap}
+.qapick{border-color:var(--am)!important}
 </style>
 </head>
 <body>
@@ -5804,6 +5805,147 @@ VIEWS.program = ()=>{ const v = _programQA();
     '<p class="sub" id="qaHelp">名前を入れて追加を押すと、今日のメニューに入ります。似た種目があるときは、入力するかを聞きます。</p></section>';
   v.html = v.html.replace(/<details class="more"( open)?><summary>ひな形から入れる/, m=>box+m);
   return v; };
+
+
+/* ============ 名前で入れるときの判定を直す ============
+ 「懸垂」のように、体操の移行データに同じ名前の種目があると、聞かずにそちらが入っていた。
+ 同じ名前や言い換え（懸垂＝プルアップ）の候補が複数あるときは、必ず一覧を出して選んでもらう。
+ 既に今日のメニューに入っている候補があれば、それを伝えて止める。黄色は「既にある種目を入れる」側に付ける。 */
+qaSubmit = function(){
+  const i = $('#qaName'); const name = (i ? i.value : '').trim();
+  if(!name){ say('種目の名前を入れてください'); if(i) i.focus(); return; }
+  let sim = uexSimilar(name).filter(x=>x.s>=0.6);
+  const exact = EX.filter(e=>qaPlain(e.name)===qaPlain(name));
+  exact.forEach(e=>{ if(!sim.some(x=>x.e.id===e.id)) sim.push({e, s:1}); });
+  /* 根拠のある元の種目を先に、体操の移行データは後ろに */
+  sim.sort((a,b)=>((a.e.gym?1:0)-(b.e.gym?1:0)) || (b.s-a.s) || ((b.e.user?0:1)-(a.e.user?0:1)));
+  const inm = sim.find(x=>x.s>=0.8 && db.prog.some(r=>r.id===x.e.id));
+  if(inm){ say(inm.e.name+'は、もう今日のメニューに入っています'); if(i){ i.select(); } return; }
+  if(sim.length===1 && sim[0].s>=0.95){ qaAddToMenu(sim[0].e.id); return; }
+  if(!sim.length){ qaCreate(name); return; }
+  sim = sim.slice(0,4);
+  uiOpen('似た種目があります', '<p>「'+esc(name)+'」に似た種目が'+sim.length+'件あります。入力しますか？</p><p class="sub">同じ種目なら、下から選ぶと、その種目が今日のメニューに入ります。</p>'+
+    '<ul class="rows">'+sim.map((x,k)=>'<li><button type="button" class="row'+(k===0?' qapick':'')+'" data-qause="'+x.e.id+'">'+thumb(x.e,'sm')+'<span class="rowtxt"><strong>'+esc(x.e.name)+'</strong><span class="sub">'+esc(CATS[x.e.cat]||'')+(x.e.gym?'　体操の移行データ':'')+(x.e.user?'　自分で登録':'')+'</span></span></button></li>').join('')+'</ul>'+
+    '<div class="menu"><button type="button" class="ghost" id="qaNew">「'+esc(name)+'」を別の新しい種目として入力する</button><button type="button" class="ghost" id="qaCancel">やめる</button></div>');
+};
+
+/* ============ 記録をスプレッドシートに送る（GAS） ============
+ 選手は設定で名前を一度入れる。以後、記録（種目ごと）、練習の終わり、今日の調子を保存するたびに、
+ 裏で SYNC_URL（GASのウェブアプリ）へ送る。電波がなければ携帯に溜めて、つながったときに送る。
+ 送ったものは db.sync.sent に印を付けて、二重に送らない。 */
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbwLwH7CFdT8L8FNq1e6znC-d7WucNVS5khVUp1icT3_-2ZMWh89FSRNOl10pBg2z7bV/exec';
+function syncUrl(){ return (db.syncUrl||SYNC_URL||'').trim(); }
+function syncOn(){ return !!(syncUrl() && (db.me||'').trim()); }
+function syncSetsTxt(l){ return (l.setList||[]).map(s=>(Number(s.w)>0?kgTxt(s.w)+'kg×':'')+s.r+(s.rir!=null&&s.rir!==''?'(余'+s.rir+')':'')).join(', '); }
+function syncItems(){
+  const S = db.sync = db.sync||{sent:{}}; S.sent = S.sent||{}; const out = [];
+  (db.logs||[]).forEach(l=>{ if(l.kind!=='done' || !EXMAP[l.id]) return; const uid = 'L|'+l.t+'|'+l.id; if(S.sent[uid]) return;
+    const best = (l.setList||[]).map(s=>e1rm(s.w,s.r)).filter(x=>x>0); const vol = l.vol!=null ? l.vol : (l.setList||[]).reduce((a,s)=>a+(Number(s.w)||0)*(Number(s.r)||0),0);
+    out.push({uid, kind:'記録', date:dayOf(l.t), exId:l.id, exName:EXMAP[l.id].name, sets:syncSetsTxt(l), vol:Math.round(vol*10)/10||'', e1rm:best.length?Math.max.apply(null,best):'', rs:(l.reps||'')+(l.sets?' × '+l.sets:''), memo:l.memo||'', raw:l}); });
+  (db.sessions||[]).forEach(s=>{ const uid = 'S|'+(s.id||s.end); if(S.sent[uid]) return;
+    out.push({uid, kind:'練習', date:s.date, vol:s.vol||'', rpe:s.rpe||'', min:s.min||'', memo:s.memo||'', raw:s}); });
+  (db.daily||[]).forEach(d=>{ const sig = JSON.stringify(d); const uid = 'D|'+d.date; if(S.sent[uid]===sig) return;
+    out.push({uid, kind:'調子', date:d.date, sleep:d.sleep||'', fat:d.fat||'', sore:d.sore||'', str:d.str||'', back:d.backPain||'', memo:d.memo||'', raw:d, _sig:sig}); });
+  return out;
+}
+let syncBusy = false, syncTm = null;
+function syncStatusTxt(){ const S = db.sync||{}; const n = syncOn() ? syncItems().length : 0;
+  if(!syncUrl()) return '送り先が未設定';
+  if(!(db.me||'').trim()) return '名前が未設定';
+  if(S.err) return '送れていません（'+S.err+'）';
+  return (n ? '送信待ち '+n+' 件' : 'すべて送信済み')+(S.last ? '　最後に送った '+syncClock(S.last) : ''); }
+function syncClock(iso){ const d = new Date(iso); if(isNaN(d)) return ''; const td = today(); const hm = String(d.getHours())+':'+String(d.getMinutes()).padStart(2,'0'); return (dayOf(iso)===td ? '今日 ' : fmtMD(dayOf(iso))+' ')+hm; }
+function syncPaint(){ const el = $('#syncSt'); if(el) el.textContent = syncStatusTxt(); }
+async function syncNow(manual){
+  if(!syncOn()){ if(manual) say(syncStatusTxt()); return; }
+  if(syncBusy) return; const items = syncItems(); if(!items.length){ if(manual) say('送るものはありません'); syncPaint(); return; }
+  syncBusy = true; try{
+    const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:(db.me||'').trim(), items:items.map(x=>{ const y = Object.assign({}, x); delete y._sig; return y; })})});
+    const j = await res.json();
+    if(!j.ok) throw new Error(j.error||'受け取り側の失敗');
+    const S = db.sync = db.sync||{sent:{}}; S.sent = S.sent||{}; items.forEach(x=>{ S.sent[x.uid] = x._sig || 1; }); S.last = new Date().toISOString(); delete S.err; save();
+    if(manual) say(items.length+'件を送りました');
+  }catch(e){ const S = db.sync = db.sync||{sent:{}}; S.err = /Failed to fetch|NetworkError|Load failed/.test(String(e)) ? '通信できません' : String(e.message||e); save(); if(manual) say('送れませんでした。'+S.err); }
+  finally{ syncBusy = false; syncPaint(); }
+}
+function syncLater(){ clearTimeout(syncTm); syncTm = setTimeout(()=>syncNow(false), 2500); }
+const _saveSync = save;
+save = function(){ _saveSync(); if(syncOn() && !syncBusy) syncLater(); };
+window.addEventListener('online', ()=>syncNow(false));
+setTimeout(()=>syncNow(false), 1500);
+
+/* 設定：名前、送り先、状態 */
+const _settingsSync = VIEWS.settings;
+VIEWS.settings = ()=>{ const v = _settingsSync();
+  v.html = v.html.replace('<h2>データ</h2>', '<h2>コーチに記録を送る</h2>'+
+    '<section class="qadd" aria-labelledby="syT"><h2 id="syT" class="sr">コーチに記録を送る設定</h2>'+
+    '<label class="trlab" for="syName" style="margin-top:0">あなたの名前（コーチに届く記録に付きます）</label>'+
+    '<div class="qarow"><input type="text" id="syName" class="txt" placeholder="例：佐々木 祐一郎" autocomplete="name" value="'+esc(db.me||'')+'"><button type="button" class="cta" id="sySave">保存</button></div>'+
+    '<p class="sub" id="syncSt" role="status" style="margin-top:10px">'+esc(syncStatusTxt())+'</p>'+
+    '<div class="stackbtns" style="margin-top:10px"><button type="button" class="ghost" id="syNow">今すぐ送る</button></div>'+
+    '<details class="more"><summary>送り先のアドレス（コーチが設定）</summary><div class="inner"><label class="trlab">GASのウェブアプリのURL<input type="url" id="syUrl" class="txt" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(db.syncUrl||'')+'"></label><p class="sub">空のままなら、ファイルに書かれた送り先（'+(SYNC_URL?'設定済み':'未設定')+'）を使います。</p><button type="button" class="ghost" id="syUrlSave">送り先を保存する</button></div></details>'+
+    '</section><h2>データ</h2>');
+  v.html = v.html.replace('<h2>管理（コーチ向け）</h2>', '<h2>管理（コーチ向け）</h2><button type="button" class="navrow" data-go="coach"><span class="nk">全員の記録</span><strong>選手の一覧を見る</strong>'+UI.chev+'</button>');
+  const af = v.after; v.after = function(){ if(af) af.apply(this, arguments);
+    const ns = $('#sySave'); if(ns) ns.addEventListener('click',()=>{ db.me = $('#syName').value.trim(); save(); say(db.me ? db.me+'として保存しました' : '名前を消しました'); syncPaint(); syncNow(false); });
+    const nw = $('#syNow'); if(nw) nw.addEventListener('click',()=>syncNow(true));
+    const us = $('#syUrlSave'); if(us) us.addEventListener('click',()=>{ const u = $('#syUrl').value.trim(); if(u && !/^https:\/\/script\.google\.com\//.test(u)){ say('GASのウェブアプリのURLは https://script.google.com/ から始まります'); return; } db.syncUrl = u; save(); say(u?'送り先を保存しました':'送り先を消しました'); syncPaint(); });
+  };
+  return v; };
+
+/* ============ コーチの画面：全員の記録 ============ */
+let coachRows = null, coachErr = '', coachLoading = false, coachWho = null;
+function coachFetch(){
+  const u = syncUrl(); const k = (db.coachKey||'').trim(); if(!u || !k){ coachErr = !u ? '送り先が未設定です。設定の「送り先のアドレス」に入れてください。' : ''; return Promise.resolve(); }
+  coachLoading = true; coachErr = '';
+  return fetch(u+(u.includes('?')?'&':'?')+'action=all&key='+encodeURIComponent(k)).then(r=>r.json()).then(j=>{ if(!j.ok) throw new Error(j.error||'失敗'); coachRows = j.rows||[]; db.coachAt = new Date().toISOString(); save(); })
+    .catch(e=>{ coachErr = /Failed to fetch|NetworkError|Load failed/.test(String(e)) ? '通信できません' : String(e.message||e); }).finally(()=>{ coachLoading = false; });
+}
+function coachGroups(){
+  const G = {}; (coachRows||[]).forEach(r=>{ const n = String(r['選手']||'').trim()||'（名前なし）'; (G[n] = G[n]||[]).push(r); });
+  return Object.keys(G).sort().map(n=>{ const rs = G[n]; const dates = rs.map(r=>String(r['日付']||'').slice(0,10)).filter(Boolean).sort(); const last = dates[dates.length-1]||'';
+    const wk = new Date(); wk.setDate(wk.getDate()-6); const w0 = wk.toISOString().slice(0,10);
+    const vol = rs.filter(r=>r['種類']==='記録' && String(r['日付']).slice(0,10)>=w0).reduce((a,r)=>a+(Number(r['動かした重さkg'])||0),0);
+    const cond = rs.filter(r=>r['種類']==='調子').sort((a,b)=>String(a['日付'])<String(b['日付'])?1:-1)[0]||null;
+    return {name:n, rows:rs, last, vol:Math.round(vol), cond, n:rs.filter(r=>r['種類']==='記録').length}; });
+}
+VIEWS.coach = ()=>{
+  const key = (db.coachKey||'').trim();
+  const head = '<p class="kicker" style="margin-top:12px">コーチ</p><h2 id="coT" tabindex="-1">全員の記録</h2>';
+  if(!key || !syncUrl()){
+    return {title:'全員の記録', html: head+'<section class="qadd"><label class="trlab" for="coKey" style="margin-top:0">コーチの合言葉（GASのコードに書いたもの）</label><div class="qarow"><input type="password" id="coKey" class="txt" autocomplete="current-password"><button type="button" class="cta" id="coKeySave">開く</button></div>'+(syncUrl()?'':'<p class="note warn">送り先が未設定です。設定の「送り先のアドレス」にGASのURLを入れてください。</p>')+'</section>',
+      after(){ const b = $('#coKeySave'); b.addEventListener('click',()=>{ db.coachKey = $('#coKey').value.trim(); save(); render(false); coachFetch().then(()=>{ render(false); $('#coT').focus(); }); }); } };
+  }
+  const groups = coachRows ? coachGroups() : [];
+  let body;
+  if(coachLoading) body = '<p class="sub" role="status">読み込んでいます</p>';
+  else if(coachErr) body = '<div class="note warn" role="alert">'+esc(coachErr)+'</div>';
+  else if(!coachRows) body = '<p class="sub">「更新」を押すと読み込みます。</p>';
+  else if(!groups.length) body = '<p class="sub">まだ記録が届いていません。</p>';
+  else body = '<ul class="rows">'+groups.map(g=>{ const c = g.cond; const back = c && Number(c['腰痛'])>=3;
+      return '<li><button type="button" class="row" data-cowho="'+esc(g.name)+'"><span class="rowtxt"><strong>'+esc(g.name)+'</strong><span class="sub">最後の記録 '+(g.last?uiDate(g.last):'なし')+'　今週 '+g.vol.toLocaleString()+' kg　記録 '+g.n+' 件'+(c?'　睡眠 '+(c['睡眠h']||'–')+'h 疲れ '+(c['疲れ']||'–'):'')+'</span>'+(back?'<span class="bdg stop">腰 '+c['腰痛']+'</span>':'')+'</span></button></li>'; }).join('')+'</ul>';
+  return {title:'全員の記録', html: head+'<div class="stackbtns" style="margin:10px 0"><button type="button" class="cta" id="coReload">更新'+(db.coachAt?'（前回 '+syncClock(db.coachAt)+'）':'')+'</button></div>'+body+
+      '<details class="more" style="margin-top:16px"><summary>合言葉を変える</summary><div class="inner"><button type="button" class="ghost" id="coKeyClear">合言葉を消して入れ直す</button></div></details>',
+    after(){ if(!coachRows && !coachLoading && !coachErr){ coachFetch().then(()=>{ render(false); $('#coT').focus(); }); render(false); return; }
+      $('#view').onclick = e=>{ let b;
+        if((b = e.target.closest('#coReload'))){ coachRows = coachRows||[]; coachFetch().then(()=>{ render(false); $('#coT').focus(); }); coachLoading = true; render(false); return; }
+        if((b = e.target.closest('[data-cowho]'))){ coachWho = b.dataset.cowho; go('coachone'); return; }
+        if(e.target.closest('#coKeyClear')){ delete db.coachKey; coachRows = null; save(); render(false); return; } }; }
+  };
+};
+VIEWS.coachone = ()=>{
+  const g = coachGroups().find(x=>x.name===coachWho); if(!g) return {title:'選手', html:'<div class="note">記録が見つかりません。</div>'};
+  const byDate = {}; g.rows.forEach(r=>{ const d = String(r['日付']||'').slice(0,10); (byDate[d] = byDate[d]||[]).push(r); });
+  const days = Object.keys(byDate).sort().reverse().slice(0,30);
+  const html = '<p class="kicker" style="margin-top:12px">コーチ　選手</p><h2 id="coT" tabindex="-1">'+esc(g.name)+'</h2><p class="sub">今週 '+g.vol.toLocaleString()+' kg　記録 '+g.n+' 件</p>'+
+    days.map(d=>{ const rs = byDate[d]; const cond = rs.find(r=>r['種類']==='調子'); const ses = rs.find(r=>r['種類']==='練習'); const logs = rs.filter(r=>r['種類']==='記録');
+      return '<h2 class="blk">'+uiDate(d)+'</h2>'+
+        (cond?'<p class="sub">調子　睡眠 '+(cond['睡眠h']||'–')+'h　疲れ '+(cond['疲れ']||'–')+(cond['筋肉痛']?'　筋肉痛 '+cond['筋肉痛']:'')+(cond['腰痛']?'　<span class="'+(Number(cond['腰痛'])>=3?'bdg stop':'')+'">腰痛 '+cond['腰痛']+'</span>':'')+'</p>':'')+
+        (ses?'<p class="sub">練習　'+(ses['時間分']?ses['時間分']+'分':'')+(ses['きつさ']?'　きつさ '+ses['きつさ']:'')+(ses['動かした重さkg']?'　'+Number(ses['動かした重さkg']).toLocaleString()+' kg':'')+'</p>':'')+
+        (logs.length?'<ul class="rows">'+logs.map(r=>'<li class="row" style="display:block"><strong>'+esc(r['種目'])+'</strong><span class="sub" style="display:block">'+esc(r['セットの内容']||r['回数×セット']||'')+(r['推定1RM']?'　推定1RM '+r['推定1RM']+' kg':'')+'</span></li>').join('')+'</ul>':''); }).join('');
+  return {title:'選手', html, after(){ $('#coT').focus(); }};
+};
+UI_NEW.push('coach'); UI_NEW.push('coachone'); TABMAP.coach = 'settings'; TABMAP.coachone = 'settings';
 
 render(false);
 </script>

@@ -5838,13 +5838,14 @@ function syncUrl(){ return (db.syncUrl||SYNC_URL||'').trim(); }
 function syncOn(){ return !!(syncUrl() && (db.me||'').trim()); }
 function syncSetsTxt(l){ return (l.setList||[]).map(s=>(Number(s.w)>0?kgTxt(s.w)+'kg×':'')+s.r+(s.rir!=null&&s.rir!==''?'(余'+s.rir+')':'')).join(', '); }
 function syncItems(){
-  const S = db.sync = db.sync||{sent:{}}; S.sent = S.sent||{}; const out = [];
-  (db.logs||[]).forEach(l=>{ if(l.kind!=='done' || !EXMAP[l.id]) return; const uid = 'L|'+l.t+'|'+l.id; if(S.sent[uid]) return;
+  const S = db.sync = db.sync||{sent:{}}; S.sent = S.sent||{}; const out = []; const me = (db.me||'').trim();
+  /* uid に名前を含める。同じ日付の「調子」が別の選手の行を上書きしていたため */
+  (db.logs||[]).forEach(l=>{ if(l.kind!=='done' || !EXMAP[l.id]) return; const old = 'L|'+l.t+'|'+l.id; const uid = 'L|'+me+'|'+l.t+'|'+l.id; if(S.sent[uid] || S.sent[old]) return;
     const best = (l.setList||[]).map(s=>e1rm(s.w,s.r)).filter(x=>x>0); const vol = l.vol!=null ? l.vol : (l.setList||[]).reduce((a,s)=>a+(Number(s.w)||0)*(Number(s.r)||0),0);
     out.push({uid, kind:'記録', date:dayOf(l.t), exId:l.id, exName:EXMAP[l.id].name, sets:syncSetsTxt(l), vol:Math.round(vol*10)/10||'', e1rm:best.length?Math.max.apply(null,best):'', rs:(l.reps||'')+(l.sets?' × '+l.sets:''), memo:l.memo||'', raw:l}); });
-  (db.sessions||[]).forEach(s=>{ const uid = 'S|'+(s.id||s.end); if(S.sent[uid]) return;
+  (db.sessions||[]).forEach(s=>{ const old = 'S|'+(s.id||s.end); const uid = 'S|'+me+'|'+(s.id||s.end); if(S.sent[uid] || S.sent[old]) return;
     out.push({uid, kind:'練習', date:s.date, vol:s.vol||'', rpe:s.rpe||'', min:s.min||'', memo:s.memo||'', raw:s}); });
-  (db.daily||[]).forEach(d=>{ const sig = JSON.stringify(d); const uid = 'D|'+d.date; if(S.sent[uid]===sig) return;
+  (db.daily||[]).forEach(d=>{ const sig = JSON.stringify(d); const old = 'D|'+d.date; const uid = 'D|'+me+'|'+d.date; if(S.sent[uid]===sig || S.sent[old]===sig) return;
     out.push({uid, kind:'調子', date:d.date, sleep:d.sleep||'', fat:d.fat||'', sore:d.sore||'', str:d.str||'', back:d.backPain||'', memo:d.memo||'', raw:d, _sig:sig}); });
   return out;
 }
@@ -5941,11 +5942,97 @@ VIEWS.coachone = ()=>{
     days.map(d=>{ const rs = byDate[d]; const cond = rs.find(r=>r['種類']==='調子'); const ses = rs.find(r=>r['種類']==='練習'); const logs = rs.filter(r=>r['種類']==='記録');
       return '<h2 class="blk">'+uiDate(d)+'</h2>'+
         (cond?'<p class="sub">調子　睡眠 '+(cond['睡眠h']||'–')+'h　疲れ '+(cond['疲れ']||'–')+(cond['筋肉痛']?'　筋肉痛 '+cond['筋肉痛']:'')+(cond['腰痛']?'　<span class="'+(Number(cond['腰痛'])>=3?'bdg stop':'')+'">腰痛 '+cond['腰痛']+'</span>':'')+'</p>':'')+
-        (ses?'<p class="sub">練習　'+(ses['時間分']?ses['時間分']+'分':'')+(ses['きつさ']?'　きつさ '+ses['きつさ']:'')+(ses['動かした重さkg']?'　'+Number(ses['動かした重さkg']).toLocaleString()+' kg':'')+'</p>':'')+
+        rs.filter(r=>r['種類']==='測定').map(r=>'<p class="sub">測定　'+esc(r['セットの内容']||'')+'</p>').join('')+(ses?'<p class="sub">練習　'+(ses['時間分']?ses['時間分']+'分':'')+(ses['きつさ']?'　きつさ '+ses['きつさ']:'')+(ses['動かした重さkg']?'　'+Number(ses['動かした重さkg']).toLocaleString()+' kg':'')+'</p>':'')+
         (logs.length?'<ul class="rows">'+logs.map(r=>'<li class="row" style="display:block"><strong>'+esc(r['種目'])+'</strong><span class="sub" style="display:block">'+esc(r['セットの内容']||r['回数×セット']||'')+(r['推定1RM']?'　推定1RM '+r['推定1RM']+' kg':'')+'</span></li>').join('')+'</ul>':''); }).join('');
   return {title:'選手', html, after(){ $('#coT').focus(); }};
 };
 UI_NEW.push('coach'); UI_NEW.push('coachone'); TABMAP.coach = 'settings'; TABMAP.coachone = 'settings';
+
+
+/* ============ 体重とジャンプ（CMJ・SJ）の記録と、推定ピークパワー ============
+ 体重、反動ありのジャンプ（CMJ）、反動なしのジャンプ（SJ）の高さを記録し、
+ Sayers らの式で下半身の推定ピークパワー（ワット）を出す。
+ SJ の式は原文の本文で確認した。CMJ の式は原文の表（表3）を読めず、二次資料の引用で確認した。
+ Tessier ら（2013）は、この種の式を個人の変化の追跡に使うには誤差が大きいと報告しているので、画面では「目安」と書く。
+ 式は大学生の男女（運動選手と体育の学生）から作られたもので、ジュニアには当てはめない（Duncan ら 2013）。 */
+Object.assign(REFS, {
+  sayers1999:'Sayers SP, Harackiewicz DV, Harman EA, Frykman PN, Rosenstein MT. Cross-validation of three jump power equations. Med Sci Sports Exerc. 1999;31(4):572-577.',
+  tessier2013:'Tessier JF, Basset FA, Simoneau M, Teasdale N. Lower-limb power cannot be estimated accurately from vertical jump tests. J Hum Kinet. 2013;38:5-13.',
+  duncan2013:'Duncan MJ, Hankey J, Nevill AM. Peak-power estimation equations in 12- to 16-year-old children: comparing linear with allometric models. Pediatr Exerc Sci. 2013;25(3):385-393.'
+});
+REF_ORDER.push('sayers1999','tessier2013','duncan2013');
+REF_URL.sayers1999 = 'https://www.unm.edu/~rrobergs/478SayersText.doc';
+REF_URL.tessier2013 = 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3827754';
+REF_URL.duncan2013 = 'https://wlv.openrepository.com/server/api/core/bitstreams/8a434998-78b6-4dc8-b351-5d367fd442ff/content';
+if(typeof REF_NOTE==='object'){
+  REF_NOTE.sayers1999 = '大学生108人（男59、女49）の壁タッチ式の跳躍高と体重から、フォースプレートで測ったピークパワーを推定する式を作った。反動なし（SJ）の式は、ピークパワー（W）＝60.7×跳躍高（cm）＋45.3×体重（kg）−2055（決定係数0.88、誤差の目安373W）。反動あり（CMJ）の式はSJより当てはまりが悪いと本文にある。';
+  REF_NOTE.tessier2013 = 'ホッケー審判67人と一流選手20人で検証し、跳躍高と体重からの推定は個人のパワーの変化を追うには誤差が大きい（最小の検出可能な差が約700〜800W）と結論。推定値は「跳ぶ力の目安」として扱うべきとしている。';
+  REF_NOTE.duncan2013 = '12〜16歳91人では、大人向けの式（Sayers のSJとCMJなど）は実測と有意にずれた。子ども向けには体重と年齢と性別を含む別の式が必要と報告。';
+}
+if(typeof REF_WARN==='object'){
+  REF_WARN.sayers1999 = 'SJの式は原文の本文で確認した。CMJの式（51.9×跳躍高＋48.9×体重−2007）は原文の表3を読めておらず、Öncen ら（2018）など二次資料での引用で確認した。';
+}
+function jumpPow(kind, h, m){ h = Number(h); m = Number(m); if(!(h>0) || !(m>0)) return null;
+  return kind==='sj' ? Math.round(60.7*h + 45.3*m - 2055) : Math.round(51.9*h + 48.9*m - 2007); }
+function jumpLastW(){ const j = [...(db.jumps||[])].sort((a,b)=>a.date<b.date?1:-1).find(x=>Number(x.w)>0); if(j) return j.w;
+  const t = [...(db.tests||[])].sort((a,b)=>a.date<b.date?1:-1).find(x=>Number(x.w)>0); return t ? t.w : ''; }
+VIEWS.jump = ()=>{
+  const js = [...(db.jumps||[])].sort((a,b)=>a.date<b.date?1:-1);
+  const last = js[0]; const w0 = jumpLastW();
+  const diff = (k,i)=>{ const c = js[i][k]; if(c===''||c==null) return ''; const p = js[i+1] && js[i+1][k]; if(p===''||p==null) return ''; const d = Math.round((c-p)*10)/10; return d===0?'' : '（前回から'+(d>0?'プラス':'マイナス')+Math.abs(d)+'）'; };
+  const est = (j, kind)=>{ const P = jumpPow(kind, j[kind], j.w); return P ? '　目安 '+P.toLocaleString()+' W　'+(Math.round(P/j.w*10)/10)+' W/kg' : ''; };
+  return {title:'体重とジャンプ', html:
+    '<p class="kicker" style="margin-top:12px">測定</p><h2 id="jT" tabindex="-1">体重とジャンプ</h2>'+
+    '<p class="sub">反動あり（CMJ）は、立った姿勢から一度しゃがんでから跳ぶ。反動なし（SJ）は、しゃがんだ姿勢で止まってから跳ぶ。測り方（腕振りの有無、壁タッチか機器か）は毎回同じにしてください。推定の式は壁タッチ式の高さから作られています。</p>'+
+    '<form id="jForm" class="logform"><label class="wide">測った日<input type="date" id="jDate" value="'+today()+'"></label>'+
+    '<label class="wide">体重（キログラム）<input type="number" id="jW" step="0.1" min="0" inputmode="decimal" value="'+esc(w0)+'"></label>'+
+    '<label class="wide">反動あり CMJ（センチ）<input type="number" id="jCmj" step="0.5" min="0" inputmode="decimal"></label>'+
+    '<label class="wide">反動なし SJ（センチ）<input type="number" id="jSj" step="0.5" min="0" inputmode="decimal"></label>'+
+    '<label class="wide">メモ<input type="text" id="jM" placeholder="例：練習前、壁タッチ式"></label>'+
+    '<section class="qcard wide" style="grid-column:1/-1" aria-live="polite" aria-label="推定ピークパワー"><p class="kicker">推定ピークパワー（目安）</p><p id="jEst" class="sub" style="font-size:1.15rem;margin:4px 0 0">体重と高さを入れると出ます</p></section>'+
+    '<button type="submit" class="cta wide">この測定を記録する</button></form>'+
+    '<details class="more"><summary>推定のしかたと根拠（星2つ）</summary><div class="inner">'+
+      '<p>反動なし（SJ）　ピークパワー（W）＝60.7×高さ（cm）＋45.3×体重（kg）−2055</p><p>反動あり（CMJ）　ピークパワー（W）＝51.9×高さ（cm）＋48.9×体重（kg）−2007</p>'+
+      '<div class="note warn">この式は大学生の男女から作られたもので、競泳選手を直接調べたものではありません（星2つ）。Tessier ら（2013）は、個人の変化を追うには誤差が大きいと報告しています。推定値は「跳ぶ力の目安」として、まず高さそのものの変化を見てください。ジュニアには大人向けの式を当てはめません（Duncan ら 2013）。CMJの式は原文の表を読めておらず、二次資料の引用で確認しました。</div>'+
+      srcBox(['sayers1999','tessier2013','duncan2013'])+'</div></details>'+
+    '<h2>これまでの記録（新しい順）</h2>'+(js.length ? '<ul class="hist">'+js.map((j,i)=>'<li><strong>'+j.date+'</strong>'+
+      (j.w!==''&&j.w!=null?'<br>体重 '+j.w+' kg'+diff('w',i):'')+
+      (j.cmj!==''&&j.cmj!=null?'<br>反動あり CMJ '+j.cmj+' cm'+diff('cmj',i)+est(j,'cmj'):'')+
+      (j.sj!==''&&j.sj!=null?'<br>反動なし SJ '+j.sj+' cm'+diff('sj',i)+est(j,'sj'):'')+
+      (j.m?'<br><span class="sub">'+esc(j.m)+'</span>':'')+'<br><button type="button" class="link" data-jdel="'+i+'">この記録を消す</button></li>').join('')+'</ul>' : '<p class="sub">まだ記録がありません。</p>'),
+    after(){
+      const f = $('#jForm'); const n = id=>{ const v = $(id).value; return v===''?'':Number(v); };
+      const paint = ()=>{ const w = n('#jW'), c = n('#jCmj'), s = n('#jSj'); const parts = [];
+        const pc = jumpPow('cmj', c, w), ps = jumpPow('sj', s, w);
+        if(pc) parts.push('反動あり '+pc.toLocaleString()+' W（'+(Math.round(pc/w*10)/10)+' W/kg）'); if(ps) parts.push('反動なし '+ps.toLocaleString()+' W（'+(Math.round(ps/w*10)/10)+' W/kg）');
+        $('#jEst').textContent = parts.length ? parts.join('　') : (w===''?'体重を入れてください':'高さを入れると出ます'); };
+      f.addEventListener('input', paint); paint();
+      f.addEventListener('submit', ev=>{ ev.preventDefault(); const w = n('#jW'), c = n('#jCmj'), s = n('#jSj');
+        if(w==='' && c==='' && s===''){ say('体重か高さのどれか一つは入れてください'); $('#jW').focus(); return; }
+        db.jumps = db.jumps||[]; db.jumps.push({date:$('#jDate').value||today(), w, cmj:c, sj:s, m:$('#jM').value.trim(), t:new Date().toISOString()}); save(); say('記録しました'); render(false); $('#jT').focus(); });
+      $('#view').onclick = e=>{ const b = e.target.closest('[data-jdel]'); if(!b) return; const j = js[Number(b.dataset.jdel)];
+        if(b.dataset.sure!=='1'){ b.dataset.sure = '1'; b.textContent = 'もう一度押すと消します'; return; }
+        db.jumps = (db.jumps||[]).filter(x=>x!==j); save(); say('消しました'); render(false); $('#jT').focus(); };
+    }
+  };
+};
+UI_NEW.push('jump'); TABMAP.jump = 'settings';
+/* 入り口：ホーム、設定の「選手」、測定の記録の画面 */
+const _homeJP = VIEWS.home;
+VIEWS.home = ()=>{ const v = _homeJP(); const j = [...(db.jumps||[])].sort((a,b)=>a.date<b.date?1:-1)[0];
+  const row = '<button type="button" class="navrow" data-go="jump"><span class="nk">体重とジャンプ</span><strong>'+(j ? j.date.slice(5).replace('-','/')+'　'+(j.w!==''&&j.w!=null?j.w+' kg':'')+(j.cmj!==''&&j.cmj!=null?'　CMJ '+j.cmj+' cm':'')+(j.sj!==''&&j.sj!=null?'　SJ '+j.sj+' cm':'') : '体重、CMJ、SJを記録する')+'</strong>'+UI.chev+'</button>';
+  v.html = v.html.replace('<button type="button" class="navrow" id="advOpen">', row+'<button type="button" class="navrow" id="advOpen">'); return v; };
+const _settingsJP = VIEWS.settings;
+VIEWS.settings = ()=>{ const v = _settingsJP(); v.html = v.html.replace('<h2>データ</h2>', '<button type="button" class="navrow" data-go="jump"><span class="nk">体重とジャンプ</span><strong>'+((db.jumps||[]).length ? (db.jumps||[]).length+'件' : 'CMJ、SJと推定パワー')+'</strong>'+UI.chev+'</button><h2>データ</h2>'); return v; };
+const _testsJP = VIEWS.tests;
+VIEWS.tests = ()=>{ const v = _testsJP(); v.html = '<div class="stackbtns" style="margin-top:12px"><button type="button" class="ghost" data-go="jump">体重とジャンプ（CMJ、SJ）の画面へ</button></div>'+v.html; return v; };
+/* コーチへも送る */
+const _syncItemsJ = syncItems;
+syncItems = function(){ const out = _syncItemsJ(); const S = db.sync; const me = (db.me||'').trim();
+  (db.jumps||[]).forEach(j=>{ const sig = JSON.stringify(j); const uid = 'J|'+me+'|'+(j.t||j.date); if(S.sent[uid]===sig) return;
+    const pc = jumpPow('cmj', j.cmj, j.w), ps = jumpPow('sj', j.sj, j.w);
+    out.push({uid, kind:'測定', date:j.date, sets:[(j.w!==''&&j.w!=null?'体重 '+j.w+'kg':''),(j.cmj!==''&&j.cmj!=null?'CMJ '+j.cmj+'cm'+(pc?'（目安 '+pc+'W）':''):''),(j.sj!==''&&j.sj!=null?'SJ '+j.sj+'cm'+(ps?'（目安 '+ps+'W）':''):'')].filter(Boolean).join('　'), memo:j.m||'', raw:j, _sig:sig}); });
+  return out; };
 
 render(false);
 </script>

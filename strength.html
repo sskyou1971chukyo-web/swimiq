@@ -689,6 +689,27 @@ ul.plist{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
 .bodycard .lab.on text{fill:#000}
 .bodycard .lab.on circle,.bodycard .lab.on line{stroke:#b58900}
 .navrow.bodynav .bth img{height:72px;width:auto;border-radius:8px}
+/* ============ メニューの一覧と種目の画面に動画（2026年10月20日） ============ */
+.wno{display:inline-block;min-width:2.4em;text-align:center;border:1.5px solid var(--line);border-radius:999px;font-size:.78rem;font-weight:800;color:var(--sub);margin-right:8px;padding:0 6px;vertical-align:middle}
+.wrow.isdone .wno{border-color:var(--green);color:var(--green)}
+.th.yt{position:relative;background:#0b0b0c}
+.th.yt img{object-fit:cover}
+.th.yt .ytpl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;text-shadow:0 0 6px #000}
+.xmedia{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.xvid{position:relative;border:1px solid #2f3033;padding:0;border-radius:14px;overflow:hidden;background:#0b0b0c;aspect-ratio:16/10;display:block}
+.xvid img{width:100%;height:100%;object-fit:cover;display:block}
+.xvid .pl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.xvid .pl span{width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.7);border:3px solid var(--am);color:var(--am);display:flex;align-items:center;justify-content:center;font-size:1.4rem}
+.xvid .lb{position:absolute;left:8px;bottom:8px;background:var(--am);color:#000;font-weight:800;font-size:.8rem;border-radius:6px;padding:2px 10px}
+.xvid.none{display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:.9rem;text-align:center;padding:10px}
+.xlast{background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center}
+.xlast .k{color:var(--sub);font-size:.85rem;font-weight:700}.xlast .v{font-size:1.15rem;font-weight:800;line-height:1.3}
+.ytopen{display:block;position:relative;border-radius:0;aspect-ratio:16/9;background:#0b0b0c}
+.ytopen img{width:100%;height:100%;object-fit:cover;display:block}
+.ytopen .pl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.ytopen .pl span{width:80px;height:80px;border-radius:50%;background:rgba(0,0,0,.72);border:3px solid var(--am);color:var(--am);display:flex;align-items:center;justify-content:center;font-size:2.2rem}
+.ytopen .lb{position:absolute;left:12px;bottom:12px;background:var(--am);color:#000;font-weight:800;border-radius:6px;padding:4px 14px}
+#player textarea.txt{display:block;width:100%;min-height:90px;border:2px solid var(--line);border-radius:6px;padding:8px 12px;background:var(--soft);color:#fff;font:inherit;margin-top:6px}
 </style>
 </head>
 <body>
@@ -4910,7 +4931,6 @@ VIEWS.browse = ()=>{ const v = _browseBI();
   v.html = v.html.replace(/<span class="bth" aria-hidden="true"><svg viewBox="0 0 200 340">[\s\S]*?<\/svg><\/span>/, '<span class="bth" aria-hidden="true"><img src="'+BODY_VIEWS.front.img+'" alt=""></span>');
   return v; };
 
-render(false);
 /* ============ SWIMMING ANATOMY（種目別メニューと理由）の統合パッチ ============
  既存のEX・TEMPLATES・REFSを一切破壊せず、後から安全に追加・拡張する独立モジュール */
 (function(){
@@ -5136,6 +5156,67 @@ render(false);
 /* SWIMMING ANATOMY から足した種目（sa_ で始まる）は、本文での照合が終わるまで、種目の画面に注意を出す */
 const _detailSA = VIEWS.detail;
 VIEWS.detail = cur=>{ const v = _detailSA(cur); if(cur && String(cur.id).startsWith('sa_')) v.html = v.html.replace('<h2>水泳との関連</h2>', '<div class="note warn">この種目の主な筋肉、やり方、理由、注意は、書籍 SWIMMING ANATOMY にもとづくとして登録されていますが、本文を開いて照らし合わせる作業はまだ終わっていません。確認できるまでは、仮の登録として扱ってください。</div><h2>水泳との関連</h2>'); return v; };
+
+/* ============ メニューの一覧と種目の画面に動画を出す（2026年10月20日） ============
+ 1）コーチが決めた既定の動画（VIDEO_DEFAULTS）。「動画を登録する」で入れたものがあれば、そちらが優先される。
+ 2）ユーチューブの動画は、一覧と種目の画面にユーチューブの小さな絵（サムネイル）を出す。ネットにつながっているときだけ映る。
+ 3）ファイルを直接開いているとき（file:）は、ユーチューブの埋め込みが「エラー153」で止まるので、絵を押すとユーチューブのアプリやサイトで開く形にする。
+    ウェブに置いて開いたときは、今までどおりアプリの中で再生する。
+ 4）動画ごとの「動かし方のポイント」を、コーチが書けるようにした（db.videoNotes）。 */
+const VIDEO_DEFAULTS = {
+  gy_EX0075:'https://youtu.be/H1F-UfC8Mb8' /* ヒップブリッジ。2026年10月20日にコーチから受け取ったアドレス */
+};
+function videoOf(id){ return sessionVideos[id] || (db.videos||{})[id] || VIDEO_DEFAULTS[id] || ''; }
+function ytThumb(id, size){ return 'https://img.youtube.com/vi/'+id+'/'+(size||'mqdefault')+'.jpg'; }
+const _thumbV = thumb;
+thumb = function(e, cls){
+  const y = ytId(videoOf(e.id));
+  if(y) return '<span class="th yt '+(cls||'')+'"><img src="'+ytThumb(y)+'" alt="" loading="lazy"><span class="ytpl" aria-hidden="true">'+ICON.play+'</span></span>';
+  return _thumbV(e, cls);
+};
+/* 今日のメニュー：A1、A2 の番号を付ける */
+const _programV = VIEWS.program;
+VIEWS.program = ()=>{ const v = _programV(); let L = -1, n = 0;
+  v.html = v.html.replace(/<h2 class="blk">|<li class="wrow[^"]*" data-wid="[^"]*">[\s\S]*?<strong>/g, m=>{
+    if(m.startsWith('<h2')){ L++; n = 0; return m; }
+    n++; const tag = String.fromCharCode(65+Math.max(0,L))+n;
+    return m+'<span class="wno" aria-label="'+tag+'">'+tag+'</span>'; });
+  return v; };
+/* 種目を行う画面：動画の絵と前回の記録を、種目名の下に */
+const _execV = VIEWS.exec;
+VIEWS.exec = cur=>{ const v = _execV(cur); const e = EXMAP[cur.id]; if(!e) return v;
+  const y = ytId(videoOf(e.id)); const url = videoOf(e.id); const last = lastSetLog(e.id);
+  const lastTxt = last ? (last.setList && last.setList.length ? last.setList.map(a=>a.w+'×'+a.r).join('、') : (last.sets||'')+'セット'+(last.reps?' '+last.reps:'')+(last.load?' '+last.load+'kg':'')) : 'なし';
+  const lastDay = last ? fmtMD(dayOf(last.t)) : '';
+  const vid = y ? '<button type="button" class="xvid" data-play="'+e.id+'" aria-label="'+esc(e.name)+'の動画を見る"><img src="'+ytThumb(y,'hqdefault')+'" alt=""><span class="pl"><span aria-hidden="true">'+ICON.play+'</span></span><span class="lb" aria-hidden="true">動画を見る</span></button>'
+    : url ? '<button type="button" class="xvid none" data-play="'+e.id+'">'+ICON.play+'　動画を見る</button>'
+    : '<button type="button" class="xvid none" data-play="'+e.id+'">動画はまだありません。押すと登録できます</button>';
+  const media = '<div class="xmedia">'+vid+'<div class="xlast"><span class="k">前回</span><span class="v">'+esc(lastTxt)+'</span>'+(lastDay?'<span class="sub">'+lastDay+'</span>':'')+'</div></div>';
+  v.html = v.html.replace('<div class="badges" style="margin-top:8px">', media+'<div class="badges" style="margin-top:8px">');
+  return v; };
+/* 動画の画面：直接開いているときはユーチューブで開く。ポイントの欄を足す */
+const _drawPlayerV = drawPlayer;
+drawPlayer = function(){
+  _drawPlayerV();
+  const e = EXMAP[playing.id]; const url = videoOf(e.id); const y = ytId(url);
+  const notes = db.videoNotes||{}; const note = notes[e.id]||'';
+  if(y && !(sessionVideos[e.id] || (db.videos||{})[e.id])){ /* 既定の動画のときは、埋め込みを出し直す（元の関数は db.videos しか見ないため） */
+    const pm = $('#player .pmedia'); if(pm) pm.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/'+y+'?rel=0" title="'+esc(e.name)+'の動画" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+    const pn0 = $('#player .pnote'); if(!pn0 && pm) pm.insertAdjacentHTML('afterend','<p class="pnote"><a target="_blank" rel="noopener" href="'+esc(url)+'">動画が映らないときは、ユーチューブで開く</a></p>');
+  }
+  if(y && location.protocol==='file:'){
+    const pm = $('#player .pmedia'); if(pm) pm.innerHTML = '<a class="ytopen" href="https://youtu.be/'+y+'" target="_blank" rel="noopener" aria-label="'+esc(e.name)+'の動画をユーチューブで開く"><img src="'+ytThumb(y,'hqdefault')+'" alt=""><span class="pl"><span aria-hidden="true">'+ICON.play+'</span></span><span class="lb" aria-hidden="true">ユーチューブで開く</span></a>';
+    const pn = $('#player .pnote'); if(pn) pn.innerHTML = 'このアプリはファイルを直接開いているので、ユーチューブの動画はユーチューブのアプリまたはサイトで再生します（ユーチューブの決まりで、直接開いたページの中では流せません）。見終わったら、このアプリに戻ってください。';
+  }
+  const pu = $('#pUrl'); if(pu && !pu.value && VIDEO_DEFAULTS[e.id]) pu.value = VIDEO_DEFAULTS[e.id];
+  const cue = $('#player .pcue'); if(cue && note) cue.insertAdjacentHTML('beforebegin', '<p class="pcue">'+esc(note)+'</p><p class="sub">コーチが書いたポイント。下は種目データのポイントです。</p>');
+  const reg = $('#pReg'); if(reg){ reg.querySelector('.stackbtns').insertAdjacentHTML('beforebegin', '<label>動かし方のポイント（コーチが書く。保存されます）<textarea id="pNoteTxt" class="txt" placeholder="例：額を手に乗せ、鼻から吸っておなかを床へ押しつける">'+esc(note)+'</textarea></label><div class="stackbtns"><button type="button" class="ghost" id="pNoteSave">ポイントを保存する</button></div>'); }
+};
+document.getElementById('player').addEventListener('click', e=>{
+  if(e.target.id==='pNoteSave'){ db.videoNotes = db.videoNotes||{}; const t = $('#pNoteTxt').value.trim(); if(t) db.videoNotes[playing.id] = t; else delete db.videoNotes[playing.id]; save(); say('ポイントを保存しました'); drawPlayer(); $('#pTitle').focus(); }
+});
+
+render(false);
 </script>
 </body>
 </html>

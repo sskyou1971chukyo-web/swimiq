@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="STRENGTH">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
-:root{--ink:#111;--sub:#4a4a4a;--bg:#fff;--soft:#f3f3f3;--line:#c9c9c9;--dark:#1c1c1e;--blue:#0a4fb3;--green:#12662f;--greenbg:#e6f4ea;--red:#a31515;--redbg:#fdeaea;--amber:#7a4b00;--amberbg:#fff3d6;--focus:#ff9500}
+:root{--ok:#35e06a;--ng:#ff8e78;--ink:#111;--sub:#4a4a4a;--bg:#fff;--soft:#f3f3f3;--line:#c9c9c9;--dark:#1c1c1e;--blue:#0a4fb3;--green:#12662f;--greenbg:#e6f4ea;--red:#a31515;--redbg:#fdeaea;--amber:#7a4b00;--amberbg:#fff3d6;--focus:#ff9500}
 *{box-sizing:border-box}
 html{font-size:18px}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;line-height:1.7;-webkit-text-size-adjust:100%}
@@ -804,12 +804,20 @@ ul.sl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
 .wkrow .no{color:var(--sub);font-size:.95rem}.wkrow .tx{display:block;min-width:0}.wkrow strong{display:block;font-size:1.1rem;color:#fff}
 .wkrow .d{display:block;color:var(--am);font-weight:700}.wkrow .r{display:block;color:var(--sub);font-size:.9rem}.wkrow .r.ok{color:var(--ok)}
 .wkhit{display:grid;grid-template-columns:2em 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:0;color:#fff;padding:0;grid-column:1/-1}
-.wkcard{background:#0d0e0f;border:1px solid #2f3033;border-radius:16px;padding:12px;margin:10px 0}.wkcard h3{margin:0 0 4px;font-size:1.05rem}
+.wkcard{display:block;background:#0d0e0f;border:1px solid #2f3033;border-radius:16px;padding:12px;margin:10px 0}.wkcard h3{margin:0 0 4px;font-size:1.05rem}
 .lrow{display:grid;grid-template-columns:auto 1.7fr auto 1fr auto .8fr auto;align-items:center;gap:3px;background:var(--soft);border:1px solid #2f3033;border-radius:14px;padding:10px 12px;margin:8px 0}
 .ln{font-weight:700;font-size:.9rem;white-space:nowrap}.op{color:var(--sub);font-size:.9rem;white-space:nowrap}
 .cell{display:inline-flex;flex-direction:column;gap:4px;min-width:0}
 .cell select{width:100%;background:#000;color:#fff;border:2px solid #2f3033;border-radius:10px;padding:8px 0;font-size:1rem;text-align:center;color-scheme:dark}
 .cell input{width:100%;background:#000;color:#fff;border:2px solid var(--am);border-radius:10px;padding:8px 4px;font-size:1rem;margin:0}
+.lrow2{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.lrow2 select{background:#000;color:#fff;border:2px solid #2f3033;border-radius:10px;padding:6px 8px;font-size:1rem;color-scheme:dark}
+.lrow2 select.fail{border-color:var(--ng,#ff4d4d);color:#ff7b7b}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.calhead{text-align:center;color:var(--sub);font-size:.85rem}
+.calday{position:relative;background:var(--soft);border:1px solid #2f3033;border-radius:10px;min-height:52px;color:#fff;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.calday.today{border-color:var(--am);border-width:2px}
+.calday .n{font-weight:700}.calday .dot{width:12px;height:12px;border-radius:50%}.calday .bwdot{position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;background:#b8bcc2}
 </style>
 </head>
 <body>
@@ -5707,7 +5715,7 @@ VIEWS.exec = cur=>{
     (t.note?'<details class="more" style="margin:8px 0 0"><summary>コーチのメモ　'+esc(t.note.slice(0,22))+(t.note.length>22?'…':'')+'</summary><p style="padding:0 14px 12px">'+esc(t.note)+'</p></details>':'')+
     (resting ? '<div class="xrest" id="xrest" role="timer" aria-live="off"><div><span class="k">休憩</span><span class="t" id="xrt">'+fmtT((x.restEnd-Date.now())/1000)+'</span></div><button type="button" class="ghost" id="xrestEnd">休憩を終える</button></div>' : '')+
     list+labExecHTML(e, x, i, allDone)+
-    '<div class="fsets" style="margin-top:8px"><button type="button" class="bdg" id="xAdd" aria-label="セットを足す">＋ セットを足す</button>'+(!allDone && done.length ? '<button type="button" class="bdg" id="xFinish">ここまでで終える（'+done.length+'セット）</button>' : '')+'</div>'+
+    '<div class="fsets" style="margin-top:8px"><button type="button" class="bdg" id="xAdd" aria-label="セットを足す">＋ セットを足す</button>'+(x.sets.some(s=>!s.done)&&x.sets.length>1?'<button type="button" class="bdg" id="xLess" aria-label="セットを減らす">− セットを減らす</button>':'')+(wkUndoLast?'<button type="button" class="bdg" id="xUndo">元に戻す（'+esc(wkUndoLast.label)+'）</button>':'')+(!allDone && done.length ? '<button type="button" class="bdg" id="xFinish">ここまでで終える（'+done.length+'セット）</button>' : '')+'</div>'+
     '<div class="slbtns">'+(allDone ? '<button type="button" class="fdone all" id="xFinish">'+UI.check+'この種目を終える（'+done.length+'セット）</button>'
       : '<button type="button" class="fdone" id="fDone2" data-i="'+i+'" style="margin-top:0">'+UI.check+'セット '+(i+1)+' を終えた</button>')+'</div>'+
     '<div class="frow"><span>今日 '+done.reduce((s,a)=>s+Number(a.r||0),0)+' 回　'+vol+' kg'+(pr.w?'　自己ベスト '+pr.w.w+' kg':'')+'</span><span><button type="button" class="link" data-go="detail" data-id="'+e.id+'">説明と根拠</button><button type="button" class="link" data-play="'+e.id+'">動画</button></span></div>'+
@@ -5732,6 +5740,8 @@ VIEWS.exec = cur=>{
         if((b = ev.target.closest('[data-undo]'))){ const k = Number(b.dataset.undo); X().sets[k].done = false; X().restEnd = null; save(); say((k+1)+'セット目の記録を取り消しました'); render(false); $('#xT').focus(); return; }
         if(ev.target.closest('#xrestEnd')){ X().restEnd = null; save(); render(false); const f = $('#fDone2'); if(f) f.focus(); return; }
         if(ev.target.closest('#xAdd')){ const l = X().sets[X().sets.length-1]; X().sets.push({w:l?l.w:'', r:l?l.r:'', done:false}); save(); say('セットを足しました'); render(false); $('#xT').focus(); return; }
+        if(ev.target.closest('#xLess')){ const S = X().sets; let i = S.length-1; while(i>0 && S[i].done) i--; if(i<=0 || S[i].done){ say('減らせるセットがありません'); return; } const rm = S.splice(i,1)[0]; wkUndoSet('セット'+(i+1)+'を減らした', ()=>{ X().sets.splice(i,0,rm); save(); }); save(); say('セット'+(i+1)+'を減らしました。元に戻すで戻せます'); render(false); $('#xT').focus(); return; }
+        if(ev.target.closest('#xUndo')){ wkUndoDo(); render(false); $('#xT').focus(); return; }
         if(ev.target.closest('#xReset')){ delete db.execNow; save(); say('今日の入力を消しました'); render(false); $('#xT').focus(); return; }
         if(ev.target.closest('#xFinish')){ const dn = X().sets.filter(s=>s.done);
           if(!dn.length){ say('終えたセットがありません'); return; }
@@ -6059,7 +6069,7 @@ syncItems = function(){ const out = _syncItemsJ(); const S = db.sync; const me =
 /* ============ 送れない学生のための確認と案内 ============
  送れない原因は、名前を入れていない、古い版のファイルを開いている、通信できない、のどれかが多い。
  ホームに送信の状態を常に出し、設定に「送れるか確かめる」を置いて、原因を日本語で表示する。版の番号も出す。 */
-const APP_VER = '2026-10-21d';
+const APP_VER = '2026-10-21j';
 function syncHomeLine(){
   if(!syncUrl()) return '';
   if(!(db.me||'').trim()) return '<button type="button" class="navrow" data-go="settings"><span class="nk">コーチに記録を送る</span><strong>まだ名前が入っていません。設定で名前を入れてください</strong>'+UI.chev+'</button>';
@@ -6095,6 +6105,10 @@ VIEWS.settings = ()=>{ const v = _settingsSC();
  記録は今までの記録（db.logs）にも入るので、推定1RM、記録の画面、コーチへの送信はそのまま働く。
  コーチが作ったものは、スプレッドシートの受け口を通して選手に届く（Code.gs に action=menu を足した）。
  これまでの「今日のメニュー」の画面は「これまでのメニューの画面」として残す。 */
+/* 直前の「外す」「減らす」「消す」を一回だけ元に戻せる */
+let wkUndoLast = null;
+function wkUndoSet(label, fn){ wkUndoLast = {label, fn, t:Date.now()}; }
+function wkUndoDo(){ if(!wkUndoLast) return; const u = wkUndoLast; wkUndoLast = null; u.fn(); say('元に戻しました'); }
 const WK_STEPS = [
   {k:'id',   t:'種目を選ぶ', kind:'ex'},
   {k:'w',    t:'重さを選ぶ', kind:'num', unit:'kg', opts:[0,10,20,30,40,50,60,70,80,90,100,110,120], zero:'自重'},
@@ -6108,8 +6122,9 @@ let wk = {mode:null, who:null, step:0, cur:{}, rows:[], wid:null, ri:0, tmp:null
 function wkShort(id){ const e = EXMAP[id]; return e ? e.name.split('（')[0].split('(')[0] : String(id); }
 function wkAll(){ db.workouts = db.workouts||[]; return db.workouts; }
 function wkById(id){ return wkAll().find(w=>w.id===id); }
-function wkRowTxt(r){ return (Number(r.w)>0?kgTxt(r.w)+' kg × ':'自重 × ')+r.reps+' 回 × '+r.sets+' セット'; }
-function wkRowSub(r){ return (Number(r.iv)>0?'インターバル '+r.iv+'秒　':'')+'セットレスト '+r.sr+'秒'; }
+function wkLater(v){ return v==='later'; }
+function wkRowTxt(r){ if(wkLater(r.w)&&wkLater(r.reps)&&wkLater(r.sets)) return '重さ、回数、セット数は練習中に'; return (wkLater(r.w)?'重さは練習中 × ':Number(r.w)>0?kgTxt(r.w)+' kg × ':'自重 × ')+(wkLater(r.reps)?'回数は練習中':r.reps+' 回')+' × '+(wkLater(r.sets)?'セット数は練習中':r.sets+' セット'); }
+function wkRowSub(r){ if(wkLater(r.iv)&&wkLater(r.sr)) return '休憩とセットレストも練習中に'; return (wkLater(r.iv)?'インターバル 練習中　':Number(r.iv)>0?'インターバル '+r.iv+'秒　':'')+'セットレスト '+(wkLater(r.sr)?'練習中':r.sr+'秒'); }
 function wkLogTxt(lg){ return lg.map(x=>(Number(x.w)>0?kgTxt(x.w)+'kg×':'自重×')+x.t+(Number(x.n)>1?'×'+x.n:'')).join('　'); }
 function wkNewEx(name){ const g = qaGuess(name); const id = 'ux_'+Date.now(); db.userEx = db.userEx||[]; db.userEx.push({id, name, cat:g.cat, type:g.type, strokes:[], sets:'3', reps:'10回', date:today()}); save(); uexApply(); return id; }
 function wkExPool(){
@@ -6147,7 +6162,13 @@ VIEWS.wkmake = ()=>({title:'ワークアウトを作る', html:
   '<h2 id="wkT" tabindex="-1" style="margin-top:16px">誰のために作りますか</h2>'+
   '<button type="button" class="wkbig" id="wkMine"><span>自分で作る</span><span class="s">自分のワークアウトになります</span></button>'+
   '<button type="button" class="wkbig" data-go="wkwho"><span>コーチが選手に作る</span><span class="s">選手を選んでから作り、その選手に送ります</span></button>',
-  after(){ $('#wkMine').addEventListener('click',()=>{ wk = {mode:'mine', who:null, step:0, cur:{}, rows:[]}; go('wkstep'); }); } });
+  after(){ $('#wkMine').addEventListener('click',()=>{ wk = {mode:'mine', who:null, step:0, cur:{}, rows:[]}; go('wkkind'); }); } });
+VIEWS.wkkind = ()=>({title:'ワークアウトを作る', html:
+  '<h2 id="wkT" tabindex="-1" style="margin-top:16px">'+(wk.mode==='coach'?esc(wk.who)+'の':'')+'作り方を選ぶ</h2>'+
+  '<button type="button" class="wkbig" data-wkkind="simple"><span>簡易版</span><span class="s">種目だけ入れる。重さ、回数、休憩、セット数、セットレストは練習中（記録のとき）に入れる</span></button>'+
+  '<button type="button" class="wkbig" data-wkkind="full"><span>詳細版</span><span class="s">1種目ずつ、重さ、回数、休憩、セット数、セットレストを選ぶ</span></button>',
+  after(){ $('#view').onclick = e=>{ const b = e.target.closest('[data-wkkind]'); if(!b) return; wk.simple = b.dataset.wkkind==='simple'; wk.step = 0; wk.cur = {}; say(wk.simple?'簡易版で作ります':'詳細版で作ります'); go('wkstep'); }; } });
+TABMAP.wkkind = 'program'; UI_NEW.push('wkkind');
 VIEWS.wkwho = ()=>{
   const names = []; const add = n=>{ n = String(n||'').trim(); if(n && !names.includes(n)) names.push(n); };
   (coachRows||[]).forEach(r=>add(r['選手'])); (db.wkNames||[]).forEach(add); wkAll().forEach(w=>{ if(w.who) add(w.who); });
@@ -6155,7 +6176,7 @@ VIEWS.wkwho = ()=>{
     '<h2 id="wkT" tabindex="-1" style="margin-top:16px">選手を選ぶ</h2>'+
     '<section class="qadd"><label class="trlab" for="wkWhoIn" style="margin-top:0">名前を入力</label><div class="qarow"><input type="text" id="wkWhoIn" class="txt" placeholder="例：渡邉翔太" autocomplete="off"><button type="button" class="cta" id="wkWhoGo">この名前で作る</button></div><p class="sub">記録を送るときに選手が設定に入れた名前と同じにしてください。</p></section>'+
     (names.length ? names.map(n=>'<button type="button" class="wkbig" data-wkwho="'+esc(n)+'">'+esc(n)+'</button>').join('') : '<p class="sub">「全員の記録」を一度開くと、記録を送ってきた選手の名前がここに並びます。</p>'),
-    after(){ const start = n=>{ n = String(n||'').trim(); if(!n){ say('名前を入れてください'); $('#wkWhoIn').focus(); return; } db.wkNames = db.wkNames||[]; if(!db.wkNames.includes(n)) db.wkNames.push(n); save(); wk = {mode:'coach', who:n, step:0, cur:{}, rows:[]}; go('wkstep'); };
+    after(){ const start = n=>{ n = String(n||'').trim(); if(!n){ say('名前を入れてください'); $('#wkWhoIn').focus(); return; } db.wkNames = db.wkNames||[]; if(!db.wkNames.includes(n)) db.wkNames.push(n); save(); wk = {mode:'coach', who:n, step:0, cur:{}, rows:[]}; go('wkkind'); };
       $('#wkWhoGo').addEventListener('click',()=>start($('#wkWhoIn').value));
       $('#wkWhoIn').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); start($('#wkWhoIn').value); } });
       $('#view').addEventListener('click',e=>{ const b = e.target.closest('[data-wkwho]'); if(b) start(b.dataset.wkwho); }); }
@@ -6167,13 +6188,15 @@ UI_NEW.push('wkmake','wkwho','wkstep','wklist','wksee','wklog','oldmenu');
 VIEWS.wkstep = ()=>{
   const st = WK_STEPS[wk.step]; const val = wk.cur[st.k];
   let body;
-  if(st.kind==='ex'){ body = '<label class="sr" for="wkq">種目を入力して探す</label><input class="txt" id="wkq" placeholder="種目を入力して探す（例：腕立て）" autocomplete="off" style="background:var(--soft);color:#fff;border-color:var(--line)"><div class="wkgrid" id="wkex" style="margin-top:10px">'+wkChips(wkExPool(),'')+'</div>'; }
+  if(st.kind==='ex'){ const fav = (db.saved||[]).filter(id=>EXMAP[id]); body = '<div class="stackbtns" style="margin-top:10px"><button type="button" class="cta" id="wkFromBrowse">種目の画面から選ぶ（部位や体の絵から）</button></div>'+
+    '<h2 class="blk" style="margin-top:16px">お気に入り</h2>'+(fav.length ? '<div class="wkgrid" id="wkex">'+wkChips(fav,'')+'</div>' : '<p class="sub">お気に入りはまだありません。種目の画面で星を押すと、ここに並びます。</p>'); }
   else { body = '<div class="wkgrid">'+st.opts.map(o=>'<button type="button" class="wkchip'+(val===o?' on':'')+'" data-wknum="'+o+'">'+(o===0&&st.zero?st.zero:o)+'<span class="u">'+(o===0&&st.zero?'':st.unit)+'</span></button>').join('')+
-    '<label class="wkchip wide" style="text-align:left;font-size:1rem;font-weight:400">ほかの数字を入れる<input class="txt" type="number" inputmode="decimal" id="wknum" value="'+(val!=null&&!st.opts.includes(val)?val:'')+'" aria-label="'+st.t+'の数字" style="background:#000;color:#fff;border-color:var(--line)"></label></div>'; }
+    '<label class="wkchip wide" style="text-align:left;font-size:1rem;font-weight:400">ほかの数字を入れる<input class="txt" type="number" inputmode="decimal" id="wknum" value="'+(val!=null&&val!=='later'&&!st.opts.includes(val)?val:'')+'" aria-label="'+st.t+'の数字" style="background:#000;color:#fff;border-color:var(--line)"></label>'+
+    '<button type="button" class="wkchip wide'+(val==='later'?' on':'')+'" data-wklater="1">練習中に選ぶ<span class="u">今は決めず、記録のときに入れる</span></button></div>'; }
   return {title:'ワークアウトを作る', html:
-    '<div class="wksteps" aria-hidden="true">'+WK_STEPS.map((x,i)=>'<span class="'+(i<wk.step?'done':i===wk.step?'now':'')+'"></span>').join('')+'</div>'+
-    '<p class="kicker">'+(wk.mode==='coach'?esc(wk.who)+'　':'')+(wk.step+1)+' / '+WK_STEPS.length+(wk.cur.id?'　'+esc(wkShort(wk.cur.id)):'')+(wk.rows.length?'　（'+wk.rows.length+'種目入っています）':'')+'</p><h2 id="wkT" tabindex="-1">'+st.t+'</h2>'+(st.help?'<p class="sub">'+st.help+'</p>':'')+body+
-    wkBar(['wkPrev','前へ',wk.step===0], ['wkNext', wk.step===WK_STEPS.length-1?'一覧に入れる':'次へ']),
+    (wk.simple?'':'<div class="wksteps" aria-hidden="true">'+WK_STEPS.map((x,i)=>'<span class="'+(i<wk.step?'done':i===wk.step?'now':'')+'"></span>').join('')+'</div>')+
+    '<p class="kicker">'+(wk.mode==='coach'?esc(wk.who)+'　':'')+(wk.simple?'簡易版':(wk.step+1)+' / '+WK_STEPS.length)+(wk.cur.id?'　'+esc(wkShort(wk.cur.id)):'')+(wk.rows.length?'　（'+wk.rows.length+'種目入っています）':'')+'</p><h2 id="wkT" tabindex="-1">'+st.t+'</h2>'+(st.help?'<p class="sub">'+st.help+'</p>':'')+body+
+    (wk.simple ? '<p class="sub">簡易版：重さ、回数、休憩、セット数、セットレストは、記録のときに入れます。</p>'+wkBar(['wkMoreNow','もう1種目追加'], ['wkFinish','完成']) : wk.step===WK_STEPS.length-1 ? '<button type="button" class="link" id="wkPrev">前へ</button>'+wkBar(['wkMoreNow','もう1種目追加'], ['wkFinish','完成']) : wkBar(['wkPrev','前へ',wk.step===0], ['wkNext','次へ'])),
     after(){
       const v = $('#view');
       v.onclick = e=>{ let b;
@@ -6183,7 +6206,14 @@ VIEWS.wkstep = ()=>{
         if(e.target.closest('#wkPrev')){ wk.step = Math.max(0, wk.step-1); render(false); $('#wkT').focus(); return; }
         if(e.target.closest('#wkNext')){ const val = wk.cur[st.k]; if(val==null || val===''){ say(st.t.replace('を選ぶ','')+'を選んでください'); return; }
           if(wk.step < WK_STEPS.length-1){ wk.step++; render(false); $('#wkT').focus(); return; }
-          wk.rows.push(Object.assign({name:EXMAP[wk.cur.id]?EXMAP[wk.cur.id].name:''}, wk.cur)); say(wkShort(wk.cur.id)+'を一覧に入れました'); wk.cur = {}; wk.step = 0; go('wklist'); return; }
+          return; }
+        if((b = e.target.closest('[data-wklater]'))){ wk.cur[st.k] = 'later'; const n = $('#wknum'); if(n) n.value = ''; v.querySelectorAll('[data-wknum],[data-wklater]').forEach(c=>c.classList.toggle('on', c===b)); say('練習中に選ぶことにしました'); return; }
+        if(e.target.closest('#wkFromBrowse')){ wk.picking = true; say('種目の横の「選ぶ」を押すと戻ります'); go('browse'); return; }
+        if(e.target.closest('#wkMoreNow') || e.target.closest('#wkFinish')){ const val = wk.cur[st.k]; if(val==null || val===''){ say(st.t.replace('を選ぶ','')+'を選んでください'); return; }
+          if(wk.simple){ WK_STEPS.forEach(x=>{ if(x.k!=='id') wk.cur[x.k] = 'later'; }); }
+          wk.rows.push(Object.assign({name:EXMAP[wk.cur.id]?EXMAP[wk.cur.id].name:''}, wk.cur)); say(wkShort(wk.cur.id)+'を入れました'); wk.cur = {}; wk.step = 0;
+          if(e.target.closest('#wkMoreNow')){ render(false); $('#wkT').focus(); return; }
+          wkFinish(); return; }
       };
       const q = $('#wkq'); if(q){ let tm; q.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ $('#wkex').innerHTML = wkChips(wkSearch(q.value), q.value.trim()); }, 200); });
         q.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const f = $('#wkex').querySelector('[data-wkpick],[data-wknew]'); if(f) f.click(); } }); }
@@ -6196,17 +6226,20 @@ VIEWS.wklist = ()=>{
   return {title:(wk.mode==='coach'?wk.who+'の':'自分の')+'ワークアウト', html:
     '<h2 id="wkT" tabindex="-1" style="margin-top:16px">'+(wk.mode==='coach'?esc(wk.who)+'のワークアウト':'自分のワークアウト')+'</h2>'+
     (rows.length ? '<ul class="wkrows">'+rows.map((r,i)=>'<li class="wkrow"><span class="no">'+(i+1)+'</span><span class="tx"><strong>'+esc(wkShort(r.id))+'</strong><span class="d">'+wkRowTxt(r)+'</span><span class="r">'+wkRowSub(r)+'</span></span><button type="button" class="ghost small" data-wkdel="'+i+'" aria-label="'+esc(wkShort(r.id))+'を外す">外す</button></li>').join('')+'</ul>' : '<p class="sub">まだ種目がありません。</p>')+
+    (wkUndoLast?'<div class="fsets" style="margin-top:8px"><button type="button" class="bdg" id="wkUndoBtn">元に戻す（'+esc(wkUndoLast.label)+'）</button></div>':'')+
     wkBar(['wkMore','もう1種目追加'], ['wkDone', wk.mode==='coach'?'選手に送る':'完成']),
     after(){ $('#view').onclick = e=>{ let b;
-        if((b = e.target.closest('[data-wkdel]'))){ const i = Number(b.dataset.wkdel); say(wkShort(wk.rows[i].id)+'を外しました'); wk.rows.splice(i,1); render(false); $('#wkT').focus(); return; }
+        if((b = e.target.closest('[data-wkdel]'))){ const i = Number(b.dataset.wkdel); const rm = wk.rows.splice(i,1)[0]; wkUndoSet(wkShort(rm.id)+'を外した', ()=>{ wk.rows.splice(i,0,rm); }); say(wkShort(rm.id)+'を外しました。元に戻すで戻せます'); render(false); $('#wkT').focus(); return; }
+        if(e.target.closest('#wkUndoBtn')){ wkUndoDo(); render(false); $('#wkT').focus(); return; }
         if(e.target.closest('#wkMore')){ wk.step = 0; wk.cur = {}; go('wkstep'); return; }
-        if(e.target.closest('#wkDone')){ if(!wk.rows.length){ say('種目を1つ以上入れてください'); return; }
-          const w = {id:'wk_'+Date.now(), date:today(), by:wk.mode==='coach'?'コーチ':'自分', who:wk.mode==='coach'?wk.who:'', coach:wk.mode==='coach'?(db.me||''):'', rows:wk.rows, logs:{}};
-          wkAll().push(w); save();
-          if(wk.mode==='coach'){ wkSendCoach(w).then(ok=>{ say(ok ? wk.who+'に送りました' : '端末に保存しました。通信できたときに送り直せます'); go('wksee'); }); }
-          else { say('ワークアウトを作りました'); go('wksee'); } return; } }; }
+        if(e.target.closest('#wkDone')){ wkFinish(); return; } }; }
   };
 };
+function wkFinish(){ if(!wk.rows.length){ say('種目を1つ以上入れてください'); return; }
+  const w = {id:'wk_'+Date.now(), date:today(), by:wk.mode==='coach'?'コーチ':'自分', who:wk.mode==='coach'?wk.who:'', coach:wk.mode==='coach'?(db.me||''):'', rows:wk.rows, logs:{}};
+  wkAll().push(w); save();
+  if(wk.mode==='coach'){ wkSendCoach(w).then(ok=>{ say(ok ? wk.who+'に送りました' : '端末に保存しました。通信できたときに送り直せます'); go('wksee'); }); }
+  else { say('ワークアウトを作りました。実施するから始められます'); go('wkdo'); } }
 /* ---- コーチが作ったものを送る／受け取る ---- */
 async function wkSendCoach(w){
   if(!syncUrl()) return false;
@@ -6235,14 +6268,15 @@ VIEWS.wksee = ()=>{
       return '<li class="wkrow"><button type="button" class="wkhit" data-wklog="'+w.id+':'+i+'" aria-label="'+esc(wkShort(r.id))+'の記録を付ける"><span class="no">'+(i+1)+'</span><span class="tx"><strong>'+esc(wkShort(r.id))+'</strong><span class="d">'+wkRowTxt(r)+'</span><span class="r">'+wkRowSub(r)+'</span>'+(lg?'<span class="r ok">記録済み　'+esc(wkLogTxt(lg))+'</span>':'')+'</span><span class="r">'+(lg?'直す':'記録')+'</span></button></li>'; }).join('')+'</ul>'+
     '<div class="stackbtns" style="margin-top:8px">'+(w.sent===false?'<button type="button" class="ghost small" data-wkresend="'+w.id+'">送り直す</button>':'')+'<button type="button" class="link" data-wkrm="'+w.id+'">このワークアウトを消す</button></div></section>';
   return {title:'ワークアウトの結果を見る', html:
-    '<h2 id="wkT" tabindex="-1" style="margin-top:16px">ワークアウトの結果を見る</h2><p class="sub">種目を押すと、セットごとの記録を付けられます。</p>'+
+    '<h2 id="wkT" tabindex="-1" style="margin-top:16px">ワークアウトの結果を見る</h2><p class="sub">種目を押すと、セットごとの記録を付けられます。</p>'+(wkUndoLast?'<div class="fsets"><button type="button" class="bdg" id="wkUndoBtn">元に戻す（'+esc(wkUndoLast.label)+'）</button></div>':'')+
     '<h2 class="blk">自分で作ったもの</h2>'+(mine.length?mine.map(card).join(''):'<p class="sub">まだありません。</p>')+
     '<h2 class="blk">コーチから</h2>'+(wkFetchErr?'<div class="note warn">'+esc(wkFetchErr)+'</div>':'')+(fromC.length?fromC.map(card).join(''):'<p class="sub">'+(syncOn()?'まだ届いていません。':'設定で名前を入れると、コーチが作ったものが届きます。')+'</p>')+
     (syncOn()?'<div class="stackbtns"><button type="button" class="ghost" id="wkRefresh">コーチからのワークアウトを受け取る</button></div>':'')+
     (made.length?'<h2 class="blk">選手に作ったもの（コーチ）</h2>'+made.map(card).join(''):''),
     after(){ $('#view').onclick = e=>{ let b;
         if((b = e.target.closest('[data-wklog]'))){ const p = b.dataset.wklog.split(':'); wk.wid = p[0]; wk.ri = Number(p[1]); wk.tmp = null; go('wklog'); return; }
-        if((b = e.target.closest('[data-wkrm]'))){ const w = wkById(b.dataset.wkrm); if(b.dataset.sure!=='1'){ b.dataset.sure = '1'; b.textContent = 'もう一度押すと消します'; say('もう一度押すと消します。記録は残ります'); return; } db.workouts = wkAll().filter(x=>x!==w); save(); say('消しました'); render(false); $('#wkT').focus(); return; }
+        if((b = e.target.closest('[data-wkrm]'))){ const w = wkById(b.dataset.wkrm); if(b.dataset.sure!=='1'){ b.dataset.sure = '1'; b.textContent = 'もう一度押すと消します'; say('もう一度押すと消します。記録は残ります'); return; } const at = wkAll().indexOf(w); db.workouts = wkAll().filter(x=>x!==w); save(); wkUndoSet('ワークアウトを消した', ()=>{ wkAll().splice(at,0,w); save(); }); say('消しました。元に戻すで戻せます'); render(false); $('#wkT').focus(); return; }
+        if(e.target.closest('#wkUndoBtn')){ wkUndoDo(); render(false); $('#wkT').focus(); return; }
         if((b = e.target.closest('[data-wkresend]'))){ const w = wkById(b.dataset.wkresend); wkSendCoach(w).then(ok=>{ say(ok?'送りました':'送れませんでした'); render(false); }); return; }
         if(e.target.closest('#wkRefresh')){ say('受け取っています'); wkFetchCoach(true).then(()=>{ render(false); $('#wkT').focus(); say(wkFetchErr||'受け取りました'); }); return; } };
       if(syncOn() && Date.now()-wkFetchAt >= 60000){ const before = JSON.stringify(wkAll().map(w=>[w.id,w.rows.length])); wkFetchCoach(false).then(()=>{ const after2 = JSON.stringify(wkAll().map(w=>[w.id,w.rows.length])); if((after2!==before || wkFetchErr) && $('#wkT')) render(false); }); } }
@@ -6252,7 +6286,7 @@ VIEWS.wksee = ()=>{
 VIEWS.wklog = ()=>{
   const w = wkById(wk.wid); if(!w) return {title:'記録', html:'<div class="note">ワークアウトが見つかりません。</div>'};
   const r = w.rows[wk.ri]; const e = EXMAP[r.id];
-  const lg = wk.tmp || (w.logs && w.logs[wk.ri] ? w.logs[wk.ri].map(x=>Object.assign({},x)) : Array.from({length:Number(r.sets)||1}, ()=>({w:Number(r.w)||0, t:Number(r.reps)||1, n:1})));
+  const lg = wk.tmp || (w.logs && w.logs[wk.ri] ? w.logs[wk.ri].map(x=>Object.assign({},x)) : Array.from({length:(wkLater(r.sets)?1:Number(r.sets))||1}, ()=>({w:wkLater(r.w)?'':(Number(r.w)||0), t:wkLater(r.reps)?'':(Number(r.reps)||1), n:1})));
   wk.tmp = lg;
   const sel = (i, k, val, opts, unit)=>{ const has = opts.includes(val); return '<span class="cell"><select data-k="'+k+'" data-i="'+i+'" aria-label="セット'+(i+1)+'の'+unit+'">'+opts.map(o=>'<option value="'+o+'"'+(o===val?' selected':'')+'>'+(o===0&&k==='w'?'自重':o)+'</option>').join('')+'<option value="_"'+(!has?' selected':'')+'>手入力</option></select><input type="number" inputmode="decimal" data-k="'+k+'" data-i="'+i+'" value="'+(has?'':val)+'" aria-label="セット'+(i+1)+'の'+unit+'を手で入れる"'+(has?' hidden':'')+'></span>'; };
   const y = e ? ytId(videoOf(e.id)) : null;
@@ -6261,15 +6295,18 @@ VIEWS.wklog = ()=>{
     (y?'<button type="button" class="link" data-play="'+e.id+'">動画を見る</button>':'')+
     '<div class="logrows">'+lg.map((x,i)=>'<div class="lrow"><span class="ln">'+(i+1)+'set =</span>'+sel(i,'w',x.w,WK_KG,'重さ')+'<span class="op">kg ×</span>'+sel(i,'t',x.t,WK_T,'回数')+'<span class="op">t ×</span>'+sel(i,'n',x.n,WK_N,'セット')+'<span class="op">set</span></div>').join('')+'</div>'+
     '<p class="sub">プルダウンの最後の「手入力」を選ぶと、数字を打つ欄が出ます。記録すると、推定1RMと記録の画面にも入り、コーチにも送られます。</p>'+
+    '<div class="fsets" style="margin-top:8px"><button type="button" class="bdg" id="wkLessSet" aria-label="セットを減らす">− セットを減らす</button>'+(wkUndoLast?'<button type="button" class="bdg" id="wkUndoBtn">元に戻す（'+esc(wkUndoLast.label)+'）</button>':'')+'</div>'+
     wkBar(['wkAddSet','セットを足す'], ['wkSave','記録する']),
     after(){ const v = $('#view');
       v.onchange = ev=>{ const el = ev.target; if(!el.dataset.k || el.tagName!=='SELECT') return; const inp = el.parentNode.querySelector('input');
         if(el.value==='_'){ inp.hidden = false; inp.focus(); } else { inp.hidden = true; inp.value = ''; wk.tmp[Number(el.dataset.i)][el.dataset.k] = Number(el.value); } };
       v.oninput = ev=>{ const el = ev.target; if(!el.dataset.k || el.tagName!=='INPUT') return; wk.tmp[Number(el.dataset.i)][el.dataset.k] = el.value===''?'':Number(el.value); };
       v.onclick = ev=>{
+        if(ev.target.closest('#wkLessSet')){ if(wk.tmp.length<=1){ say('1セットより減らせません'); return; } const rm = wk.tmp.pop(); const n = wk.tmp.length+1; wkUndoSet('セット'+n+'を減らした', ()=>{ wk.tmp.push(rm); }); say('セット'+n+'を減らしました。元に戻すで戻せます'); render(false); $('#wkT').focus(); return; }
+        if(ev.target.closest('#wkUndoBtn')){ wkUndoDo(); render(false); $('#wkT').focus(); return; }
         if(ev.target.closest('#wkAddSet')){ wk.tmp.push(Object.assign({}, wk.tmp[wk.tmp.length-1])); render(false); const last = v.querySelectorAll('.lrow'); last[last.length-1].querySelector('select').focus(); return; }
         if(ev.target.closest('#wkSave')){ if(wk.tmp.some(x=>x.w===''||x.t===''||!(Number(x.t)>0))){ say('空の欄があります'); return; }
-          const L = wk.tmp.map(x=>({w:Number(x.w)||0, t:Number(x.t), n:Number(x.n)||1})); w.logs = w.logs||{}; w.logs[wk.ri] = L;
+          const L = wk.tmp.map(x=>({w:Number(x.w)||0, t:Number(x.t), n:Number(x.n)||1, int:x.int||''})); w.logs = w.logs||{}; w.logs[wk.ri] = L;
           const setList = []; L.forEach(x=>{ for(let k=0;k<x.n;k++) setList.push({w:x.w, r:x.t}); });
           const vol = Math.round(setList.reduce((a,s)=>a+s.w*s.r,0)*10)/10; const tag = 'wk:'+w.id+':'+wk.ri;
           db.logs = db.logs.filter(l=>l.wk!==tag);
@@ -6284,6 +6321,291 @@ const _wkEscMemo = esc;
 /* ホームの大きなボタン：メニューが空のときはワークアウトのタブへ */
 const _homeNextWK = homeNext;
 homeNext = function(){ const r = _homeNextWK(); if(r.go==='program'){ r.l1 = 'ワークアウト'; r.l2 = '作る、結果を見る'; } return r; };
+
+
+/* ============ ホームを五つの入り口にする（2026-10-21） ============
+ ウエイトメニューを作る／実施する／見る／共有する／自動化する。
+ 今までのホームの中身（今日の調子、助言、測定、次回の提案など）は「そのほか」に畳んで残す。 */
+function wkLatest(){ return wkAll().slice().sort((a,b)=>(a.date<b.date?1:a.date>b.date?-1:0) || (String(a.id)<String(b.id)?1:-1)).filter(w=>!(w.by==='コーチ' && w.who && w.who!==(db.me||'').trim())); }
+function wkUndone(w){ return w.rows.map((r,i)=>i).filter(i=>!(w.logs && w.logs[i])); }
+const _homeFive = VIEWS.home;
+VIEWS.home = ()=>{
+  const old = _homeFive(); const L = wkLatest(); const w0 = L[0]; const un = w0 ? wkUndone(w0).length : 0;
+  const btn = (go, t, s)=>'<button type="button" class="wkbig" data-go="'+go+'"><span>'+t+'</span>'+(s?'<span class="s">'+s+'</span>':'')+'</button>';
+  const html = (typeof syncHomeLine==='function' ? syncHomeLine() : '')+
+    '<h2 id="hT" tabindex="-1" class="sr">ホーム</h2>'+
+    btn('wkmake','ウエイトメニューを作る','種目、重さ、回数、休憩、セット数、セットレストの順に選ぶ')+
+    btn('wkdo','ウエイトメニューを実施する', w0 ? esc(uiDate(w0.date))+'　'+w0.rows.length+'種目'+(un?'　残り '+un : '　すべて記録済み') : 'まだメニューがありません')+
+    btn('wksee','ウエイトメニューを見る','結果と記録　自分 '+wkAll().filter(w=>w.by!=='コーチ').length+'件　コーチから '+wkAll().filter(w=>w.by==='コーチ').length+'件')+
+    btn('wkshare','メニューを共有する','選手に送る、文章にして渡す')+
+    btn('wkauto','メニューを自動化する','推定1RMから重さと回数を決める')+
+    '<details class="more" style="margin-top:18px"><summary>今日の調子、助言、測定など</summary><div class="inner">'+old.html+'</div></details>';
+  return {title:'ホーム', html, after(){ if(old.after) old.after(); }};
+};
+TABMAP.wkdo = 'home'; TABMAP.wkshare = 'home'; TABMAP.wkauto = 'home'; UI_NEW.push('wkdo','wkshare','wkauto');
+/* ---- 実施する：メニューを選んで、記録していない種目から順に ---- */
+let wkRun = null;
+VIEWS.wkdo = ()=>{
+  const L = wkLatest().slice(0,10);
+  return {title:'メニューを実施する', html:
+    '<h2 id="wkT" tabindex="-1" style="margin-top:16px">どのメニューを行いますか</h2>'+
+    (L.length ? L.map(w=>{ const un = wkUndone(w); return '<button type="button" class="wkbig" data-wkrun="'+w.id+'"><span>'+(w.by==='コーチ'?'<span class="bdg">コーチ</span>':'')+esc(uiDate(w.date))+'　'+w.rows.length+'種目</span><span class="s">'+esc(w.rows.map(r=>wkShort(r.id)).join('、'))+'</span><span class="s">'+(un.length?'残り '+un.length+'種目から始める':'すべて記録済み。もう一度行うなら押す')+'</span></button>'; }).join('') : '<p class="sub">まだメニューがありません。「ウエイトメニューを作る」か「メニューを自動化する」で作ってください。</p>')+
+    '<div class="stackbtns" style="margin-top:14px"><button type="button" class="ghost" data-go="wkmake">ウエイトメニューを作る</button></div>',
+    after(){ $('#view').onclick = e=>{ const b = e.target.closest('[data-wkrun]'); if(!b) return; const w = wkById(b.dataset.wkrun); const un = wkUndone(w);
+        wkRun = w.id; wk.wid = w.id; wk.ri = un.length ? un[0] : 0; wk.tmp = null; say(wkShort(w.rows[wk.ri].id)+'から始めます'); go('wklog'); }; }
+  };
+};
+/* 記録を付けたあと、実施中なら次の種目へ */
+const _wklogRun = VIEWS.wklog;
+VIEWS.wklog = cur=>{ const v = _wklogRun(cur); const w = wkById(wk.wid); if(!v.after || !w) return v;
+  const un = wkUndone(w);
+  if(wkRun===w.id){ v.html = v.html.replace('<p class="kicker" style="margin-top:12px">', '<p class="kicker" style="margin-top:12px">実施中　'+(wk.ri+1)+' / '+w.rows.length+' 種目　'); }
+  const af = v.after; v.after = function(){ af.apply(this, arguments); const v2 = $('#view'); const prev = v2.onclick;
+    v2.onclick = ev=>{ if(ev.target.closest('#wkSave') && wkRun===w.id){
+        const wasBad = wk.tmp.some(x=>x.w===''||x.t===''||!(Number(x.t)>0)); prev(ev); if(wasBad) return;
+        const left = wkUndone(w); if(left.length){ wk.wid = w.id; wk.ri = left[0]; wk.tmp = null; setTimeout(()=>{ say(wkShort(w.rows[wk.ri].id)+'へ'); go('wklog'); }, 50); }
+        else { wkRun = null; setTimeout(()=>{ say('メニューをすべて記録しました'); go('home'); }, 50); } return; }
+      prev(ev); }; };
+  return v; };
+/* ---- 共有する：選手に送る、または文章にしてコピーする ---- */
+VIEWS.wkshare = ()=>{
+  const L = wkLatest().slice(0,10); const sel = wk.shareId && wkById(wk.shareId) ? wkById(wk.shareId) : L[0];
+  const names = []; const add = n=>{ n = String(n||'').trim(); if(n && !names.includes(n)) names.push(n); }; (coachRows||[]).forEach(r=>add(r['選手'])); (db.wkNames||[]).forEach(add); wkAll().forEach(w=>{ if(w.who) add(w.who); });
+  const txt = sel ? 'SWIMIQ-STRENGTH　'+uiDate(sel.date)+'\n'+sel.rows.map((r,i)=>(i+1)+'. '+wkShort(r.id)+'　'+wkRowTxt(r)+'　'+wkRowSub(r)).join('\n') : '';
+  return {title:'メニューを共有する', html:
+    '<h2 id="wkT" tabindex="-1" style="margin-top:16px">メニューを共有する</h2>'+
+    (L.length ? '<label class="trlab">共有するメニュー<select id="wkShSel" class="txt">'+L.map(w=>'<option value="'+w.id+'"'+(sel&&w.id===sel.id?' selected':'')+'>'+esc(uiDate(w.date))+'　'+w.rows.length+'種目　'+esc(w.rows.map(r=>wkShort(r.id)).join('、')).slice(0,40)+'</option>').join('')+'</select></label>' : '<p class="sub">まだメニューがありません。</p>')+
+    (sel ? '<section class="wkcard"><h3>'+esc(uiDate(sel.date))+'　'+sel.rows.length+'種目</h3><ul class="wkrows">'+sel.rows.map((r,i)=>'<li class="wkrow"><span class="no">'+(i+1)+'</span><span class="tx"><strong>'+esc(wkShort(r.id))+'</strong><span class="d">'+wkRowTxt(r)+'</span><span class="r">'+wkRowSub(r)+'</span></span><span></span></li>').join('')+'</ul></section>'+
+      '<h2 class="blk">選手に送る</h2><section class="qadd"><label class="trlab" for="wkShWho" style="margin-top:0">選手の名前（設定で入れている名前）</label><div class="qarow"><input type="text" id="wkShWho" class="txt" placeholder="例：渡邉翔太" autocomplete="off" list="wkShList"><button type="button" class="cta" id="wkShSend">送る</button></div><datalist id="wkShList">'+names.map(n=>'<option value="'+esc(n)+'">').join('')+'</datalist>'+(syncUrl()?'':'<p class="note warn">送り先が未設定なので、送れません。設定の「送り先のアドレス」に入れてください。</p>')+'</section>'+
+      '<h2 class="blk">文章にして渡す（LINEなど）</h2><textarea class="txt" id="wkShTxt" rows="'+Math.min(10, sel.rows.length+2)+'" readonly>'+esc(txt)+'</textarea><div class="stackbtns" style="margin-top:8px"><button type="button" class="ghost" id="wkShCopy">文章をコピーする</button></div>' : ''),
+    after(){ const s = $('#wkShSel'); if(s) s.addEventListener('change',()=>{ wk.shareId = s.value; render(false); $('#wkShSel').focus(); });
+      const sd = $('#wkShSend'); if(sd) sd.addEventListener('click', async ()=>{ const who = $('#wkShWho').value.trim(); if(!who){ say('選手の名前を入れてください'); $('#wkShWho').focus(); return; }
+        db.wkNames = db.wkNames||[]; if(!db.wkNames.includes(who)) db.wkNames.push(who);
+        const copy = {id:'wk_'+Date.now(), date:today(), by:'コーチ', who, coach:(db.me||''), rows:sel.rows.map(r=>Object.assign({}, r)), logs:{}}; wkAll().push(copy); save();
+        say('送っています'); const ok = await wkSendCoach(copy); say(ok ? who+'に送りました' : '送れませんでした。端末に残したので、結果の画面から送り直せます'); render(false); $('#wkT').focus(); });
+      const cp = $('#wkShCopy'); if(cp) cp.addEventListener('click', async ()=>{ const t = $('#wkShTxt'); try{ await navigator.clipboard.writeText(t.value); say('コピーしました'); }catch(e){ t.select(); say('文章を選びました。長押しでコピーしてください'); } }); }
+  };
+};
+/* ---- 自動化する：推定1RMから重さ、回数、セット数を決める ---- */
+/* 休憩の文字（3〜5分、60〜90秒、30秒以内）を秒の数に直す。幅があるときは下の値を使う */
+function wkRestSec(t){ t = String(t||''); const n = nums(t)[0]; if(!(n>0)) return 60; return /分/.test(t) ? n*60 : n; }
+VIEWS.wkauto = ()=>{
+  const ids = rmExercises(); const goal = db.wkAutoGoal || 'max'; const G = RM_GOALS[goal];
+  const rows = ids.map(id=>{ const P = rmPlanOf(id); const keep = P.goal; P.goal = goal; const M = rmMenu(id); P.goal = keep; if(!M) return null; return {id, name:EXMAP[id].name, w:M.w, reps:M.reps, iv:0, sets:M.sets, sr:wkRestSec(M.rest), restTxt:M.rest, pct:M.pct, base:M.base}; }).filter(Boolean);
+  return {title:'メニューを自動化する', html:
+    '<h2 id="wkT" tabindex="-1" style="margin-top:16px">メニューを自動化する</h2>'+
+    '<p class="sub">重さと回数を記録した種目について、推定1RMと目的から、次の重さ、回数、セット数、セットレストを決めます。</p>'+
+    '<label class="trlab">目的<select id="wkAutoGoal" class="txt">'+Object.keys(RM_GOALS).map(k=>'<option value="'+k+'"'+(k===goal?' selected':'')+'>'+RM_GOALS[k].label+'　'+RM_GOALS[k].pct+'%　'+RM_GOALS[k].reps+'回×'+RM_GOALS[k].sets+'</option>').join('')+'</select></label>'+
+    (rows.length ? '<ul class="wkrows" style="margin-top:12px">'+rows.map((r,i)=>'<li class="wkrow"><span class="no">'+(i+1)+'</span><span class="tx"><strong>'+esc(wkShort(r.id))+'</strong><span class="d">'+wkRowTxt(r)+'</span><span class="r">推定1RM '+kgTxt(r.base)+' kg の '+r.pct+'%　セットレスト '+r.sr+'秒（目安 '+esc(r.restTxt)+'）</span></span><button type="button" class="ghost small" data-wkadrop="'+i+'" aria-label="'+esc(wkShort(r.id))+'を外す">外す</button></li>').join('')+'</ul>'+
+      '<div class="note warn">割合と回数は、推定1RMの画面にある根拠の説明にもとづく一般の目安で、競泳選手を直接調べたものではありません。ジュニアには大人向けの割合をそのまま当てはめないでください。重さは一覧に入れたあと、記録のときに直せます。</div>'+
+      '<div class="slbtns wkbar"><button type="button" class="ghost" data-go="rm">推定1RMと根拠を見る</button><button type="button" class="cta" id="wkAutoMake">この内容でメニューを作る</button></div>'
+      : '<div class="note" style="margin-top:12px">重さと回数を入れた記録がまだありません。まずメニューを作って一度記録すると、ここに自動の案が出ます。</div>'),
+    after(){ const g = $('#wkAutoGoal'); g.addEventListener('change',()=>{ db.wkAutoGoal = g.value; save(); render(false); $('#wkAutoGoal').focus(); });
+      wk.autoDrop = wk.autoDrop||[];
+      $('#view').onclick = e=>{ let b;
+        if((b = e.target.closest('[data-wkadrop]'))){ const li = b.closest('li'); li.remove(); say('外しました'); return; }
+        if(e.target.closest('#wkAutoMake')){ const left = [...document.querySelectorAll('.wkrows li')].map(li=>Number(li.querySelector('[data-wkadrop]').dataset.wkadrop)).map(i=>rows[i]).filter(Boolean);
+          if(!left.length){ say('種目がありません'); return; }
+          const w = {id:'wk_'+Date.now(), date:today(), by:'自動', who:'', rows:left.map(r=>({id:r.id, name:r.name, w:r.w, reps:r.reps, iv:0, sets:r.sets, sr:r.sr})), logs:{}}; wkAll().push(w); save();
+          say(left.length+'種目のメニューを作りました'); go('wkdo'); return; } }; }
+  };
+};
+
+
+/* ============ 2026-10-21 午後の直し ============
+ 1 コーチに記録を送るのを一段階に：ホームのボタン → 確認 → 送信
+ 2 種目の画面から選んでワークアウトに戻る（wk.picking）
+ 3 ホームの「メニューを自動化する」を「推定1RMを見る」に
+ 4 共有の画面に、どうやって届くかの説明 */
+function wkSendConfirm(){
+  if(!syncUrl()){ uiOpen('コーチに記録を送る', '<p>送り先が未設定です。コーチから受け取ったアプリの版なら設定済みのはずなので、Safariで開き直してください。</p>'); return; }
+  if(!(db.me||'').trim()){ uiOpen('コーチに記録を送る', '<p>まだ名前が入っていません。記録には名前が付いて届きます。</p><label class="trlab" for="scName">あなたの名前</label><input type="text" id="scName" class="txt" autocomplete="name" style="background:var(--soft);color:#fff;border-color:var(--line)"><div class="menu"><button type="button" class="cta" id="scNameGo">この名前で続ける</button></div>'); return; }
+  const items = syncItems(); const n = {};
+  items.forEach(x=>{ n[x.kind] = (n[x.kind]||0)+1; });
+  const S = db.sync||{};
+  uiOpen('コーチに記録を送る', (items.length ? '<p>'+esc(db.me)+'として、次の記録を送ります。</p><ul class="rows" style="margin:8px 0">'+Object.keys(n).map(k=>'<li style="padding:8px 0;border-bottom:1px solid var(--line)">'+esc(k)+'　'+n[k]+' 件</li>').join('')+'</ul>' : '<p>送っていない記録はありません。'+(S.last?'最後に送ったのは '+esc(syncClock(S.last))+' です。':'')+'</p>')+
+    '<p class="sub">届く先はコーチのスプレッドシートです。睡眠や疲れ、腰の状態も含まれます。</p>'+
+    '<div class="menu">'+(items.length?'<button type="button" class="cta" id="scGo">送信する</button>':'')+'<button type="button" class="ghost" id="scNo">'+(items.length?'やめる':'閉じる')+'</button></div>');
+}
+document.addEventListener('click', e=>{
+  if(e.target.closest('#scGo')){ e.stopPropagation(); uiClose(false); say('送っています'); syncNow(true).then(()=>{ if($('#title').textContent==='ホーム') render(false); }); return; }
+  if(e.target.closest('#scNo')){ e.stopPropagation(); uiClose(); return; }
+  if(e.target.closest('#scNameGo')){ e.stopPropagation(); const n = $('#scName').value.trim(); if(!n){ say('名前を入れてください'); return; } db.me = n; save(); uiClose(false); wkSendConfirm(); return; }
+  if(e.target.closest('#scOpen')){ e.stopPropagation(); wkSendConfirm(); return; }
+  let b;
+  if((b = e.target.closest('[data-wkchoose]'))){ e.stopPropagation(); e.preventDefault(); const id = b.dataset.wkchoose; wk.cur.id = id; wk.picking = false; say(wkShort(id)+'を選びました'); go('wkstep'); return; }
+}, true);
+/* ホーム：送るボタンを一段階に、自動化を推定1RMに */
+const _homeSix = VIEWS.home;
+VIEWS.home = ()=>{ const v = _homeSix(); const n = syncOn() ? syncItems().length : 0; const S = db.sync||{};
+  const sendBtn = '<button type="button" class="wkbig" id="scOpen"><span>コーチに記録を送る</span><span class="s">'+(!syncUrl()?'送り先が未設定':!(db.me||'').trim()?'名前を入れてから送ります':(S.err?'送れていません（'+esc(S.err)+'）　':'')+(n?'送信待ち '+n+' 件':'送っていない記録はありません')+(S.last?'　最後に送った '+esc(syncClock(S.last)):''))+'</span></button>';
+  v.html = v.html.replace(/<button type="button" class="navrow" data-go="settings"><span class="nk">コーチに記録を送る<\/span>[\s\S]*?<\/button>/, '').replace(/<p class="sub" id="syncHome"[\s\S]*?<\/p>/, '');
+  v.html = v.html.replace(/<button type="button" class="wkbig" data-go="wkauto">[\s\S]*?<\/button>/, '<button type="button" class="wkbig" data-go="rm"><span>推定1RMを見る</span><span class="s">記録から推定した最大の重さと、次回の目安</span></button>'+sendBtn);
+  return v; };
+/* 種目の画面：選んでいる最中は「この種目を選ぶ」のボタンに */
+const _pickRowWK = pickRow;
+pickRow = function(e, extra){ let h = _pickRowWK(e, extra); if(!wk.picking) return h;
+  return h.replace(/<button type="button" class="addb[^>]*data-addm="[^"]*"[\s\S]*?<\/button><\/li>/, '<button type="button" class="addb on" data-wkchoose="'+e.id+'" aria-label="'+esc(e.name)+'をワークアウトに選ぶ">'+UI.check+'<span>選ぶ</span></button></li>'); };
+const _detailWK = VIEWS.detail;
+VIEWS.detail = cur=>{ const v = _detailWK(cur); if(wk.picking && cur && cur.id && EXMAP[cur.id]) v.html = '<button type="button" class="fdone" data-wkchoose="'+cur.id+'" style="margin-top:12px;min-height:72px;font-size:1.2rem">'+UI.check+'この種目をワークアウトに選ぶ</button>'+v.html; return v; };
+const _browseWK = VIEWS.browse;
+VIEWS.browse = ()=>{ const v = _browseWK(); if(wk.picking) v.html = '<div class="note" style="margin-top:12px;border-left-color:var(--am)">ワークアウトに入れる種目を選んでいます。種目の横の「選ぶ」を押すと戻ります。<button type="button" class="link" data-go="wkstep">選ばずに戻る</button></div>'+v.html; return v; };
+/* 共有の画面：どうやって届くか */
+const _shareWK = VIEWS.wkshare;
+VIEWS.wkshare = ()=>{ const v = _shareWK(); v.html = v.html.replace('<h2 class="blk">選手に送る</h2>', '<h2 class="blk">選手に送る（コーチ用）</h2><p class="sub">選手が設定の「あなたの名前」に入れた名前と同じ名前で送ると、その選手のアプリの「ウエイトメニューを見る」と「実施する」に届きます。届くのはスプレッドシートを通してなので、選手側はアプリを開けば自動で受け取ります。名前が分からない選手には、下の文章をコピーしてLINEで渡してください。</p>'); return v; };
+
+
+/* ============ LIFT NOTE の良い点を取り込む（2026-10-21 夕方の決定） ============
+ 1 記録の画面に、セットごとの強度（RPE・RIR）と「失敗」の印。失敗は総重量に入れるが、推定1RMと自己ベストには使わない
+ 2 自重の種目（懸垂、腕立て、ディップスなど）は「体重＋加重」を負荷として総重量と推定1RMに数える。体重はホームで練習前に入れる
+ 3 自己ベストの更新は短い通知と緑の印だけ（全画面の演出は使わない）
+ 4 記録のタブに、体重の推移、週ごとの総重量、部位のバランス、月のカレンダー（日に色を付ける）を足す
+ 5 電波の無い場所でも開けるように sw.js を登録する（本体は1ファイルのまま） */
+
+/* ---- 体重 ---- */
+function bwAll(){ db.bw = db.bw||[]; return db.bw; }
+function bwOn(date){ const L = bwAll().filter(x=>x.date<=date).sort((a,b)=>a.date<b.date?1:-1); if(L.length) return {w:L[0].w, date:L[0].date, today:L[0].date===date};
+  const j = jumpLastW(); return j ? {w:Number(j), date:'', today:false} : null; }
+function bwSet(date, w){ const L = bwAll(); const i = L.findIndex(x=>x.date===date); if(i>=0) L[i].w = w; else L.push({date, w}); L.sort((a,b)=>a.date<b.date?-1:1); save(); }
+const BW_RE = /懸垂|プルアップ|チンアップ|プッシュアップ|腕立て|ディップス|逆上がり|倒立|マッスルアップ|ロープ|雲梯/;
+function bwEx(e){ if(!e) return false; if(e.bw===true) return true; if(e.bw===false) return false; return BW_RE.test(e.name) && !/ラット|プルダウン|ケーブル|マシン/.test(e.name); }
+/* ---- 失敗の試技は推定1RMと自己ベストに使わない ---- */
+const _doneLogsF = doneLogs;
+function doneLogsNoFail(id){ return _doneLogsF(id).map(l=>{ if(!(l.setList||[]).some(q=>q.fail)) return l; const c = Object.assign({}, l); c.setList = l.setList.filter(q=>!q.fail); return c; }); }
+
+/* ---- ホーム：今日の体重 ---- */
+const _homeBW = VIEWS.home;
+VIEWS.home = ()=>{ const v = _homeBW(); const td = today(); const b = bwOn(td);
+  const card = '<section class="qadd" aria-labelledby="bwT" style="margin-top:10px"><h2 id="bwT" class="sr">今日の体重</h2><label class="trlab" for="bwIn" style="margin-top:0">今日の体重（練習前に入れると、自重の種目の負荷に使います）</label>'+
+    '<div class="qarow" style="grid-template-columns:auto 1fr auto auto"><button type="button" class="ghost" id="bwMinus" aria-label="0.1キロ減らす" style="min-width:52px">−</button><input type="number" id="bwIn" class="txt" inputmode="decimal" step="0.1" min="0" value="'+(b?b.w:'')+'" aria-label="今日の体重 キログラム" style="text-align:center;font-size:1.3rem"><button type="button" class="ghost" id="bwPlus" aria-label="0.1キロ増やす" style="min-width:52px">＋</button><button type="button" class="cta" id="bwSave">'+(b&&b.today?'更新':'記録')+'</button></div>'+
+    '<p class="sub" id="bwSt" style="margin-top:6px">'+(b ? (b.today ? '今日の体重は記録済みです' : (b.date ? '前回 '+esc(fmtMD(b.date))+' の '+b.w+' kg を使っています' : '測定の記録の体重を使っています')) : '<span class="bdg stop">体重が未設定</span>　懸垂や腕立ての負荷が体重なしで計算されます')+'</p></section>';
+  v.html = v.html.replace('<h2 id="hT" tabindex="-1" class="sr">ホーム</h2>', '<h2 id="hT" tabindex="-1" class="sr">ホーム</h2>'+card);
+  const af = v.after; v.after = function(){ if(af) af.apply(this, arguments);
+    const i = $('#bwIn'); const step = d=>{ const x = (Number(i.value)||b&&b.w||0)+d; i.value = Math.round(x*10)/10; };
+    $('#bwMinus').addEventListener('click',()=>step(-0.1)); $('#bwPlus').addEventListener('click',()=>step(0.1));
+    $('#bwSave').addEventListener('click',()=>{ const w = Number(i.value); if(!(w>0)){ say('体重を入れてください'); i.focus(); return; } bwSet(td, w); say('今日の体重 '+w+' kg を記録しました'); render(false); $('#bwIn').focus(); }); };
+  return v; };
+/* 体重もコーチへ */
+const _syncItemsBW = syncItems;
+syncItems = function(){ const out = _syncItemsBW(); const S = db.sync; const me = (db.me||'').trim();
+  bwAll().forEach(x=>{ const sig = String(x.w); const uid = 'W|'+me+'|'+x.date; if(S.sent[uid]===sig) return; out.push({uid, kind:'体重', date:x.date, sets:'体重 '+x.w+' kg', raw:x, _sig:sig}); });
+  return out; };
+
+/* ---- 記録の画面：強度・失敗・自重 ---- */
+const WK_INT = [['','強度なし'],['rpe6','RPE 6'],['rpe7','RPE 7'],['rpe8','RPE 8'],['rpe9','RPE 9'],['rpe10','RPE 10'],['rir0','RIR 0'],['rir1','RIR 1'],['rir2','RIR 2'],['rir3','RIR 3'],['rir4','RIR 4+'],['fail','失敗']];
+function wkIntTxt(k){ const f = WK_INT.find(x=>x[0]===k); return f ? f[1] : ''; }
+const _wklogI = VIEWS.wklog;
+VIEWS.wklog = cur=>{ const v = _wklogI(cur); const w = wkById(wk.wid); if(!w || !v.after) return v; const r = w.rows[wk.ri]; const e = EXMAP[r.id]; const isBW = bwEx(e); const b = bwOn(w.date);
+  /* 各セットの行の下に、強度の選択を足す */
+  v.html = v.html.replace(/(<div class="lrow">[\s\S]*?<span class="op">set<\/span>)(<\/div>)/g, (m, a, z)=>{ const i = (a.match(/data-i="(\d+)"/)||[])[1]; const cur = (wk.tmp[Number(i)]||{}).int||'';
+    return a+'<span class="lrow2"><label class="sub" for="wkInt'+i+'">強度</label><select id="wkInt'+i+'" data-int="'+i+'" aria-label="セット'+(Number(i)+1)+'の強度。失敗もここで選ぶ"'+(cur==='fail'?' class="fail"':'')+'>'+WK_INT.map(o=>'<option value="'+o[0]+'"'+(o[0]===cur?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>'+(cur==='fail'?'<span class="bdg stop">失敗試技　推定1RMの対象外</span>':'')+'</span>'+z; });
+  v.html = v.html.replace(/<span class="op">kg ×<\/span>/g, isBW ? '<span class="op">kg加重 ×</span>' : '<span class="op">kg ×</span>');
+  if(isBW) v.html = v.html.replace(/<option value="0"( selected)?>自重<\/option>/g, '<option value="0"$1>加重なし</option>');
+  if(isBW) v.html = v.html.replace('<div class="logrows">', '<div class="note" style="margin:8px 0;border-left-color:var(--am)">自重の種目です。重さの欄は加重（足した重さ、なければ自重）で、'+(b?'体重 '+b.w+' kg'+(b.today?'':'（'+(b.date?fmtMD(b.date):'測定の記録')+'）'):'<span class="bdg stop">体重が未設定</span>')+' を足して総重量と推定1RMを計算します。'+(b&&b.today?'':'<button type="button" class="link" data-go="home">ホームで体重を入れる</button>')+'</div><div class="logrows">');
+  const af = v.after; v.after = function(){ af.apply(this, arguments); const v2 = $('#view'); const prevChange = v2.onchange;
+    v2.onchange = ev=>{ const el = ev.target; if(el.dataset.int!=null){ wk.tmp[Number(el.dataset.int)].int = el.value; if(el.value==='fail'){ el.classList.add('fail'); say('失敗の試技にしました。総重量には入り、推定1RMには使いません'); } else el.classList.remove('fail'); render(false); const s2 = document.getElementById(el.id); if(s2) s2.focus(); return; } if(prevChange) prevChange(ev); }; };
+  return v; };
+/* 保存：強度、失敗、体重を記録に入れる。自己ベストは短い通知 */
+const _addLogI = addLog;
+addLog = function(o){
+  if(o && o.wk && o.setList){ const w = wkById(o.wk.split(':')[1]); const ri = Number(o.wk.split(':')[2]); const L = w && w.logs && w.logs[ri]; const e = EXMAP[o.id]; const isBW = bwEx(e); const b = w ? bwOn(w.date) : null;
+    if(L){ const flat = []; L.forEach(x=>{ for(let k=0;k<(Number(x.n)||1);k++) flat.push(x); });
+      o.setList.forEach((s,i)=>{ const x = flat[i]; if(!x) return; const it = x.int||''; if(it==='fail') s.fail = true; else if(/^rir/.test(it)) s.rir = Number(it.slice(3)); else if(/^rpe/.test(it)) s.rpe = Number(it.slice(3));
+        if(isBW){ s.add = Number(s.w)||0; s.bw = b ? b.w : 0; s.w = Math.round((s.add + (b ? b.w : 0))*10)/10; } });
+      o.vol = Math.round(o.setList.reduce((a,s)=>a+(Number(s.w)||0)*(Number(s.r)||0),0)*10)/10; o.load = o.setList[0].w||''; if(isBW && !b) o.bwMissing = true; }
+    const before = prOf(o.id); _addLogI(o); const after = prOf(o.id);
+    const upW = after.w && (!before.w || after.w.w>before.w.w), upE = after.est && (!before.est || after.est.v>before.est.v);
+    if(before.w && (upW || upE)){ const l = db.logs[db.logs.length-1]; l.pb = true; save(); setTimeout(()=>say('自己ベストを更新しました　'+(upE?'推定1RM '+kgTxt(after.est.v)+' kg':'最大 '+kgTxt(after.w.w)+' kg')), 900); }
+    return; }
+  _addLogI(o);
+};
+/* 推定1RMと自己ベストは失敗の試技を除く */
+prOf = (function(orig){ return function(id){ const keep = db.logs; db.logs = db.logs.map(l=>{ if(l.id!==id || !(l.setList||[]).some(q=>q.fail)) return l; const c = Object.assign({}, l); c.setList = l.setList.filter(q=>!q.fail); return c; }); try{ return orig(id); } finally { db.logs = keep; } }; })(prOf);
+rmDaily = (function(orig){ return function(id){ const keep = db.logs; db.logs = db.logs.map(l=>{ if(l.id!==id || !(l.setList||[]).some(q=>q.fail)) return l; const c = Object.assign({}, l); c.setList = l.setList.filter(q=>!q.fail); return c; }); try{ return orig(id); } finally { db.logs = keep; } }; })(rmDaily);
+/* 結果の画面：失敗と自己ベストの印 */
+const _wkseeI = VIEWS.wksee;
+VIEWS.wksee = ()=>{ const v = _wkseeI();
+  v.html = v.html.replace(/<span class="r ok">記録済み　([^<]*)<\/span>/g, (m, t)=>m);
+  wkAll().forEach(w=>Object.keys(w.logs||{}).forEach(i=>{ const L = w.logs[i]; const nf = L.filter(x=>x.int==='fail').length; const pb = db.logs.some(l=>l.wk==='wk:'+w.id+':'+i && l.pb);
+    if(nf || pb){ const key = 'data-wklog="'+w.id+':'+i+'"'; const at = v.html.indexOf(key); if(at<0) return; const end = v.html.indexOf('</button>', at); const seg = v.html.slice(at, end).replace('</span><span class="r">', (nf?'<span class="bdg stop">失敗 '+nf+'</span>':'')+(pb?'<span class="bdg ok">自己ベスト</span>':'')+'</span><span class="r">'); v.html = v.html.slice(0,at)+seg+v.html.slice(end); } }));
+  return v; };
+
+/* ---- 記録のタブ：体重の推移、週の総重量、部位のバランス、カレンダー ---- */
+function wkWeekKey(d){ const x = new Date(d+'T12:00:00'); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); return x.toISOString().slice(0,10); }
+function wkVolByDay(){ const by = {}; db.logs.forEach(l=>{ if(l.kind!=='done') return; const d = dayOf(l.t); const vol = l.vol!=null ? Number(l.vol) : (l.setList||[]).reduce((a,s)=>a+(Number(s.w)||0)*(Number(s.r)||0),0); by[d] = (by[d]||0)+vol; }); return by; }
+function lineSVG(pts, W, H, color){ if(pts.length<2) return ''; const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]); const x0 = Math.min.apply(null,xs), x1 = Math.max.apply(null,xs), y0 = Math.min.apply(null,ys), y1 = Math.max.apply(null,ys); const px = x=>(x1===x0?W/2:(x-x0)/(x1-x0)*(W-16)+8), py = y=>(y1===y0?H/2:H-8-(y-y0)/(y1-y0)*(H-16));
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" aria-hidden="true"><polyline fill="none" stroke="'+color+'" stroke-width="3" stroke-linejoin="round" points="'+pts.map(p=>px(p[0]).toFixed(1)+','+py(p[1]).toFixed(1)).join(' ')+'"/>'+pts.map(p=>'<circle cx="'+px(p[0]).toFixed(1)+'" cy="'+py(p[1]).toFixed(1)+'" r="3" fill="'+color+'"/>').join('')+'</svg>'; }
+let bwRange = '3m', balWeek = null;
+VIEWS.bwtrend = ()=>{
+  const L = bwAll().slice().sort((a,b)=>a.date<b.date?-1:1); const td = new Date(); const lim = {'1m':30,'3m':90,'1y':365,'all':99999}[bwRange]; const from = new Date(td.getTime()-lim*86400000).toISOString().slice(0,10);
+  const P = L.filter(x=>x.date>=from); const pts = P.map(x=>[new Date(x.date+'T12:00:00').getTime(), x.w]);
+  const avg = P.length ? Math.round(P.reduce((a,x)=>a+x.w,0)/P.length*10)/10 : null; const diff = P.length>1 ? Math.round((P[P.length-1].w-P[0].w)*10)/10 : null;
+  return {title:'体重の推移', html: '<h2 id="bwT2" tabindex="-1" style="margin-top:16px">体重の推移</h2>'+
+    '<div class="seg" role="group" aria-label="期間">'+[['1m','1か月'],['3m','3か月'],['1y','1年'],['all','すべて']].map(x=>'<button type="button" data-bwr="'+x[0]+'"'+(x[0]===bwRange?' aria-current="page"':'')+'>'+x[1]+'</button>').join('')+'</div>'+
+    (P.length ? '<section class="qcard"><p class="kicker">最新</p><p style="font-size:2rem;font-weight:800;margin:0">'+P[P.length-1].w+' kg</p><p class="sub">'+(diff!=null?'期間の変化 '+(diff>0?'プラス':diff<0?'マイナス':'')+Math.abs(diff)+' kg　':'')+(avg!=null?'平均 '+avg+' kg　':'')+P.length+' 回</p>'+lineSVG(pts, 340, 140, 'var(--am)')+'</section>' : '<p class="sub">この期間の体重の記録はありません。ホームで入れると、ここに並びます。</p>')+
+    '<details class="more"><summary>記録の一覧</summary><div class="inner"><ul class="hist">'+L.slice().reverse().slice(0,60).map(x=>'<li><strong>'+esc(uiDate(x.date))+'</strong>　'+x.w+' kg　<button type="button" class="link" data-bwdel="'+x.date+'">消す</button></li>').join('')+'</ul></div></details>',
+    after(){ $('#view').onclick = e=>{ let b; if((b = e.target.closest('[data-bwr]'))){ bwRange = b.dataset.bwr; render(false); return; }
+      if((b = e.target.closest('[data-bwdel]'))){ const d = b.dataset.bwdel; const x = bwAll().find(y=>y.date===d); db.bw = bwAll().filter(y=>y.date!==d); save(); wkUndoSet('体重の記録を消した', ()=>{ bwAll().push(x); bwAll().sort((p,q)=>p.date<q.date?-1:1); save(); }); say('消しました'); render(false); } }; } }; };
+VIEWS.volweek = ()=>{
+  const by = wkVolByDay(); const weeks = []; const w0 = wkWeekKey(today()); for(let i=7;i>=0;i--){ const d = new Date(w0+'T12:00:00'); d.setDate(d.getDate()-i*7); weeks.push(d.toISOString().slice(0,10)); }
+  const vol = weeks.map(k=>Object.keys(by).filter(d=>wkWeekKey(d)===k).reduce((a,d)=>a+by[d],0)); const mx = Math.max.apply(null, vol.concat([1]));
+  const cur = vol[7], prev = vol[6]; const pct = prev>0 ? Math.round((cur-prev)/prev*100) : null;
+  const bars = '<svg viewBox="0 0 340 160" width="100%" height="160" aria-hidden="true">'+vol.map((v,i)=>{ const h = Math.round(v/mx*120); const x = 12+i*41; return '<rect x="'+x+'" y="'+(130-h)+'" width="30" height="'+h+'" rx="4" fill="'+(i===7?'var(--am)':'#4b4d52')+'"/><text x="'+(x+15)+'" y="148" font-size="11" fill="#b8bcc2" text-anchor="middle">'+fmtMD(weeks[i])+'</text>'; }).join('')+'</svg>';
+  return {title:'週ごとの総重量', html:'<h2 id="vwT" tabindex="-1" style="margin-top:16px">週ごとの総重量</h2><section class="qcard"><p class="kicker">今週（月曜から）</p><p style="font-size:2rem;font-weight:800;margin:0">'+Math.round(cur).toLocaleString()+' kg</p><p class="sub">'+(pct!=null?'先週比 '+(pct>=0?'プラス':'マイナス')+Math.abs(pct)+'%　':'')+'先週 '+Math.round(prev).toLocaleString()+' kg</p>'+bars+'</section>'+
+    '<ul class="hist">'+weeks.map((k,i)=>'<li>'+esc(fmtMD(k))+'の週　'+Math.round(vol[i]).toLocaleString()+' kg</li>').reverse().join('')+'</ul><p class="sub">総重量は、負荷×回数を全セットで合計したものです。失敗の試技も含みます。自重の種目は体重＋加重で数えます。</p>'}; };
+VIEWS.balance = ()=>{
+  if(!balWeek) balWeek = wkWeekKey(today()); const end = new Date(balWeek+'T12:00:00'); end.setDate(end.getDate()+6); const e2 = end.toISOString().slice(0,10);
+  const by = {}; let tot = 0; db.logs.forEach(l=>{ if(l.kind!=='done') return; const d = dayOf(l.t); if(d<balWeek || d>e2) return; const e = EXMAP[l.id]; if(!e) return; const vol = l.vol!=null ? Number(l.vol) : (l.setList||[]).reduce((a,s)=>a+(Number(s.w)||0)*(Number(s.r)||0),0); const c = e.cat; by[c] = (by[c]||0)+vol; tot += vol; });
+  const keys = Object.keys(by).sort((a,b)=>by[b]-by[a]); const warn = keys.filter(k=>tot>0 && by[k]/tot>=0.4);
+  return {title:'部位のバランス', html:'<h2 id="blT" tabindex="-1" style="margin-top:16px">部位のバランス</h2><div class="stackbtns" style="grid-template-columns:auto 1fr auto;display:grid;align-items:center"><button type="button" class="ghost small" id="blPrev" aria-label="前の週">前の週</button><p class="sub" style="text-align:center;margin:0">'+esc(fmtMD(balWeek))+'〜'+esc(fmtMD(e2))+'</p><button type="button" class="ghost small" id="blNext" aria-label="次の週">次の週</button></div>'+
+    (tot>0 ? (warn.length?'<div class="note warn">'+warn.map(k=>esc(CATS[k]||k)).join('、')+'が総重量の40%以上を占めています。偏りに注意してください。この40%は仮の設定で、根拠の文献はありません。</div>':'')+'<ul class="hist">'+keys.map(k=>{ const p = Math.round(by[k]/tot*100); const col = (CAT_COLOR[k]||['#777'])[0]; return '<li><strong>'+esc(CATS[k]||k)+'</strong>　'+Math.round(by[k]).toLocaleString()+' kg　'+p+'%<div style="height:10px;background:#2f3033;border-radius:5px;margin-top:4px"><div style="width:'+p+'%;height:10px;border-radius:5px;background:'+col+'"></div></div></li>'; }).join('')+'</ul><p class="sub">指標は総重量（kg）だけです。分け方はこのアプリの競泳向けの分類です。</p>' : '<p class="sub">この週の記録はありません。</p>'),
+    after(){ $('#blPrev').addEventListener('click',()=>{ const d = new Date(balWeek+'T12:00:00'); d.setDate(d.getDate()-7); balWeek = d.toISOString().slice(0,10); render(false); $('#blT').focus(); }); $('#blNext').addEventListener('click',()=>{ const d = new Date(balWeek+'T12:00:00'); d.setDate(d.getDate()+7); balWeek = d.toISOString().slice(0,10); render(false); $('#blT').focus(); }); } }; };
+/* カレンダー */
+const CAL_PAL = ['#3f7cbf','#8461b8','#2e9aa3','#c2554d','#d19a2e','#3e9a76','#b06bb3','#6b7280','#a0522d','#1f6f8b'];
+function calLegend(){ if(!db.calLegend) db.calLegend = ['上半身の日','下半身の日','全身の日','ジャンプ','測定','オフ','休養'].map((n,i)=>({name:n, color:CAL_PAL[i%CAL_PAL.length]})); return db.calLegend; }
+let calYM = null, calEdit = false;
+VIEWS.calendar = ()=>{
+  const td = today(); if(!calYM) calYM = td.slice(0,7); const [Y, M] = calYM.split('-').map(Number); const first = new Date(Y, M-1, 1); const days = new Date(Y, M, 0).getDate(); const lead = (first.getDay()+6)%7;
+  const by = wkVolByDay(); const bw = {}; bwAll().forEach(x=>{ bw[x.date] = x.w; }); const col = db.dayColor||{}; const LG = calLegend();
+  const cells = []; for(let i=0;i<lead;i++) cells.push('<span></span>');
+  let trainDays = 0, mvol = 0, bws = [];
+  for(let d=1; d<=days; d++){ const k = calYM+'-'+String(d).padStart(2,'0'); const has = by[k]>0; if(has){ trainDays++; mvol += by[k]; } if(bw[k]) bws.push(bw[k]);
+    const li = col[k]; const bg = li!=null && LG[li] ? LG[li].color : (has ? 'var(--ok)' : 'transparent');
+    cells.push('<button type="button" class="calday'+(k===td?' today':'')+'" data-calday="'+k+'" aria-label="'+d+'日'+(has?'、記録あり':'')+(li!=null&&LG[li]?'、'+LG[li].name:'')+(bw[k]?'、体重 '+bw[k]+'キロ':'')+'"><span class="n">'+d+'</span><span class="dot" style="background:'+bg+'"></span>'+(bw[k]?'<span class="bwdot"></span>':'')+'</button>'); }
+  const cnt = {}; Object.keys(col).forEach(k=>{ if(k.startsWith(calYM)) cnt[col[k]] = (cnt[col[k]]||0)+1; });
+  return {title:'カレンダー', html:'<h2 id="caT" tabindex="-1" style="margin-top:16px">カレンダー</h2>'+
+    '<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center"><button type="button" class="ghost small" id="caPrev" aria-label="前の月">前の月</button><p style="text-align:center;margin:0;font-weight:700">'+Y+'年'+M+'月</p><button type="button" class="ghost small" id="caNext" aria-label="次の月">次の月</button><button type="button" class="ghost small" id="caToday">今日</button></div>'+
+    '<div class="calgrid" role="grid">'+['月','火','水','木','金','土','日'].map(x=>'<span class="calhead">'+x+'</span>').join('')+cells.join('')+'</div>'+
+    '<p class="sub">トレーニング日 '+trainDays+' 日　月の総重量 '+Math.round(mvol).toLocaleString()+' kg'+(bws.length?'　平均体重 '+(Math.round(bws.reduce((a,b)=>a+b,0)/bws.length*10)/10)+' kg':'')+'</p>'+
+    '<h2 class="blk">色の意味 <button type="button" class="link" id="caEdit">'+(calEdit?'編集を終える':'編集する')+'</button></h2><ul class="hist">'+LG.map((g,i)=>'<li style="display:flex;gap:10px;align-items:center"><span style="width:18px;height:18px;border-radius:50%;background:'+g.color+';flex:none"></span>'+(calEdit?'<input type="text" class="txt" value="'+esc(g.name)+'" data-lgname="'+i+'" style="margin:0;flex:1;background:var(--soft);color:#fff;border-color:var(--line)"><select data-lgcol="'+i+'" aria-label="色">'+CAL_PAL.map((c,j)=>'<option value="'+c+'"'+(c===g.color?' selected':'')+'>色'+(j+1)+'</option>').join('')+'</select><button type="button" class="ghost small" data-lgdel="'+i+'">消す</button>':'<span>'+esc(g.name)+'</span><span class="sub">'+(cnt[i]||0)+' 日</span>')+'</li>').join('')+'</ul>'+
+    (calEdit && LG.length<12 ? '<button type="button" class="ghost" id="caAdd">色の意味を足す</button>' : '')+
+    '<p class="sub">緑の丸は、色の指定がない記録ありの日です。日付の下の小さな点は、体重を記録した日です。</p>',
+    after(){ const v = $('#view'); v.onclick = e=>{ let b;
+      if(e.target.closest('#caPrev')||e.target.closest('#caNext')){ const d = new Date(Y, M-1+(e.target.closest('#caNext')?1:-1), 1); calYM = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); render(false); $('#caT').focus(); return; }
+      if(e.target.closest('#caToday')){ calYM = td.slice(0,7); render(false); $('#caT').focus(); return; }
+      if(e.target.closest('#caEdit')){ calEdit = !calEdit; render(false); $('#caT').focus(); return; }
+      if(e.target.closest('#caAdd')){ LG.push({name:'新しい意味', color:CAL_PAL[LG.length%CAL_PAL.length]}); save(); render(false); return; }
+      if((b = e.target.closest('[data-lgdel]'))){ const i = Number(b.dataset.lgdel); const rm = LG.splice(i,1)[0]; Object.keys(col).forEach(k=>{ if(col[k]===i) delete col[k]; else if(col[k]>i) col[k]--; }); save(); wkUndoSet('色の意味を消した', ()=>{ LG.splice(i,0,rm); save(); }); say('消しました'); render(false); return; }
+      if((b = e.target.closest('[data-calday]'))){ const k = b.dataset.calday; const logs = db.logs.filter(l=>l.kind==='done' && dayOf(l.t)===k && EXMAP[l.id]);
+        uiOpen(uiDate(k), '<p class="sub">体重 '+(bw[k]?bw[k]+' kg':'未記録')+'</p><div class="qarow" style="margin-bottom:10px"><input type="number" id="cdBw" class="txt" inputmode="decimal" step="0.1" value="'+(bw[k]||'')+'" aria-label="この日の体重" style="background:var(--soft);color:#fff;border-color:var(--line);margin:0"><button type="button" class="ghost" id="cdBwSave">体重を保存</button></div>'+
+          '<p class="sub">この日の色</p><div class="badges">'+'<button type="button" class="chip" data-cdcol="-1"'+(col[k]==null?' aria-pressed="true"':'')+'>色なし（自動）</button>'+LG.map((g,i)=>'<button type="button" class="chip" data-cdcol="'+i+'"'+(col[k]===i?' aria-pressed="true"':'')+' style="border-color:'+g.color+'">'+esc(g.name)+'</button>').join('')+'</div>'+
+          (logs.length?'<h3>記録</h3><ul class="hist">'+logs.map(l=>'<li><strong>'+esc(wkShort(l.id))+'</strong>　'+esc(syncSetsTxt(l))+((l.setList||[]).some(q=>q.fail)?'　<span class="bdg stop">失敗あり</span>':'')+(l.pb?'　<span class="bdg ok">自己ベスト</span>':'')+'</li>').join('')+'</ul><p class="sub">総重量 '+Math.round(by[k]||0).toLocaleString()+' kg</p>':'<p class="sub">この日の記録はありません。</p>'));
+        $('#infoB').onclick = ev=>{ let c; if((c = ev.target.closest('[data-cdcol]'))){ const i = Number(c.dataset.cdcol); db.dayColor = db.dayColor||{}; if(i<0) delete db.dayColor[k]; else db.dayColor[k] = i; save(); uiClose(false); render(false); say('色を付けました'); return; }
+          if(ev.target.closest('#cdBwSave')){ const w = Number($('#cdBw').value); if(!(w>0)){ say('体重を入れてください'); return; } bwSet(k, w); uiClose(false); render(false); say('体重を保存しました'); } }; return; } };
+      v.oninput = e=>{ const el = e.target; if(el.dataset.lgname!=null){ LG[Number(el.dataset.lgname)].name = el.value; save(); } };
+      v.onchange = e=>{ const el = e.target; if(el.dataset.lgcol!=null){ LG[Number(el.dataset.lgcol)].color = el.value; save(); render(false); } }; } }; };
+UI_NEW.push('bwtrend','volweek','balance','calendar'); TABMAP.bwtrend = 'activity'; TABMAP.volweek = 'activity'; TABMAP.balance = 'activity'; TABMAP.calendar = 'activity';
+const _activityLN = VIEWS.activity;
+VIEWS.activity = ()=>{ const v = _activityLN(); const by = wkVolByDay(); const wk0 = wkWeekKey(today()); const cur = Object.keys(by).filter(d=>wkWeekKey(d)===wk0).reduce((a,d)=>a+by[d],0); const b = bwOn(today());
+  const nav = '<div class="two" style="margin-top:12px">'+
+    '<button type="button" class="navrow" data-go="volweek"><span class="nk">週ごとの総重量</span><strong>今週 '+Math.round(cur).toLocaleString()+' kg</strong>'+UI.chev+'</button>'+
+    '<button type="button" class="navrow" data-go="balance"><span class="nk">部位のバランス</span><strong>今週の偏りを見る</strong>'+UI.chev+'</button>'+
+    '<button type="button" class="navrow" data-go="calendar"><span class="nk">カレンダー</span><strong>日に色を付ける</strong>'+UI.chev+'</button>'+
+    '<button type="button" class="navrow" data-go="bwtrend"><span class="nk">体重の推移</span><strong>'+(b?b.w+' kg':'未記録')+'</strong>'+UI.chev+'</button></div>';
+  v.html = nav+v.html; return v; };
+
+/* ---- 電波が無くても開けるように ---- */
+if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 
 render(false);
 </script>

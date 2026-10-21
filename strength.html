@@ -818,6 +818,9 @@ ul.sl{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
 .calday{position:relative;background:var(--soft);border:1px solid #2f3033;border-radius:10px;min-height:52px;color:#fff;padding:4px 2px;display:flex;flex-direction:column;align-items:center;gap:3px}
 .calday.today{border-color:var(--am);border-width:2px}
 .calday .n{font-weight:700}.calday .dot{width:12px;height:12px;border-radius:50%}.calday .bwdot{position:absolute;bottom:3px;width:5px;height:5px;border-radius:50%;background:#b8bcc2}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.wkbuilt{background:#0d0e0f;border:1px solid #2f3033;border-radius:14px;padding:10px 12px;margin:8px 0 4px}
+.navsel{width:100%;display:block;background:var(--soft);color:#fff;border-color:var(--line);color-scheme:dark;font-size:1.1rem;min-height:56px}
 </style>
 </head>
 <body>
@@ -2759,7 +2762,7 @@ document.addEventListener('keydown',e=>{
 /* ---- 小さな部品 ---- */
 function uiDate(k){ const d = new Date(k+'T12:00:00'); return (d.getMonth()+1)+'月'+d.getDate()+'日（'+'日月火水木金土'[d.getDay()]+'）'; }
 function uiSub(cur){
-  return '<div class="seg" role="group" aria-label="ワークアウトの切り替え">'+[['program','陸上'],['swim','水泳'],['browse','種目']].map(x=>
+  return '<div class="seg two" role="group" aria-label="ワークアウトの切り替え">'+[['program','ワークアウト'],['browse','種目']].map(x=>
     '<button type="button" data-go="'+x[0]+'"'+(x[0]===cur?' aria-current="page"':'')+'>'+x[1]+'</button>').join('')+'</div>';
 }
 function uiDays(w0){
@@ -6069,7 +6072,7 @@ syncItems = function(){ const out = _syncItemsJ(); const S = db.sync; const me =
 /* ============ 送れない学生のための確認と案内 ============
  送れない原因は、名前を入れていない、古い版のファイルを開いている、通信できない、のどれかが多い。
  ホームに送信の状態を常に出し、設定に「送れるか確かめる」を置いて、原因を日本語で表示する。版の番号も出す。 */
-const APP_VER = '2026-10-21j';
+const APP_VER = '2026-10-21m';
 function syncHomeLine(){
   if(!syncUrl()) return '';
   if(!(db.me||'').trim()) return '<button type="button" class="navrow" data-go="settings"><span class="nk">コーチに記録を送る</span><strong>まだ名前が入っていません。設定で名前を入れてください</strong>'+UI.chev+'</button>';
@@ -6195,7 +6198,10 @@ VIEWS.wkstep = ()=>{
     '<button type="button" class="wkchip wide'+(val==='later'?' on':'')+'" data-wklater="1">練習中に選ぶ<span class="u">今は決めず、記録のときに入れる</span></button></div>'; }
   return {title:'ワークアウトを作る', html:
     (wk.simple?'':'<div class="wksteps" aria-hidden="true">'+WK_STEPS.map((x,i)=>'<span class="'+(i<wk.step?'done':i===wk.step?'now':'')+'"></span>').join('')+'</div>')+
-    '<p class="kicker">'+(wk.mode==='coach'?esc(wk.who)+'　':'')+(wk.simple?'簡易版':(wk.step+1)+' / '+WK_STEPS.length)+(wk.cur.id?'　'+esc(wkShort(wk.cur.id)):'')+(wk.rows.length?'　（'+wk.rows.length+'種目入っています）':'')+'</p><h2 id="wkT" tabindex="-1">'+st.t+'</h2>'+(st.help?'<p class="sub">'+st.help+'</p>':'')+body+
+    '<p class="kicker">'+(wk.mode==='coach'?esc(wk.who)+'　':'')+(wk.simple?'簡易版':(wk.step+1)+' / '+WK_STEPS.length)+(wk.cur.id?'　'+esc(wkShort(wk.cur.id)):'')+'</p>'+
+    (wk.rows.length ? '<section class="wkbuilt" aria-label="入っている種目"><p class="kicker" style="margin:0 0 4px">入っている種目　'+wk.rows.length+'</p><ul class="wkrows" style="margin:0">'+wk.rows.map((r,i)=>'<li class="wkrow" style="padding:8px 12px;margin:6px 0"><span class="no">'+(i+1)+'</span><span class="tx"><strong style="font-size:1rem">'+esc(wkShort(r.id))+'</strong><span class="r">'+wkRowTxt(r)+'</span></span><button type="button" class="ghost small" data-wkdel="'+i+'" aria-label="'+esc(wkShort(r.id))+'を外す">外す</button></li>').join('')+'</ul></section>' : '')+(wkUndoLast?'<button type="button" class="link" id="wkUndoBtn">元に戻す（'+esc(wkUndoLast.label)+'）</button>':'')+
+    (wk.cur.id && st.kind!=='ex' ? '<p class="sub" style="margin:4px 0 0">今の種目　'+esc(wkShort(wk.cur.id))+'　'+[['w','重さ'],['reps','回数'],['iv','休憩'],['sets','セット'],['sr','セットレスト']].filter(x=>wk.cur[x[0]]!=null).map(x=>x[1]+' '+(wk.cur[x[0]]==='later'?'練習中':wk.cur[x[0]]+(x[0]==='w'?'kg':x[0]==='reps'?'回':x[0]==='sets'?'':'秒'))).join('、')+'</p>' : '')+
+    '<h2 id="wkT" tabindex="-1">'+st.t+'</h2>'+(st.help?'<p class="sub">'+st.help+'</p>':'')+body+
     (wk.simple ? '<p class="sub">簡易版：重さ、回数、休憩、セット数、セットレストは、記録のときに入れます。</p>'+wkBar(['wkMoreNow','もう1種目追加'], ['wkFinish','完成']) : wk.step===WK_STEPS.length-1 ? '<button type="button" class="link" id="wkPrev">前へ</button>'+wkBar(['wkMoreNow','もう1種目追加'], ['wkFinish','完成']) : wkBar(['wkPrev','前へ',wk.step===0], ['wkNext','次へ'])),
     after(){
       const v = $('#view');
@@ -6207,6 +6213,8 @@ VIEWS.wkstep = ()=>{
         if(e.target.closest('#wkNext')){ const val = wk.cur[st.k]; if(val==null || val===''){ say(st.t.replace('を選ぶ','')+'を選んでください'); return; }
           if(wk.step < WK_STEPS.length-1){ wk.step++; render(false); $('#wkT').focus(); return; }
           return; }
+        if((b = e.target.closest('[data-wkdel]'))){ const i = Number(b.dataset.wkdel); const rm = wk.rows.splice(i,1)[0]; wkUndoSet(wkShort(rm.id)+'を外した', ()=>{ wk.rows.splice(i,0,rm); }); say(wkShort(rm.id)+'を外しました。元に戻すで戻せます'); render(false); $('#wkT').focus(); return; }
+        if(e.target.closest('#wkUndoBtn')){ wkUndoDo(); render(false); $('#wkT').focus(); return; }
         if((b = e.target.closest('[data-wklater]'))){ wk.cur[st.k] = 'later'; const n = $('#wknum'); if(n) n.value = ''; v.querySelectorAll('[data-wknum],[data-wklater]').forEach(c=>c.classList.toggle('on', c===b)); say('練習中に選ぶことにしました'); return; }
         if(e.target.closest('#wkFromBrowse')){ wk.picking = true; say('種目の横の「選ぶ」を押すと戻ります'); go('browse'); return; }
         if(e.target.closest('#wkMoreNow') || e.target.closest('#wkFinish')){ const val = wk.cur[st.k]; if(val==null || val===''){ say(st.t.replace('を選ぶ','')+'を選んでください'); return; }
@@ -6474,11 +6482,14 @@ const _doneLogsF = doneLogs;
 function doneLogsNoFail(id){ return _doneLogsF(id).map(l=>{ if(!(l.setList||[]).some(q=>q.fail)) return l; const c = Object.assign({}, l); c.setList = l.setList.filter(q=>!q.fail); return c; }); }
 
 /* ---- ホーム：今日の体重 ---- */
+function bwMiniGraph(){ const L = bwAll().slice().sort((a,b)=>a.date<b.date?-1:1).slice(-14); if(L.length<2) return L.length===1 ? '<p class="sub">2回以上記録すると、ここに折れ線が出ます。</p>' : '';
+  const first = L[0].w, last = L[L.length-1].w, prev = L[L.length-2].w; const d = Math.round((last-prev)*10)/10;
+  return '<div style="margin-top:8px"><p class="sub" style="margin:0 0 4px">直近 '+L.length+' 回　'+esc(fmtMD(L[0].date))+' '+first+' kg → '+esc(fmtMD(L[L.length-1].date))+' '+last+' kg　前回比 '+(d>0?'プラス':d<0?'マイナス':'')+(d===0?'0':Math.abs(d))+' kg</p>'+lineSVG(L.map(x=>[new Date(x.date+'T12:00:00').getTime(), x.w]), 340, 90, 'var(--am)')+'<button type="button" class="link" data-go="bwtrend">体重の推移をくわしく見る</button></div>'; }
 const _homeBW = VIEWS.home;
 VIEWS.home = ()=>{ const v = _homeBW(); const td = today(); const b = bwOn(td);
   const card = '<section class="qadd" aria-labelledby="bwT" style="margin-top:10px"><h2 id="bwT" class="sr">今日の体重</h2><label class="trlab" for="bwIn" style="margin-top:0">今日の体重（練習前に入れると、自重の種目の負荷に使います）</label>'+
     '<div class="qarow" style="grid-template-columns:auto 1fr auto auto"><button type="button" class="ghost" id="bwMinus" aria-label="0.1キロ減らす" style="min-width:52px">−</button><input type="number" id="bwIn" class="txt" inputmode="decimal" step="0.1" min="0" value="'+(b?b.w:'')+'" aria-label="今日の体重 キログラム" style="text-align:center;font-size:1.3rem"><button type="button" class="ghost" id="bwPlus" aria-label="0.1キロ増やす" style="min-width:52px">＋</button><button type="button" class="cta" id="bwSave">'+(b&&b.today?'更新':'記録')+'</button></div>'+
-    '<p class="sub" id="bwSt" style="margin-top:6px">'+(b ? (b.today ? '今日の体重は記録済みです' : (b.date ? '前回 '+esc(fmtMD(b.date))+' の '+b.w+' kg を使っています' : '測定の記録の体重を使っています')) : '<span class="bdg stop">体重が未設定</span>　懸垂や腕立ての負荷が体重なしで計算されます')+'</p></section>';
+    '<p class="sub" id="bwSt" style="margin-top:6px">'+(b ? (b.today ? '今日の体重は記録済みです' : (b.date ? '前回 '+esc(fmtMD(b.date))+' の '+b.w+' kg を使っています' : '測定の記録の体重を使っています')) : '<span class="bdg stop">体重が未設定</span>　懸垂や腕立ての負荷が体重なしで計算されます')+'</p>'+bwMiniGraph()+'</section>';
   v.html = v.html.replace('<h2 id="hT" tabindex="-1" class="sr">ホーム</h2>', '<h2 id="hT" tabindex="-1" class="sr">ホーム</h2>'+card);
   const af = v.after; v.after = function(){ if(af) af.apply(this, arguments);
     const i = $('#bwIn'); const step = d=>{ const x = (Number(i.value)||b&&b.w||0)+d; i.value = Math.round(x*10)/10; };
@@ -6606,6 +6617,94 @@ VIEWS.activity = ()=>{ const v = _activityLN(); const by = wkVolByDay(); const w
 
 /* ---- 電波が無くても開けるように ---- */
 if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
+
+
+/* ============ 完全リニューアル（2026-10-21 夜）：プルダウンで選ぶ三つのタブ ============
+ ホーム：メニュー作成、メニュー実施、メニューを記録の三つのボタンは常に出す。そのほかはプルダウンで選ぶ。
+ ワークアウト（種目）：部位、カテゴリー、体操、種目別（泳法）、お気に入り、図から選ぶ、をプルダウンで選ぶと、下に種目の一覧が出る。
+ 記録：体重、推定1RM、カレンダー、総重量（日別・週別・月別）をプルダウンで選ぶと、下にその内容が出る。 */
+function uiSel(id, label, groups, cur){
+  return '<label class="trlab" for="'+id+'" style="margin-top:12px">'+label+'</label><select id="'+id+'" class="txt navsel" aria-label="'+label+'">'+
+    groups.map(g=>g.items ? '<optgroup label="'+esc(g.label)+'">'+g.items.map(o=>'<option value="'+esc(o[0])+'"'+(o[0]===cur?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</optgroup>' : '<option value="'+esc(g[0])+'"'+(g[0]===cur?' selected':'')+'>'+esc(g[1])+'</option>').join('')+'</select>';
+}
+/* ---- ホーム ---- */
+const HOME_SEL = [['','そのほかの画面を選ぶ'],['wkmake','メニュー作成'],['wkdo','メニュー実施'],['wksee','メニューを見る'],['wkshare','メニューの共有'],['rm','推定1RMを見る']];
+const _homeRenew = VIEWS.home;
+VIEWS.home = ()=>{ const old = _homeRenew(); const L = wkLatest(); const w0 = L[0]; const un = w0 ? wkUndone(w0).length : 0;
+  const n = syncOn() ? syncItems().length : 0; const S = db.sync||{};
+  const bw = (old.html.match(/<section class="qadd" aria-labelledby="bwT"[\s\S]*?<\/section>/)||[''])[0];
+  const other = (old.html.match(/<details class="more" style="margin-top:18px"><summary>今日の調子、助言、測定など<\/summary>[\s\S]*<\/details>/)||[''])[0];
+  const send = !syncUrl() ? '送り先が未設定' : !(db.me||'').trim() ? '名前が未設定。記録すると名前を聞きます' : (S.err?'送れていません（'+esc(S.err)+'）':(n?'送信待ち '+n+' 件':'コーチに送信済み'+(S.last?'　'+esc(syncClock(S.last)):'')));
+  const html = '<h2 id="hT" tabindex="-1" class="sr">ホーム</h2>'+
+    '<button type="button" class="wkbig" data-go="wkmake"><span>メニュー作成</span><span class="s">簡易版か詳細版で、種目を入れる</span></button>'+
+    '<button type="button" class="wkbig" data-go="wkdo"><span>メニュー実施</span><span class="s">'+(w0 ? esc(uiDate(w0.date))+'　'+w0.rows.length+'種目'+(un?'　残り '+un:'　すべて記録済み') : 'まだメニューがありません')+'</span></button>'+
+    '<button type="button" class="wkbig" data-go="wksee"><span>メニューを記録</span><span class="s">記録すると自動でコーチに送られます　'+send+'</span></button>'+
+    uiSel('homeSel','そのほかの画面', HOME_SEL, '')+
+    bw+other;
+  return {title:'ホーム', html, after(){ if(old.after) old.after(); }};
+};
+/* ---- ワークアウト（種目） ---- */
+const BR_PARTS = [['chest','胸'],['back','背中'],['legs','脚・臀部'],['shoulder','肩'],['arms','腕'],['core','体幹']];
+const BR_CATS = [['dry','ドライランド'],['mb','メディシンボール'],['jump','ジャンプ系'],['power','パワー系'],['mobility','可動性（モビリティ）'],['cuff','ローテーターカフ'],['plyo','プライオメトリクス'],['olympic','クイックリフト'],['pull','上肢の引く力'],['push','上肢の押す力']];
+const BR_STROKES = [['Fr','自由形'],['Br','平泳ぎ'],['Ba','背泳ぎ'],['Fly','バタフライ'],['start','スタート'],['turn','ターン']];
+function brGroups(){ return [
+  ['', '何から選びますか'],
+  {label:'部位から選ぶ', items:BR_PARTS.map(x=>['part:'+x[0], x[1]])},
+  {label:'カテゴリーから選ぶ', items:BR_CATS.map(x=>['cat:'+x[0], x[1]])},
+  {label:'体操トレーニング', items:Object.keys(GYM_CATS).map(k=>['gym:'+k, GYM_CATS[k]])},
+  {label:'種目別（泳法・場面）', items:BR_STROKES.map(x=>['stroke:'+x[0], x[1]])},
+  ['fav','お気に入り'], ['body','図から選ぶ（体の絵）']
+]; }
+function brSort(list){ return list.sort((a,b)=>((a.gym?1:0)-(b.gym?1:0)) || (LV_N[evLevel(b)]-LV_N[evLevel(a)]) || a.name.localeCompare(b.name,'ja')); }
+function brList(key){
+  const [kind, v] = key.split(':'); const base = EX.filter(e=>!e.gym);
+  if(kind==='part') return partItems(v).map(x=>x.e);
+  if(kind==='cat'){ if(v==='dry') return brSort(base.slice()); if(v==='jump') return brSort(EX.filter(e=>e.cat==='plyo' || (e.gym && /ジャンプ|跳/.test(e.name)))); if(v==='power') return brSort(base.filter(e=>['plyo','olympic','mb'].includes(e.type)||['plyo','olympic','mb'].includes(e.cat))); if(v==='cuff') return brSort(base.filter(e=>e.cat==='shoulder')); return brSort(EX.filter(e=>e.cat===v)); }
+  if(kind==='gym') return brSort(EX.filter(e=>e.cat===v));
+  if(kind==='stroke'){ const s = v==='turn' ? 'start' : v; return brSort(EX.filter(e=>(e.strokes||[]).includes(s))); }
+  if(key==='fav') return (db.saved||[]).map(id=>EXMAP[id]).filter(Boolean);
+  return [];
+}
+function brLabel(key){ for(const g of brGroups()){ if(g.items){ const f = g.items.find(o=>o[0]===key); if(f) return f[1]; } else if(g[0]===key) return g[1]; } return ''; }
+const _browseRenew = VIEWS.browse;
+VIEWS.browse = ()=>{ const cur = db.brSel||''; const list = cur && cur!=='body' ? brList(cur) : [];
+  const picking = wk.picking ? '<div class="note" style="margin-top:12px;border-left-color:var(--am)">ワークアウトに入れる種目を選んでいます。種目の横の「選ぶ」を押すと戻ります。<button type="button" class="link" data-go="wkstep">選ばずに戻る</button></div>' : '';
+  return {title:'ワークアウト', html: picking+'<h2 id="brT" tabindex="-1" class="sr">種目を選ぶ</h2>'+uiSel('brSel','種目の選び方', brGroups(), cur)+
+    (cur ? '<p class="sub" role="status" style="margin-top:10px">'+esc(brLabel(cur))+(cur==='stroke:turn'?'（スタート・ターンとして登録されている種目）':'')+'　'+list.length+'種目'+(cur.startsWith('gym:')?'　体操の移行データ。説明と根拠は未登録':'')+'</p>'+(list.length?'<ul class="plist">'+list.map(e=>pickRow(e)).join('')+'</ul>':'<p class="sub">'+(cur==='fav'?'お気に入りはまだありません。種目の横の星を押すと入ります。':'該当する種目がありません。')+'</p>') : '<p class="sub" style="margin-top:12px">上のプルダウンから、部位、カテゴリー、体操、泳法、お気に入り、図のどれかを選んでください。</p>')+
+    '<details class="more" style="margin-top:16px"><summary>これまでの種目の画面（検索、絞り込み、登録）</summary><div class="inner stackbtns"><button type="button" class="ghost" data-go="browseold">これまでの種目の画面を開く</button><button type="button" class="ghost" data-go="addex">自分の種目を登録する</button></div></details>' }; };
+VIEWS.browseold = cur=>{ const v = _browseRenew(cur); v.title = 'これまでの種目の画面'; return v; };
+TABMAP.browseold = 'program'; UI_NEW.push('browseold');
+/* ---- 記録 ---- */
+const ACT_SEL = [['volstats','総重量（日別・週別・月別）'],['bwtrend','体重の推移'],['rm','推定1RM'],['calendar','カレンダー（色分け）'],['volweek','週ごとの総重量の棒グラフ'],['balance','部位のバランス'],['activityold','これまでの記録の画面']];
+let volMode = 'day';
+VIEWS.volstats = ()=>{
+  const by = wkVolByDay(); const days = Object.keys(by).sort(); const td = today();
+  let buckets; if(volMode==='day'){ const out = []; for(let i=13;i>=0;i--){ const d = new Date(td+'T12:00:00'); d.setDate(d.getDate()-i); const k = d.toISOString().slice(0,10); out.push([k, by[k]||0, fmtMD(k)]); } buckets = out; }
+  else if(volMode==='week'){ const out = []; const w0 = wkWeekKey(td); for(let i=11;i>=0;i--){ const d = new Date(w0+'T12:00:00'); d.setDate(d.getDate()-i*7); const k = d.toISOString().slice(0,10); out.push([k, days.filter(x=>wkWeekKey(x)===k).reduce((a,x)=>a+by[x],0), fmtMD(k)]); } buckets = out; }
+  else { const out = []; for(let i=11;i>=0;i--){ const d = new Date(td.slice(0,7)+'-15T12:00:00'); d.setMonth(d.getMonth()-i); const k = d.toISOString().slice(0,7); out.push([k, days.filter(x=>x.startsWith(k)).reduce((a,x)=>a+by[x],0), Number(k.slice(5))+'月']); } buckets = out; }
+  const mx = Math.max.apply(null, buckets.map(b=>b[1]).concat([1])); const last = buckets[buckets.length-1][1], prev = buckets[buckets.length-2][1]; const pct = prev>0 ? Math.round((last-prev)/prev*100) : null;
+  const W = 340, bw = Math.floor((W-20)/buckets.length);
+  const svg = '<svg viewBox="0 0 '+W+' 150" width="100%" height="150" aria-hidden="true">'+buckets.map((b,i)=>{ const h = Math.round(b[1]/mx*110); const x = 10+i*bw; return '<rect x="'+(x+2)+'" y="'+(125-h)+'" width="'+(bw-4)+'" height="'+h+'" rx="3" fill="'+(i===buckets.length-1?'var(--am)':'#4b4d52')+'"/>'+((buckets.length-1-i)%Math.ceil(buckets.length/7)===0?'<text x="'+(x+bw/2)+'" y="143" font-size="10" fill="#b8bcc2" text-anchor="middle">'+b[2]+'</text>':''); }).join('')+'</svg>';
+  const lbl = {day:'今日', week:'今週', month:'今月'}[volMode], plbl = {day:'昨日', week:'先週', month:'先月'}[volMode];
+  return {title:'総重量', html:'<h2 id="vsT" tabindex="-1" class="sr">総重量</h2><div class="seg" role="group" aria-label="期間の区切り">'+[['day','日別'],['week','週別'],['month','月別']].map(x=>'<button type="button" data-volmode="'+x[0]+'"'+(x[0]===volMode?' aria-current="page"':'')+'>'+x[1]+'</button>').join('')+'</div>'+
+    '<section class="qcard"><p class="kicker">'+lbl+'</p><p style="font-size:2rem;font-weight:800;margin:0">'+Math.round(last).toLocaleString()+' kg</p><p class="sub">'+(pct!=null?plbl+'比 '+(pct>=0?'プラス':'マイナス')+Math.abs(pct)+'%　':'')+plbl+' '+Math.round(prev).toLocaleString()+' kg</p>'+svg+'</section>'+
+    '<ul class="hist">'+buckets.slice().reverse().map(b=>'<li>'+esc(volMode==='month'?b[0].replace('-','年')+'月':volMode==='week'?fmtMD(b[0])+'の週':uiDate(b[0]))+'　'+Math.round(b[1]).toLocaleString()+' kg</li>').join('')+'</ul><p class="sub">総重量は負荷×回数の合計です。自重の種目は体重＋加重で数え、失敗の試技も含みます。</p>',
+    after(){ $('#view').onclick = e=>{ const b = e.target.closest('[data-volmode]'); if(b){ volMode = b.dataset.volmode; render(false); $('#vsT').focus(); } }; } }; };
+UI_NEW.push('volstats'); TABMAP.volstats = 'activity';
+const _activityRenew = VIEWS.activity;
+VIEWS.activityold = cur=>{ const v = _activityRenew(cur); v.title = 'これまでの記録の画面'; return v; };
+TABMAP.activityold = 'activity'; UI_NEW.push('activityold');
+VIEWS.activity = ()=>{ const cur = db.actSel||'volstats'; const sub = VIEWS[cur] ? VIEWS[cur]({}) : {html:'', after:null};
+  return {title:'記録', html:'<h2 id="acT" tabindex="-1" class="sr">記録</h2>'+uiSel('actSel','見るもの', ACT_SEL, cur)+'<div class="actbody" style="margin-top:6px">'+sub.html+'</div>', after(){ if(sub.after) sub.after(); } }; };
+/* プルダウンの切り替え（画面ごとの onchange と重ならないように、document で受ける） */
+document.addEventListener('change', e=>{ const el = e.target;
+  if(el.id==='homeSel'){ if(el.value){ const v = el.value; el.value = ''; go(v); } return; }
+  if(el.id==='brSel'){ db.brSel = el.value; save(); if(el.value==='body'){ go('body'); return; } render(false); const s = $('#brSel'); if(s) s.focus(); return; }
+  if(el.id==='actSel'){ db.actSel = el.value; save(); if(el.value==='activityold'){ db.actSel = 'volstats'; save(); go('activityold'); return; } render(false); const s = $('#actSel'); if(s) s.focus(); return; }
+}, true);
+
+/* ワークアウトのタブは、この種目のプルダウンの画面にする */
+VIEWS.program = VIEWS.browse; TABMAP.browse = 'program';
 
 render(false);
 </script>

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中京大学 運動部 トレーニング</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --ink:#1a1a1a; --sub:#5f6672; --line:#dde1e6;
+    --accent:#b4142b; --accent-dark:#7e0e1f; --gold:#c9a24b; --ok:#1f7a3a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--ink);font-size:17px;line-height:1.5}
+  header{background:linear-gradient(135deg,#1b1c22,#3a0c14 60%,var(--accent));color:#fff;padding:16px 16px 0}
+  .brand small{display:block;letter-spacing:.2em;font-size:11px;opacity:.8}
+  .brand h1{margin:2px 0 12px;font-size:22px;letter-spacing:.04em}
+  .selects{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .selects label{display:block;font-size:12px;opacity:.85;margin-bottom:2px}
+  select,input[type=text],input[type=number]{width:100%;font-size:17px;padding:10px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+  .selects select{border:none}
+  .tabs{display:flex;gap:4px;margin-top:14px}
+  .tabs button{flex:1;background:rgba(255,255,255,.12);color:#fff;border:none;padding:12px 4px;font-size:15px;font-weight:700;border-radius:10px 10px 0 0;cursor:pointer}
+  .tabs button[aria-selected=true]{background:var(--bg);color:var(--accent)}
+  main{padding:14px 12px 60px;max-width:760px;margin:0 auto}
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .pill{font-size:13px;color:var(--sub)}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+  .toggle input{width:22px;height:22px}
+  .cat{background:var(--card);border-left:5px solid var(--gold);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:10px;overflow:hidden}
+  .cat>button{width:100%;text-align:left;background:none;border:none;padding:14px 16px;font-size:17px;font-weight:700;display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--ink)}
+  .cat>button .n{font-size:13px;color:var(--sub);font-weight:400;margin-left:8px}
+  .cat>button .chev{transition:transform .2s}
+  .cat.open>button{background:#1b1c22;color:#fff;border-left-color:var(--accent)}
+  .cat.open>button .n{color:#ccc}
+  .cat.open>button .chev{transform:rotate(180deg)}
+  .items{display:none;padding:8px}
+  .cat.open .items{display:block}
+  .ex{border:1px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;background:#fafbfc}
+  .ex-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .ex-head h3{margin:0;font-size:17px}
+  .ex-head .meta{font-size:12px;color:var(--sub);margin-top:2px}
+  .star{background:none;border:none;font-size:26px;cursor:pointer;line-height:1;padding:0 4px;color:#bbb}
+  .star.on{color:var(--gold)}
+  .note{margin:6px 0 8px;color:#333;font-size:15px}
+  .video{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin:6px 0 10px}
+  .video img{width:100%;height:100%;object-fit:cover;opacity:.85}
+  .video button{position:absolute;inset:0;width:100%;height:100%;background:none;border:none;cursor:pointer;color:#fff;font-size:18px;font-weight:700;text-shadow:0 1px 4px #000}
+  .video button span{display:inline-block;background:var(--accent);padding:10px 18px;border-radius:30px}
+  .video iframe{width:100%;height:100%;border:none}
+  .last{font-size:13px;color:var(--sub);margin-bottom:6px}
+  .logform{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .logform label{font-size:12px;color:var(--sub)}
+  .logform .memo{grid-column:1/-1}
+  .logform .go{grid-column:1/-1;background:var(--accent);color:#fff;border:none;padding:12px;font-size:16px;font-weight:700;border-radius:8px;cursor:pointer}
+  .logform .go:disabled{opacity:.5}
+  .lib{background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:14px 16px;margin-bottom:10px}
+  .lib h3{margin:0 0 4px;font-size:17px}
+  .lib img{max-width:100%;border-radius:8px;margin-top:8px}
+  .lib a{color:var(--accent);font-weight:700}
+  .day{margin:16px 0 6px;font-weight:700;color:var(--sub);font-size:14px}
+  .log{background:var(--card);border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .log .t{font-size:15px}
+  .log .d{font-size:12px;color:var(--sub)}
+  .log button{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;color:var(--sub)}
+  .empty{color:var(--sub);text-align:center;padding:30px 10px}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:12px 20px;border-radius:30px;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw}
+  #toast.show{opacity:1}
+  .status{font-size:12px;color:#ddd;margin-top:6px;min-height:16px}
+  .visually-hidden{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <small>CHUKYO UNIVERSITY ATHLETICS</small>
+    <h1>運動部 トレーニング</h1>
+  </div>
+  <div class="selects">
+    <div><label for="selClub">部活</label><select id="selClub" aria-label="部活を選ぶ"><option value="">読み込み中</option></select></div>
+    <div><label for="selAthlete">名前</label><select id="selAthlete" aria-label="名前を選ぶ"><option value="">名前を選ぶ</option></select></div>
+    <div style="grid-column:1/-1"><label for="selPeriod">期間</label><select id="selPeriod" aria-label="期間を選ぶ"><option value="">すべての期間</option></select></div>
+  </div>
+  <div class="status" id="status" aria-live="polite"></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="menu">メニュー</button>
+    <button role="tab" aria-selected="false" data-tab="library">資料室</button>
+    <button role="tab" aria-selected="false" data-tab="logs">記録</button>
+  </div>
+</header>
+
+<main>
+  <section id="tab-menu" role="tabpanel">
+    <div class="bar">
+      <span class="pill" id="menuCount"></span>
+      <label class="toggle"><input type="checkbox" id="favOnly">お気に入りだけ表示</label>
+    </div>
+    <div id="menuList"></div>
+  </section>
+  <section id="tab-library" role="tabpanel" hidden>
+    <div id="libList"></div>
+  </section>
+  <section id="tab-logs" role="tabpanel" hidden>
+    <div class="bar">
+      <span class="pill" id="logCount"></span>
+      <button id="btnReloadLogs" class="toggle" style="border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px">最新にする</button>
+    </div>
+    <div id="logList"></div>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+/* ====== ここだけ書き換える ====== */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzRzpMisv9ei0JS34qRNMPTLLSh_d-cVSEaIjCQkR2pbCW_qpZKrIoXGqCH5aYcBndMDA/exec';
+/* ================================= */
+
+const LS_KEY = 'chukyoClubApp_v1';
+const state = {
+  clubs: [], club: '', athlete: '', period: '', favs: [], favOnly: false, tab: 'menu',
+  data: { exercises: [], library: [], athletes: [] }, logs: [], cache: {}
+};
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function save() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      club: state.club, athlete: state.athlete, period: state.period, favs: state.favs,
+      favOnly: state.favOnly, tab: state.tab, clubs: state.clubs, cache: state.cache
+    }));
+  } catch (e) {}
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    Object.assign(state, {
+      club: s.club || '', athlete: s.athlete || '', period: s.period || '', favs: s.favs || [],
+      favOnly: !!s.favOnly, tab: s.tab || 'menu', clubs: s.clubs || [], cache: s.cache || {}
+    });
+  } catch (e) {}
+}
+
+function toast(msg, ms = 2200) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(() => t.classList.remove('show'), ms);
+}
+function setStatus(msg) { $('status').textContent = msg || ''; }
+
+async function apiGet(params) {
+  const q = new URLSearchParams(params).toString();
+  const r = await fetch(GAS_URL + '?' + q, { method: 'GET' });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'エラー');
+  return j;
+}
+async function apiPost(body) {
+  const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'エラー');
+  return j;
+}
+
+/* ---------- 初期化 ---------- */
+async function init() {
+  load();
+  bindUI();
+  renderClubs();
+  if (state.club && state.cache[state.club]) {
+    state.data = state.cache[state.club];
+    renderAll();
+  }
+  showTab(state.tab);
+  try {
+    setStatus('最新データを読み込み中…');
+    const j = await apiGet({ action: 'init' });
+    state.clubs = j.clubs; save();
+    renderClubs();
+    if (state.club) await loadClub(state.club, true);
+    else setStatus('部活を選んでください');
+  } catch (e) {
+    setStatus('通信できません。保存済みの内容を表示しています');
+  }
+}
+
+function bindUI() {
+  $('selClub').addEventListener('change', e => { loadClub(e.target.value, false); });
+  $('selAthlete').addEventListener('change', e => { state.athlete = e.target.value; save(); renderMenu(); loadLogs(); });
+  $('selPeriod').addEventListener('change', e => { state.period = e.target.value; save(); renderMenu(); renderLogs(); });
+  $('favOnly').addEventListener('change', e => { state.favOnly = e.target.checked; save(); renderMenu(); });
+  $('btnReloadLogs').addEventListener('click', () => loadLogs(true));
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+}
+
+function showTab(tab) {
+  state.tab = tab; save();
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false'));
+  ['menu', 'library', 'logs'].forEach(t => { $('tab-' + t).hidden = (t !== tab); });
+  if (tab === 'logs' && !state.logs.length) loadLogs();
+}
+
+function renderClubs() {
+  const sel = $('selClub');
+  sel.innerHTML = '<option value="">部活を選ぶ</option>' + state.clubs.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  sel.value = state.club;
+  renderPeriods();
+}
+function renderPeriods() {
+  const c = state.clubs.find(x => x.id === state.club);
+  const sel = $('selPeriod');
+  sel.innerHTML = '<option value="">すべての期間</option>' + (c ? c.periods.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('') : '');
+  if (c && !c.periods.includes(state.period)) state.period = '';
+  sel.value = state.period;
+}
+
+async function loadClub(clubId, silent) {
+  state.club = clubId; state.logs = []; save();
+  renderPeriods();
+  if (!clubId) { state.data = { exercises: [], library: [], athletes: [] }; renderAll(); setStatus('部活を選んでください'); return; }
+  if (state.cache[clubId]) { state.data = state.cache[clubId]; renderAll(); }
+  try {
+    setStatus('読み込み中…');
+    const j = await apiGet({ action: 'club', club: clubId });
+    state.data = j.data; state.cache[clubId] = j.data; save();
+    renderAll();
+    setStatus('');
+    if (!silent) toast('読み込みました');
+    loadLogs();
+  } catch (e) {
+    setStatus('通信できません。保存済みの内容を表示しています');
+  }
+}
+
+function renderAll() { renderAthletes(); renderMenu(); renderLibrary(); renderLogs(); }
+
+function renderAthletes() {
+  const sel = $('selAthlete');
+  sel.innerHTML = '<option value="">名前を選ぶ</option>' + state.data.athletes.map(a => `<option value="${esc(a.name)}">${esc(a.name)}${a.grade ? '（' + esc(a.grade) + '年）' : ''}</option>`).join('');
+  if (!state.data.athletes.some(a => a.name === state.athlete)) state.athlete = '';
+  sel.value = state.athlete;
+}
+
+/* ---------- メニュー ---------- */
+function visibleExercises() {
+  return state.data.exercises.filter(ex => {
+    if (state.period && ex.period !== '全期間' && ex.period !== '' && ex.period !== state.period) return false;
+    if (state.favOnly && !state.favs.includes(ex.id)) return false;
+    return true;
+  });
+}
+function lastLogFor(exId) {
+  return state.logs.find(l => l.exId === exId && l.athlete === state.athlete);
+}
+function fmtDate(iso) {
+  const d = new Date(iso); if (isNaN(d)) return String(iso).slice(0, 10);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function renderMenu() {
+  $('favOnly').checked = state.favOnly;
+  const list = visibleExercises();
+  $('menuCount').textContent = list.length ? `${list.length}種目` : '';
+  const box = $('menuList');
+  if (!state.club) { box.innerHTML = '<p class="empty">上で部活を選ぶと、その部のメニューが出ます。</p>'; return; }
+  if (!list.length) { box.innerHTML = '<p class="empty">この条件の種目はありません。</p>'; return; }
+
+  const cats = [];
+  list.forEach(ex => { if (!cats.includes(ex.category)) cats.push(ex.category); });
+  const openCats = box._open || new Set();
+  box.innerHTML = cats.map(cat => {
+    const items = list.filter(ex => ex.category === cat);
+    return `<div class="cat ${openCats.has(cat) ? 'open' : ''}" data-cat="${esc(cat)}">
+      <button aria-expanded="${openCats.has(cat)}"><span>${esc(cat)}<span class="n">${items.length}種目</span></span><span class="chev">▼</span></button>
+      <div class="items">${items.map(exerciseCard).join('')}</div>
+    </div>`;
+  }).join('');
+  box._open = openCats;
+
+  box.querySelectorAll('.cat>button').forEach(b => b.addEventListener('click', () => {
+    const c = b.parentElement; const key = c.dataset.cat;
+    c.classList.toggle('open'); const open = c.classList.contains('open');
+    b.setAttribute('aria-expanded', open); open ? openCats.add(key) : openCats.delete(key);
+  }));
+  box.querySelectorAll('.star').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.id; const i = state.favs.indexOf(id);
+    i >= 0 ? state.favs.splice(i, 1) : state.favs.push(id); save();
+    b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on'));
+    toast(i >= 0 ? 'お気に入りから外しました' : 'お気に入りに入れました');
+    if (state.favOnly) renderMenu();
+  }));
+  box.querySelectorAll('.video button').forEach(b => b.addEventListener('click', () => {
+    const v = b.parentElement; const id = v.dataset.vid;
+    if (location.protocol === 'file:') {
+      // パソコン内のファイルとして開いている間はYouTubeが埋め込み再生を許さないので、YouTubeを別タブで開く
+      window.open('https://www.youtube.com/watch?v=' + id, '_blank', 'noopener');
+      return;
+    }
+    v.innerHTML = `<iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="動画"></iframe>`;
+  }));
+  box.querySelectorAll('.logform').forEach(f => f.addEventListener('submit', onLogSubmit));
+}
+
+function youtubeId(url) {
+  const m = String(url).match(/(?:v=|youtu\.be\/|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+function exerciseCard(ex) {
+  const vid = youtubeId(ex.video);
+  const fav = state.favs.includes(ex.id);
+  const last = lastLogFor(ex.id);
+  const lastTxt = last ? `前回 ${fmtDate(last.at)}：${last.sets !== '' ? last.sets + 'セット ' : ''}${last.reps !== '' ? last.reps + '回 ' : ''}${last.weight !== '' ? last.weight + 'kg ' : ''}${last.memo ? '「' + esc(last.memo) + '」' : ''}` : '';
+  return `<article class="ex">
+    <div class="ex-head">
+      <div><h3>${esc(ex.name)}</h3><div class="meta">${esc(ex.period || '全期間')}　対象：${esc(ex.target)}</div></div>
+      <button class="star ${fav ? 'on' : ''}" data-id="${esc(ex.id)}" aria-label="お気に入り" aria-pressed="${fav}">★</button>
+    </div>
+    ${ex.note ? `<p class="note">${esc(ex.note)}</p>` : ''}
+    ${vid ? `<div class="video" data-vid="${vid}"><img src="https://img.youtube.com/vi/${vid}/hqdefault.jpg" alt=""><button><span>${location.protocol === 'file:' ? '▶ YouTubeで開く' : '▶ 動画を見る'}</span></button></div>`
+          : (ex.video ? `<p class="note"><a href="${esc(ex.video)}" target="_blank" rel="noopener">動画を開く</a></p>` : '')}
+    ${lastTxt ? `<div class="last">${lastTxt}</div>` : ''}
+    <form class="logform" data-id="${esc(ex.id)}" data-name="${esc(ex.name)}">
+      <div><label>セット<input type="number" name="sets" inputmode="numeric" min="0" step="1"></label></div>
+      <div><label>回数<input type="number" name="reps" inputmode="numeric" min="0" step="1"></label></div>
+      <div><label>重さ(kg)<input type="number" name="weight" inputmode="decimal" min="0" step="0.5"></label></div>
+      <div class="memo"><label>メモ<input type="text" name="memo" placeholder="感覚や気づき"></label></div>
+      <button class="go" type="submit">記録する</button>
+    </form>
+  </article>`;
+}
+
+async function onLogSubmit(e) {
+  e.preventDefault();
+  const f = e.target;
+  if (!state.athlete) { toast('先に上で名前を選んでください'); $('selAthlete').focus(); return; }
+  const body = {
+    action: 'log', club: state.club, athlete: state.athlete, exId: f.dataset.id, exName: f.dataset.name,
+    period: state.period, sets: f.elements.sets.value, reps: f.elements.reps.value, weight: f.elements.weight.value, memo: f.elements.memo.value
+  };
+  if (body.sets === '' && body.reps === '' && body.weight === '' && body.memo === '') { toast('セットか回数か重さかメモを入れてください'); return; }
+  const btn = f.querySelector('.go'); btn.disabled = true; btn.textContent = '送信中…';
+  try {
+    const j = await apiPost(body);
+    state.logs.unshift({ id: j.id, at: j.at, athlete: body.athlete, exId: body.exId, exName: body.exName, period: body.period, sets: body.sets, reps: body.reps, weight: body.weight, memo: body.memo });
+    toast('記録しました');
+    f.reset();
+    const art = f.closest('.ex');
+    const lastDiv = art.querySelector('.last') || Object.assign(document.createElement('div'), { className: 'last' });
+    lastDiv.textContent = `前回 ${fmtDate(j.at)}：${body.sets ? body.sets + 'セット ' : ''}${body.reps ? body.reps + '回 ' : ''}${body.weight ? body.weight + 'kg ' : ''}${body.memo ? '「' + body.memo + '」' : ''}`;
+    if (!lastDiv.parentElement) art.insertBefore(lastDiv, f);
+    renderLogs();
+  } catch (err) {
+    toast('記録できませんでした：' + err.message, 4000);
+  } finally { btn.disabled = false; btn.textContent = '記録する'; }
+}
+
+/* ---------- 資料室 ---------- */
+function renderLibrary() {
+  const box = $('libList');
+  const lib = state.data.library;
+  if (!lib.length) { box.innerHTML = '<p class="empty">資料はまだありません。</p>'; return; }
+  box.innerHTML = lib.map(l => `<div class="lib">
+    <h3>${esc(l.title)}</h3>
+    ${l.note ? `<div class="note">${esc(l.note)}</div>` : ''}
+    ${l.link ? `<a href="${esc(l.link)}" target="_blank" rel="noopener">資料を開く</a>` : ''}
+    ${l.image ? `<img src="${esc(l.image)}" alt="${esc(l.title)}" loading="lazy">` : ''}
+  </div>`).join('');
+}
+
+/* ---------- 記録 ---------- */
+async function loadLogs(manual) {
+  if (!state.club) return;
+  try {
+    const j = await apiGet({ action: 'logs', club: state.club, athlete: state.athlete, limit: 300 });
+    state.logs = j.logs; renderLogs(); renderMenu();
+    if (manual) toast('記録を最新にしました');
+  } catch (e) { if (manual) toast('通信できませんでした'); }
+}
+
+function renderLogs() {
+  const box = $('logList');
+  if (!state.athlete) { box.innerHTML = '<p class="empty">上で名前を選ぶと、その人の記録が出ます。</p>'; $('logCount').textContent = ''; return; }
+  let logs = state.logs.filter(l => l.athlete === state.athlete);
+  if (state.period) logs = logs.filter(l => l.period === state.period);
+  $('logCount').textContent = `${esc(state.athlete)}　${logs.length}件`;
+  if (!logs.length) { box.innerHTML = '<p class="empty">記録はまだありません。</p>'; return; }
+  let html = '', day = '';
+  logs.forEach(l => {
+    const d = fmtDate(l.at);
+    if (d !== day) { day = d; html += `<div class="day">${d}</div>`; }
+    const v = [l.sets !== '' && l.sets != null ? l.sets + 'セット' : '', l.reps !== '' && l.reps != null ? l.reps + '回' : '', l.weight !== '' && l.weight != null ? l.weight + 'kg' : ''].filter(String).join(' ');
+    html += `<div class="log"><div><div class="t">${esc(l.exName)}　${esc(v)}</div><div class="d">${esc(l.period || '')}${l.memo ? '　「' + esc(l.memo) + '」' : ''}</div></div><button data-id="${esc(l.id)}">消す</button></div>`;
+  });
+  box.innerHTML = html;
+  box.querySelectorAll('.log button').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('この記録を消しますか？')) return;
+    try {
+      await apiPost({ action: 'deleteLog', id: b.dataset.id });
+      state.logs = state.logs.filter(l => l.id !== b.dataset.id);
+      renderLogs(); renderMenu(); toast('消しました');
+    } catch (e) { toast('消せませんでした'); }
+  }));
+}
+
+init();
+</script>
+</body>
+</html>

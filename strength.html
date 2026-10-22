@@ -153,7 +153,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-22 note2';
+const APP_VER = '2026-10-22 note3';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -426,7 +426,7 @@ VIEWS.detail = cur=>{ const e = EXMAP[cur.id]; const k = curDay(); const links =
   const inMenu = day(k).rows.some(r=>r.exId===e.id);
   return {title: shortName(e), html:
     '<p>'+starHTML(e)+' '+LV_LABEL[evLevel(e)]+(e.refs&&e.refs.length?'（文献'+e.refs.length+'件）':'')+'</p>'+
-    (e.gym ? '<div class="note warn">体操の移行データの種目です。'+(e.linked?'':'やり方の説明と根拠は未登録です。')+'</div>' : '')+
+    (e.gym ? '<div class="note warn">体操の移行データの種目です。'+(e.linked?'':'やり方の説明と根拠は未登録です。')+'</div>' : '')+(e.user ? '<div class="note warn">自分で登録した種目です。説明と根拠は未登録です。</div>' : '')+
     '<div class="stack two">'+(day(k).finished?'':'<button type="button" class="cta" id="dAdd" '+(inMenu?'disabled aria-disabled="true"':'')+'>'+(inMenu?'今日のメニューに入れてあります':'今日のメニューに入れる')+'</button>')+'<button type="button" class="ghost" id="dFav" aria-pressed="'+db.favs.includes(e.id)+'">'+(db.favs.includes(e.id)?'★ お気に入り':'☆ お気に入りに入れる')+'</button></div>'+
     (best?'<div class="note good">自己ベストの推定1RM '+kg(best.v)+' kg（'+md(best.k)+'）</div>':'')+
     (h.length?'<h2>最近の記録</h2><ul class="rows">'+h.map(x=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+md(x.k)+'</strong><span class="d">'+esc(rowTxt(x.r))+(x.r.note?'　'+esc(x.r.note):'')+'</span></span></li>').join('')+'</ul>':'')+
@@ -531,7 +531,7 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
     } }; };
 function reuseMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d = draft(); d.rows = m.rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, free:r.free?Object.assign({},r.free):null})); d.note = m.note||''; d.to = m.to.slice(); save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg1').focus(); }
 async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!syncUrl()){ say('送り先のURLが設定にありません'); return; }
-  const date = d.date||today(); const mid = 'wk_'+Date.now(); const rows = d.rows.map(r=>({exId:r.exId, name:shortName(EXMAP[r.exId]), kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', free:r.free||null}));
+  const date = d.date||today(); const mid = 'wk_'+Date.now(); const rows = d.rows.map(r=>{ const e = EXMAP[r.exId]; return {exId:r.exId, name:shortName(e), part:e&&e.user?e.part:'', bw:e&&e.user?!!e.bw:undefined, kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', free:r.free||null}; });
   const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', rows}}));
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
   try{ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:db.me.trim(), items})}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'受け取り側の失敗');
@@ -597,6 +597,39 @@ const _detailView = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailView(cu
 const _settingsView = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsView(); if(!isCoach()) return v;
   v.html = v.html.replace('<h2>コーチへの送信</h2>', '<h2>コーチの合言葉</h2><p class="sub">GASの Code.gs に書いた COACH_KEY と同じ言葉です。選手の結果を取り込むときに使います。</p><form id="ckF" class="stepper" style="grid-template-columns:1fr 100px"><label class="sr" for="ckIn">コーチの合言葉</label><input type="password" id="ckIn" value="'+esc(db.coachKey||'')+'" autocomplete="off"><button type="submit" style="font-size:1rem">保存</button></form>'+(db.draftUndo&&db.draftUndo.length?'<h2>外した種目を戻す</h2><button type="button" class="ghost" id="cUndo">'+db.draftUndo.map(r=>esc(shortName(EXMAP[r.exId]))).join('、')+' を戻す</button>':'')+'<h2>選手としての送信</h2>');
   const a0 = v.after; v.after = ()=>{ a0(); $('#ckF').addEventListener('submit',ev=>{ ev.preventDefault(); db.coachKey = $('#ckIn').value.trim(); save(); say('合言葉を保存しました'); }); const u = $('#cUndo'); if(u) u.addEventListener('click',()=>{ draft().rows.push(...db.draftUndo); db.draftUndo = null; save(); say('戻しました'); render(false); $('#title').focus(); }); }; return v; };
+
+/* ============ 自分で種目を登録する（2026-10-22） ============
+ 名前、部位、自重かどうかだけを入れる。説明と根拠は作らず、星1つのまま。
+ コーチが送るメニューには名前と部位も一緒に入れ、受け取った選手の携帯に自動で登録する */
+function uexAll(){ db.userEx = db.userEx||[]; return db.userEx; }
+function uexApply(){ EX.filter(e=>e.user).forEach(e=>{ delete EXMAP[e.id]; }); for(let i=EX.length-1;i>=0;i--){ if(EX[i].user) EX.splice(i,1); }
+  uexAll().forEach(u=>{ const e = {id:u.id, name:u.name, cat:'user', type:'loaded', user:true, part:u.part||'', bw:!!u.bw, strokes:[], muscles:(u.part?(PARTS.find(p=>p.k===u.part)||{}).name||'':'')+'（細かい筋肉は未登録）', why:'', swim:'', cue:'', merit:[], demerit:[], refs:[], lv:'none'};
+    EX.push(e); EXMAP[e.id] = e; PLACES[e.id] = u.part ? [{part:u.part, sub:'', main:true}] : []; }); }
+CATS.user = '自分で登録した種目';
+const _bwEx = bwEx; bwEx = function(e){ if(e && e.user) return !!e.bw; return _bwEx(e); };
+function uexAdd(name, part, bw, id){ const L = uexAll(); name = String(name||'').trim(); if(!name) return null; const same = EX.find(e=>shortName(e)===name || e.name===name); if(same && !id) return same.id;
+  const o = {id: id||'ux_'+Date.now(), name, part:part||'', bw:!!bw, date:today()}; const i = L.findIndex(x=>x.id===o.id); if(i>=0) L[i] = o; else L.push(o); save(); uexApply(); return o.id; }
+VIEWS.uexnew = ()=>{ const L = uexAll().slice().reverse();
+  return {title:'種目を登録する', html:
+    '<div class="note warn">ここで登録した種目は、説明と根拠が無いので星1つになります。似た名前の種目がすでにあれば、そちらを使ってください。</div>'+
+    '<form id="uxF" class="stack"><label class="f">種目の名前<input type="text" class="txt" id="uxName" autocomplete="off" placeholder="例：ケーブルロウ"></label><p class="sub" id="uxSame" role="status"></p>'+
+    '<label class="f">主な部位<select class="txt" id="uxPart"><option value="">決めない</option>'+PARTS.map(p=>'<option value="'+p.k+'">'+esc(p.name)+'</option>').join('')+'</select></label>'+
+    '<p class="f" id="uxBwL">自重の種目ですか（懸垂や腕立てのように、体重を持ち上げる種目）</p><div class="chips" role="group" aria-labelledby="uxBwL"><button type="button" class="chip" data-uxbw="0" aria-pressed="true">重りを使う</button><button type="button" class="chip" data-uxbw="1" aria-pressed="false">自重の種目</button></div>'+
+    '<p id="uxErr" role="alert" style="color:var(--red);font-weight:700"></p><button type="submit" class="cta">この種目を登録する</button></form>'+
+    '<h2>登録した種目（'+L.length+'）</h2>'+(L.length?'<ul class="exl">'+L.map(u=>'<li><button type="button" class="rmain" data-go="detail" data-id="'+u.id+'"><strong>'+esc(u.name)+'</strong><span class="d">'+esc(u.part?(PARTS.find(p=>p.k===u.part)||{}).name||'':'部位は決めていない')+(u.bw?'　自重':'')+'</span></button><button type="button" class="ghost sm" data-uxdel="'+u.id+'" aria-label="'+esc(u.name)+'を消す">消す</button></li>').join('')+'</ul>':'<p class="sub">まだありません。</p>'),
+    after(){ let bw = false; document.querySelectorAll('[data-uxbw]').forEach(b=>b.addEventListener('click',()=>{ bw = b.dataset.uxbw==='1'; document.querySelectorAll('[data-uxbw]').forEach(x=>x.setAttribute('aria-pressed', x===b)); }));
+      $('#uxName').addEventListener('input',e=>{ const q = e.target.value.trim(); const hit = q.length>=2 ? EX.filter(x=>x.name.includes(q)).slice(0,3) : []; $('#uxSame').textContent = hit.length ? '似た名前の種目：'+hit.map(shortName).join('、') : ''; });
+      $('#uxF').addEventListener('submit',ev=>{ ev.preventDefault(); const n = $('#uxName').value.trim(); if(!n){ $('#uxErr').textContent = '名前を入れてください。'; $('#uxName').focus(); return; } if(EX.some(e=>shortName(e)===n||e.name===n)){ $('#uxErr').textContent = '同じ名前の種目がすでにあります。'; $('#uxName').focus(); return; }
+        uexAdd(n, $('#uxPart').value, bw); say(n+'を登録しました'); render(false); $('#uxName').focus(); });
+      document.querySelectorAll('[data-uxdel]').forEach(b=>b.addEventListener('click',()=>{ const id = b.dataset.uxdel; const u = uexAll().find(x=>x.id===id); if(db.uxDel!==id){ db.uxDel = id; say('もう一度押すと「'+u.name+'」を消します'); return; } db.userEx = uexAll().filter(x=>x.id!==id); db.uxDel = null; save(); uexApply(); say('消しました'); render(false); $('#title').focus(); })); } }; };
+/* 種目の画面に入口を足す */
+const _exViewU = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewU(); v.html = v.html.replace('<label class="f">名前で探す', '<div class="stack two" style="margin-top:10px"><button type="button" class="ghost sm" data-go="uexnew">種目を新しく登録する</button></div><label class="f">名前で探す'); return v; };
+const _exListU = exList; exList = function(key){ if(key==='user') return uexAll().map(u=>EXMAP[u.id]).filter(Boolean); return _exListU(key); };
+const _exViewU2 = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewU2(); v.html = v.html.replace('<option value="all"', '<option value="user"'+(exSel==='user'?' selected':'')+'>自分で登録した種目</option><option value="all"'); return v; };
+/* 送るメニューに名前と部位を載せ、受け取る側で未登録なら登録する */
+const _rowsFromRaw = rowsFromRaw; rowsFromRaw = function(raw){ (raw.rows||[]).forEach(r=>{ const id = r.exId||r.id; if(id && !EXMAP[id] && r.name && /^ux_/.test(id)) uexAdd(r.name, r.part||'', !!r.bw, id); }); return _rowsFromRaw(raw); };
+const _sendMenu = sendMenu; sendMenu = async function(){ draft().rows.forEach(r=>{ const e = EXMAP[r.exId]; if(e && e.user){ r._part = e.part; r._bw = e.bw; } }); return _sendMenu(); };
+uexApply();
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

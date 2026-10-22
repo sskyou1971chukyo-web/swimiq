@@ -153,7 +153,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-22 note6';
+const APP_VER = '2026-10-23 note7';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -534,7 +534,8 @@ async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!sync
   const date = d.date||today(); const mid = 'wk_'+Date.now(); const rows = d.rows.map(r=>{ const e = EXMAP[r.exId]; const u = e&&e.user ? uexAll().find(x=>x.id===e.id) : null; return {exId:r.exId, name:shortName(e), part:e&&e.user?e.part:'', bw:e&&e.user?!!e.bw:undefined, ux:u?uexFull(u):undefined, kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', free:r.free||null}; });
   const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', rows}}));
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
-  try{ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:db.me.trim(), items})}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'受け取り側の失敗');
+  try{ /* 選手一人ずつ、その選手の名前で送る。前の Code.gs でも、新しい Code.gs でも、選手の行として残る */
+    for(const it of items){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:it.raw.who, items:[it]})}); const j = await res.json(); if(!j.ok) throw new Error(it.raw.who+'：'+(j.error||'受け取り側の失敗')); }
     db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
   catch(e){ say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); $('#cSend').focus(); } }
 /* コーチの行を直すシート */

@@ -153,7 +153,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-22 note5';
+const APP_VER = '2026-10-22 note6';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -640,7 +640,7 @@ const _uexAdd2 = uexAdd; uexAdd = function(name, part, bw, id, more){ const rid 
 const PART_BY_NAME = Object.fromEntries(PARTS.map(p=>[p.name, p.k]));
 function uexParse(text){ const out = []; String(text||'').split(/\n\s*\n/).forEach(block=>{ const o = {}; let last = null; block.split('\n').forEach(line=>{ const m = line.match(/^(名前|日本語名|解説|器具|部位|自重|動画|出どころ)[：:]\s*(.*)$/); if(m){ last = {'名前':'name','日本語名':'ja','解説':'desc','器具':'equip','部位':'partName','自重':'bwTxt','動画':'video','出どころ':'src'}[m[1]]; o[last] = m[2].trim(); } else if(last && line.trim()){ o[last] += '\n'+line.trim(); } });
   if(o.name){ o.part = PART_BY_NAME[o.partName] || ''; o.bw = /^(はい|自重|yes)/i.test(o.bwTxt||''); out.push(o); } }); return out; }
-VIEWS.uexcoach = ()=>{ const L = uexAll().slice().reverse(); const e = db.uxEdit ? uexAll().find(x=>x.id===db.uxEdit) : null; const v = e || {};
+VIEWS.uexcoach = ()=>{ const L = uexAll().slice().reverse(); const e = db.uxEdit ? uexAll().find(x=>x.id===db.uxEdit) : null; const v = Object.assign({}, e||{}, db.uxDraft||{});
   const f = (label, id, val, ph, rows)=> rows ? '<label class="f">'+label+'<textarea class="txt" id="'+id+'" rows="'+rows+'" placeholder="'+esc(ph||'')+'">'+esc(val)+'</textarea></label>' : '<label class="f">'+label+'<input type="text" class="txt" id="'+id+'" value="'+esc(val)+'" placeholder="'+esc(ph||'')+'" autocomplete="off"></label>';
   return {title:'種目の登録（コーチ）', html:
     '<div class="note warn">解説は、元の資料を日本語にしたものだけを入れ、出どころを必ず書きます。ここで登録した種目は星1つのままで、文献は付きません。</div>'+
@@ -666,11 +666,42 @@ VIEWS.uexcoach = ()=>{ const L = uexAll().slice().reverse(); const e = db.uxEdit
 const _settingsU = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsU(); if(isCoach()) v.html = v.html.replace('<h2>コーチの合言葉</h2>', '<h2>種目の登録（コーチだけ）</h2><p class="sub">英語の名前のまま、日本語の解説を付けて登録します。登録した種目をメニューに入れて送ると、解説ごと選手に届きます。</p><button type="button" class="ghost" data-go="uexcoach">種目の登録を開く</button><h2>コーチの合言葉</h2>'); return v; };
 /* 詳細画面：解説、器具、出どころ、動画 */
 const _detailU = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailU(cur); const e = EXMAP[cur.id]; if(!e || !e.user) return v;
-  v.html = v.html.replace('<h2>主な筋肉</h2>', (e.equip?'<h2>器具</h2><p>'+esc(e.equip)+'</p>':'')+(e.video?'<p><a target="_blank" rel="noopener" href="'+esc(e.video)+'">登録された動画を開く</a></p>':'')+(e.src?'<p class="sub">出どころ：'+esc(e.src)+'</p>':'')+'<h2>主な筋肉</h2>').replace('<h2>どんな種目か</h2>','<h2>解説（日本語訳）</h2>');
+  v.html = v.html.replace('<h2>主な筋肉</h2>', (e.equip?'<h2>器具</h2><p>'+esc(e.equip)+'</p>':'')+(e.video?'<p><a target="_blank" rel="noopener" href="'+esc(e.video)+'">登録された動画を開く</a></p>':'')+(e.src?'<p class="sub">出どころ：'+esc(e.src)+'</p>':'')+'<h2>主な筋肉</h2>').replace('<h2>どんな種目か</h2>','<h2>解説（日本語訳）</h2>'); const uu = uexAll().find(x=>x.id===e.id); if(uu && uu.en) v.html = v.html.replace('<details class="more"><summary>動画で見る', '<details class="more"><summary>英語の原文</summary><div class="inner"><p class="sub">'+esc(uu.en)+'</p></div></details><details class="more"><summary>動画で見る');
   v.html = v.html.replace(/<p>([^<]*)<\/p>(?=<h2>水泳との関連|<h2>ポイント|<details)/, (m,p)=>'<p style="white-space:pre-wrap">'+p+'</p>'); return v; };
 /* 送るメニューに解説ごと載せ、受け取る側は解説ごと登録する */
 const _sendMenuU = sendMenu; sendMenu = async function(){ return _sendMenuU(); };
 const _rowsFromRawU = rowsFromRaw; rowsFromRaw = function(raw){ (raw.rows||[]).forEach(r=>{ if(r.ux && /^ux_/.test(r.ux.id)){ const cur = uexAll().find(x=>x.id===r.ux.id); if(!cur || JSON.stringify(uexFull(cur))!==JSON.stringify(r.ux)) uexAdd(r.ux.name, r.ux.part, r.ux.bw, r.ux.id, r.ux); } }); return _rowsFromRawU(raw); };
+
+/* ============ スクリーンショットから読み込む（2026-10-22 夜） ============
+ 文字の読み取りは Tesseract（ブラウザーで動く無料のOCR）を、使うときだけインターネットから読み込む。
+ 翻訳は GAS の Google 翻訳（LanguageApp）。どちらも電波のある所でだけ動く。読み取った内容はコーチが見直してから登録する */
+const OCR_SRC = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+function loadOCR(){ return new Promise((res, rej)=>{ if(window.Tesseract) return res(); const s = document.createElement('script'); s.src = OCR_SRC; s.onload = ()=>res(); s.onerror = ()=>rej(new Error('読み取りの部品を読み込めませんでした。電波のある所で試してください')); document.head.appendChild(s); }); }
+function ocrParse(text){ const lines = String(text||'').split('\n').map(l=>l.trim()); const good = l=>/[A-Za-z]{2,}/.test(l) && (l.replace(/[^A-Za-z0-9 .,:;'’\-\/()]/g,'').length / Math.max(1,l.length)) > 0.7;
+  const L = lines.filter(l=>l && good(l)); const o = {name:'', en:'', equip:'', video:''};
+  const iP = L.findIndex(l=>/points?\s+of\s+performance/i.test(l)); const iE = L.findIndex(l=>/suggested\s+equipment/i.test(l));
+  o.name = (L[0]||'').replace(/[^A-Za-z0-9 \-\/&()]/g,'').trim();
+  const body = L.slice(iP>=0?iP+1:1, iE>=0?iE:undefined); o.en = body.join(' ').replace(/-\s+/g,'').replace(/\s+/g,' ').trim();
+  if(iE>=0){ const eq = L.slice(iE).join(' ').replace(/^.*?suggested\s+equipment\s*:?\s*/i,''); o.equip = eq.split(/https?:\/\//)[0].replace(/[^A-Za-z0-9 ,&\-()]/g,'').trim(); }
+  const m = text.match(/https?:\/\/\S+/); if(m) o.video = m[0].replace(/[^\w\-.\/:?=&%]/g,''); return o; }
+function sentences(t){ return String(t||'').split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(Boolean); }
+async function translateList(list){ if(!syncUrl()) throw new Error('送り先のURLが設定にありません'); const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({action:'translate', texts:list})}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'翻訳できませんでした（GASの Code.gs を新しいものにしてください）'); return j.ja||[]; }
+async function ocrRun(file){ const st = $('#ocrSt'); const put = m=>{ if(st) st.textContent = m; };
+  try{ put('読み取りの部品を読み込んでいます'); await loadOCR(); put('文字を読み取っています（10秒から30秒）'); const w = await Tesseract.createWorker('eng'); const r = await w.recognize(file); await w.terminate();
+    const o = ocrParse(r.data.text); if(!o.name){ put('文字を読み取れませんでした。画面全体がはっきり写ったスクリーンショットを選んでください'); return; }
+    put('翻訳しています'); const ss = sentences(o.en); const ja = await translateList(ss.concat(o.equip?[o.equip]:[]));
+    const desc = ss.map((s,i)=>'・'+String(ja[i]||s).trim()).join('\n'); const equipJa = o.equip ? String(ja[ss.length]||o.equip).trim() : '';
+    const same = uexAll().find(x=>x.name===o.name); db.uxEdit = same ? same.id : null; db.uxDraft = {name:o.name, ja:same?same.ja||'':'', desc, equip:equipJa, video:o.video, en:o.en, src:'アプリの画面を読み取り（'+today()+'）。翻訳はGoogle翻訳、コーチが見直し'}; save(); say(same ? '同じ名前の種目があるので、直す形で開きました。見直してから保存してください' : '読み取りました。内容を見直してから登録してください'); render(false); $('#ucName').focus(); }
+  catch(e){ put('できませんでした。'+String(e.message||e)); } }
+const _uexcoachO = VIEWS.uexcoach; VIEWS.uexcoach = ()=>{ const v = _uexcoachO(); const d = db.uxDraft;
+  const sec = '<section class="page"><h2 id="ocrH" tabindex="-1">スクリーンショットから読み込む</h2><p class="sub" style="margin-top:0">英語の種目の画面を選ぶと、名前と解説と器具を読み取り、解説と器具を日本語にして下の欄に入れます。読み取りと翻訳は電波のある所でだけ動きます。翻訳は機械なので、登録する前に見直してください。</p>'+
+    '<label class="ghost" style="position:relative">スクリーンショットを選ぶ<input type="file" id="ocrFile" accept="image/*" style="position:absolute;inset:0;opacity:0"></label><p id="ocrSt" role="status" class="sub"></p></section>';
+  v.html = v.html.replace('<h2 id="uxH" tabindex="-1">', sec+'<h2 id="uxH" tabindex="-1">');
+  if(d){ v.html = v.html.replace('id="ucName" value=""', 'id="ucName" value="'+esc(d.name)+'"').replace('id="ucEquip" value=""', 'id="ucEquip" value="'+esc(d.equip)+'"').replace('id="ucVideo" value=""', 'id="ucVideo" value="'+esc(d.video)+'"').replace('id="ucSrc" value=""', 'id="ucSrc" value="'+esc(d.src)+'"').replace(/(<textarea class="txt" id="ucDesc"[^>]*>)/, '$1'+esc(d.desc));
+    v.html = v.html.replace('<p id="ucErr"', '<details class="more"><summary>読み取った英語の原文</summary><div class="inner"><p class="sub">'+esc(d.en)+'</p></div></details><button type="button" class="link" id="ocrClear">読み取った内容を消す</button><p id="ucErr"'); }
+  const a0 = v.after; v.after = ()=>{ a0(); $('#ocrFile').addEventListener('change',e=>{ const f = e.target.files[0]; if(f) ocrRun(f); }); const c = $('#ocrClear'); if(c) c.addEventListener('click',()=>{ db.uxDraft = null; save(); render(false); $('#uxH').focus(); }); }; return v; };
+/* 登録したら下書きを消し、原文も一緒に残す */
+const _uexAddO = uexAdd; uexAdd = function(name, part, bw, id, more){ const d = db.uxDraft; const rid = _uexAddO(name, part, bw, id, more); if(rid && d){ const u = uexAll().find(x=>x.id===rid); if(u && d.name===name){ u.en = d.en; db.uxDraft = null; save(); } } return rid; };
 
 /* ============ 最初から入れておく、コーチ登録の種目（翻訳したもの）。設定の種目の登録から直したり消したりできる ============ */
 const PRESET_UX = [

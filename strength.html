@@ -160,7 +160,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note10';
+const APP_VER = '2026-10-23 note11';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -530,7 +530,7 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
       const cp = $('#cCopyLast'); if(cp) cp.addEventListener('click',()=>{ reuseMenu(sent[0].mid); });
       document.querySelectorAll('[data-creuse]').forEach(b=>b.addEventListener('click',()=>reuseMenu(b.dataset.creuse)));
       document.querySelectorAll('[data-cto]').forEach(b=>b.addEventListener('click',()=>{ const n = b.dataset.cto; d.to = d.to||[]; const i = d.to.indexOf(n); if(i<0) d.to.push(n); else d.to.splice(i,1); save(); render(false); document.querySelector('[data-cto="'+CSS.escape(n)+'"]').focus(); }));
-      $('#cNameF').addEventListener('submit',ev=>{ ev.preventDefault(); const n = $('#cName').value.trim(); if(!n) return; db.names = db.names||[]; if(!db.names.includes(n)) db.names.push(n); d.to = d.to||[]; if(!d.to.includes(n)) d.to.push(n); save(); say(n+'を足して選びました'); render(false); $('#cName').focus(); });
+      $('#cNameF').addEventListener('submit',ev=>{ ev.preventDefault(); const n = $('#cName').value.trim(); if(!n) return; db.namesGone = (db.namesGone||[]).filter(x=>x!==n); db.names = db.names||[]; if(!db.names.includes(n)) db.names.push(n); d.to = d.to||[]; if(!d.to.includes(n)) d.to.push(n); save(); say(n+'を足して選びました'); render(false); $('#cName').focus(); });
       const al = $('#cAll'); if(al) al.addEventListener('click',()=>{ d.to = names.slice(); save(); render(false); $('#pg2').focus(); });
       const no = $('#cNone'); if(no) no.addEventListener('click',()=>{ d.to = []; save(); render(false); $('#pg2').focus(); });
       $('#cNote').addEventListener('input',e=>{ d.note = e.target.value; save(); }); $('#cDate').addEventListener('change',e=>{ d.date = e.target.value; save(); });
@@ -570,7 +570,7 @@ const _closeSheet = closeSheet; closeSheet = function(){ if(csh) closeCoachSheet
 async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定にありません'); return; } if(!db.coachKey){ say('設定で、コーチの合言葉を入れてください'); return; }
   if(manual) say('取り込んでいます');
   try{ const r = await fetch(syncUrl()+'?action=all&key='+encodeURIComponent(db.coachKey)); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
-    db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); render(false); }
+    db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); if(manual || !busyTyping()){ const y = ($('#pkList')||{}).scrollTop||0; render(false); const l = $('#pkList'); if(l) l.scrollTop = y; } }
   catch(e){ say('取り込めませんでした。'+String(e.message||e)); } }
 function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー'); }
 function teamByName(){ const m = {}; teamRows().forEach(x=>{ const n = String(x['選手']||'').trim(); if(!n) return; (m[n] = m[n]||[]).push(x); }); return m; }
@@ -722,7 +722,7 @@ const PRESET_UX = [
 (function(){ db.uxHidden = db.uxHidden||[]; const L = uexAll(); let n = 0; PRESET_UX.forEach(p=>{ if(db.uxHidden.includes(p.id) || (db.uxGone||[]).includes(p.id) || L.some(x=>x.id===p.id)) return; L.push(Object.assign({date:today()}, p)); n++; }); if(n){ save(); uexApply(); } })();
 
 /* ============ 100人でも選びやすい選手の選び方と、名前の整理（2026-10-23） ============ */
-function allNames(){ const s = new Set(db.names||[]); ((db.team||{}).rows||[]).forEach(x=>{ const n = String(x['選手']||'').trim(); if(n) s.add(n); }); return [...s]; }
+function allNames(){ const gone = db.namesGone||[]; const s = new Set((db.names||[]).filter(n=>!gone.includes(n))); ((db.team||{}).rows||[]).forEach(x=>{ const n = String(x['選手']||'').trim(); if(n) s.add(n); }); return [...s]; }
 function lastSeen(){ const m = {}; teamRows().forEach(x=>{ const n = String(x['選手']||'').trim(), k = rowDate(x); if(n && k && (!m[n] || k>m[n])) m[n] = k; }); return m; }
 function sortedNames(){ const ls = lastSeen(); return allNames().sort((a,b)=>{ const x = ls[a]||'', y = ls[b]||''; return x<y?1:x>y?-1:a.localeCompare(b,'ja'); }); }
 function normName(n){ return String(n).replace(/[\s　]/g,''); }
@@ -754,7 +754,7 @@ const _coachP = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachP(); const a0 =
 let nm = {from:'', del:''};
 function nameRows(n){ return ((db.team||{}).rows||[]).filter(x=>String(x['選手']||'').trim()===n); }
 function renameLocal(from, to){ const fix = L=>{ const o = []; (L||[]).forEach(n=>{ const m = n===from ? to : n; if(m && !o.includes(m)) o.push(m); }); return o; };
-  db.names = fix(db.names); const d = draft(); d.to = fix(d.to); (db.groups||[]).forEach(g=>{ g.members = fix(g.members); });
+  db.namesGone = union(db.namesGone, [from]); db.names = fix(db.names); const d = draft(); d.to = fix(d.to); (db.groups||[]).forEach(g=>{ g.members = fix(g.members); });
   if(db.team) db.team.rows = (db.team.rows||[]).filter(x=>!(to==='' && String(x['選手']).trim()===from)).map(x=>String(x['選手']).trim()===from ? Object.assign({}, x, {'選手':to}) : x); save(); }
 async function namesCall(action, extra){ if(!syncUrl()) throw new Error('送り先のURLが設定にありません'); if(!db.coachKey) throw new Error('設定でコーチの合言葉を入れてください');
   const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify(Object.assign({action, key:db.coachKey}, extra))}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'失敗（GASの Code.gs を新しいものにしてください）'); return j; }
@@ -821,13 +821,13 @@ save = function(){ try{ stamp(); }catch(e){} _save0(); cloudLater(); };
 function saveQuiet(){ _save0(); cache = snap(); }
 function union(a, b){ const o = (a||[]).slice(); (b||[]).forEach(x=>{ if(!o.includes(x)) o.push(x); }); return o; }
 function mergeIn(r){ if(!r) return false; const before = sigOf(Object.assign({}, db, {cloud:null})); const mL = db._mt||{}, mR = r._mt||{}; db._mt = db._mt||{};
-  const OWN = ['days','bw','userEx','tests','sentMenus','inbox','names','uxHidden','uxGone','sync','_mt'];
+  const OWN = ['days','bw','userEx','tests','sentMenus','inbox','names','namesGone','uxHidden','uxGone','sync','_mt'];
   Object.keys(r).forEach(f=>{ if(CLOUD_SKIP.includes(f) || OWN.includes(f)) return; if((mR[f]||0) > (mL[f]||0)){ db[f] = r[f]; db._mt[f] = mR[f]; } });
   db.days = db.days||{}; const better = (b,a)=>(!!b.finished!==!!a.finished) ? !!b.finished : (b.rows||[]).length > (a.rows||[]).length;
   Object.keys(r.days||{}).forEach(k=>{ const a = db.days[k], b = r.days[k]; if(!a){ db.days[k] = b; return; } const ma = a.mt||0, mb = b.mt||0; if(mb>ma || (mb===ma && sigOf(a)!==sigOf(b) && better(b,a))) db.days[k] = b; });
   const byKey = (f, key)=>{ const m = {}; (db[f]||[]).forEach(x=>{ m[x[key]] = x; }); (r[f]||[]).forEach(x=>{ const a = m[x[key]]; if(!a || (x.mt||0) > (a.mt||0)) m[x[key]] = x; }); db[f] = Object.values(m); };
   byKey('bw','date'); db.bw.sort((a,b)=>a.date<b.date?-1:1);
-  db.uxGone = union(db.uxGone, r.uxGone); db.uxHidden = union(db.uxHidden, r.uxHidden); db.names = union(db.names, r.names);
+  db.uxGone = union(db.uxGone, r.uxGone); db.uxHidden = union(db.uxHidden, r.uxHidden); db.names = union(db.names, r.names); const gone0 = (db.namesGone||[]).slice(); db.namesGone = union(db.namesGone, r.namesGone); const newGone = db.namesGone.filter(n=>!gone0.includes(n)); if(newGone.length && db.team && db.team.rows){ db.team.rows = db.team.rows.filter(x=>!newGone.includes(String(x['選手']||'').trim())); const d0 = draft(); d0.to = (d0.to||[]).filter(n=>!newGone.includes(n)); }
   byKey('userEx','id'); db.userEx = db.userEx.filter(x=>!db.uxGone.includes(x.id));
   const ts = {}; (db.tests||[]).concat(r.tests||[]).forEach(t=>{ ts[sigOf(t)] = t; }); db.tests = Object.values(ts).sort((a,b)=>a.date<b.date?-1:1);
   byKey('sentMenus','mid');
@@ -872,6 +872,17 @@ const _startC = VIEWS.start; VIEWS.start = ()=>{ const v = _startC();
   return v; };
 cache = snap();
 setTimeout(()=>{ if(db.ready) cloudSync(false); }, 600);
+
+/* ---- コーチの画面：開いたら選手の名前を自動で取り込む（5分に1回まで）。携帯とパソコンがつながっていなければ知らせる ---- */
+let teamTried = 0;
+function autoTeam(){ if(!isCoach() || !db.coachKey || !syncUrl()) return; const at = db.team && db.team.at ? new Date(db.team.at).getTime() : 0; const now = Date.now(); if(now-at < 5*60*1000 || now-teamTried < 60*1000) return; teamTried = now; fetchAll(false); }
+function coachHint(){ const c = db.cloud||{}; let h = '';
+  if(!c.pass) h += '<div class="note warn" style="margin-top:12px">この端末は、まだ携帯とパソコンの同期をしていません。もう一方の端末と同じ内容にするには、設定でつないでください。<br><button type="button" class="link" data-go="settings">設定を開く</button></div>';
+  else if(c.err) h += '<div class="note bad" style="margin-top:12px">もう一方の端末と合わせられていません（'+esc(c.err)+'）。<br><button type="button" class="link" data-go="settings">設定を開く</button></div>';
+  if(!db.coachKey) h += '<div class="note warn" style="margin-top:12px">設定でコーチの合言葉を入れると、選手の名前がスプレッドシートから自動で並びます。</div>';
+  return h; }
+const _coachA = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachA(); v.html = coachHint()+v.html; const a0 = v.after; v.after = ()=>{ a0(); autoTeam(); }; return v; };
+const _teamA = VIEWS.team; VIEWS.team = ()=>{ const v = _teamA(); v.html = coachHint()+v.html; const a0 = v.after; v.after = ()=>{ a0(); autoTeam(); }; return v; };
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

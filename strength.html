@@ -153,7 +153,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note7';
+const APP_VER = '2026-10-23 note9';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -567,7 +567,9 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   catch(e){ say('取り込めませんでした。'+String(e.message||e)); } }
 function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー'); }
 function teamByName(){ const m = {}; teamRows().forEach(x=>{ const n = String(x['選手']||'').trim(); if(!n) return; (m[n] = m[n]||[]).push(x); }); return m; }
-function rowDate(x){ return String(x['日付']||'').slice(0,10); }
+/* スプレッドシートは「2026-10-23」という文字を日付に変えてしまい、GASはそれを世界標準時（日本の9時間前）の文字で返す。
+   そのまま先頭10文字を取ると1日前になるので、時刻つきのときは携帯の時刻（日本時間）の日付に直す */
+function rowDate(x){ const v = String(x['日付']||'').trim(); if(/^\d{4}-\d{2}-\d{2}T/.test(v)){ const d = new Date(v); if(!isNaN(d)) return dayOf(d); } return v.slice(0,10); }
 function athleteSummary(n, rows){ const td = today(); const w0 = weekStart(td); const vol = k=>r1(rows.filter(x=>String(x['種類'])==='練習' && weekStart(rowDate(x))===k).reduce((t,x)=>t+(Number(x['動かした重さkg'])||0),0));
   const last = rows.filter(x=>String(x['種類'])==='練習').map(rowDate).sort().pop(); const c = rows.filter(x=>String(x['種類'])==='調子').sort((a,b)=>rowDate(a)<rowDate(b)?1:-1)[0];
   return {last, wk:vol(w0), prev:vol(addDays(w0,-7)), sleep:c?c['睡眠h']:'', fat:c?c['疲れ']:'', cdate:c?rowDate(c):''}; }
@@ -710,7 +712,83 @@ const PRESET_UX = [
    src:'ASPのアプリの画面「FOAM ROLL TSPINE」（2026年10月22日に撮影）',
    desc:'準備\n・床に座り、ローラーを背中の上のほう（肩甲骨のあたり）に当てる\n・腕を胸の前で組み、両手で反対側の肩を抱える\n・膝を曲げ、足の裏を床につける\n動き\n・足で床を押して、体をゆっくり前後に転がす\n・転がす範囲は、腰の上端から首のすぐ下まで\n・呼吸を止めない。痛みを感じやすい場所では、息を吐いて力を抜く\n強さの目安\n・不快感は10段階で6から8\n・もっと強くしたいときは、お尻を床から持ち上げて体重をローラーに乗せる'}
 ];
-(function(){ db.uxHidden = db.uxHidden||[]; const L = uexAll(); let n = 0; PRESET_UX.forEach(p=>{ if(db.uxHidden.includes(p.id) || L.some(x=>x.id===p.id)) return; L.push(Object.assign({date:today()}, p)); n++; }); if(n){ save(); uexApply(); } })();
+(function(){ db.uxHidden = db.uxHidden||[]; const L = uexAll(); let n = 0; PRESET_UX.forEach(p=>{ if(db.uxHidden.includes(p.id) || (db.uxGone||[]).includes(p.id) || L.some(x=>x.id===p.id)) return; L.push(Object.assign({date:today()}, p)); n++; }); if(n){ save(); uexApply(); } })();
+
+/* ============ 携帯とパソコンで同じノートにする（2026-10-23） ============
+ スプレッドシートの「ノート」の表に、名前と同期の合言葉ごとに中身を置く。開いたとき、画面に戻ったとき、変えたときに、
+ 読む → 合わせる → 書く、の順で動く。合わせ方は「日ごと、種目ごとに、あとで変えたほうを残す」 */
+const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me'];
+function sigOf(v){ return JSON.stringify(v===undefined?null:v); }
+function noMt(x){ const y = Object.assign({}, x); delete y.mt; return y; }
+function snap(){ const c = {top:{}, days:{}, bw:{}, userEx:{}}; Object.keys(db).forEach(f=>{ if(CLOUD_SKIP.includes(f) || f==='_mt') return;
+    if(f==='days'){ Object.keys(db.days||{}).forEach(k=>{ c.days[k] = sigOf(noMt(db.days[k])); }); return; }
+    if(f==='bw'){ (db.bw||[]).forEach(x=>{ c.bw[x.date] = sigOf(noMt(x)); }); return; }
+    if(f==='userEx'){ (db.userEx||[]).forEach(x=>{ c.userEx[x.id] = sigOf(noMt(x)); }); return; }
+    c.top[f] = sigOf(db[f]); }); return c; }
+let cache = null;
+function stamp(){ const c = snap(); if(!cache){ cache = c; return; } const now = Date.now(); db._mt = db._mt||{};
+  Object.keys(c.top).forEach(f=>{ if(c.top[f]!==cache.top[f]) db._mt[f] = now; });
+  Object.keys(c.days).forEach(k=>{ if(c.days[k]!==cache.days[k]) db.days[k].mt = now; });
+  (db.bw||[]).forEach(x=>{ if(c.bw[x.date]!==cache.bw[x.date]) x.mt = now; });
+  (db.userEx||[]).forEach(x=>{ if(c.userEx[x.id]!==cache.userEx[x.id]) x.mt = now; });
+  Object.keys(cache.userEx).forEach(id=>{ if(!(id in c.userEx)){ db.uxGone = db.uxGone||[]; if(!db.uxGone.includes(id)) db.uxGone.push(id); } });
+  cache = snap(); }
+const _save0 = save;
+save = function(){ try{ stamp(); }catch(e){} _save0(); cloudLater(); };
+function saveQuiet(){ _save0(); cache = snap(); }
+function union(a, b){ const o = (a||[]).slice(); (b||[]).forEach(x=>{ if(!o.includes(x)) o.push(x); }); return o; }
+function mergeIn(r){ if(!r) return false; const before = sigOf(Object.assign({}, db, {cloud:null})); const mL = db._mt||{}, mR = r._mt||{}; db._mt = db._mt||{};
+  const OWN = ['days','bw','userEx','tests','sentMenus','inbox','names','uxHidden','uxGone','sync','_mt'];
+  Object.keys(r).forEach(f=>{ if(CLOUD_SKIP.includes(f) || OWN.includes(f)) return; if((mR[f]||0) > (mL[f]||0)){ db[f] = r[f]; db._mt[f] = mR[f]; } });
+  db.days = db.days||{}; const better = (b,a)=>(!!b.finished!==!!a.finished) ? !!b.finished : (b.rows||[]).length > (a.rows||[]).length;
+  Object.keys(r.days||{}).forEach(k=>{ const a = db.days[k], b = r.days[k]; if(!a){ db.days[k] = b; return; } const ma = a.mt||0, mb = b.mt||0; if(mb>ma || (mb===ma && sigOf(a)!==sigOf(b) && better(b,a))) db.days[k] = b; });
+  const byKey = (f, key)=>{ const m = {}; (db[f]||[]).forEach(x=>{ m[x[key]] = x; }); (r[f]||[]).forEach(x=>{ const a = m[x[key]]; if(!a || (x.mt||0) > (a.mt||0)) m[x[key]] = x; }); db[f] = Object.values(m); };
+  byKey('bw','date'); db.bw.sort((a,b)=>a.date<b.date?-1:1);
+  db.uxGone = union(db.uxGone, r.uxGone); db.uxHidden = union(db.uxHidden, r.uxHidden); db.names = union(db.names, r.names);
+  byKey('userEx','id'); db.userEx = db.userEx.filter(x=>!db.uxGone.includes(x.id));
+  const ts = {}; (db.tests||[]).concat(r.tests||[]).forEach(t=>{ ts[sigOf(t)] = t; }); db.tests = Object.values(ts).sort((a,b)=>a.date<b.date?-1:1);
+  byKey('sentMenus','mid');
+  const ib = {}; (db.inbox||[]).forEach(m=>{ ib[m.mid] = m; }); (r.inbox||[]).forEach(m=>{ const a = ib[m.mid]; if(!a) ib[m.mid] = m; else a.used = !!(a.used || m.used); }); db.inbox = Object.values(ib);
+  db.sync = db.sync||{sent:{}}; db.sync.sent = Object.assign({}, (r.sync||{}).sent||{}, db.sync.sent||{}); if((r.sync||{}).last && (!db.sync.last || r.sync.last>db.sync.last)) db.sync.last = r.sync.last;
+  return sigOf(Object.assign({}, db, {cloud:null})) !== before; }
+function cloudData(){ const o = {}; Object.keys(db).forEach(f=>{ if(!CLOUD_SKIP.includes(f)) o[f] = db[f]; }); return o; }
+function cloudOn(){ return !!(db.cloud && db.cloud.pass && syncUrl() && (db.me||'').trim()); }
+async function cloudCall(action, extra){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify(Object.assign({action, name:db.me.trim(), pass:db.cloud.pass}, extra||{}))}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'失敗'); return j; }
+let cloudBusy = false, cloudTm = null, cloudAgain = false;
+function cloudLater(){ if(!cloudOn()) return; clearTimeout(cloudTm); cloudTm = setTimeout(()=>cloudSync(false), 3000); }
+function cloudStatus(){ const c = db.cloud||{}; if(!c.pass) return 'まだつないでいません'; if(c.err) return 'つながりません（'+c.err+'）'; return c.last ? '同じ内容です（'+new Date(c.last).toLocaleString('ja-JP')+'に合わせました）' : 'まだ一度も合わせていません'; }
+function cloudPaint(){ const el = $('#cloudSt'); if(el) el.textContent = cloudStatus(); }
+function busyTyping(){ const a = document.activeElement; return !$('#sheet').hidden || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type!=='file'); }
+async function cloudSync(manual){ if(!cloudOn()){ if(manual) say('同期の合言葉が未設定です'); return; } if(cloudBusy){ cloudAgain = true; return; } cloudBusy = true;
+  try{ const g = await cloudCall('note_get'); let changed = false;
+    if(g.data){ changed = mergeIn(g.data); if(changed){ saveQuiet(); uexApply(); } }
+    const body = JSON.stringify(cloudData()); if(body !== db.cloud.putSig || changed){ await cloudCall('note_put', {data:body}); db.cloud.putSig = body; }
+    db.cloud.last = new Date().toISOString(); delete db.cloud.err; _save0();
+    if(changed){ if(busyTyping()) cloudPending = true; else { const id = document.activeElement && document.activeElement.id; render(false); if(id && $('#'+id)) $('#'+id).focus(); } say('もう一方の端末の内容を取り込みました'); }
+    else if(manual) say('同じ内容になっています'); }
+  catch(e){ db.cloud.err = /Failed to fetch|NetworkError|Load failed/.test(String(e)) ? '通信できません' : String(e.message||e); _save0(); if(manual) say('合わせられませんでした。'+db.cloud.err); }
+  finally{ cloudBusy = false; cloudPaint(); if(cloudAgain){ cloudAgain = false; cloudLater(); } } }
+let cloudPending = false;
+document.addEventListener('focusout', ()=>{ setTimeout(()=>{ if(cloudPending && !busyTyping()){ cloudPending = false; render(false); } }, 300); });
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible' && db.ready) cloudSync(false); });
+window.addEventListener('online', ()=>{ if(db.ready) cloudSync(false); });
+/* 設定に「携帯とパソコンで同じノートにする」 */
+const _settingsC = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsC(); const c = db.cloud||{};
+  v.html = v.html.replace('<h2>バックアップ</h2>', '<h2 id="cloudH" tabindex="-1">携帯とパソコンで同じノートにする</h2><p class="sub" style="margin-top:0">両方の端末で、同じ名前と同じ「同期の合言葉」を入れると、どちらで書いても同じ内容になります。合言葉は自分で決めてください。</p>'+
+    '<form id="clF" class="stepper" style="grid-template-columns:1fr 120px"><label class="sr" for="clPass">同期の合言葉</label><input type="password" id="clPass" autocomplete="off" placeholder="同期の合言葉" value="'+esc(c.pass||'')+'"><button type="submit" style="font-size:1rem">つなぐ</button></form>'+
+    '<p id="cloudSt" role="status">'+esc(cloudStatus())+'</p>'+(c.pass?'<div class="stack two"><button type="button" class="ghost" id="clNow">今すぐ合わせる</button><button type="button" class="ghost" id="clOff">この端末の同期をやめる</button></div>':'')+'<h2>バックアップ</h2>');
+  const a0 = v.after; v.after = ()=>{ a0();
+    $('#clF').addEventListener('submit',ev=>{ ev.preventDefault(); const p = $('#clPass').value.trim(); if(p.length<4){ say('合言葉は4文字以上にしてください'); $('#clPass').focus(); return; } db.cloud = {pass:p}; _save0(); say('つないでいます'); cloudSync(true).then(()=>{ render(false); $('#cloudH').focus(); }); });
+    const n = $('#clNow'); if(n) n.addEventListener('click',()=>cloudSync(true));
+    const o = $('#clOff'); if(o) o.addEventListener('click',()=>{ db.cloud = {}; _save0(); say('この端末の同期をやめました。記録はこの端末に残っています'); render(false); $('#cloudH').focus(); }); };
+  return v; };
+/* 最初の画面：もう一方の端末と同じノートで始める */
+const _startC = VIEWS.start; VIEWS.start = ()=>{ const v = _startC();
+  v.html = v.html.replace('<p id="stErr"', '<details class="more"><summary>もう一方の端末（携帯かパソコン）で、すでに使っている</summary><div class="inner"><label class="f">同期の合言葉（もう一方の端末で決めたもの）<input type="password" class="txt" id="stPass" autocomplete="off"></label><p class="sub">名前ももう一方と同じにしてください。開いたあと、もう一方の端末の内容を取り込みます。</p></div></details><p id="stErr"');
+  const a0 = v.after; v.after = ()=>{ let pv = ''; $('#stF').addEventListener('submit',()=>{ pv = ($('#stPass')||{}).value||''; }, true); a0(); $('#stF').addEventListener('submit',()=>{ const p = pv; if(!db.ready || !p || !p.trim()) return; db.cloud = {pass:p.trim()}; db._mt = {}; saveQuiet(); cloudSync(true); }); };
+  return v; };
+cache = snap();
+setTimeout(()=>{ if(db.ready) cloudSync(false); }, 600);
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

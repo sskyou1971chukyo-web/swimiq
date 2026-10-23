@@ -177,7 +177,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note13';
+const APP_VER = '2026-10-23 note14';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -970,6 +970,24 @@ const _coachPurp = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachPurp(); cons
 const _todayPurp = VIEWS.today; VIEWS.today = ()=>{ const v = _todayPurp(); const k = curDay(); const d = day(k);
   if(d.rows.length) v.html = v.html.replace('<ul class="rows">', purpSelect('tPurp', d.purpose||'', '今日の目的')+'<ul class="rows">');
   const a0 = v.after; v.after = ()=>{ a0(); const s = $('#tPurp'); if(s) s.addEventListener('change',()=>{ d.purpose = s.value; save(); say(s.value ? '今日の目的を「'+PURP[s.value].name+'」にしました' : '今日の目的を決めないにしました'); if(d.finished) syncNow(false); }); }; return v; };
+
+/* ============ 選手の結果：推定1RMはプルダウンで1種目を選んで、数字とグラフで見る（2026-10-23） ============ */
+let athEx = {};
+function rmSeries(n){ const m = {}; (teamByName()[n]||[]).forEach(x=>{ if(String(x['種類'])!=='記録') return; const v = Number(x['推定1RM']); if(!(v>0)) return; const name = shortName({name:String(x['種目']||'')}); const k = rowDate(x); m[name] = m[name]||{}; const cur = m[name][k]; if(!cur || v>cur.v) m[name][k] = {k, v, sets:String(x['セットの内容']||'')}; });
+  const out = {}; Object.keys(m).forEach(name=>{ out[name] = Object.values(m[name]).sort((a,b)=>a.k<b.k?-1:1); }); return out; }
+function rmHTML(n){ const S = rmSeries(n); const names = Object.keys(S).sort((a,b)=>{ const x = S[a][S[a].length-1].k, y = S[b][S[b].length-1].k; return x<y?1:x>y?-1:a.localeCompare(b,'ja'); });
+  if(!names.length) return '<h2 id="rmH" tabindex="-1">推定1RM</h2><p class="sub">10回以内の重さの記録があると出ます。</p>';
+  const sel = names.includes(athEx[n]) ? athEx[n] : names[0]; const L = S[sel]; const last = L[L.length-1], first = L[0]; const best = L.reduce((a,b)=>b.v>a.v?b:a, L[0]);
+  const diff = r1(last.v-first.v), pct = first.v ? r1((last.v/first.v-1)*100) : 0;
+  return '<h2 id="rmH" tabindex="-1">推定1RM</h2><label class="f" for="rmSel">種目を選ぶ（'+names.length+'種目、最近やった順）</label><select class="txt" id="rmSel">'+names.map(x=>{ const z = S[x][S[x].length-1]; return '<option value="'+esc(x)+'"'+(x===sel?' selected':'')+'>'+esc(x)+'　最新 '+kg(z.v)+' kg</option>'; }).join('')+'</select>'+
+    '<ul class="tiles"><li><span class="big">'+kg(last.v)+'<small>kg</small></span><span class="sub">最新（'+md(last.k)+'）</span></li><li><span class="big">'+kg(best.v)+'<small>kg</small></span><span class="sub">最高（'+md(best.k)+'）</span></li></ul>'+
+    (L.length>1 ? '<p>初回（'+md(first.k)+'）の '+kg(first.v)+' kg から '+(diff>0?'<strong style="color:var(--green)">プラス '+kg(diff)+' kg（'+pct+'パーセント）</strong>':diff<0?'<strong style="color:var(--red)">マイナス '+kg(-diff)+' kg（'+(-pct)+'パーセント）</strong>':'変わっていません')+'　記録 '+L.length+'日</p>'+lineSVG(L.map(x=>[new Date(x.k+'T12:00:00').getTime(), x.v]),'var(--am)',' kg') : '<p class="sub">記録は1日だけです。2日以上になるとグラフが出ます。</p>')+
+    '<details class="more"><summary>この種目の記録（'+L.length+'日）</summary><div class="inner"><ul class="rows">'+L.slice().reverse().map(x=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+md(x.k)+'　'+kg(x.v)+' kg</strong><span class="d">'+esc(x.sets)+'</span></span></li>').join('')+'</ul></div></details>'+
+    '<p class="sub">推定1RMは、重さと回数（10回以内）から Epley の式で出した目安です。同じ日に何度か記録したときは、いちばん高い値を使っています。</p>'; }
+const _athleteRM = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteRM(cur); const n = cur.id;
+  v.html = v.html.replace(/<h2>種目ごとの推定1RM<\/h2>[\s\S]*?(?=<h2 id="calH")/, rmHTML(n));
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const s = $('#rmSel'); if(s) s.addEventListener('change',()=>{ athEx[n] = s.value; render(false); $('#rmSel').focus(); }); };
+  return v; };
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

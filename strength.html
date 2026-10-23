@@ -153,6 +153,12 @@ thead th{background:var(--pane2)}
 .mk.dot{width:10px;height:10px;border:0;background:var(--sub)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0;font-size:.85rem;color:var(--sub)}
 .legend span{display:inline-flex;align-items:center;gap:6px}
+.page.mot h2{margin:2px 0 8px}
+.wks{list-style:none;margin:10px 0 4px;padding:0;display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.wks li{text-align:center;font-size:.7rem;color:var(--sub);line-height:1.3}
+.wks .wd{display:flex;align-items:center;justify-content:center;width:30px;height:30px;margin:0 auto 4px;border-radius:50%;border:2.5px solid var(--line);font-size:.8rem;font-weight:800;color:var(--sub)}
+.wks .on .wd{background:var(--green);border-color:var(--green);color:#000}
+.wks .half .wd{border-color:var(--green);color:var(--green)}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -177,7 +183,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note14';
+const APP_VER = '2026-10-23 note15';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -988,6 +994,39 @@ const _athleteRM = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteRM(cu
   v.html = v.html.replace(/<h2>種目ごとの推定1RM<\/h2>[\s\S]*?(?=<h2 id="calH")/, rmHTML(n));
   const a0 = v.after; v.after = ()=>{ if(a0) a0(); const s = $('#rmSel'); if(s) s.addEventListener('change',()=>{ athEx[n] = s.value; render(false); $('#rmSel').focus(); }); };
   return v; };
+
+/* ============ 選手の結果：やる気につながる3枚（2026-10-23） ============
+ 自分の過去とだけ比べる。ほかの選手との比較、体重の増減をほめる表示、毎日の連続は入れない */
+function monthKey(k){ return k.slice(0,7); }
+function exHistory(){ const m = {}; finishedDays().forEach(k=>{ db.days[k].rows.forEach(r=>{ if(r.status!=='done') return; const v = rowBest(r, k); if(v==null) return; const a = (m[r.exId] = m[r.exId]||[]); const last = a[a.length-1]; if(last && last.k===k){ if(v>last.v) last.v = v; } else a.push({k, v}); }); }); return m; }
+function pbCard(){ const td = today(), mk0 = monthKey(td), H = exHistory(); const ups = []; let times = 0; const near = [];
+  Object.keys(H).forEach(id=>{ const L = H[id]; let best = null, firstIn = null, before = null, gained = false;
+    L.forEach(x=>{ if(monthKey(x.k)<mk0){ before = before==null ? x.v : Math.max(before, x.v); best = before; return; }
+      if(monthKey(x.k)!==mk0) return; if(firstIn==null) firstIn = x; if(best!=null && x.v>best){ times++; gained = true; } best = best==null ? x.v : Math.max(best, x.v); });
+    if(gained){ const from = before!=null ? {t:'先月までの自己ベスト '+kg(before)+' kg', v:before} : {t:md(firstIn.k)+'の '+kg(firstIn.v)+' kg', v:firstIn.v}; ups.push({id, best, from}); }
+    else if(L.length){ const lastV = L[L.length-1].v; const all = Math.max(...L.map(x=>x.v)); if(monthKey(L[L.length-1].k)===mk0 && all>lastV) near.push({id, gap:r1(all-lastV), all}); } });
+  const m = Number(mk0.slice(5));
+  if(!ups.length){ const n = near.sort((a,b)=>a.gap-b.gap)[0];
+    return '<section class="page mot" aria-labelledby="mt1"><p class="sub" style="margin:0">'+m+'月のあなた</p><h2 id="mt1" tabindex="-1">'+(Object.keys(H).length?'今月はまだ自己ベストの更新はありません':'練習を終えると、ここに自己ベストが出ます')+'</h2>'+(n?'<p>いちばん近いのは '+esc(shortName(EXMAP[n.id]))+'。自己ベスト '+kg(n.all)+' kg まで、あと '+kg(n.gap)+' kg です。</p>':'')+'</section>'; }
+  ups.sort((a,b)=>(b.best-b.from.v)-(a.best-a.from.v));
+  return '<section class="page mot" aria-labelledby="mt1"><p class="sub" style="margin:0">'+m+'月のあなた</p><h2 id="mt1" tabindex="-1">自己ベストを'+times+'回更新しました</h2><ul class="rows">'+ups.slice(0,5).map(u=>'<li class="row" style="grid-template-columns:1fr auto;align-items:baseline"><span class="rmain" style="min-height:0"><strong>'+esc(shortName(EXMAP[u.id]))+' <span class="tag ok">自己ベスト</span></strong><span class="d">推定1RM。'+esc(u.from.t)+' からプラス '+kg(r1(u.best-u.from.v))+' kg</span></span><strong style="color:var(--green);font-size:1.25rem">'+kg(u.best)+' kg</strong></li>').join('')+'</ul>'+(ups.length>5?'<p class="sub">ほか '+(ups.length-5)+'種目</p>':'')+'</section>'; }
+const WEEK_GOAL = 2;
+function weeksCard(){ const td = today(), w0 = weekStart(td); const cnt = k=>finishedDays().filter(d=>weekStart(d)===k).length; const W = []; for(let i=7;i>=0;i--){ const k = addDays(w0,-7*i); W.push({k, n:cnt(k)}); }
+  let run = 0; const start = W[7].n>=WEEK_GOAL ? 7 : 6; for(let i=start;i>=0;i--){ if(W[i].n>=WEEK_GOAL) run++; else break; } const thisN = W[7].n;
+  const head = run ? run+'週続けて、週'+WEEK_GOAL+'回以上' : '週'+WEEK_GOAL+'回以上の週をつくろう';
+  return '<section class="page mot" aria-labelledby="mt3"><h2 id="mt3" tabindex="-1">'+head+'</h2><ol class="wks" aria-label="直近8週の練習の回数">'+W.map((w,i)=>'<li class="'+(w.n>=WEEK_GOAL?'on':w.n>0?'half':'')+'" aria-label="'+md(w.k)+'の週、'+w.n+'回'+(i===7?'（今週）':'')+'"><span class="wd" aria-hidden="true">'+(w.n||'')+'</span><span aria-hidden="true">'+(i===7?'今週':md(w.k))+'</span></li>').join('')+'</ol>'+
+    '<p class="sub" style="margin:4px 0 0">'+(thisN>=WEEK_GOAL?'今週は '+thisN+'回。もう週'+WEEK_GOAL+'回に届いています。':'今週は '+thisN+'回。あと '+(WEEK_GOAL-thisN)+'回で週'+WEEK_GOAL+'回です。')+'休みの日やリカバリーの日があっても、週の数は途切れません。</p>'+
+    '<details class="more"><summary>週'+WEEK_GOAL+'回の目安について</summary><div class="inner"><p class="sub">ACSM 2009 は、レジスタンストレーニングの初心者に週2回から3回を勧めています。経験を積んだ人にはもっと多い回数を勧めていますが、水泳の練習との兼ね合いがあるので、このアプリでは週2回を仮の目安にしています。</p><ol class="refs"><li>'+refItem('acsm2009')+'</li></ol></div></details></section>'; }
+function compareCard(){ const td = today(), past = addDays(td,-28), H = exHistory(); const rows = [];
+  Object.keys(H).forEach(id=>{ const L = H[id]; const then = L.filter(x=>x.k<=past).pop(); const now = L[L.length-1]; if(!then || !now || now.k<=past) return; rows.push({name:shortName(EXMAP[id]), then, now, unit:'kg', n:L.length}); });
+  rows.sort((a,b)=>b.n-a.n); const top = rows.slice(0,3);
+  const T = (db.tests||[]).filter(t=>num(t.cmj)!=null).sort((a,b)=>a.date<b.date?-1:1); const tThen = T.filter(t=>t.date<=past).pop(), tNow = T[T.length-1];
+  if(tThen && tNow && tNow.date>past) top.push({name:'CMJ', then:{k:tThen.date, v:tThen.cmj}, now:{k:tNow.date, v:tNow.cmj}, unit:'cm'});
+  if(!top.length) return '<section class="page mot" aria-labelledby="mt4"><h2 id="mt4" tabindex="-1">1か月前の自分と比べる</h2><p class="sub">1か月以上前の記録と、最近の記録の両方がそろうと出ます。</p></section>';
+  const diff = r=>{ const d = r1(r.now.v-r.then.v); return d>0 ? '<strong style="color:var(--green);font-size:1.15rem;white-space:nowrap">プラス '+kg(d)+' '+r.unit+'</strong>' : d<0 ? '<strong style="color:var(--red);font-size:1.15rem;white-space:nowrap">マイナス '+kg(-d)+' '+r.unit+'</strong>' : '<strong style="white-space:nowrap">同じ</strong>'; };
+  return '<section class="page mot" aria-labelledby="mt4"><h2 id="mt4" tabindex="-1">1か月前の自分と比べる</h2><ul class="rows">'+
+    top.map(r=>'<li class="row" style="grid-template-columns:1fr auto;align-items:baseline"><span class="rmain" style="min-height:0"><strong>'+esc(r.name)+'</strong><span class="d">'+md(r.then.k)+'の '+kg(r.then.v)+' '+r.unit+' から、'+md(r.now.k)+'の '+kg(r.now.v)+' '+r.unit+'</span></span>'+diff(r)+'</li>').join('')+'</ul><p class="sub">重さの種目は推定1RMです。4週間より前でいちばん新しい記録と、いちばん新しい記録を比べています。</section>'; }
+const _resultMot = VIEWS.result; VIEWS.result = ()=>{ const v = _resultMot(); v.html = pbCard()+weeksCard()+compareCard()+v.html; return v; };
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

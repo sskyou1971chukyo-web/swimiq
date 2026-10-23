@@ -136,6 +136,7 @@ thead th{background:var(--pane2)}
 .pk .pkt{display:flex;flex-direction:column;min-width:0;line-height:1.3}
 .pk .pkn{overflow-wrap:anywhere}
 .pk .pkd{color:var(--sub);font-size:.78rem;font-weight:400}
+.exh{margin:14px 0 2px;font-size:1rem;color:var(--sub)}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -160,7 +161,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note11';
+const APP_VER = '2026-10-23 note12';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -401,13 +402,13 @@ function exList(key){ const [kind, v] = key.split(':'); const base = EX.filter(e
 function exRow(e, k){ const inMenu = k && day(k).rows.some(r=>r.exId===e.id); const fav = db.favs.includes(e.id);
   return '<li><button type="button" class="rmain" data-go="detail" data-id="'+e.id+'"><strong>'+esc(shortName(e))+'</strong><span class="d">'+starHTML(e)+' '+esc(e.gym?'体操：'+(D.GYM_CATS[e.cat]||''):(CATS[e.cat]||''))+'</span></button>'+
     (pick ? '<button type="button" class="ghost sm" data-add="'+e.id+'" '+(inMenu?'disabled aria-disabled="true"':'')+' aria-label="'+esc(shortName(e))+'を今日のメニューに'+(inMenu?'入れてあります':'入れる')+'">'+(inMenu?'入れた':'入れる')+'</button>' : '<button type="button" class="ghost sm" data-fav="'+e.id+'" aria-pressed="'+fav+'" aria-label="'+esc(shortName(e))+'をお気に入りに'+(fav?'入れてある':'入れる')+'">'+(fav?'★':'☆')+'</button>')+'</li>'; }
-VIEWS.ex = ()=>{ const k = curDay(); const q = db.exQ||''; let list = q ? EX.filter(e=>e.name.includes(q) || String(e.muscles||'').includes(q)).slice(0,60) : (exSel==='body' ? [] : exList(exSel));
+VIEWS.ex = ()=>{ const k = curDay(); const q = db.exQ||''; let list = q ? favFirst(EX.filter(e=>e.name.includes(q) || String(e.muscles||'').includes(q))).slice(0,60) : (exSel==='body' ? [] : favFirst(exList(exSel)));
   const opts = [['fav','お気に入り'],['recent','最近やった種目'],['all','すべて（名前順）'],['body','体の絵から選ぶ']].concat(partGroups().map(g=>[g.k,'部位：'+g.name])).concat(Object.keys(STROKE_LABEL).map(s=>['stroke:'+s,'泳ぎ：'+STROKE_LABEL[s]]));
   return {title: pick ? '種目を足す' : '種目', html:
     (pick ? '<div class="note warn">今日のメニューに入れる種目を選んでいます。「入れる」を押すと入ります。<br><button type="button" class="link" data-go="today">今日のノートに戻る</button></div>' : '')+
     '<label class="f">選び方<select class="txt" id="exSel">'+opts.map(o=>'<option value="'+o[0]+'"'+(o[0]===exSel?' selected':'')+'>'+esc(o[1])+'</option>').join('')+'</select></label>'+
     '<label class="f">名前で探す<input type="search" class="txt" id="exQ" value="'+esc(q)+'" placeholder="例：スクワット、広背筋"></label>'+
-    (exSel==='body' && !q ? bodyHTML() : '<p class="sub" role="status">'+list.length+'種目</p>'+(list.length ? '<ul class="exl">'+list.map(e=>exRow(e, k)).join('')+'</ul>' : '<p class="sub">'+(exSel==='fav'?'お気に入りはまだありません。種目の横の☆を押すと入ります。':'該当する種目がありません。')+'</p>')),
+    (exSel==='body' && !q ? bodyHTML() : '<p class="sub" role="status">'+list.length+'種目'+(exSel!=='fav' && list.some(isFavEx) ? '（お気に入り '+list.filter(isFavEx).length+'種目を上に）' : '')+'</p>'+(list.length ? exListHTML(list, k) : '<p class="sub">'+(exSel==='fav'?'お気に入りはまだありません。種目の横の☆を押すと入ります。':'該当する種目がありません。')+'</p>')),
     after(){ $('#exSel').addEventListener('change',e=>{ exSel = e.target.value; db.exSel = exSel; db.exQ = ''; save(); render(false); $('#exSel').focus(); });
       let tm; $('#exQ').addEventListener('input',e=>{ clearTimeout(tm); tm = setTimeout(()=>{ db.exQ = e.target.value.trim(); save(); const pos = e.target.selectionStart; render(false); const i = $('#exQ'); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(x){} },300); });
       document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{ if(b.disabled) return; const e = EXMAP[b.dataset.add]; const d = day(k); const last = lastOf(e.id, null); d.rows.push(newRow(e.id, last ? {kg:last.r.kg, reps:last.r.reps, sets:last.r.sets} : {kg:0, reps:5, sets:3})); if(!d.src) d.src = 'self'; save(); say(shortName(e)+'を入れました'+(last?'（前回の数字）':'')); render(false); const again = document.querySelector('[data-add="'+e.id+'"]'); if(again) again.focus(); }));
@@ -416,6 +417,12 @@ VIEWS.ex = ()=>{ const k = curDay(); const q = db.exQ||''; let list = q ? EX.fil
       document.querySelectorAll('.hot,.lab').forEach(g=>{ const h = ()=>{ exSel = 'part:'+g.dataset.part; db.exSel = exSel; save(); render(true); }; g.addEventListener('click',h); g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); h(); } }); });
     } }; };
 /* 体の絵 */
+/* 種目の一覧は、お気に入りを上に出す。並びはそれぞれの中で元のまま */
+function isFavEx(e){ return (db.favs||[]).includes(e.id); }
+function favFirst(list){ return list.filter(isFavEx).concat(list.filter(e=>!isFavEx(e))); }
+function exListHTML(list, k){ const f = list.filter(isFavEx), o = list.filter(e=>!isFavEx(e));
+  if(!f.length || !o.length || exSel==='fav') return '<ul class="exl">'+list.map(e=>exRow(e, k)).join('')+'</ul>';
+  return '<h3 class="exh">お気に入り（'+f.length+'）</h3><ul class="exl">'+f.map(e=>exRow(e, k)).join('')+'</ul><h3 class="exh">そのほか（'+o.length+'）</h3><ul class="exl">'+o.map(e=>exRow(e, k)).join('')+'</ul>'; }
 let bodyView = 'front';
 function bodyMirror(d){ let i = 0; return d.replace(/-?\d+(\.\d+)?/g, n=>{ const v = (i++ % 2 === 0) ? (896 - Number(n)) : Number(n); return String(Math.round(v*10)/10); }); }
 function bodyTextW(t){ let w = 0; for(const ch of t){ w += ch.charCodeAt(0) > 255 ? 36 : 19; } return w + 40; }

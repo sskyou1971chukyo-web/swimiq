@@ -137,6 +137,22 @@ thead th{background:var(--pane2)}
 .pk .pkn{overflow-wrap:anywhere}
 .pk .pkd{color:var(--sub);font-size:.78rem;font-weight:400}
 .exh{margin:14px 0 2px;font-size:1rem;color:var(--sub)}
+.cal{list-style:none;margin:10px 0 6px;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wk{text-align:center;color:var(--sub);font-size:.8rem;padding:2px 0}
+.cd{min-height:58px;border-radius:8px;background:#0b0b0c;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 0}
+.cd.empty{background:none}
+.cd .dn{font-size:.85rem;color:var(--sub)}
+.cd.has{background:var(--pane2)}
+.cd.has button{all:unset;box-sizing:border-box;width:100%;min-height:54px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border-radius:8px}
+.cd.has button:focus-visible{outline:3px solid var(--am);outline-offset:1px}
+.cd.has .dn{color:#fff;font-weight:700}
+.cd.today{box-shadow:inset 0 0 0 2px var(--line)}
+.mk{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:2.5px solid var(--c);color:var(--c);font-size:.8rem;font-weight:800;line-height:1;vertical-align:middle}
+.mk.set{background:var(--c);color:#000}
+.mk.big{width:34px;height:34px;font-size:1rem}
+.mk.dot{width:10px;height:10px;border:0;background:var(--sub)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0;font-size:.85rem;color:var(--sub)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -161,7 +177,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note12';
+const APP_VER = '2026-10-23 note13';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -363,20 +379,20 @@ async function fetchMenu(manual){ if(!syncUrl() || !db.me){ if(manual) say('送�
   if(manual) say('確かめています');
   try{ const r = await fetch(syncUrl()+'?action=menu&name='+encodeURIComponent(db.me.trim())); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
     let n = 0; db.inbox = db.inbox||[]; (j.rows||[]).forEach(row=>{ let raw = {}; try{ raw = JSON.parse(row.JSON||'{}'); }catch(e){} const mid = String(row.uid||''); if(!mid || db.inbox.some(m=>m.mid===mid)) return;
-      const rows = rowsFromRaw(raw); if(!rows.length) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, note:raw.note||'', by:raw.coach||raw.by||'', used:false}); n++; });
+      const rows = rowsFromRaw(raw); if(!rows.length) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false}); n++; });
     save(); if(manual) say(n ? n+'件の新しいメニューが届きました' : '新しいメニューはありません'); render(false); }
   catch(e){ if(manual) say('受け取れませんでした。電波のある所でもう一度押してください'); } }
-function applyInbox(k, m){ const d = day(k); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
+function applyInbox(k, m){ const d = day(k); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
 
 /* ============ コーチに送る ============ */
 function syncOn(){ return !!(syncUrl() && (db.me||'').trim()); }
 function syncItems(){ const S = db.sync = db.sync||{sent:{}}; S.sent = S.sent||{}; const me = db.me.trim(); const out = [];
-  daysSorted().forEach(k=>{ const d = db.days[k]; const sig = JSON.stringify([d.pre, d.rows, d.finished, lastBW(k)]); if(S.sent['D|'+me+'|'+k]===sig) return;
+  daysSorted().forEach(k=>{ const d = db.days[k]; const sig = JSON.stringify([d.pre, d.rows, d.finished, lastBW(k), d.purpose||'']); if(S.sent['D|'+me+'|'+k]===sig) return;
     const items = [];
     if(d.pre && !d.pre.skipped){ const b = lastBW(k); items.push({uid:'C|'+me+'|'+k, kind:'調子', date:k, sleep:d.pre.sleep==null?'':d.pre.sleep, fat:d.pre.fat==null?'':d.pre.fat, memo:(b&&b.date===k?'体重 '+b.w+' kg':''), raw:d.pre}); }
     if(d.finished){ let vol = 0; d.rows.forEach(r=>{ const e = EXMAP[r.exId]; const v = r.status==='done' ? rowVol(r,k) : ''; if(r.status==='done') vol += v; const best = r.status==='done' ? rowBest(r,k) : null;
         items.push({uid:'R|'+me+'|'+k+'|'+r.rid, kind:r.status==='done'?'記録':'未実施', date:k, exId:r.exId, exName:e?e.name:r.exId, sets:rowSets(r).map(s=>(Number(s.w)>0?kg(s.w)+'kg×':'')+s.r).join(', '), vol:v, e1rm:best==null?'':best, rs:(r.reps||'')+' × '+(r.sets||''), memo:r.note||'', raw:r}); });
-      items.push({uid:'S|'+me+'|'+k, kind:'練習', date:k, vol:r1(vol), memo:d.src==='coach'?'コーチのメニュー':'', raw:{src:d.src, finished:d.finished, n:d.rows.length}}); }
+      items.push({uid:'S|'+me+'|'+k, kind:'練習', date:k, vol:r1(vol), memo:d.src==='coach'?'コーチのメニュー':'', raw:{src:d.src, finished:d.finished, n:d.rows.length, purpose:d.purpose||''}}); }
     if(items.length) out.push({k, sig, items}); });
   return out; }
 function syncStatusTxt(){ const S = db.sync||{}; const n = syncOn() ? syncItems().length : 0; if(!syncOn()) return '送り先か名前が未設定のため、送れません'; if(n) return '未送信が '+n+' 日分あります'+(S.err?'（'+S.err+'）':''); return S.last ? '送信済み（'+new Date(S.last).toLocaleString('ja-JP')+'）' : '送るものはありません'; }
@@ -543,14 +559,14 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
       $('#cNote').addEventListener('input',e=>{ d.note = e.target.value; save(); }); $('#cDate').addEventListener('change',e=>{ d.date = e.target.value; save(); });
       $('#cSend').addEventListener('click',()=>sendMenu());
     } }; };
-function reuseMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d = draft(); d.rows = m.rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, free:r.free?Object.assign({},r.free):null})); d.note = m.note||''; d.to = m.to.slice(); save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg1').focus(); }
+function reuseMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d = draft(); d.rows = m.rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, free:r.free?Object.assign({},r.free):null})); d.note = m.note||''; d.purpose = m.purpose||''; d.to = m.to.slice(); save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg1').focus(); }
 async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!syncUrl()){ say('送り先のURLが設定にありません'); return; }
   const date = d.date||today(); const mid = 'wk_'+Date.now(); const rows = d.rows.map(r=>{ const e = EXMAP[r.exId]; const u = e&&e.user ? uexAll().find(x=>x.id===e.id) : null; return {exId:r.exId, name:shortName(e), part:e&&e.user?e.part:'', bw:e&&e.user?!!e.bw:undefined, ux:u?uexFull(u):undefined, kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', free:r.free||null}; });
-  const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', rows}}));
+  const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', purpose:d.purpose||'', rows}}));
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
   try{ /* 選手一人ずつ、その選手の名前で送る。前の Code.gs でも、新しい Code.gs でも、選手の行として残る */
     for(const it of items){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:it.raw.who, items:[it]})}); const j = await res.json(); if(!j.ok) throw new Error(it.raw.who+'：'+(j.error||'受け取り側の失敗')); }
-    pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
+    pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', purpose:d.purpose||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
   catch(e){ say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); $('#cSend').focus(); } }
 /* コーチの行を直すシート */
 let csh = null;
@@ -890,6 +906,70 @@ function coachHint(){ const c = db.cloud||{}; let h = '';
   return h; }
 const _coachA = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachA(); v.html = coachHint()+v.html; const a0 = v.after; v.after = ()=>{ a0(); autoTeam(); }; return v; };
 const _teamA = VIEWS.team; VIEWS.team = ()=>{ const v = _teamA(); v.html = coachHint()+v.html; const a0 = v.after; v.after = ()=>{ a0(); autoTeam(); }; return v; };
+
+/* ============ 練習の目的と、選手の結果の月のカレンダー（2026-10-23） ============
+ 目的はコーチがメニューに付ける（選手も今日のノートで直せる）。付いていない日は、回数と種目の種類から推定する。
+ 回数の線：1〜5回は最大筋力、6〜12回は筋肥大（どちらも前の版で確かめた ACSM 2009 と NSCA の目安）。
+ 13回以上を筋持久力とするのはこのアプリの仮の設定（ACSM 2009 は「15回を超える」としている）。重さ（1RMに対する割合）は見ていない */
+const PURPOSES = [['strength','最大筋力','力','#4f8fd8'],['hypertrophy','筋肥大','肥','#9a6fd6'],['endurance','筋持久力','持','#2ea3a3'],['power','パワー','瞬','#e07bbf'],['recovery','リカバリー','回','#8a8f98']];
+const PURP = Object.fromEntries(PURPOSES.map(p=>[p[0], {k:p[0], name:p[1], ch:p[2], color:p[3]}]));
+function purpSelect(id, cur, label){ return '<label class="f" for="'+id+'">'+label+'</label><select class="txt" id="'+id+'"><option value="">決めない（記録から推定）</option>'+PURPOSES.map(p=>'<option value="'+p[0]+'"'+(cur===p[0]?' selected':'')+'>'+p[1]+'</option>').join('')+'</select>'; }
+function exKind(id){ const e = EXMAP[id]; if(!e) return 'load'; const pl = (PLACES[id]||[]).find(x=>x.main) || (PLACES[id]||[])[0] || {};
+  if(['mobility','activation'].includes(e.type) || pl.part==='mob' || (e.user && e.part==='mob')) return 'rec';
+  if(['plyo','olympic','mb'].includes(e.type) || pl.part==='power' || (e.user && e.part==='power')) return 'pow';
+  if(e.type==='core') return 'core'; return 'load'; }
+function repsOf(setsTxt){ return String(setsTxt||'').split(/[,、]\s*/).map(t=>{ const m = t.match(/(?:[\d.]+\s*kg\s*[×x*]\s*)?(\d+)/); return m ? Number(m[1]) : null; }).filter(x=>x>0); }
+function byReps(reps){ if(!reps.length) return null; const s = reps.slice().sort((a,b)=>a-b); const med = s[Math.floor((s.length-1)/2)]; return med<=5 ? 'strength' : med<=12 ? 'hypertrophy' : 'endurance'; }
+function exPurpose(id, setsTxt){ const k = exKind(id); if(k==='rec') return 'recovery'; if(k==='pow') return 'power'; if(k==='core') return null; return byReps(repsOf(setsTxt)); }
+/* 1日分の目的。返り値 {p, set}（set が true なら付けられた目的、false なら推定） */
+function dayPurpose(rows){ const s = rows.find(x=>String(x['種類'])==='練習'); let raw = {}; try{ raw = JSON.parse((s&&s['JSON'])||'{}'); }catch(e){}
+  if(raw.purpose && PURP[raw.purpose]) return {p:raw.purpose, set:true};
+  const rec = rows.filter(x=>String(x['種類'])==='記録'); if(!rec.length) return {p:null, set:false};
+  const kinds = rec.map(x=>exKind(String(x['種目ID']||''))); const loadReps = []; rec.forEach((x,i)=>{ if(kinds[i]==='load') loadReps.push(...repsOf(x['セットの内容'])); });
+  if(loadReps.length) return {p:byReps(loadReps), set:false};
+  if(kinds.includes('pow')) return {p:'power', set:false};
+  return {p:'recovery', set:false}; }
+function markHTML(p, set, big){ const P = PURP[p]; if(!P) return ''; return '<span class="mk'+(set?' set':'')+(big?' big':'')+'" style="--c:'+P.color+'" aria-hidden="true">'+P.ch+'</span>'; }
+function legendHTML(){ return '<div class="legend" aria-label="印の見方">'+PURPOSES.map(p=>'<span>'+markHTML(p[0], true)+' '+p[1]+'</span>').join('')+'<span>'+markHTML('strength', false)+' 線だけの印は推定</span></div>'; }
+function purposeRuleHTML(){ return '<details class="more"><summary>印の決め方と根拠</summary><div class="inner"><p>塗りつぶした印は、コーチがメニューに付けた目的、または選手が今日のノートで選んだ目的です。線だけの印は、目的が付いていない日に、記録から推定したものです。</p>'+
+  '<p>推定では、重りを使う種目のセットの回数の真ん中の値で分けます。1回から5回は最大筋力、6回から12回は筋肥大です（ACSM 2009、NSCA の目安。ACSM は最大筋力を1回から6回とも書いているので、6回はどちらにも入り得ます）。13回以上は筋持久力としていますが、ACSM は「15回を超える」としているので、13回から15回はこのアプリの仮の設定です。重りの種目がなく、ジャンプ、クイックリフト、メディシンボールの種目があればパワー、可動性や肩のインナーの種目だけならリカバリーとしています。これも仮の設定です。</p>'+
+  '<p>重さ（1RMに対する割合）や挙げる速さは見ていないので、同じ回数でも目的が違う練習を区別できません。目的はメニューに付けてもらうのが確実です。</p><ol class="refs"><li>'+refItem('acsm2009')+'</li><li>'+refItem('nsca2016')+'</li></ol></div></details>'; }
+let calMonth = {};
+function calHTML(n, days){ const ks = Object.keys(days).sort(); const latest = ks.length ? ks[ks.length-1].slice(0,7) : today().slice(0,7); const ym = calMonth[n] || latest; const [y, m] = ym.split('-').map(Number);
+  const first = new Date(y, m-1, 1), lead = (first.getDay()+6)%7, nd = new Date(y, m, 0).getDate(); const cells = []; for(let i=0;i<lead;i++) cells.push('<li class="cd empty" aria-hidden="true"></li>');
+  const cnt = {}; let vol = 0, nDays = 0;
+  for(let d=1; d<=nd; d++){ const k = y+'-'+pad(m)+'-'+pad(d); const L = days[k]; const isT = k===today();
+    if(!L){ cells.push('<li class="cd'+(isT?' today':'')+'"><span class="dn">'+d+'</span></li>'); continue; }
+    const dp = dayPurpose(L); const s = L.find(x=>String(x['種類'])==='練習'); const v = s ? Number(s['動かした重さkg'])||0 : 0; if(dp.p){ cnt[dp.p] = (cnt[dp.p]||0)+1; } if(s){ nDays++; vol += v; }
+    const lab = m+'月'+d+'日、'+(dp.p?PURP[dp.p].name+(dp.set?'':'（推定）'):'記録あり')+(s?'、'+kg(v)+'キログラム':'')+'。押すと実施内容';
+    cells.push('<li class="cd has'+(isT?' today':'')+'"><button type="button" data-cday="'+k+'" aria-label="'+esc(lab)+'"><span class="dn">'+d+'</span>'+(dp.p?markHTML(dp.p, dp.set):'<span class="mk dot" aria-hidden="true"></span>')+'</button></li>'); }
+  const prev = new Date(y, m-2, 1), next = new Date(y, m, 1); const ymOf = x=>x.getFullYear()+'-'+pad(x.getMonth()+1);
+  return '<h2 id="calH" tabindex="-1">'+y+'年'+m+'月</h2><div class="stack two"><button type="button" class="ghost sm" data-cm="'+ymOf(prev)+'">前の月</button><button type="button" class="ghost sm" data-cm="'+ymOf(next)+'">次の月</button></div>'+
+    '<p class="sub">この月の練習 '+nDays+'日、動かした重さ '+kg(r1(vol))+' kg'+(Object.keys(cnt).length?'　'+PURPOSES.filter(p=>cnt[p[0]]).map(p=>p[1]+' '+cnt[p[0]]+'日').join('、'):'')+'</p>'+
+    '<ol class="cal" aria-label="'+y+'年'+m+'月のカレンダー"><li class="wk" aria-hidden="true">月</li><li class="wk" aria-hidden="true">火</li><li class="wk" aria-hidden="true">水</li><li class="wk" aria-hidden="true">木</li><li class="wk" aria-hidden="true">金</li><li class="wk" aria-hidden="true">土</li><li class="wk" aria-hidden="true">日</li>'+cells.join('')+'</ol>'+legendHTML()+purposeRuleHTML(); }
+/* 1日の実施内容（下から出る画面） */
+let dsh = null;
+function openDay(n, k){ const L = (teamByName()[n]||[]).filter(x=>rowDate(x)===k); dsh = {n, k, last:document.activeElement}; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類']))); const dp = dayPurpose(L);
+  $('#sheet').innerHTML = '<div class="sheetin"><h2 id="shT" tabindex="-1">'+jdate(k)+(s?'　'+kg(s['動かした重さkg']||0)+' kg':'')+'</h2>'+
+    (dp.p?'<p>'+markHTML(dp.p, dp.set, true)+' '+PURP[dp.p].name+(dp.set?'':'（記録からの推定）')+'</p>':'')+
+    (c?'<p class="sub">睡眠 '+(c['睡眠h']!==''?c['睡眠h']+'h':'未')+'、疲れ '+(c['疲れ']!==''?FAT_WORDS[Number(c['疲れ'])-1]||c['疲れ']:'未')+(c['メモ']?'、'+esc(c['メモ']):'')+'</p>':'')+
+    (rec.length?'<ul class="rows">'+rec.map(x=>{ const ep = String(x['種類'])==='記録' ? exPurpose(String(x['種目ID']||''), x['セットの内容']) : null; return '<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+(String(x['種類'])==='未実施'?'✕ ':'✓ ')+esc(x['種目'])+(ep?' <span class="tag">'+PURP[ep].name+'</span>':'')+'</strong><span class="d">'+esc(x['セットの内容']||'')+(Number(x['推定1RM'])>0?'　推定1RM '+kg(x['推定1RM'])+' kg':'')+(x['メモ']?'　'+esc(x['メモ']):'')+'</span></span></li>'; }).join('')+'</ul>':'<p class="sub">種目の記録はありません。</p>')+
+    '<button type="button" class="cta" id="dsOk" style="margin-top:14px">閉じる</button></div>';
+  $('#sheet').hidden = false; document.body.classList.add('lock'); $('#shT').focus(); $('#dsOk').addEventListener('click', closeDay); }
+function closeDay(){ $('#sheet').hidden = true; $('#sheet').innerHTML = ''; document.body.classList.remove('lock'); const k = dsh && dsh.k; dsh = null; const b = k && document.querySelector('[data-cday="'+k+'"]'); if(b) b.focus(); }
+const _closeSheetD = closeSheet; closeSheet = function(){ if(dsh) closeDay(); else _closeSheetD(); };
+const _athleteC = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteC(cur); const n = cur.id; const days = {}; (teamByName()[n]||[]).forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); });
+  v.html = v.html.replace(/<h2>日ごとの記録<\/h2>[\s\S]*$/, calHTML(n, days));
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); document.querySelectorAll('[data-cday]').forEach(b=>b.addEventListener('click',()=>openDay(n, b.dataset.cday))); document.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{ calMonth[n] = b.dataset.cm; render(false); $('#calH').focus(); })); };
+  return v; };
+/* コーチ：メニューに目的を付ける */
+const _coachPurp = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachPurp(); const d = draft();
+  v.html = v.html.replace('<label class="f">選手へのひとこと', purpSelect('cPurp', d.purpose||'', 'このメニューの目的（カレンダーの印になります）')+'<label class="f">選手へのひとこと');
+  const a0 = v.after; v.after = ()=>{ a0(); const s = $('#cPurp'); if(s) s.addEventListener('change',()=>{ d.purpose = s.value; save(); }); }; return v; };
+/* 選手：今日のノートで目的を見る・直す */
+const _todayPurp = VIEWS.today; VIEWS.today = ()=>{ const v = _todayPurp(); const k = curDay(); const d = day(k);
+  if(d.rows.length) v.html = v.html.replace('<ul class="rows">', purpSelect('tPurp', d.purpose||'', '今日の目的')+'<ul class="rows">');
+  const a0 = v.after; v.after = ()=>{ a0(); const s = $('#tPurp'); if(s) s.addEventListener('change',()=>{ d.purpose = s.value; save(); say(s.value ? '今日の目的を「'+PURP[s.value].name+'」にしました' : '今日の目的を決めないにしました'); if(d.finished) syncNow(false); }); }; return v; };
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

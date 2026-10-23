@@ -171,6 +171,10 @@ details.fold summary .fs{color:var(--am);font-weight:700}
 details.fold .inner{padding-bottom:12px}
 .autobox{background:#0b0b0c;border:1px solid var(--line);border-radius:10px;padding:4px 12px 8px;margin:6px 0 10px}
 .autobox label.f{margin-top:8px}
+#modeSw{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:6px 0 2px;border:2px solid var(--line);border-radius:10px;overflow:hidden}
+#modeSw button{min-height:48px;border:0;background:var(--soft);color:var(--sub);font-weight:700;font-size:1rem}
+#modeSw button + button{border-left:2px solid var(--line)}
+#modeSw button.on{background:var(--am);color:#000}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -178,6 +182,7 @@ details.fold .inner{padding-bottom:12px}
 <body>
 <div id="app">
   <div id="brand" role="img" aria-label="スイムアイキュー ストレングス"><span class="b1">SWIM</span><span class="b2">IQ</span><span class="b3">STRENGTH</span></div>
+  <div id="modeSw" role="group" aria-label="画面の切り替え" hidden><button type="button" data-mode="coach">コーチ</button><button type="button" data-mode="self">自分の練習</button></div>
   <header id="top"><button type="button" id="back" hidden>戻る</button><h1 id="title" tabindex="-1"></h1></header>
   <main id="view"></main>
 </div>
@@ -195,7 +200,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note19';
+const APP_VER = '2026-10-23 note20';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -532,7 +537,7 @@ VIEWS.settings = ()=>({title:'設定', html:
   (db.undoRow?'<h2>外した種目を戻す</h2><button type="button" class="ghost" id="undoRow">'+esc(md(db.undoRow.k))+'の「'+esc(shortName(EXMAP[db.undoRow.row.exId]))+'」を戻す</button>':'')+
   '<h2>バックアップ</h2><p class="sub">記録はこの携帯のこのブラウザーの中にあります。ときどき保存してください。</p><div class="stack two"><button type="button" class="ghost" id="bkSave">バックアップを保存</button><label class="ghost" style="position:relative">バックアップから戻す<input type="file" id="bkLoad" accept=".json,application/json" style="position:absolute;inset:0;opacity:0"></label></div>'+
   '<h2>このアプリについて</h2><p class="sub">版 '+APP_VER+'。種目 '+EX.length+'、文献 '+REF_ORDER.length+'件。種目の説明と根拠は、前の版で確かめたものをそのまま使っています。</p>',
-  after(){ document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ db.role = b.dataset.role; save(); document.querySelectorAll('[data-role]').forEach(x=>x.setAttribute('aria-pressed', x===b)); }));
+  after(){ document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ db.role = b.dataset.role; db.mode = 'coach'; save(); paintMode(); document.querySelectorAll('[data-role]').forEach(x=>x.setAttribute('aria-pressed', x===b)); }));
     $('#sF').addEventListener('submit',ev=>{ ev.preventDefault(); const n = $('#sName').value.trim(); if(!n){ say('名前を入れてください'); $('#sName').focus(); return; } db.me = n; db.syncUrl = $('#sUrl').value.trim(); save(); say('保存しました'); render(false); $('#sName').focus(); });
     $('#syncBtn').addEventListener('click',()=>syncNow(true)); $('#menuFetch').addEventListener('click',()=>fetchMenu(true));
     const u = $('#undoRow'); if(u) u.addEventListener('click',()=>{ const x = db.undoRow; day(x.k).rows.push(x.row); db.undoRow = null; save(); say('戻しました'); render(false); $('#title').focus(); });
@@ -541,7 +546,9 @@ VIEWS.settings = ()=>({title:'設定', html:
 });
 
 /* ============ コーチの画面：メニューを作って選手に渡す、選手の結果を見る ============ */
-function isCoach(){ return db.role==='coach'; }
+/* db.role はコーチとして登録しているか（携帯とパソコンで同じ）。db.mode はこの端末でいま開いている画面（端末ごと） */
+function coachAble(){ return db.role==='coach'; }
+function isCoach(){ return coachAble() && db.mode!=='self'; }
 function draft(){ db.draft = db.draft || {rows:[], note:'', to:[]}; return db.draft; }
 function coachRowTxt(r){ const e = EXMAP[r.exId]; const f = r.free||{}; const bw = bwEx(e);
   const w = f.kg ? '重さは選手が決める' : (Number(r.kg)>0 ? (bw?'体重＋':'')+kg(r.kg)+' kg' : (bw?'体重のみ':'自重'));
@@ -841,7 +848,7 @@ const _teamRowsN = teamRows; teamRows = function(){ const seen = {}; const out =
 /* ============ 携帯とパソコンで同じノートにする（2026-10-23） ============
  スプレッドシートの「ノート」の表に、名前と同期の合言葉ごとに中身を置く。開いたとき、画面に戻ったとき、変えたときに、
  読む → 合わせる → 書く、の順で動く。合わせ方は「日ごと、種目ごとに、あとで変えたほうを残す」 */
-const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me','nmQ','tmQ','nmAll','resSec','autoUndo'];
+const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me','nmQ','tmQ','nmAll','resSec','autoUndo','mode'];
 function sigOf(v){ return JSON.stringify(v===undefined?null:v); }
 function noMt(x){ const y = Object.assign({}, x); delete y.mt; return y; }
 function snap(){ const c = {top:{}, days:{}, bw:{}, userEx:{}}; Object.keys(db).forEach(f=>{ if(CLOUD_SKIP.includes(f) || f==='_mt') return;
@@ -1144,6 +1151,16 @@ const _drawCoachSheetA = drawCoachSheet; drawCoachSheet = function(){ _drawCoach
 function autoRulesHTML(){ const G = D.GOALS; const line = (k, name)=>{ const g = G[k], a = AUTO_PICK[k]; return '<li><strong>'+name+'</strong>　目安 '+esc(g.sets)+'セット、'+esc(g.reps)+'回、'+esc(g.load)+'、休憩 '+esc(g.rest)+'。このアプリの値：'+a.sets+'セット、'+a.reps+'回、1RMの'+a.pct+'%、休憩 '+a.rest+'</li>'; };
   const keys = [...new Set(['strength','hypertrophy','endurance','power'].flatMap(k=>G[k].refs))].filter(k=>REFS[k]);
   return '<details class="more"><summary>自動で入れる値と根拠</summary><div class="inner"><p class="sub">範囲は前の版で確かめた目安です。範囲の中のどの値を使うかは、このアプリの仮の設定です。種目ごとに処方が登録されている種目（スクワットのパワーなど）は、その種目の処方を使います。可動性、肩のインナー、体幹、ジャンプ、メディシンボールは、種目の種類ごとの目安を使い、重さは入れません。重さは2.5 kg 単位に丸めます。リカバリーでは、重りの種目の数字は自動で変えません。</p><ul class="refs">'+line('strength','最大筋力')+line('hypertrophy','筋肥大')+line('endurance','筋持久力')+line('power','パワー')+'</ul><ol class="refs">'+keys.map(k=>'<li>'+refItem(k)+'</li>').join('')+'</ol></div></details>'; }
+
+/* ============ コーチが自分も練習する：画面の一番上で「コーチ」と「自分の練習」を切り替える（2026-10-23） ============ */
+function paintMode(){ const w = $('#modeSw'); if(!w) return; const on = db.ready && coachAble(); w.hidden = !on; if(!on) return; const m = db.mode==='self' ? 'self' : 'coach';
+  w.querySelectorAll('[data-mode]').forEach(b=>{ const p = b.dataset.mode===m; b.setAttribute('aria-pressed', String(p)); b.classList.toggle('on', p); }); }
+const _renderMode = render; render = function(focus){ paintMode(); _renderMode(focus); };
+$('#modeSw').addEventListener('click',e=>{ const b = e.target.closest('[data-mode]'); if(!b) return; const m = b.dataset.mode; if((db.mode==='self'?'self':'coach')===m) return;
+  db.mode = m; save(); pick = false; stack = [{name: m==='self' ? 'today' : 'coach'}]; render(true); say(m==='self' ? '自分の練習に切り替えました' : 'コーチの画面に切り替えました');
+  if(m==='self'){ fetchMenu(false); syncNow(false); } });
+/* 設定と最初の画面：コーチを選んだときの説明 */
+const _settingsMode = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsMode(); if(coachAble()) v.html = v.html.replace('<details class="more"><summary>送り先のアドレス', '<p class="sub">コーチとして登録しています。画面の一番上の「コーチ」と「自分の練習」で、いつでも切り替えられます。どちらを開いているかは、この端末だけで覚えます。</p><details class="more"><summary>送り先のアドレス'); return v; };
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

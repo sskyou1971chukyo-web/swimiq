@@ -129,12 +129,15 @@ thead th{background:var(--pane2)}
 #tabs button.on{color:var(--am);box-shadow:inset 0 4px 0 var(--am)}
 #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:30;background:var(--am);color:#000;font-weight:700;border-radius:999px;padding:10px 20px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s;border:2px solid #000}
 #toast.show{opacity:1}
-.pklist{list-style:none;margin:0;padding:6px;max-height:min(52vh,460px);overflow:auto;border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;background:#0b0b0c}
+.pklist{list-style:none;margin:0;padding:6px;max-height:min(52vh,460px);overflow:auto;border:1px solid var(--line);border-radius:10px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;background:#0b0b0c}
+.pklist li{flex:1 1 auto;min-width:132px;max-width:100%;display:flex}
+.pklist li .pk{flex:1;min-width:0}
 .pk{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 10px;border-radius:8px;background:var(--pane2);cursor:pointer;font-weight:700}
 .pk input{width:24px;height:24px;flex:none;accent-color:#ffc400}
 .pk.on{box-shadow:inset 4px 0 0 var(--am)}
 .pk .pkt{display:flex;flex-direction:column;min-width:0;line-height:1.3}
-.pk .pkn{overflow-wrap:anywhere}
+.pk .pkn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .pkd{white-space:nowrap}
 .pk .pkd{color:var(--sub);font-size:.78rem;font-weight:400}
 .exh{margin:14px 0 2px;font-size:1rem;color:var(--sub)}
 .cal{list-style:none;margin:10px 0 6px;padding:0;display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -159,6 +162,13 @@ thead th{background:var(--pane2)}
 .wks .wd{display:flex;align-items:center;justify-content:center;width:30px;height:30px;margin:0 auto 4px;border-radius:50%;border:2.5px solid var(--line);font-size:.8rem;font-weight:800;color:var(--sub)}
 .wks .on .wd{background:var(--green);border-color:var(--green);color:#000}
 .wks .half .wd{border-color:var(--green);color:var(--green)}
+.sec{margin:28px 0 8px;padding-top:14px;border-top:1px solid #3a3b3d}
+.sec2{font-size:1.05rem;margin:14px 0 6px}
+.detail{margin-top:6px}
+details.fold{border:1px solid #3a3b3d;border-radius:12px;background:var(--soft);margin:10px 0;padding:0 14px}
+details.fold summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;min-height:56px;padding:12px 0;color:#fff}
+details.fold summary .fs{color:var(--am);font-weight:700}
+details.fold .inner{padding-bottom:12px}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -183,7 +193,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note15';
+const APP_VER = '2026-10-23 note18';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -616,7 +626,7 @@ VIEWS.team = ()=>{ const by = teamByName(); const names = Object.keys(by).sort((
     (names.length ? '<ul class="exl">'+names.map(n=>{ const s = athleteSummary(n, by[n]); const stale = s.last && s.last<addDays(today(),-7);
       return '<li><button type="button" class="rmain" data-go="athlete" data-id="'+esc(n)+'"><strong>'+esc(n)+(stale?' <span class="tag warn">1週間以上なし</span>':'')+'</strong><span class="d">最後の練習 '+(s.last?md(s.last):'なし')+'　今週 <b>'+kg(s.wk)+' kg</b>（先週 '+kg(s.prev)+'）'+(s.cdate?'　'+md(s.cdate)+' 睡眠'+(s.sleep!==''?s.sleep+'h':'未')+' 疲れ'+(s.fat!==''?FAT_WORDS[Number(s.fat)-1]||s.fat:'未'):'')+'</span></button></li>'; }).join('')+'</ul>' : '<p class="sub">まだ記録がありません。「最新の記録を取り込む」を押してください。</p>'),
     after(){ $('#tmFetch').addEventListener('click',()=>fetchAll(true)); } }; };
-VIEWS.athlete = cur=>{ const n = cur.id; const rows = teamByName()[n]||[]; const days = {}; rows.forEach(x=>{ const k = rowDate(x); (days[k] = days[k]||[]).push(x); }); const ks = Object.keys(days).sort().reverse().slice(0,30);
+VIEWS.athlete = cur=>{ const n = cur.id; const rows = srcRows(n); const days = {}; rows.forEach(x=>{ const k = rowDate(x); (days[k] = days[k]||[]).push(x); }); const ks = Object.keys(days).sort().reverse().slice(0,30);
   const ex = {}; rows.forEach(x=>{ if(String(x['種類'])==='記録' && Number(x['推定1RM'])>0){ const k = String(x['種目']); (ex[k] = ex[k]||[]).push([rowDate(x), Number(x['推定1RM'])]); } });
   return {title:n, html:
     '<h2>種目ごとの推定1RM</h2>'+(Object.keys(ex).length ? Object.keys(ex).map(k=>{ const L = ex[k].sort((a,b)=>a[0]<b[0]?-1:1); return '<h3>'+esc(shortName({name:k}))+'　最新 '+kg(L[L.length-1][1])+' kg　最高 '+kg(Math.max(...L.map(x=>x[1])))+' kg</h3>'+(L.length>1?lineSVG(L.map(x=>[new Date(x[0]+'T12:00:00').getTime(), x[1]]),'var(--am)',' kg'):''); }).join('') : '<p class="sub">10回以内の重さの記録があると出ます。</p>')+
@@ -829,7 +839,7 @@ const _teamRowsN = teamRows; teamRows = function(){ const seen = {}; const out =
 /* ============ 携帯とパソコンで同じノートにする（2026-10-23） ============
  スプレッドシートの「ノート」の表に、名前と同期の合言葉ごとに中身を置く。開いたとき、画面に戻ったとき、変えたときに、
  読む → 合わせる → 書く、の順で動く。合わせ方は「日ごと、種目ごとに、あとで変えたほうを残す」 */
-const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me','nmQ','tmQ','nmAll'];
+const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me','nmQ','tmQ','nmAll','resSec'];
 function sigOf(v){ return JSON.stringify(v===undefined?null:v); }
 function noMt(x){ const y = Object.assign({}, x); delete y.mt; return y; }
 function snap(){ const c = {top:{}, days:{}, bw:{}, userEx:{}}; Object.keys(db).forEach(f=>{ if(CLOUD_SKIP.includes(f) || f==='_mt') return;
@@ -955,7 +965,7 @@ function calHTML(n, days){ const ks = Object.keys(days).sort(); const latest = k
     '<ol class="cal" aria-label="'+y+'年'+m+'月のカレンダー"><li class="wk" aria-hidden="true">月</li><li class="wk" aria-hidden="true">火</li><li class="wk" aria-hidden="true">水</li><li class="wk" aria-hidden="true">木</li><li class="wk" aria-hidden="true">金</li><li class="wk" aria-hidden="true">土</li><li class="wk" aria-hidden="true">日</li>'+cells.join('')+'</ol>'+legendHTML()+purposeRuleHTML(); }
 /* 1日の実施内容（下から出る画面） */
 let dsh = null;
-function openDay(n, k){ const L = (teamByName()[n]||[]).filter(x=>rowDate(x)===k); dsh = {n, k, last:document.activeElement}; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類']))); const dp = dayPurpose(L);
+function openDay(n, k){ const L = srcRows(n).filter(x=>rowDate(x)===k); dsh = {n, k, last:document.activeElement}; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類']))); const dp = dayPurpose(L);
   $('#sheet').innerHTML = '<div class="sheetin"><h2 id="shT" tabindex="-1">'+jdate(k)+(s?'　'+kg(s['動かした重さkg']||0)+' kg':'')+'</h2>'+
     (dp.p?'<p>'+markHTML(dp.p, dp.set, true)+' '+PURP[dp.p].name+(dp.set?'':'（記録からの推定）')+'</p>':'')+
     (c?'<p class="sub">睡眠 '+(c['睡眠h']!==''?c['睡眠h']+'h':'未')+'、疲れ '+(c['疲れ']!==''?FAT_WORDS[Number(c['疲れ'])-1]||c['疲れ']:'未')+(c['メモ']?'、'+esc(c['メモ']):'')+'</p>':'')+
@@ -964,7 +974,7 @@ function openDay(n, k){ const L = (teamByName()[n]||[]).filter(x=>rowDate(x)===k
   $('#sheet').hidden = false; document.body.classList.add('lock'); $('#shT').focus(); $('#dsOk').addEventListener('click', closeDay); }
 function closeDay(){ $('#sheet').hidden = true; $('#sheet').innerHTML = ''; document.body.classList.remove('lock'); const k = dsh && dsh.k; dsh = null; const b = k && document.querySelector('[data-cday="'+k+'"]'); if(b) b.focus(); }
 const _closeSheetD = closeSheet; closeSheet = function(){ if(dsh) closeDay(); else _closeSheetD(); };
-const _athleteC = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteC(cur); const n = cur.id; const days = {}; (teamByName()[n]||[]).forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); });
+const _athleteC = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteC(cur); const n = cur.id; const days = {}; srcRows(n).forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); });
   v.html = v.html.replace(/<h2>日ごとの記録<\/h2>[\s\S]*$/, calHTML(n, days));
   const a0 = v.after; v.after = ()=>{ if(a0) a0(); document.querySelectorAll('[data-cday]').forEach(b=>b.addEventListener('click',()=>openDay(n, b.dataset.cday))); document.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{ calMonth[n] = b.dataset.cm; render(false); $('#calH').focus(); })); };
   return v; };
@@ -979,7 +989,7 @@ const _todayPurp = VIEWS.today; VIEWS.today = ()=>{ const v = _todayPurp(); cons
 
 /* ============ 選手の結果：推定1RMはプルダウンで1種目を選んで、数字とグラフで見る（2026-10-23） ============ */
 let athEx = {};
-function rmSeries(n){ const m = {}; (teamByName()[n]||[]).forEach(x=>{ if(String(x['種類'])!=='記録') return; const v = Number(x['推定1RM']); if(!(v>0)) return; const name = shortName({name:String(x['種目']||'')}); const k = rowDate(x); m[name] = m[name]||{}; const cur = m[name][k]; if(!cur || v>cur.v) m[name][k] = {k, v, sets:String(x['セットの内容']||'')}; });
+function rmSeries(n){ const m = {}; srcRows(n).forEach(x=>{ if(String(x['種類'])!=='記録') return; const v = Number(x['推定1RM']); if(!(v>0)) return; const name = shortName({name:String(x['種目']||'')}); const k = rowDate(x); m[name] = m[name]||{}; const cur = m[name][k]; if(!cur || v>cur.v) m[name][k] = {k, v, sets:String(x['セットの内容']||'')}; });
   const out = {}; Object.keys(m).forEach(name=>{ out[name] = Object.values(m[name]).sort((a,b)=>a.k<b.k?-1:1); }); return out; }
 function rmHTML(n){ const S = rmSeries(n); const names = Object.keys(S).sort((a,b)=>{ const x = S[a][S[a].length-1].k, y = S[b][S[b].length-1].k; return x<y?1:x>y?-1:a.localeCompare(b,'ja'); });
   if(!names.length) return '<h2 id="rmH" tabindex="-1">推定1RM</h2><p class="sub">10回以内の重さの記録があると出ます。</p>';
@@ -1026,7 +1036,52 @@ function compareCard(){ const td = today(), past = addDays(td,-28), H = exHistor
   const diff = r=>{ const d = r1(r.now.v-r.then.v); return d>0 ? '<strong style="color:var(--green);font-size:1.15rem;white-space:nowrap">プラス '+kg(d)+' '+r.unit+'</strong>' : d<0 ? '<strong style="color:var(--red);font-size:1.15rem;white-space:nowrap">マイナス '+kg(-d)+' '+r.unit+'</strong>' : '<strong style="white-space:nowrap">同じ</strong>'; };
   return '<section class="page mot" aria-labelledby="mt4"><h2 id="mt4" tabindex="-1">1か月前の自分と比べる</h2><ul class="rows">'+
     top.map(r=>'<li class="row" style="grid-template-columns:1fr auto;align-items:baseline"><span class="rmain" style="min-height:0"><strong>'+esc(r.name)+'</strong><span class="d">'+md(r.then.k)+'の '+kg(r.then.v)+' '+r.unit+' から、'+md(r.now.k)+'の '+kg(r.now.v)+' '+r.unit+'</span></span>'+diff(r)+'</li>').join('')+'</ul><p class="sub">重さの種目は推定1RMです。4週間より前でいちばん新しい記録と、いちばん新しい記録を比べています。</section>'; }
-const _resultMot = VIEWS.result; VIEWS.result = ()=>{ const v = _resultMot(); v.html = pbCard()+weeksCard()+compareCard()+v.html; return v; };
+/* やる気の3枚は、作り直した結果のタブの中に入れた */
+
+/* ============ 選手の結果のタブの作り直し（2026-10-23）：推定1RMとカレンダーを上に、やる気の3枚、体重・調子・測定はたたむ ============
+ 選手の画面も、コーチが見る選手の画面と同じ部品で描く。中身は選手の携帯の記録を、スプレッドシートと同じ形に直して使う */
+const SELF_KEY = '__me';
+function myRows(){ const me = db.me||''; const out = [];
+  finishedDays().forEach(k=>{ const d = db.days[k]; let vol = 0;
+    d.rows.forEach(r=>{ const e = EXMAP[r.exId]; const v = r.status==='done' ? rowVol(r,k) : 0; if(r.status==='done') vol += v; const best = r.status==='done' ? rowBest(r,k) : null;
+      out.push({'選手':me, '種類':r.status==='done'?'記録':'未実施', '日付':k, '種目ID':r.exId, '種目':e?e.name:r.exId, 'セットの内容':rowSets(r).map(s=>(Number(s.w)>0?kg(s.w)+'kg×':'')+s.r).join(', '), '推定1RM':best==null?'':best, '動かした重さkg':v, 'メモ':r.note||''}); });
+    out.push({'選手':me, '種類':'練習', '日付':k, '動かした重さkg':r1(vol), 'JSON':JSON.stringify({purpose:d.purpose||''})});
+    if(d.pre && !d.pre.skipped){ const b = lastBW(k); out.push({'選手':me, '種類':'調子', '日付':k, '睡眠h':d.pre.sleep==null?'':d.pre.sleep, '疲れ':d.pre.fat==null?'':d.pre.fat, 'メモ':(b&&b.date===k?'体重 '+b.w+' kg':'')}); } });
+  return out; }
+function srcRows(n){ return n===SELF_KEY ? myRows() : (teamByName()[n]||[]); }
+VIEWS.result = ()=>{ const td = today(), w0 = weekStart(td); const rows = myRows(); const days = {}; rows.forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); });
+  const weeks = []; for(let i=7;i>=0;i--){ const k = addDays(w0,-7*i); weeks.push({label:md(k)+'週', v:weekVol(k)}); }
+  const bwp = (db.bw||[]).slice(-30).map(x=>[new Date(x.date+'T12:00:00').getTime(), Number(x.w)]); const lastB = (db.bw||[]).slice(-1)[0];
+  const pre = daysSorted().filter(k=>db.days[k].pre && !db.days[k].pre.skipped).slice(-14);
+  const tests = (db.tests||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const tl = (key, label, unit)=>{ const pts = tests.filter(t=>num(t[key])!=null).map(t=>[new Date(t.date+'T12:00:00').getTime(), Number(t[key])]); return pts.length ? '<h3>'+label+'　最新 '+pts[pts.length-1][1]+unit+'</h3>'+lineSVG(pts,'var(--ink)',unit) : ''; };
+  const lastT = tests.slice(-1)[0];
+  const SECS = [
+    ['rm','推定1RM', ()=>rmHTML(SELF_KEY)],
+    ['cal','カレンダー（目的の印）', ()=>calHTML(SELF_KEY, days)],
+    ['vol','動かした重さ（週ごと）', ()=>'<h2 class="sec2">今週 '+kg(weekVol(w0))+' kg</h2><p class="sub" style="margin-top:0">先週は '+kg(weekVol(addDays(w0,-7)))+' kg</p>'+barsSVG(weeks,' kg')],
+    ['bw','体重', ()=>'<h2 class="sec2">'+(lastB?'最新 '+lastB.w+' kg（'+md(lastB.date)+'）':'体重')+'</h2>'+(bwp.length ? lineSVG(bwp,'var(--ink)',' kg') : '<p class="sub">練習前に体重を入れると、推移が出ます。</p>')],
+    ['pre','睡眠と疲れ', ()=>'<h2 class="sec2">直近 '+pre.length+'日分</h2>'+(pre.length ? '<div class="scroll"><table><thead><tr><th scope="col">日</th><th scope="col">睡眠</th><th scope="col">疲れ</th><th scope="col">動かした重さ</th></tr></thead><tbody>'+pre.slice().reverse().map(k=>{ const p = db.days[k].pre; const v = db.days[k].finished ? r1(db.days[k].rows.filter(r=>r.status==='done').reduce((t,r)=>t+rowVol(r,k),0)) : null; return '<tr><td>'+md(k)+'</td><td>'+(num(p.sleep)!=null?p.sleep+'h':'')+'</td><td>'+(num(p.fat)!=null?FAT_WORDS[p.fat-1]:'')+'</td><td>'+(v!=null?kg(v)+' kg':'')+'</td></tr>'; }).join('')+'</tbody></table></div>' : '<p class="sub">練習前の記録を入れると、ここに並びます。</p>')],
+    ['test','測定（CMJ、スキンフォールド、心拍、HRV）', ()=>'<p class="sub" style="margin-top:0">入れた分だけ推移が出ます。判定の言葉は、資料を確かめてから足します。</p>'+tl('cmj','CMJ（反動あり）',' cm')+tl('skin','スキンフォールドの合計',' mm')+tl('hr','安静時心拍',' 拍')+tl('hrv','HRV','')+
+      '<form id="tF" class="stack" style="margin-top:12px"><label class="f">測った日<input type="date" class="txt" id="tDate" value="'+td+'"></label><div class="stack two"><label class="f">CMJ（cm）<input type="number" class="txt" id="tCmj" step="0.5" min="0" inputmode="decimal"></label><label class="f">スキンフォールド合計（mm）<input type="number" class="txt" id="tSkin" step="0.5" min="0" inputmode="decimal"></label><label class="f">安静時心拍（拍/分）<input type="number" class="txt" id="tHr" step="1" min="0" inputmode="numeric"></label><label class="f">HRV（使っている機器の値）<input type="number" class="txt" id="tHrv" step="0.1" min="0" inputmode="decimal"></label></div><button type="submit" class="ghost">測定を記録する</button></form>'] ];
+  const cur = SECS.find(x=>x[0]===db.resSec) || SECS[0];
+  return {title:'結果', html:
+    '<h2 class="sec" style="border-top:0;padding-top:0;margin-top:16px">'+Number(td.slice(5,7))+'月のあなた</h2>'+pbCard().replace(/<p class="sub" style="margin:0">\d+月のあなた<\/p>/,'')+weeksCard()+compareCard()+
+    '<h2 class="sec" id="detH" tabindex="-1">詳しく見る</h2>'+secSelect('resSec', SECS, cur[0])+'<div class="detail">'+cur[2]()+'</div>',
+    after(){ const s = $('#rmSel'); if(s) s.addEventListener('change',()=>{ athEx[SELF_KEY] = s.value; render(false); $('#rmSel').focus(); });
+      document.querySelectorAll('[data-cday]').forEach(b=>b.addEventListener('click',()=>openDay(SELF_KEY, b.dataset.cday)));
+      document.querySelectorAll('[data-cm]').forEach(b=>b.addEventListener('click',()=>{ calMonth[SELF_KEY] = b.dataset.cm; render(false); $('#calH').focus(); }));
+      const rs = $('#resSec'); if(rs) rs.addEventListener('change',()=>{ db.resSec = rs.value; save(); render(false); $('#resSec').focus(); });
+      const tf = $('#tF'); if(tf) tf.addEventListener('submit',ev=>{ ev.preventDefault(); const o = {date:$('#tDate').value||td, cmj:num($('#tCmj').value), skin:num($('#tSkin').value), hr:num($('#tHr').value), hrv:num($('#tHrv').value)}; if(o.cmj==null&&o.skin==null&&o.hr==null&&o.hrv==null){ say('どれか一つは入れてください'); return; } db.tests = db.tests||[]; db.tests.push(o); save(); say('測定を記録しました'); render(false); $('#tDate').focus(); }); } }; };
+
+function secSelect(id, secs, cur){ return '<label class="sr" for="'+id+'">詳しく見る項目を選ぶ</label><select class="txt" id="'+id+'">'+secs.map(x=>'<option value="'+x[0]+'"'+(x[0]===cur?' selected':'')+'>'+esc(x[1])+'</option>').join('')+'</select>'; }
+/* コーチが見る選手の画面も、同じ「詳しく見る」のプルダウンにそろえる */
+let athSec = {};
+const _athleteSec = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteSec(cur); const n = cur.id; const k = v.html.indexOf('<h2 id="calH"');
+  if(k>0){ const parts = {rm:v.html.slice(0,k), cal:v.html.slice(k)}; const sec = athSec[n]==='cal' ? 'cal' : 'rm';
+    v.html = '<h2 class="sec" id="detH" tabindex="-1" style="border-top:0;padding-top:0;margin-top:16px">詳しく見る</h2>'+secSelect('athSec', [['rm','推定1RM'],['cal','カレンダー（目的の印）']], sec)+'<div class="detail">'+parts[sec]+'</div>';
+    const a0 = v.after; v.after = ()=>{ if(a0) a0(); const s = $('#athSec'); if(s) s.addEventListener('change',()=>{ athSec[n] = s.value; render(false); $('#athSec').focus(); }); }; }
+  return v; };
 
 /* ============ 共通の押したときの動き ============ */
 document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; let b;

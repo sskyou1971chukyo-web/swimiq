@@ -216,7 +216,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note21';
+const APP_VER = '2026-10-24 ime1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -465,7 +465,7 @@ VIEWS.ex = ()=>{ const k = curDay(); const q = db.exQ||''; let list = q ? favFir
     '<label class="f">名前で探す<input type="search" class="txt" id="exQ" value="'+esc(q)+'" placeholder="例：スクワット、広背筋"></label>'+
     (exSel==='body' && !q ? bodyHTML() : '<p class="sub" role="status">'+list.length+'種目'+(exSel!=='fav' && list.some(isFavEx) ? '（お気に入り '+list.filter(isFavEx).length+'種目を上に）' : '')+'</p>'+(list.length ? exListHTML(list, k) : '<p class="sub">'+(exSel==='fav'?'お気に入りはまだありません。種目の横の☆を押すと入ります。':'該当する種目がありません。')+'</p>')),
     after(){ $('#exSel').addEventListener('change',e=>{ exSel = e.target.value; db.exSel = exSel; db.exQ = ''; save(); render(false); $('#exSel').focus(); });
-      let tm; $('#exQ').addEventListener('input',e=>{ clearTimeout(tm); tm = setTimeout(()=>{ db.exQ = e.target.value.trim(); save(); const pos = e.target.selectionStart; render(false); const i = $('#exQ'); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(x){} },300); });
+      let tm; $('#exQ').addEventListener('input',e=>{ clearTimeout(tm); tm = setTimeout(()=>{ if(imeOn) return; db.exQ = e.target.value.trim(); save(); const pos = e.target.selectionStart; render(false); const i = $('#exQ'); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(x){} },300); });
       document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{ if(b.disabled) return; const e = EXMAP[b.dataset.add]; const d = day(k); const last = lastOf(e.id, null); d.rows.push(newRow(e.id, last ? {kg:last.r.kg, reps:last.r.reps, sets:last.r.sets} : {kg:0, reps:5, sets:3})); if(!d.src) d.src = 'self'; save(); say(shortName(e)+'を入れました'+(last?'（前回の数字）':'')); render(false); const again = document.querySelector('[data-add="'+e.id+'"]'); if(again) again.focus(); }));
       document.querySelectorAll('[data-fav]').forEach(b=>b.addEventListener('click',()=>{ const id = b.dataset.fav; const i = db.favs.indexOf(id); if(i<0) db.favs.push(id); else db.favs.splice(i,1); save(); render(false); const again = document.querySelector('[data-fav="'+id+'"]'); if(again) again.focus(); say(i<0?'お気に入りに入れました':'お気に入りから外しました'); }));
       document.querySelectorAll('[data-bv]').forEach(b=>b.addEventListener('click',()=>{ bodyView = b.dataset.bv; render(false); document.querySelector('[data-bv="'+bodyView+'"]').focus(); }));
@@ -823,7 +823,7 @@ function pickerHTML(d){ const names = sortedNames(); const to = d.to||[]; const 
     '<button type="button" class="link" data-go="names">名前の整理（間違いの削除、統一）</button>'; }
 function pickerAfter(d){ const keepScroll = ()=>{ const l = $('#pkList'); return l ? l.scrollTop : 0; };
   const redraw = (focusSel)=>{ const y = keepScroll(); render(false); const l = $('#pkList'); if(l) l.scrollTop = y; const f = focusSel && document.querySelector(focusSel); if(f) f.focus(); };
-  const q = $('#pkQ'); if(q){ let tm; q.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ pkQuery = q.value; const pos = q.selectionStart; redraw('#pkQ'); try{ $('#pkQ').setSelectionRange(pos,pos); }catch(e){} }, 250); }); }
+  const q = $('#pkQ'); if(q){ let tm; q.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ if(imeOn) return; pkQuery = q.value; const pos = q.selectionStart; redraw('#pkQ'); try{ $('#pkQ').setSelectionRange(pos,pos); }catch(e){} }, 250); }); }
   document.querySelectorAll('[data-pk]').forEach(c=>c.addEventListener('change',()=>{ const n = c.dataset.pk; d.to = d.to||[]; const i = d.to.indexOf(n); if(c.checked && i<0) d.to.push(n); if(!c.checked && i>=0) d.to.splice(i,1); save(); redraw('[data-pk="'+CSS.escape(n)+'"]'); }));
   const a = $('#pkAll'); if(a) a.addEventListener('click',()=>{ const vis = [...document.querySelectorAll('[data-pk]')].map(c=>c.dataset.pk); d.to = d.to||[]; vis.forEach(n=>{ if(!d.to.includes(n)) d.to.push(n); }); save(); say(vis.length+'人を選びました'); redraw('#pkAll'); });
   const z = $('#pkNone'); if(z) z.addEventListener('click',()=>{ d.to = []; save(); say('選んだ人を全部外しました'); redraw('#pkQ'); });
@@ -855,7 +855,7 @@ VIEWS.names = ()=>{ const names = sortedNames(); const ls = lastSeen(); const q 
     '<label class="f" for="nmQ">名前で探す（'+names.length+'人）</label><input type="search" class="txt" id="nmQ" value="'+esc(db.nmQ||'')+'" autocomplete="off">'+
     nmList(q ? vis : names.filter(n=>similarOf(n, names).length), q ? '見つかった名前（'+vis.length+'）' : '似た名前があるもの（'+names.filter(n=>similarOf(n, names).length).length+'）　間違いの可能性があります')+(q ? '' : '<details class="more"'+(db.nmAll?' open':'')+' id="nmAllD"><summary>すべての名前を見る（'+names.length+'）</summary><div class="inner">'+nmList(names, '')+'</div></details>'),
     after(){ $('#nmFetch').addEventListener('click',()=>fetchAll(true)); const ad = $('#nmAllD'); if(ad) ad.addEventListener('toggle',()=>{ db.nmAll = ad.open; });
-      let tm; $('#nmQ').addEventListener('input',e=>{ clearTimeout(tm); tm = setTimeout(()=>{ db.nmQ = e.target.value; const pos = e.target.selectionStart; render(false); const i = $('#nmQ'); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(x){} },250); });
+      let tm; $('#nmQ').addEventListener('input',e=>{ clearTimeout(tm); tm = setTimeout(()=>{ if(imeOn) return; db.nmQ = e.target.value; const pos = e.target.selectionStart; render(false); const i = $('#nmQ'); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(x){} },250); });
       document.querySelectorAll('[data-nmmerge]').forEach(b=>b.addEventListener('click',()=>{ nm = {from:b.dataset.nmmerge, to:'', del:''}; render(false); $('#nmP').focus(); }));
       document.querySelectorAll('[data-nmto]').forEach(b=>b.addEventListener('click',()=>{ nm.to = b.dataset.nmto; render(false); $('#nmDo').focus(); }));
       const s = $('#nmSel'); if(s) s.addEventListener('change',()=>{ if(!s.value) return; nm.to = s.value; render(false); $('#nmDo').focus(); });
@@ -872,7 +872,7 @@ VIEWS.names = ()=>{ const names = sortedNames(); const ls = lastSeen(); const q 
 /* 選手のタブにも探す欄 */
 const _teamN = VIEWS.team; VIEWS.team = ()=>{ const v = _teamN(); const q = (db.tmQ||'').trim();
   v.html = v.html.replace('<ul class="exl">', '<label class="f" for="tmQ">選手を名前で探す</label><input type="search" class="txt" id="tmQ" value="'+esc(db.tmQ||'')+'" autocomplete="off"><button type="button" class="link" data-go="names">名前の整理（間違いの削除、統一）</button><ul class="exl">');
-  const a0 = v.after; v.after = ()=>{ a0(); const i = $('#tmQ'); if(!i) return; let tm; i.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ db.tmQ = i.value; const pos = i.selectionStart; render(false); const j = $('#tmQ'); j.focus(); try{ j.setSelectionRange(pos,pos); }catch(x){} },250); });
+  const a0 = v.after; v.after = ()=>{ a0(); const i = $('#tmQ'); if(!i) return; let tm; i.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ if(imeOn) return; db.tmQ = i.value; const pos = i.selectionStart; render(false); const j = $('#tmQ'); j.focus(); try{ j.setSelectionRange(pos,pos); }catch(x){} },250); });
     if(q) document.querySelectorAll('#view .exl > li').forEach(li=>{ const n = (li.querySelector('[data-go=athlete]')||{}).dataset; if(n && !normName(n.id).includes(normName(q))) li.hidden = true; }); };
   return v; };
 /* 同じ人の同じ日の「練習」と「調子」が二重に入っていても、一つとして数える */
@@ -1201,6 +1201,11 @@ document.addEventListener('click',e=>{ if(e.target.closest('#sheet')) return; le
   if((b = e.target.closest('[data-tab]'))){ pick = false; go(b.dataset.tab); return; }
   if(e.target.closest('#back')) back(); });
 if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
+/* 日本語の変換中に画面を描き直すと、変換が切れて確定できない。変換中は描き直さず、確定してから探す */
+let imeOn = false;
+document.addEventListener('compositionstart', ()=>{ imeOn = true; }, true);
+document.addEventListener('compositionend', e=>{ imeOn = false; const t = e.target; setTimeout(()=>{ if(t && document.contains(t)) t.dispatchEvent(new Event('input', {bubbles:true})); }, 0); }, true);
+
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
 </script>

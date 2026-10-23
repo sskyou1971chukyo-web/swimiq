@@ -129,6 +129,13 @@ thead th{background:var(--pane2)}
 #tabs button.on{color:var(--am);box-shadow:inset 0 4px 0 var(--am)}
 #toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:30;background:var(--am);color:#000;font-weight:700;border-radius:999px;padding:10px 20px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s;border:2px solid #000}
 #toast.show{opacity:1}
+.pklist{list-style:none;margin:0;padding:6px;max-height:min(52vh,460px);overflow:auto;border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;background:#0b0b0c}
+.pk{display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 10px;border-radius:8px;background:var(--pane2);cursor:pointer;font-weight:700}
+.pk input{width:24px;height:24px;flex:none;accent-color:#ffc400}
+.pk.on{box-shadow:inset 4px 0 0 var(--am)}
+.pk .pkt{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.pk .pkn{overflow-wrap:anywhere}
+.pk .pkd{color:var(--sub);font-size:.78rem;font-weight:400}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 </style>
@@ -153,7 +160,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-23 note9';
+const APP_VER = '2026-10-23 note10';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -506,9 +513,9 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
   return {title:'メニューを作って渡す', html:
     '<div class="pagehead"><span class="date">'+jdate(today())+'</span><span class="sub">コーチ '+esc(db.me)+'</span></div>'+
     page(1,'種目を選ぶ'+(d.rows.length?'　'+d.rows.length+'種目':''), rowsHTML+'<div class="stack two" style="margin-top:12px"><button type="button" class="'+(d.rows.length?'ghost':'cta')+'" data-go="ex" data-pick="1">種目の一覧から選ぶ</button>'+(d.rows.length?'<button type="button" class="ghost" id="cClear">全部外す</button>':(sent.length?'<button type="button" class="ghost" id="cCopyLast">前回送ったメニューを写す</button>':''))+'</div>'+(d.rows.length?'<p class="sub">種目の名前を押すと、重さ、回数、セット数、休憩を決めるか、選手に決めさせるかを選べます。</p>':''))+
-    page(2,'渡す選手を選ぶ'+((d.to||[]).length?'　'+d.to.length+'人':''), '<div class="chips" role="group" aria-label="選手">'+names.map(n=>'<button type="button" class="chip" data-cto="'+esc(n)+'" aria-pressed="'+(d.to||[]).includes(n)+'">'+esc(n)+'</button>').join('')+'</div>'+(names.length?'':'<p class="sub" style="margin-top:0">まだ選手の名前がありません。下で足すか、「選手の結果」のタブで記録を取り込むと、送ってきた選手の名前が並びます。</p>')+
-      '<form id="cNameF" class="stepper" style="grid-template-columns:1fr 100px;margin-top:10px"><label class="sr" for="cName">選手の名前を足す</label><input type="text" id="cName" placeholder="名前を足す（選手がアプリに入れた名前）" autocomplete="off"><button type="submit" style="font-size:1rem">足す</button></form>'+
-      (names.length?'<div class="stack two" style="margin-top:10px"><button type="button" class="ghost sm" id="cAll">全員を選ぶ</button><button type="button" class="ghost sm" id="cNone">選び直す</button></div>':''))+
+    page(2,'渡す選手を選ぶ'+((d.to||[]).length?'　'+d.to.length+'人':''), pickerHTML(d)+
+      '<form id="cNameF" class="stepper" style="grid-template-columns:1fr 100px;margin-top:10px"><label class="sr" for="cName">選手の名前を足す</label><input type="text" id="cName" placeholder="一覧にない名前を足す" autocomplete="off"><button type="submit" style="font-size:1rem">足す</button></form>'+
+      '')+
     page(3,'送る', '<label class="f">選手へのひとこと（なくてもかまいません）<input type="text" class="txt" id="cNote" value="'+esc(d.note)+'" placeholder="例：スクワットは速さ重視"></label>'+
       '<label class="f">いつのメニューか<input type="date" class="txt" id="cDate" value="'+esc(d.date||today())+'"></label>'+
       '<p class="sub">'+(step<3 ? '種目と選手がそろうと押せます。' : (d.to||[]).join('、')+' に '+d.rows.length+'種目を送ります。選手がアプリを開くと受け取れます。')+'</p>'+
@@ -536,7 +543,7 @@ async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!sync
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
   try{ /* 選手一人ずつ、その選手の名前で送る。前の Code.gs でも、新しい Code.gs でも、選手の行として残る */
     for(const it of items){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:it.raw.who, items:[it]})}); const j = await res.json(); if(!j.ok) throw new Error(it.raw.who+'：'+(j.error||'受け取り側の失敗')); }
-    db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
+    pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
   catch(e){ say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); $('#cSend').focus(); } }
 /* コーチの行を直すシート */
 let csh = null;
@@ -714,10 +721,86 @@ const PRESET_UX = [
 ];
 (function(){ db.uxHidden = db.uxHidden||[]; const L = uexAll(); let n = 0; PRESET_UX.forEach(p=>{ if(db.uxHidden.includes(p.id) || (db.uxGone||[]).includes(p.id) || L.some(x=>x.id===p.id)) return; L.push(Object.assign({date:today()}, p)); n++; }); if(n){ save(); uexApply(); } })();
 
+/* ============ 100人でも選びやすい選手の選び方と、名前の整理（2026-10-23） ============ */
+function allNames(){ const s = new Set(db.names||[]); ((db.team||{}).rows||[]).forEach(x=>{ const n = String(x['選手']||'').trim(); if(n) s.add(n); }); return [...s]; }
+function lastSeen(){ const m = {}; teamRows().forEach(x=>{ const n = String(x['選手']||'').trim(), k = rowDate(x); if(n && k && (!m[n] || k>m[n])) m[n] = k; }); return m; }
+function sortedNames(){ const ls = lastSeen(); return allNames().sort((a,b)=>{ const x = ls[a]||'', y = ls[b]||''; return x<y?1:x>y?-1:a.localeCompare(b,'ja'); }); }
+function normName(n){ return String(n).replace(/[\s　]/g,''); }
+function similarOf(n, list){ const a = normName(n); return list.filter(m=>m!==n && a.length>=2 && normName(m).length>=2 && (normName(m)===a || normName(m).includes(a) || a.includes(normName(m)))); }
+let pkQuery = '';
+function pickerHTML(d){ const names = sortedNames(); const to = d.to||[]; const ls = lastSeen(); const groups = db.groups||[];
+  const sum = to.length ? (to.length===names.length && names.length>3 ? '全員（'+to.length+'人）' : to.slice(0,8).join('、')+(to.length>8?' ほか'+(to.length-8)+'人':'')) : 'まだ選んでいません';
+  const q = pkQuery.trim(); const vis = q ? names.filter(n=>normName(n).includes(normName(q))) : names;
+  return '<p id="pkSum" role="status" style="margin-top:0"><strong>選んだ選手：'+to.length+'人</strong>　<span class="sub">'+esc(sum)+'</span></p>'+
+    (names.length ? '<label class="f" for="pkQ" style="margin-top:6px">名前で探す（'+names.length+'人）</label><input type="search" class="txt" id="pkQ" value="'+esc(pkQuery)+'" placeholder="例：佐々木" autocomplete="off">'+
+      (groups.length ? '<label class="f">グループで選ぶ<select class="txt" id="pkGrp"><option value="">選ばない</option>'+groups.map((g,i)=>'<option value="'+i+'">'+esc(g.name)+'（'+g.members.length+'人）</option>').join('')+'</select></label>' : '')+
+      '<p class="sub" id="pkCount" style="margin:10px 0 4px">'+(q?'見つかった '+vis.length+'人':'最近練習した順')+'</p>'+
+      '<ul class="pklist" id="pkList" aria-label="選手の一覧">'+vis.map(n=>'<li><label class="pk'+(to.includes(n)?' on':'')+'"><input type="checkbox" data-pk="'+esc(n)+'"'+(to.includes(n)?' checked':'')+'><span class="pkt"><span class="pkn">'+esc(n)+'</span>'+(ls[n]?'<span class="pkd">最後 '+md(ls[n])+'</span>':'')+'</span></label></li>').join('')+'</ul>'+
+      '<div class="stack two" style="margin-top:10px"><button type="button" class="ghost sm" id="pkAll">'+(q?'見つかった'+vis.length+'人を選ぶ':'全員を選ぶ')+'</button><button type="button" class="ghost sm" id="pkNone" '+(to.length?'':'disabled')+'>選んだ人を全部外す</button></div>'+
+      (to.length>1 ? '<details class="more"><summary>選んだ'+to.length+'人をグループとして残す</summary><div class="inner"><form id="pkGF" class="stepper" style="grid-template-columns:1fr 100px"><label class="sr" for="pkGN">グループの名前</label><input type="text" id="pkGN" placeholder="例：短距離、女子" autocomplete="off"><button type="submit" style="font-size:1rem">残す</button></form></div></details>' : '')
+    : '<p class="sub" style="margin-top:0">まだ選手の名前がありません。下で足すか、選手のタブで記録を取り込むと、送ってきた選手の名前が並びます。</p>')+
+    '<button type="button" class="link" data-go="names">名前の整理（間違いの削除、統一）</button>'; }
+function pickerAfter(d){ const keepScroll = ()=>{ const l = $('#pkList'); return l ? l.scrollTop : 0; };
+  const redraw = (focusSel)=>{ const y = keepScroll(); render(false); const l = $('#pkList'); if(l) l.scrollTop = y; const f = focusSel && document.querySelector(focusSel); if(f) f.focus(); };
+  const q = $('#pkQ'); if(q){ let tm; q.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ pkQuery = q.value; const pos = q.selectionStart; redraw('#pkQ'); try{ $('#pkQ').setSelectionRange(pos,pos); }catch(e){} }, 250); }); }
+  document.querySelectorAll('[data-pk]').forEach(c=>c.addEventListener('change',()=>{ const n = c.dataset.pk; d.to = d.to||[]; const i = d.to.indexOf(n); if(c.checked && i<0) d.to.push(n); if(!c.checked && i>=0) d.to.splice(i,1); save(); redraw('[data-pk="'+CSS.escape(n)+'"]'); }));
+  const a = $('#pkAll'); if(a) a.addEventListener('click',()=>{ const vis = [...document.querySelectorAll('[data-pk]')].map(c=>c.dataset.pk); d.to = d.to||[]; vis.forEach(n=>{ if(!d.to.includes(n)) d.to.push(n); }); save(); say(vis.length+'人を選びました'); redraw('#pkAll'); });
+  const z = $('#pkNone'); if(z) z.addEventListener('click',()=>{ d.to = []; save(); say('選んだ人を全部外しました'); redraw('#pkQ'); });
+  const g = $('#pkGrp'); if(g) g.addEventListener('change',()=>{ const G = (db.groups||[])[Number(g.value)]; if(!G) return; d.to = d.to||[]; G.members.forEach(n=>{ if(!d.to.includes(n)) d.to.push(n); }); save(); say(G.name+'の'+G.members.length+'人を選びました'); redraw('#pkGrp'); });
+  const gf = $('#pkGF'); if(gf) gf.addEventListener('submit',ev=>{ ev.preventDefault(); const nm = $('#pkGN').value.trim(); if(!nm){ $('#pkGN').focus(); return; } db.groups = (db.groups||[]).filter(x=>x.name!==nm); db.groups.push({name:nm, members:(d.to||[]).slice()}); save(); say('グループ「'+nm+'」を残しました'); redraw('#pkQ'); }); }
+const _coachP = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachP(); const a0 = v.after; v.after = ()=>{ a0(); pickerAfter(draft()); }; return v; };
+
+/* ---- 名前の整理 ---- */
+let nm = {from:'', del:''};
+function nameRows(n){ return ((db.team||{}).rows||[]).filter(x=>String(x['選手']||'').trim()===n); }
+function renameLocal(from, to){ const fix = L=>{ const o = []; (L||[]).forEach(n=>{ const m = n===from ? to : n; if(m && !o.includes(m)) o.push(m); }); return o; };
+  db.names = fix(db.names); const d = draft(); d.to = fix(d.to); (db.groups||[]).forEach(g=>{ g.members = fix(g.members); });
+  if(db.team) db.team.rows = (db.team.rows||[]).filter(x=>!(to==='' && String(x['選手']).trim()===from)).map(x=>String(x['選手']).trim()===from ? Object.assign({}, x, {'選手':to}) : x); save(); }
+async function namesCall(action, extra){ if(!syncUrl()) throw new Error('送り先のURLが設定にありません'); if(!db.coachKey) throw new Error('設定でコーチの合言葉を入れてください');
+  const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify(Object.assign({action, key:db.coachKey}, extra))}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'失敗（GASの Code.gs を新しいものにしてください）'); return j; }
+function nmList(list, head){ const names = sortedNames(); const ls = lastSeen(); if(!list.length) return head ? '<h2>'+esc(head)+'</h2><p class="sub">ありません。</p>' : '';
+  return (head?'<h2>'+esc(head)+'</h2>':'')+'<ul class="exl">'+list.map(n=>{ const sim = similarOf(n, names); const c = nameRows(n).length; return '<li><span class="rmain"><strong>'+esc(n)+(sim.length?' <span class="tag warn">似た名前あり</span>':'')+'</strong><span class="d">記録 '+c+'件'+(ls[n]?'　最後 '+md(ls[n]):'')+(sim.length?'　似た名前：'+esc(sim.join('、')):'')+'</span></span><span class="stack" style="gap:4px"><button type="button" class="ghost sm" data-nmmerge="'+esc(n)+'" aria-label="'+esc(n)+'をほかの名前に統一する">統一する</button><button type="button" class="ghost sm" data-nmdel="'+esc(n)+'" aria-label="'+esc(n)+'を削除する" style="'+(nm.del===n?'border-color:var(--redline);color:var(--red)':'')+'">'+(nm.del===n?'もう一度押すと削除':'削除')+'</button></span></li>'; }).join('')+'</ul>'; }
+VIEWS.names = ()=>{ const names = sortedNames(); const ls = lastSeen(); const q = (db.nmQ||'').trim(); const vis = q ? names.filter(n=>normName(n).includes(normName(q))) : names;
+  let panel = '';
+  if(nm.from){ const others = names.filter(n=>n!==nm.from); const sim = similarOf(nm.from, names); const cnt = nameRows(nm.from).length;
+    panel = '<section class="page now" aria-labelledby="nmP"><h2 id="nmP" tabindex="-1">「'+esc(nm.from)+'」を統一する</h2><p>記録 '+cnt+'件を、どの名前にまとめますか。まとめたあとは、「'+esc(nm.from)+'」の名前で送られてくる記録とメニューの受け取りも、まとめた先の名前として扱います。</p>'+
+      (nm.to ? '<div class="note warn">「'+esc(nm.from)+'」の記録 '+cnt+'件を「'+esc(nm.to)+'」にまとめます。同じ日の同じ記録が両方にあるときは、「'+esc(nm.to)+'」のほうを残し、もう一方はスプレッドシートの「削除した記録」に移します。</div><div class="stack two"><button type="button" class="cta" id="nmDo">「'+esc(nm.to)+'」にまとめる</button><button type="button" class="ghost" id="nmBack">まとめ先を選び直す</button></div>'
+       : (sim.length ? '<p class="f">似た名前</p><div class="stack">'+sim.map(n=>'<button type="button" class="ghost" data-nmto="'+esc(n)+'">'+esc(n)+'</button>').join('')+'</div>' : '')+'<label class="f">まとめ先を選ぶ<select class="txt" id="nmSel"><option value="">選んでください</option>'+others.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('')+'</select></label>')+
+      '<button type="button" class="link" id="nmCancel">統一をやめる</button></section>'; }
+  return {title:'名前の整理', html: panel+
+    '<p class="sub">間違えて登録した名前は「削除」、同じ人が別の名前で登録したときは「統一する」を押します。削除した記録は、スプレッドシートの「削除した記録」に移すので、あとから戻せます。</p>'+
+    (!db.coachKey?'<div class="note warn">スプレッドシートの記録を直すには、設定でコーチの合言葉を入れてください。</div>':'')+
+    '<div class="stack two"><button type="button" class="ghost" id="nmFetch">最新の記録を取り込む</button></div>'+
+    '<label class="f" for="nmQ">名前で探す（'+names.length+'人）</label><input type="search" class="txt" id="nmQ" value="'+esc(db.nmQ||'')+'" autocomplete="off">'+
+    nmList(q ? vis : names.filter(n=>similarOf(n, names).length), q ? '見つかった名前（'+vis.length+'）' : '似た名前があるもの（'+names.filter(n=>similarOf(n, names).length).length+'）　間違いの可能性があります')+(q ? '' : '<details class="more"'+(db.nmAll?' open':'')+' id="nmAllD"><summary>すべての名前を見る（'+names.length+'）</summary><div class="inner">'+nmList(names, '')+'</div></details>'),
+    after(){ $('#nmFetch').addEventListener('click',()=>fetchAll(true)); const ad = $('#nmAllD'); if(ad) ad.addEventListener('toggle',()=>{ db.nmAll = ad.open; });
+      let tm; $('#nmQ').addEventListener('input',e=>{ clearTimeout(tm); tm = setTimeout(()=>{ db.nmQ = e.target.value; const pos = e.target.selectionStart; render(false); const i = $('#nmQ'); i.focus(); try{ i.setSelectionRange(pos,pos); }catch(x){} },250); });
+      document.querySelectorAll('[data-nmmerge]').forEach(b=>b.addEventListener('click',()=>{ nm = {from:b.dataset.nmmerge, to:'', del:''}; render(false); $('#nmP').focus(); }));
+      document.querySelectorAll('[data-nmto]').forEach(b=>b.addEventListener('click',()=>{ nm.to = b.dataset.nmto; render(false); $('#nmDo').focus(); }));
+      const s = $('#nmSel'); if(s) s.addEventListener('change',()=>{ if(!s.value) return; nm.to = s.value; render(false); $('#nmDo').focus(); });
+      const bk = $('#nmBack'); if(bk) bk.addEventListener('click',()=>{ nm.to = ''; render(false); $('#nmP').focus(); });
+      const cc = $('#nmCancel'); if(cc) cc.addEventListener('click',()=>{ nm = {from:'', to:'', del:''}; render(false); $('#title').focus(); });
+      const go2 = $('#nmDo'); if(go2) go2.addEventListener('click', async ()=>{ const from = nm.from, to = nm.to; go2.disabled = true; go2.textContent = 'まとめています';
+        try{ const j = nameRows(from).length ? await namesCall('names_merge', {from, to}) : {moved:0, removed:0}; renameLocal(from, to); nm = {from:'', to:'', del:''}; say('「'+from+'」を「'+to+'」にまとめました（'+(j.moved||0)+'件を移し、重なり'+(j.removed||0)+'件を削除した記録へ）'); if(db.coachKey) await fetchAll(false); render(false); $('#title').focus(); }
+        catch(e){ say('まとめられませんでした。'+String(e.message||e)); render(false); } });
+      document.querySelectorAll('[data-nmdel]').forEach(b=>b.addEventListener('click', async ()=>{ const n = b.dataset.nmdel; const c = nameRows(n).length;
+        if(nm.del!==n){ nm.del = n; render(false); const again = document.querySelector('[data-nmdel="'+CSS.escape(n)+'"]'); if(again) again.focus(); say('もう一度押すと、「'+n+'」'+(c?'と記録'+c+'件':'')+'を削除します'); return; }
+        try{ const j = c ? await namesCall('names_delete', {name:n}) : {removed:0}; renameLocal(n, ''); nm = {from:'', to:'', del:''}; say('「'+n+'」を削除しました'+(j.removed?'（記録'+j.removed+'件を削除した記録へ）':'')); if(db.coachKey && c) await fetchAll(false); render(false); $('#title').focus(); }
+        catch(e){ nm.del = ''; say('削除できませんでした。'+String(e.message||e)); render(false); } }));
+    } }; };
+/* 選手のタブにも探す欄 */
+const _teamN = VIEWS.team; VIEWS.team = ()=>{ const v = _teamN(); const q = (db.tmQ||'').trim();
+  v.html = v.html.replace('<ul class="exl">', '<label class="f" for="tmQ">選手を名前で探す</label><input type="search" class="txt" id="tmQ" value="'+esc(db.tmQ||'')+'" autocomplete="off"><button type="button" class="link" data-go="names">名前の整理（間違いの削除、統一）</button><ul class="exl">');
+  const a0 = v.after; v.after = ()=>{ a0(); const i = $('#tmQ'); if(!i) return; let tm; i.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ db.tmQ = i.value; const pos = i.selectionStart; render(false); const j = $('#tmQ'); j.focus(); try{ j.setSelectionRange(pos,pos); }catch(x){} },250); });
+    if(q) document.querySelectorAll('#view .exl > li').forEach(li=>{ const n = (li.querySelector('[data-go=athlete]')||{}).dataset; if(n && !normName(n.id).includes(normName(q))) li.hidden = true; }); };
+  return v; };
+/* 同じ人の同じ日の「練習」と「調子」が二重に入っていても、一つとして数える */
+const _teamRowsN = teamRows; teamRows = function(){ const seen = {}; const out = []; _teamRowsN().forEach(x=>{ const k = ['練習','調子'].includes(String(x['種類'])) ? String(x['選手']).trim()+'|'+x['種類']+'|'+rowDate(x) : null; if(k){ if(seen[k]!=null){ out[seen[k]] = x; return; } seen[k] = out.length; } out.push(x); }); return out; };
+
 /* ============ 携帯とパソコンで同じノートにする（2026-10-23） ============
  スプレッドシートの「ノート」の表に、名前と同期の合言葉ごとに中身を置く。開いたとき、画面に戻ったとき、変えたときに、
  読む → 合わせる → 書く、の順で動く。合わせ方は「日ごと、種目ごとに、あとで変えたほうを残す」 */
-const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me'];
+const CLOUD_SKIP = ['ready','imported','cloud','team','exQ','uxDel','uxEdit','uxBulkMsg','me','nmQ','tmQ','nmAll'];
 function sigOf(v){ return JSON.stringify(v===undefined?null:v); }
 function noMt(x){ const y = Object.assign({}, x); delete y.mt; return y; }
 function snap(){ const c = {top:{}, days:{}, bw:{}, userEx:{}}; Object.keys(db).forEach(f=>{ if(CLOUD_SKIP.includes(f) || f==='_mt') return;

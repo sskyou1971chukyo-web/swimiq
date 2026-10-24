@@ -204,6 +204,7 @@ button[data-add][disabled],button[data-cadd][disabled]{background:var(--am)!impo
 #back,#cnRefresh{white-space:nowrap;padding:0 14px}
 .rmain strong,.rmain .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
 .rmain{min-width:0}
+.nl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -227,7 +228,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-24 notice2';
+const APP_VER = '2026-10-24 notice3';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -345,9 +346,9 @@ VIEWS.today = ()=>{
   if(rows.length){ menu = (srcTxt?'<p class="sub" style="margin-top:0">'+esc(srcTxt)+(d.note?'　コーチのメモ：'+esc(d.note):'')+'</p>':'')+'<ul class="rows">'+rows.map(r=>{ const e = EXMAP[r.exId]; const b = bestOf(r.exId, k); const cur = r.status==='done' ? rowBest(r, k) : null; const pb = cur!=null && b && cur>b.v;
       return '<li class="row '+r.status+'"><button type="button" class="rmain" data-edit="'+r.rid+'" aria-label="'+esc(shortName(e))+'、'+esc(rowTxt(r))+'、押すと重さや回数を直す"><strong>'+esc(shortName(e))+(pb?' <span class="tag ok">自己ベスト</span>':'')+'</strong><span class="d">'+esc(rowTxt(r))+(r.rest?'　休憩 '+esc(r.rest):'')+'</span></button>'+
         '<button type="button" class="st '+r.status+'" data-st="'+r.rid+'" aria-label="'+esc(shortName(e))+'は'+(r.status==='done'?'できた。押すと、できなかったに変える':r.status==='skip'?'できなかった、またはやらなかった。押すと、まだに戻す':'まだ。押すと、できたにする')+'">'+(r.status==='done'?'✓ できた':r.status==='skip'?'✕ なし':'まだ')+'</button></li>'; }).join('')+'</ul>'+
-      (d.finished ? '' : '<div class="stack two" style="margin-top:12px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(inbox.length?'<button type="button" class="ghost" id="menuGet">コーチのメニューを入れ直す</button>':'<button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button>')+'</div>'); }
+      (d.finished ? '' : '<div class="stack two" style="margin-top:12px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(inbox.length?'<p class="sub nl" style="margin:4px 0 0;grid-column:1/-1">新しく届いたメニュー　'+esc(menuNames(inbox[0]))+'</p><button type="button" class="cta" id="menuGet" style="grid-column:1/-1">新しいメニューに入れ替える</button>':'<button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button>')+'</div>'); }
   else { menu = '<p class="sub" style="margin-top:0">'+(inbox.length ? 'コーチからメニューが届いています。' : 'まだメニューがありません。コーチから届いていれば受け取れます。自分で作ることもできます。')+'</p>'+
-      '<div class="stack">'+(inbox.length ? '<button type="button" class="cta" id="menuGet">コーチのメニューを開く（'+inbox[0].rows.length+'種目）</button>' : '<button type="button" class="'+(d.pre?'cta':'ghost')+'" id="menuFetch">コーチのメニューを受け取る</button>')+
+      '<div class="stack">'+(inbox.length ? (inbox.length>1 ? '<label class="f" for="menuPick">届いたメニュー（'+inbox.length+'件、新しい順）</label><select id="menuPick" class="txt">'+inbox.map((m,i)=>'<option value="'+i+'">'+esc((menuTime(m)||m.date)+'　'+menuNames(m))+'</option>').join('')+'</select>' : '<p class="sub" style="margin:0 0 6px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p>')+'<button type="button" class="cta" id="menuGet">コーチのメニューを開く（'+inbox[0].rows.length+'種目）</button>' : '<button type="button" class="'+(d.pre?'cta':'ghost')+'" id="menuFetch">コーチのメニューを受け取る</button>')+
       '<button type="button" class="ghost" data-go="ex" data-pick="1">自分で種目を選んで作る</button>'+(prevMenuDay(k)?'<button type="button" class="ghost" id="menuPrev">前回（'+md(prevMenuDay(k))+'）のメニューを写す</button>':'')+'</div>'; }
   /* 3 終える */
   let fin;
@@ -373,7 +374,8 @@ VIEWS.today = ()=>{
       document.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openRow(k, b.dataset.edit)));
       document.querySelectorAll('[data-st]').forEach(b=>b.addEventListener('click',()=>{ const r = d.rows.find(x=>x.rid===b.dataset.st); if(d.finished){ say('終えるを取り消すと直せます'); return; } r.status = r.status==='' ? 'done' : r.status==='done' ? 'skip' : ''; if(r.status==='done') r.touched = true; save(); render(false); const again = document.querySelector('[data-st="'+r.rid+'"]'); if(again) again.focus(); say(shortName(EXMAP[r.exId])+'：'+(r.status==='done'?'できた':r.status==='skip'?'なし':'まだ')); }));
       const mf = $('#menuFetch'); if(mf) mf.addEventListener('click',()=>fetchMenu(true));
-      const mg = $('#menuGet'); if(mg) mg.addEventListener('click',()=>{ applyInbox(k, inbox[0]); });
+      const mg = $('#menuGet'); if(mg) mg.addEventListener('click',()=>{ const pk = $('#menuPick'); applyInbox(k, inbox[pk ? Number(pk.value) : 0]); });
+      const mpk = $('#menuPick'); if(mpk) mpk.addEventListener('change',()=>{ mg.textContent = 'コーチのメニューを開く（'+inbox[Number(mpk.value)].rows.length+'種目）'; });
       const mp = $('#menuPrev'); if(mp) mp.addEventListener('click',()=>{ const pk = prevMenuDay(k); d.rows = db.days[pk].rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest})); d.src = 'prev'; save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg2').focus(); });
       const fb = $('#finish'); if(fb) fb.addEventListener('click',()=>{ if(fb.disabled) return; d.finished = new Date().toISOString(); save(); say('今日の練習を記録しました'); render(false); $('#pg3').focus(); syncNow(false); });
       const uf = $('#unfinish'); if(uf) uf.addEventListener('click',()=>{ d.finished = null; save(); say('終えるを取り消しました。直したら、もう一度終えてください'); render(false); $('#pg2').focus(); });
@@ -434,7 +436,10 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('#sheet').hid
 
 /* ============ コーチからのメニューを受け取る ============ */
 function syncUrl(){ return (db.syncUrl||SYNC_URL||'').trim(); }
-function inboxFor(k){ return (db.inbox||[]).filter(m=>!m.used && (m.date<=k || !m.date)).sort((a,b)=>a.date<b.date?1:-1); }
+function menuAt(m){ const x = String(m.mid||'').match(/wk_(\d+)/); return x ? Number(x[1]) : 0; }
+function inboxFor(k){ return (db.inbox||[]).filter(m=>!m.used && (m.date<=k || !m.date)).sort((a,b)=>(String(a.date)<String(b.date)?1:String(a.date)>String(b.date)?-1:0) || (menuAt(b)-menuAt(a))); }
+function menuNames(m){ return m.rows.map(r=>shortName(EXMAP[r.exId]||{name:r.exId})).join('、'); }
+function menuTime(m){ const t = menuAt(m); if(!t) return ''; const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+' 送信'; }
 function rowsFromRaw(raw){ /* 新しい形 raw.rows[{exId,kg,reps,sets,rest,free}] と、前の版の形 raw.rows[{id,w,reps,iv,sets,sr}] の両方を読む */
   return (raw.rows||[]).map(r=>{ const exId = r.exId || r.id; if(!EXMAP[exId]) return null; const later = v=>v==='later';
     if(r.exId) return newRow(exId, {kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', free:r.free||null});
@@ -448,7 +453,7 @@ async function fetchMenu(manual){ if(!syncUrl() || !db.me){ if(manual) say('送�
       const rows = rowsFromRaw(raw); if(!rows.length) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false}); n++; });
     save(); if(manual) say(n ? n+'件の新しいメニューが届きました' : '「'+db.me.trim()+'」あての新しいメニューはありません'); render(false); }
   catch(e){ if(manual) say(/GAS/.test(String(e.message)) ? e.message : '受け取れませんでした。電波のある所でもう一度押してください'); } }
-function applyInbox(k, m){ const d = day(k); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
+function applyInbox(k, m){ const d = day(k); (db.inbox||[]).forEach(x=>{ if(x!==m && !x.used && (x.date||'')<=(m.date||k) && menuAt(x)<menuAt(m)){ x.used = true; x.seen = true; } }); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
 
 /* ============ コーチに送る ============ */
 function syncOn(){ return !!(syncUrl() && (db.me||'').trim()); }
@@ -1255,11 +1260,11 @@ document.addEventListener('compositionend', e=>{ imeOn = false; const t = e.targ
 /* ============ コーチから届いたお知らせと、更新のボタン ============
  右上に「更新」を置き、押すとコーチのメニューを確かめる。アプリを開いたときと、ほかのアプリから戻ったときも自動で確かめる。
  まだ見ていないメニューがあれば、どの画面でも上に「コーチから届きました」を出す。 */
-function unseenMenus(){ return (db.inbox||[]).filter(m=>!m.used && !m.seen).sort((a,b)=>String(a.date)<String(b.date)?-1:1); }
+function unseenMenus(){ return (db.inbox||[]).filter(m=>!m.used && !m.seen).sort((a,b)=>menuAt(b)-menuAt(a)); }
 function noticeHTML(){ if(!db.ready) return ''; const L = unseenMenus(); if(!L.length) return '';
   const m = L[0]; const md2 = m.date ? (Number(m.date.slice(5,7))+'月'+Number(m.date.slice(8,10))+'日') : '';
   return '<section class="cnotice" role="alert" aria-labelledby="cnT"><p id="cnT" class="cnh">コーチから届きました'+(L.length>1?'（'+L.length+'件）':'')+'</p>'+
-    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+m.rows.length+'種目'+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(m.purpose):'')+'</p>'+
+    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+m.rows.length+'種目（'+esc(menuNames(m))+'）'+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(m.purpose):'')+'</p>'+
     '<div class="stack two"><button type="button" class="cta" id="cnOpen">メニューを見る</button><button type="button" class="ghost" id="cnLater">あとで</button></div></section>'; }
 function paintNotice(){ let n = document.getElementById('cnotice'); if(!n){ n = document.createElement('div'); n.id = 'cnotice'; const v = document.getElementById('view'); v.parentNode.insertBefore(n, v); }
   n.innerHTML = noticeHTML();

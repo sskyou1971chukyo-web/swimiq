@@ -216,7 +216,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-24 ime1';
+const APP_VER = '2026-10-24 pain1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -375,6 +375,12 @@ VIEWS.today = ()=>{
 function prevMenuDay(k){ const L = daysSorted().filter(x=>x<k && db.days[x].rows.length); return L.length ? L[L.length-1] : null; }
 
 /* ---- 行を直すシート ---- */
+/* メモはよくある言葉から選び、合わなければ自分で書く。痛みは言葉の段階（VRS）で選び、部位と左右も選ぶ。段階の言葉はコーチの指定 */
+const NOTE_PRESET = ['フォームが安定した','重さが軽く感じた','重さが重く感じた','最後のセットがきつかった','疲れが残っていた','時間が足りなかった','器具が使えなかった'];
+const PAIN_VRS = ['0：痛くない','1：少し痛む','2：かなり痛む','3：耐えられない程痛む'];
+const PAIN_PARTS = [['shoulder','肩',true],['elbow','肘',true],['wrist','手首',true],['neck','首',false],['back','背中',false],['lowback','腰',false],['hip','股関節',true],['knee','膝',true],['ankle','足首',true],['other','その他',false]];
+function painTxt(r){ if(r.pain==null || r.pain==='') return ''; const pp = PAIN_PARTS.find(x=>x[0]===r.painPart); return '痛み '+PAIN_VRS[Number(r.pain)]+(pp ? '（'+(pp[2] && r.painSide ? {L:'左',R:'右',B:'両'}[r.painSide]||'' : '')+pp[1]+'）' : ''); }
+function noteFull(r){ return [painTxt(r), r.note||''].filter(Boolean).join('　'); }
 let sh = null;
 function openRow(k, rid){ const d = day(k); const r = d.rows.find(x=>x.rid===rid); if(!r) return; if(d.finished){ say('終えるを取り消すと直せます'); return; }
   sh = {k, rid, orig:JSON.stringify(r), last:document.activeElement}; drawSheet(); $('#sheet').hidden = false; document.body.classList.add('lock'); $('#shT').focus(); }
@@ -388,10 +394,19 @@ function drawSheet(){ const d = day(sh.k); const r = d.rows.find(x=>x.rid===sh.r
     (per ? '<p class="f">セットごと</p>'+r.setList.map((s,i)=>'<div class="stepper" style="grid-template-columns:1fr 1fr" aria-label="'+(i+1)+'セット目"><label class="sr" for="sw'+i+'">'+(i+1)+'セット目の重さ</label><input type="number" id="sw'+i+'" data-sw="'+i+'" step="2.5" min="0" inputmode="decimal" value="'+s.w+'" aria-label="'+(i+1)+'セット目の重さ kg"><input type="number" id="sr'+i+'" data-sr="'+i+'" step="1" min="0" inputmode="numeric" value="'+s.r+'" aria-label="'+(i+1)+'セット目の回数"></div>').join('')+'<div class="stack two" style="margin-top:8px"><button type="button" class="ghost sm" id="shAddSet">セットを足す</button><button type="button" class="ghost sm" id="shDelSet">セットを減らす</button></div><button type="button" class="link" id="shSame">全部同じに戻す</button>'
       : '<button type="button" class="link" id="shPer">セットごとに重さや回数を変える</button>')+
     '<p class="f">結果</p><div class="chips" role="group" aria-label="結果"><button type="button" class="chip" data-shst="done" aria-pressed="'+(r.status==='done')+'">✓ できた</button><button type="button" class="chip" data-shst="skip" aria-pressed="'+(r.status==='skip')+'">✕ できなかった・やらなかった</button><button type="button" class="chip" data-shst="" aria-pressed="'+(r.status==='')+'">まだ</button></div>'+
-    '<label class="f">メモ<input type="text" class="txt" id="shNote" value="'+esc(r.note)+'" placeholder="例：右肩が気になった"></label>'+
+    '<label class="f" for="shNoteSel">メモ</label><select id="shNoteSel" class="txt">'+'<option value="">メモなし</option>'+NOTE_PRESET.map(t=>'<option value="'+esc(t)+'"'+(r.note===t?' selected':'')+'>'+esc(t)+'</option>').join('')+'<option value="_free"'+(r.note && !NOTE_PRESET.includes(r.note)?' selected':'')+'>自分で書く</option></select>'+
+    '<input type="text" class="txt" id="shNote" value="'+esc(r.note)+'" placeholder="例：右肩が気になった" aria-label="メモを自分で書く"'+(r.note && !NOTE_PRESET.includes(r.note)?'':' hidden')+'>'+
+    '<label class="f" for="shPain">痛み（言葉の段階で選ぶ）</label><select id="shPain" class="txt"><option value="">選んでいない</option>'+PAIN_VRS.map((t,i)=>'<option value="'+i+'"'+(String(r.pain)===String(i)?' selected':'')+'>'+t+'</option>').join('')+'</select>'+
+    (r.pain!=null && r.pain!=='' && Number(r.pain)>0 ? '<div class="stack two" style="margin-top:6px"><label class="f" for="shPainPart" style="margin:0">部位<select id="shPainPart" class="txt"><option value="">選ぶ</option>'+PAIN_PARTS.map(x=>'<option value="'+x[0]+'"'+(r.painPart===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select></label>'+
+      ((PAIN_PARTS.find(x=>x[0]===r.painPart)||[])[2] ? '<label class="f" for="shPainSide" style="margin:0">左右<select id="shPainSide" class="txt"><option value="">選ぶ</option><option value="L"'+(r.painSide==='L'?' selected':'')+'>左</option><option value="R"'+(r.painSide==='R'?' selected':'')+'>右</option><option value="B"'+(r.painSide==='B'?' selected':'')+'>両方</option></select></label>' : '<span></span>')+'</div>' : '')+
+    (Number(r.pain)>=2 ? '<div class="note bad" style="margin-top:8px">かなり痛む、または耐えられない痛みのときは、この種目を止めてコーチに伝えてください。この線引きはコーチの決めた仮の設定で、根拠の文献はありません。</div>' : '')+
     '<div class="stack two" style="margin-top:16px"><button type="button" class="cta" id="shOk">閉じる</button><button type="button" class="ghost" id="shUndo">開いたときに戻す</button></div>'+
     '<button type="button" class="link" id="shRemove" style="margin-top:8px">この種目を今日のメニューから外す</button></div>';
-  const upd = ()=>{ if(!per){ r.kg = num($('#shKg').value)||0; r.reps = num($('#shReps').value)||0; r.sets = Math.max(1, num($('#shSets').value)||1); } else { r.setList.forEach((s,i)=>{ s.w = num($('#sw'+i).value)||0; s.r = num($('#sr'+i).value)||0; }); } r.note = $('#shNote').value; r.touched = true; save(); };
+  const upd = ()=>{ if(!per){ r.kg = num($('#shKg').value)||0; r.reps = num($('#shReps').value)||0; r.sets = Math.max(1, num($('#shSets').value)||1); } else { r.setList.forEach((s,i)=>{ s.w = num($('#sw'+i).value)||0; s.r = num($('#sr'+i).value)||0; }); } const ns = $('#shNoteSel'); r.note = ns && ns.value!=='_free' ? ns.value : $('#shNote').value; r.touched = true; save(); };
+  { const ns = $('#shNoteSel'); if(ns) ns.addEventListener('change',()=>{ const inp = $('#shNote'); if(ns.value==='_free'){ inp.hidden = false; inp.value = NOTE_PRESET.includes(r.note)?'':(r.note||''); inp.focus(); } else { inp.hidden = true; } upd(); });
+    const pn = $('#shPain'); if(pn) pn.addEventListener('change',()=>{ r.pain = pn.value===''?null:Number(pn.value); if(r.pain==null || r.pain===0){ r.painPart = ''; r.painSide = ''; } r.touched = true; save(); drawSheet(); $('#shPain').focus(); });
+    const pp = $('#shPainPart'); if(pp) pp.addEventListener('change',()=>{ r.painPart = pp.value; r.painSide = ''; save(); drawSheet(); const z = $('#shPainSide') || $('#shPainPart'); z.focus(); });
+    const ps = $('#shPainSide'); if(ps) ps.addEventListener('change',()=>{ r.painSide = ps.value; save(); }); }
   $('#sheet').querySelectorAll('input').forEach(i=>i.addEventListener('input', upd));
   $('#sheet').querySelectorAll('[data-sstep]').forEach(b=>b.addEventListener('click',()=>{ const i = $('#'+b.dataset.sstep); const v = (num(i.value)||0)+Number(b.dataset.d); i.value = Math.max(Number(i.min)||0, r1(v)); upd(); }));
   $('#sheet').querySelectorAll('[data-shst]').forEach(b=>b.addEventListener('click',()=>{ r.status = b.dataset.shst; r.touched = true; save(); drawSheet(); $('[data-shst="'+r.status+'"]').focus(); }));
@@ -430,7 +445,7 @@ function syncItems(){ const S = db.sync = db.sync||{sent:{}}; S.sent = S.sent||{
     const items = [];
     if(d.pre && !d.pre.skipped){ const b = lastBW(k); items.push({uid:'C|'+me+'|'+k, kind:'調子', date:k, sleep:d.pre.sleep==null?'':d.pre.sleep, fat:d.pre.fat==null?'':d.pre.fat, memo:(b&&b.date===k?'体重 '+b.w+' kg':''), raw:d.pre}); }
     if(d.finished){ let vol = 0; d.rows.forEach(r=>{ const e = EXMAP[r.exId]; const v = r.status==='done' ? rowVol(r,k) : ''; if(r.status==='done') vol += v; const best = r.status==='done' ? rowBest(r,k) : null;
-        items.push({uid:'R|'+me+'|'+k+'|'+r.rid, kind:r.status==='done'?'記録':'未実施', date:k, exId:r.exId, exName:e?e.name:r.exId, sets:rowSets(r).map(s=>(Number(s.w)>0?kg(s.w)+'kg×':'')+s.r).join(', '), vol:v, e1rm:best==null?'':best, rs:(r.reps||'')+' × '+(r.sets||''), memo:r.note||'', raw:r}); });
+        items.push({uid:'R|'+me+'|'+k+'|'+r.rid, kind:r.status==='done'?'記録':'未実施', date:k, exId:r.exId, exName:e?e.name:r.exId, sets:rowSets(r).map(s=>(Number(s.w)>0?kg(s.w)+'kg×':'')+s.r).join(', '), vol:v, e1rm:best==null?'':best, rs:(r.reps||'')+' × '+(r.sets||''), memo:noteFull(r), raw:r}); });
       items.push({uid:'S|'+me+'|'+k, kind:'練習', date:k, vol:r1(vol), memo:d.src==='coach'?'コーチのメニュー':'', raw:{src:d.src, finished:d.finished, n:d.rows.length, purpose:d.purpose||''}}); }
     if(items.length) out.push({k, sig, items}); });
   return out; }
@@ -498,7 +513,7 @@ VIEWS.detail = cur=>{ const e = EXMAP[cur.id]; const k = curDay(); const links =
     (e.gym ? '<div class="note warn">体操の移行データの種目です。'+(e.linked?'':'やり方の説明と根拠は未登録です。')+'</div>' : '')+(e.user ? '<div class="note warn">自分で登録した種目です。'+(e.why?'解説は出どころの資料を日本語にしたもので、研究の文献は付いていません。':'説明と根拠は未登録です。')+'</div>' : '')+
     '<div class="stack two">'+(day(k).finished?'':'<button type="button" class="cta" id="dAdd" '+(inMenu?'disabled aria-disabled="true"':'')+'>'+(inMenu?'今日のメニューに入れてあります':'今日のメニューに入れる')+'</button>')+'<button type="button" class="ghost" id="dFav" aria-pressed="'+db.favs.includes(e.id)+'">'+(db.favs.includes(e.id)?'★ お気に入り':'☆ お気に入りに入れる')+'</button></div>'+
     (best?'<div class="note good">自己ベストの推定1RM '+kg(best.v)+' kg（'+md(best.k)+'）</div>':'')+
-    (h.length?'<h2>最近の記録</h2><ul class="rows">'+h.map(x=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+md(x.k)+'</strong><span class="d">'+esc(rowTxt(x.r))+(x.r.note?'　'+esc(x.r.note):'')+'</span></span></li>').join('')+'</ul>':'')+
+    (h.length?'<h2>最近の記録</h2><ul class="rows">'+h.map(x=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+md(x.k)+'</strong><span class="d">'+esc(rowTxt(x.r))+(noteFull(x.r)?'　'+esc(noteFull(x.r)):'')+'</span></span></li>').join('')+'</ul>':'')+
     '<h2>主な筋肉</h2><p>'+esc(e.muscles)+'</p>'+
     (e.why?'<h2>どんな種目か</h2><p>'+esc(e.why)+'</p>':'')+(e.swim?'<h2>水泳との関連</h2><p>'+esc(e.swim)+'</p>':'')+
     (e.cue?'<h2>ポイント</h2><p>'+esc(e.cue)+'</p>':'')+
@@ -1089,7 +1104,7 @@ const SELF_KEY = '__me';
 function myRows(){ const me = db.me||''; const out = [];
   finishedDays().forEach(k=>{ const d = db.days[k]; let vol = 0;
     d.rows.forEach(r=>{ const e = EXMAP[r.exId]; const v = r.status==='done' ? rowVol(r,k) : 0; if(r.status==='done') vol += v; const best = r.status==='done' ? rowBest(r,k) : null;
-      out.push({'選手':me, '種類':r.status==='done'?'記録':'未実施', '日付':k, '種目ID':r.exId, '種目':e?e.name:r.exId, 'セットの内容':rowSets(r).map(s=>(Number(s.w)>0?kg(s.w)+'kg×':'')+s.r).join(', '), '推定1RM':best==null?'':best, '動かした重さkg':v, 'メモ':r.note||''}); });
+      out.push({'選手':me, '種類':r.status==='done'?'記録':'未実施', '日付':k, '種目ID':r.exId, '種目':e?e.name:r.exId, 'セットの内容':rowSets(r).map(s=>(Number(s.w)>0?kg(s.w)+'kg×':'')+s.r).join(', '), '推定1RM':best==null?'':best, '動かした重さkg':v, 'メモ':noteFull(r)}); });
     out.push({'選手':me, '種類':'練習', '日付':k, '動かした重さkg':r1(vol), 'JSON':JSON.stringify({purpose:d.purpose||''})});
     if(d.pre && !d.pre.skipped){ const b = lastBW(k); out.push({'選手':me, '種類':'調子', '日付':k, '睡眠h':d.pre.sleep==null?'':d.pre.sleep, '疲れ':d.pre.fat==null?'':d.pre.fat, 'メモ':(b&&b.date===k?'体重 '+b.w+' kg':'')}); } });
   return out; }

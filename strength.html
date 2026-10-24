@@ -194,6 +194,16 @@ details.fold .inner{padding-bottom:12px}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 body.kbopen #tabs{display:none}
+#cnRefresh{grid-column:3;min-height:46px;border:2px solid var(--line);background:var(--soft);border-radius:6px;font-weight:700;color:#fff}
+#cnRefresh[disabled]{opacity:.6}
+.cnotice{margin:12px 0 4px;background:#16202b;border:2px solid var(--am);border-radius:14px;padding:12px 14px}
+.cnotice .cnh{margin:0;font-size:1.15rem;font-weight:800;color:var(--am)}
+button[data-add][disabled],button[data-cadd][disabled]{background:var(--am)!important;color:#000!important;border-color:var(--am)!important;opacity:1!important}
+#top{grid-template-columns:auto minmax(0,1fr) auto!important}
+#title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:1.05rem}
+#back,#cnRefresh{white-space:nowrap;padding:0 14px}
+.rmain strong,.rmain .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
+.rmain{min-width:0}
 </style>
 </head>
 <body>
@@ -217,7 +227,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-24 bar1';
+const APP_VER = '2026-10-24 notice2';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -432,11 +442,12 @@ function rowsFromRaw(raw){ /* 新しい形 raw.rows[{exId,kg,reps,sets,rest,free
     return newRow(exId, {kg:later(r.w)?0:Number(r.w)||0, reps:later(r.reps)?5:Number(r.reps)||0, sets:later(r.sets)?3:Number(r.sets)||1, rest:later(r.sr)?'':(r.sr?r.sr+'秒':''), free:anyFree?free:null}); }).filter(Boolean); }
 async function fetchMenu(manual){ if(!syncUrl() || !db.me){ if(manual) say('送り先の設定がありません'); return; }
   if(manual) say('確かめています');
-  try{ const r = await fetch(syncUrl()+'?action=menu&name='+encodeURIComponent(db.me.trim())); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
+  try{ const nm = db.me.trim(); const tries = [nm]; if(normName(nm)!==nm) tries.push(normName(nm)); let j = {ok:true, rows:[]};
+    for(const t of tries){ const r = await fetch(syncUrl()+'?action=menu&name='+encodeURIComponent(t)); const jj = await r.json(); if(!jj.ok){ if(/action/.test(String(jj.error||''))) throw new Error('受け口（GAS）が古いので、Code.gs を配置し直してください'); throw new Error(jj.error||'失敗'); } j.rows = j.rows.concat(jj.rows||[]); }
     let n = 0; db.inbox = db.inbox||[]; (j.rows||[]).forEach(row=>{ let raw = {}; try{ raw = JSON.parse(row.JSON||'{}'); }catch(e){} const mid = String(row.uid||''); if(!mid || db.inbox.some(m=>m.mid===mid)) return;
       const rows = rowsFromRaw(raw); if(!rows.length) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false}); n++; });
-    save(); if(manual) say(n ? n+'件の新しいメニューが届きました' : '新しいメニューはありません'); render(false); }
-  catch(e){ if(manual) say('受け取れませんでした。電波のある所でもう一度押してください'); } }
+    save(); if(manual) say(n ? n+'件の新しいメニューが届きました' : '「'+db.me.trim()+'」あての新しいメニューはありません'); render(false); }
+  catch(e){ if(manual) say(/GAS/.test(String(e.message)) ? e.message : '受け取れませんでした。電波のある所でもう一度押してください'); } }
 function applyInbox(k, m){ const d = day(k); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
 
 /* ============ コーチに送る ============ */
@@ -640,6 +651,7 @@ async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!sync
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
   try{ /* 選手一人ずつ、その選手の名前で送る。前の Code.gs でも、新しい Code.gs でも、選手の行として残る */
     for(const it of items){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:it.raw.who, items:[it]})}); const j = await res.json(); if(!j.ok) throw new Error(it.raw.who+'：'+(j.error||'受け取り側の失敗')); }
+    items.forEach(it=>{ if(normName(it.raw.who)===normName(db.me||'')){ db.inbox = db.inbox||[]; if(!db.inbox.some(m=>m.mid===it.uid)){ const rr = rowsFromRaw(it.raw); if(rr.length) db.inbox.push({mid:it.uid, date:date, rows:rr, note:d.note||'', purpose:d.purpose||'', by:db.me, used:false}); } } });
     pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', purpose:d.purpose||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
   catch(e){ say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); $('#cSend').focus(); } }
 /* コーチの行を直すシート */
@@ -1239,6 +1251,32 @@ document.addEventListener('compositionend', e=>{ imeOn = false; const t = e.targ
   document.addEventListener('change', later, true);
   later();
 })();
+
+/* ============ コーチから届いたお知らせと、更新のボタン ============
+ 右上に「更新」を置き、押すとコーチのメニューを確かめる。アプリを開いたときと、ほかのアプリから戻ったときも自動で確かめる。
+ まだ見ていないメニューがあれば、どの画面でも上に「コーチから届きました」を出す。 */
+function unseenMenus(){ return (db.inbox||[]).filter(m=>!m.used && !m.seen).sort((a,b)=>String(a.date)<String(b.date)?-1:1); }
+function noticeHTML(){ if(!db.ready) return ''; const L = unseenMenus(); if(!L.length) return '';
+  const m = L[0]; const md2 = m.date ? (Number(m.date.slice(5,7))+'月'+Number(m.date.slice(8,10))+'日') : '';
+  return '<section class="cnotice" role="alert" aria-labelledby="cnT"><p id="cnT" class="cnh">コーチから届きました'+(L.length>1?'（'+L.length+'件）':'')+'</p>'+
+    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+m.rows.length+'種目'+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(m.purpose):'')+'</p>'+
+    '<div class="stack two"><button type="button" class="cta" id="cnOpen">メニューを見る</button><button type="button" class="ghost" id="cnLater">あとで</button></div></section>'; }
+function paintNotice(){ let n = document.getElementById('cnotice'); if(!n){ n = document.createElement('div'); n.id = 'cnotice'; const v = document.getElementById('view'); v.parentNode.insertBefore(n, v); }
+  n.innerHTML = noticeHTML();
+  const o = document.getElementById('cnOpen'); if(o) o.onclick = ()=>{ const m = unseenMenus()[0]; if(m) m.seen = true; if(db.mode!=='self' && typeof isCoach==='function' && isCoach()){ db.mode = 'self'; if(typeof pick!=='undefined') pick = false; if(typeof paintMode==='function') paintMode(); } save(); stack = [{name:'today'}]; editDay = (m && m.date && m.date>today()) ? m.date : null; go('today'); setTimeout(()=>{ const b = document.getElementById('menuGet') || document.getElementById('pg2'); if(b){ b.scrollIntoView({block:'center'}); b.focus(); } }, 50); say('コーチのメニューです。「コーチのメニューを開く」で今日のメニューに入ります'); };
+  const l = document.getElementById('cnLater'); if(l) l.onclick = ()=>{ unseenMenus().forEach(m=>{ m.seen = true; }); save(); paintNotice(); say('今日のメニューの画面から、いつでも開けます'); $('#title').focus(); };
+  const r = document.getElementById('cnRefresh'); if(r) r.hidden = !db.ready || !syncUrl() || !(db.me||'').trim(); }
+/* 右上の更新のボタン */
+(function(){ const top = document.getElementById('top'); if(!top || document.getElementById('cnRefresh')) return;
+  const b = document.createElement('button'); b.type = 'button'; b.id = 'cnRefresh'; b.textContent = '更新'; b.setAttribute('aria-label','コーチからのメニューを確かめる'); top.appendChild(b);
+  b.addEventListener('click', async ()=>{ b.disabled = true; b.textContent = '確認中'; await fetchMenu(true); b.disabled = false; b.textContent = '更新'; paintNotice(); }); })();
+const _renderCN = render;
+render = function(focus){ _renderCN(focus); paintNotice(); };
+let cnLast = 0;
+function autoFetch(){ if(!db.ready || !syncUrl() || !(db.me||'').trim()) return; if(Date.now()-cnLast < 60000) return; cnLast = Date.now();
+  const before = unseenMenus().length; fetchMenu(false).then(()=>{ const after = unseenMenus().length; paintNotice(); if(after>before) say('コーチから新しいメニューが届きました'); }); }
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') autoFetch(); });
+setTimeout(autoFetch, 1500);
 
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }

@@ -193,6 +193,7 @@ details.fold .inner{padding-bottom:12px}
 #modeSw button.on{background:var(--am);color:#000}
 [hidden]{display:none !important}
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
+body.kbopen #tabs{display:none}
 </style>
 </head>
 <body>
@@ -216,7 +217,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-24 pain1';
+const APP_VER = '2026-10-24 bar1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -1220,6 +1221,24 @@ if('serviceWorker' in navigator && /^https?:/.test(location.protocol)){ window.a
 let imeOn = false;
 document.addEventListener('compositionstart', ()=>{ imeOn = true; }, true);
 document.addEventListener('compositionend', e=>{ imeOn = false; const t = e.target; setTimeout(()=>{ if(t && document.contains(t)) t.dispatchEvent(new Event('input', {bubbles:true})); }, 0); }, true);
+
+/* iPhone で、プルダウン（下から出る選択の輪）やキーボードを閉じたあと、下のタブが画面の途中に止まることがある。
+   見えている画面（visualViewport）の下端に合わせて、タブの位置を毎回直す。入力中はタブを隠してキーボードと重ならないようにする */
+(function(){
+  const bar = document.getElementById('tabs'); if(!bar) return; const vv = window.visualViewport;
+  const editing = ()=>{ const a = document.activeElement; return !!(a && (a.tagName==='INPUT' && !/^(button|checkbox|radio|range|submit)$/.test(a.type) || a.tagName==='TEXTAREA')); };
+  function fix(){ if(!vv){ bar.style.bottom = ''; return; }
+    const layoutH = document.documentElement.clientHeight; const gap = Math.round(layoutH - (vv.offsetTop + vv.height));
+    bar.style.bottom = (Math.abs(gap) > 2 && !editing()) ? gap+'px' : '';
+    document.body.classList.toggle('kbopen', editing() && vv.height < layoutH - 120); }
+  const later = ()=>{ setTimeout(fix, 60); setTimeout(fix, 350); setTimeout(fix, 800); };
+  if(vv){ vv.addEventListener('resize', fix); vv.addEventListener('scroll', fix); }
+  window.addEventListener('scroll', fix, {passive:true}); window.addEventListener('resize', fix); window.addEventListener('orientationchange', later);
+  document.addEventListener('focusin', later, true);
+  document.addEventListener('focusout', ()=>{ setTimeout(()=>{ window.scrollTo(window.scrollX, window.scrollY); fix(); }, 120); later(); }, true);
+  document.addEventListener('change', later, true);
+  later();
+})();
 
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }

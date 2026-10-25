@@ -183,6 +183,8 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 .slT{font-family:Menlo,Consolas,monospace;font-size:17px;white-space:pre-wrap}
 .slD{color:var(--muted);font-size:13px;white-space:nowrap;align-self:center}
 .slDel{border:2px solid var(--line);background:#fff;color:#b81c22;border-radius:8px;width:44px;font-size:18px;font-weight:700;cursor:pointer}
+.p50{position:absolute;z-index:6;pointer-events:none;background:#16202e;color:#fff;font-weight:700;font-size:15px;line-height:1.2;padding:4px 9px;border-radius:7px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.p50.hidden{display:none}
 .libPick select{font-size:17px;max-width:100%}
 .libCard{display:flex;gap:16px;align-items:flex-start;border:2px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
 .libThumb{flex-shrink:0;width:180px;padding:0;border:2px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;cursor:pointer;line-height:0}
@@ -775,6 +777,7 @@ body.desk .dLong{display:none}
     <div id="dockBody" class="dockBody"></div>
     <button type="button" class="dockClose" id="dockClose" aria-label="記号の帯をしまう">×</button>
   </div>
+  <div id="p50Live" class="sr" role="status" aria-live="polite"></div>
   <div id="panelTabs" class="phoneOnly" role="tablist" aria-label="表示するメニューの列"></div>
   <div id="menuWrap">
     <div id="panels"></div>
@@ -2476,8 +2479,9 @@ function renderPanels(){
     ta.addEventListener('input', () => {
       if(/\d"/.test(ta.value)){ const ss = ta.selectionStart, se = ta.selectionEnd; ta.value = ta.value.replace(/(\d)"/g, '$1”'); ta.setSelectionRange(ss, se); }
       p.text = ta.value; updatePrintCount(); updatePanel(i); commitMenu(); updateCursor(i, true); });
+    ta.addEventListener('blur', () => { if(typeof hidePer50 === 'function') hidePer50(i); });
     ta.addEventListener('scroll', () => {
-      gut.scrollTop = ta.scrollTop; drawBrackets(i);
+      gut.scrollTop = ta.scrollTop; drawBrackets(i); if(typeof showPer50 === 'function' && document.activeElement === ta) showPer50(i);
       if(S.settings.syncScroll && !scrollSyncing){
         scrollSyncing = true;
         M.panels.forEach((q, k) => { if(k !== i){ const t2 = panelTA(k); if(t2){ t2.scrollTop = ta.scrollTop; panelEl(k).querySelector('.gutter').scrollTop = t2.scrollTop; } } });
@@ -2643,6 +2647,7 @@ function updateCursor(i, force){
   const li = lineIndexOf(ta);
   if(i !== curPanel){ curPanel = i; [...$('panels').children].forEach((el, k) => el.classList.toggle('cur', k === i)); renderPanelTabs(); force = true; }
   drawBrackets(i);
+  if(typeof showPer50 === 'function') showPer50(i);
   if(li !== curLine || force){
     curLine = li;
     [...$('panels').children].forEach((el, k) => {
@@ -6114,6 +6119,59 @@ function setLibBind(){
   });
   setLibSeed(); renderSetLibCats();
 }
+
+/* =====================================================================
+   50mあたりの秒数を、入力している行の横に小さく出す（メニューや印刷には出さない）
+   例：300m(4') → 40"/50m
+   ===================================================================== */
+function per50Text(sec){
+  const r = Math.round(sec * 10) / 10;
+  const m = Math.floor(r / 60), s = r - m * 60;
+  const ss = Number.isInteger(s) ? String(s) : s.toFixed(1);
+  return m ? m + "'" + (s < 10 ? '0' : '') + ss + '"' : ss + '"';
+}
+function per50Of(info){
+  if(!info || info.type !== 'set' || !info.atoms) return [];
+  const seen = new Set(), out = [];
+  info.atoms.forEach(a => {
+    if(a.c == null || !a.d) return;
+    const v = a.c / (a.d / 50), k = a.d + ':' + v.toFixed(1);
+    if(seen.has(k)) return; seen.add(k);
+    out.push({d:a.d, v});
+  });
+  return out;
+}
+function showPer50(i){
+  const el = panelEl(i); if(!el) return;
+  const wrap = el.querySelector('.tawrap'); if(!wrap) return;
+  let tip = wrap.querySelector('.p50');
+  if(!tip){ tip = document.createElement('div'); tip.className = 'p50'; tip.setAttribute('aria-hidden', 'true'); wrap.appendChild(tip); }
+  const ta = el.querySelector('textarea'), tot = panelTots[i];
+  const li = lineIndexOf(ta), info = tot && tot.lines[li];
+  const list = document.activeElement === ta ? per50Of(info) : [];
+  if(!list.length){ tip.classList.add('hidden'); setP50Live(''); return; }
+  const multi = list.length > 1 && new Set(list.map(x => x.d)).size > 1;
+  const txt = list.map(x => (multi ? x.d + 'm ' : '') + per50Text(x.v) + '/50m').join('　');
+  tip.textContent = txt;
+  const cs = getComputedStyle(ta), lh = parseFloat(cs.lineHeight), pl = parseFloat(cs.paddingLeft), pt = parseFloat(cs.paddingTop);
+  const line = ta.value.split('\n')[li] || '';
+  let x = pl + brkWidth(ta, line.replace(/\s+$/, '')) + 14 - ta.scrollLeft;
+  const y = pt + li * lh - ta.scrollTop;
+  tip.classList.remove('hidden');
+  const maxX = wrap.clientWidth - tip.offsetWidth - 6;
+  let top = y + (lh - tip.offsetHeight) / 2;
+  if(x > maxX){ x = Math.max(pl, maxX); top = y + lh + 2; }   // 行が長いときは、すぐ下に出す
+  tip.style.left = x + 'px'; tip.style.top = top + 'px';
+  if(top < -tip.offsetHeight || top > wrap.clientHeight) tip.classList.add('hidden');
+  setP50Live('50mあたり ' + list.map(x => (multi ? x.d + 'mは ' : '') + per50Text(x.v).replace("'", '分').replace('"', '秒')).join('、'));
+}
+/* 読み上げ：行が変わったときだけ、ひかえめに知らせる */
+let p50Last = '';
+function setP50Live(t){
+  const el = $('p50Live'); if(!el || t === p50Last) return;
+  p50Last = t; el.textContent = t;
+}
+function hidePer50(i){ const el = panelEl(i); const tip = el && el.querySelector('.p50'); if(tip) tip.classList.add('hidden'); }
 
 /* =====================================================================
    週間分析

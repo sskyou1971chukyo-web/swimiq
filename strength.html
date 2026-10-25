@@ -228,7 +228,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-24 notice4';
+const APP_VER = '2026-10-25 period1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -1283,6 +1283,303 @@ function autoFetch(){ if(!db.ready || !syncUrl() || !(db.me||'').trim()) return;
   const before = unseenMenus().length; fetchMenu(false).then(()=>{ const after = unseenMenus().length; paintNotice(); if(after>before) say('コーチから新しいメニューが届きました'); }); }
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') autoFetch(); });
 setTimeout(autoFetch, 1500);
+
+/* ============ 期分け（ピリオダイゼーション） ============ */
+const PZ_CSS = "#pz{--ok:#35e06a;--ng:#ff8e78;--line:#4a4a4a;--sub:#c9c9c9}\n#pz .card{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}\n#pz select,#pz input{width:100%;min-height:54px;font-size:1.05rem;background:#000;color:#fff;border:2px solid var(--line);border-radius:10px;padding:8px 12px;color-scheme:dark}\n#pz select:focus,#pz input:focus,#pz button:focus-visible,#pz summary:focus-visible{outline:3px solid var(--am);outline-offset:2px}\n#pz .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:5px}\n#pz .seg button{min-height:50px;border:0;border-radius:8px;background:none;color:var(--sub);font-weight:700;font-size:.95rem;white-space:nowrap}\n#pz .seg button[aria-pressed=\"true\"]{background:var(--am);color:#000}\n#pz .ans{border-left:5px solid var(--am)}\n#pz .ans p{margin:6px 0}\n#pz .stars{color:var(--am);letter-spacing:1px;white-space:nowrap}\n#pz .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}\n#pz .two>*{min-width:0}\n#pz input[type=date]{min-width:0;max-width:100%;font-size:.95rem;padding:8px 6px}\n@media(max-width:600px){#pz .two{grid-template-columns:1fr}}\n#pz .pro{border-top:3px solid var(--ok)}\n#pz .con{border-top:3px solid var(--ng)}\n#pz .pro h3{color:var(--ok)}\n#pz .con h3{color:var(--ng)}\n#pz ul.ev{list-style:none;margin:0;padding:0}\n#pz ul.ev li{border-bottom:1px solid var(--line);padding:10px 0}\n#pz ul.ev li:last-child{border-bottom:0}\n#pz .tl{display:grid;gap:4px;margin-top:8px}\n#pz .wk{display:grid;grid-template-columns:3.2em 1fr;gap:8px;align-items:center}\n#pz .wk .n{color:var(--sub);font-size:.85rem;white-space:nowrap}\n#pz .wk .b{border-radius:8px;padding:6px 10px;font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#000}\n#pz .ph-hyp{background:#b9a6ff}\n#pz .ph-str{background:#7ec8ff}\n#pz .ph-pow{background:#ffb27a}\n#pz .ph-tap{background:#9be3b4}\n#pz .ph-mix{background:#e0e0e0}\n#pz .ph-race{background:var(--am)}\n#pz .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:.9rem}\n#pz .legend span::before{content:\"\";display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:6px;vertical-align:-2px;background:var(--c)}\n#pz details{margin-top:10px}\n#pz summary{cursor:pointer;color:var(--am);font-weight:700;min-height:44px;display:flex;align-items:center}\n#pz .btn{width:100%;min-height:54px;border:2px solid var(--line);background:var(--soft);color:#fff;border-radius:10px;font-weight:700;font-size:1rem;white-space:nowrap}\n#pz .btn.cta{background:var(--am);color:#000;border-color:var(--am)}\n#pz .btn.sm{min-height:44px;width:auto;padding:0 14px}\n#pz .meso{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:10px 0;background:#0d0e0f}\n#pz .meso .hd{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}\n#pz .meso .hd b{white-space:nowrap}\n#pz .days{display:grid;grid-template-columns:2.2em 1fr;gap:6px 8px;align-items:center;margin-top:8px}\n#pz .days label{font-weight:700;text-align:center}\n#pz .days select{min-height:46px;font-size:1rem}\n#pz .wkn{display:grid;grid-template-columns:52px 1fr 52px;gap:6px;align-items:center}\n#pz .wkn input{text-align:center}\n#pz .wkn button{min-height:46px;border:2px solid var(--line);background:var(--soft);color:#fff;border-radius:10px;font-size:1.3rem}\n#pz .plan{border-top:1px solid var(--line);padding:10px 0}\n#pz .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px}\n#pz .cal span{font-size:.72rem;text-align:center;border-radius:6px;padding:4px 0;color:#000;white-space:nowrap;overflow:hidden}\n#pz .cal .h{color:var(--sub)}\n#pz .p-hyp{background:#b9a6ff}\n#pz .p-max{background:#7ec8ff}\n#pz .p-pow{background:#ffb27a}\n#pz .p-light{background:#9be3b4}\n#pz .p-end{background:#7fe0d6}\n#pz .p-rec{background:#cfcfcf}\n#pz .p-off{background:#2a2b2d;color:#888!important}\n#pz .p-race{background:var(--am)}\n#pz .mk{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--c);color:#000;font-size:.8rem;font-weight:800;line-height:1}\n#pz .cnav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0}\n#pz .mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}\n#pz .mcal .hd{text-align:center;color:var(--sub);font-size:.85rem}\n#pz .mcal .c{background:#0d0e0f;border-radius:8px;min-height:58px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;font-size:.85rem;color:var(--sub)}\n#pz .mcal .c.in{background:#1d1e21;color:#fff}\n#pz .mcal .c.today{outline:2px solid #fff}\n#pz .mcal .c.race{outline:2px solid #fff;background:#2b2b2b}\n#pz .mcal .c .r{font-size:.7rem;font-weight:800;color:#fff}\n#pz .mleg{display:flex;flex-wrap:wrap;gap:8px 14px;margin:10px 0;font-size:.9rem;align-items:center}\n#pz .mleg span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}\n#pz details.ref{border-bottom:1px solid var(--line);padding:2px 0 8px;margin:0}\n#pz details.ref summary{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;line-height:44px;color:#fff;font-weight:700}\n#pz details.ref[open] summary{white-space:normal;line-height:1.5;padding:10px 0}\n#pz summary{list-style:none}\n#pz summary::-webkit-details-marker{display:none}\n#pz summary::before{content:\"▶\";color:var(--am);margin-right:8px;font-size:.8em}\n#pz details[open]>summary::before{content:\"▼\"}\n#pz #rT{font-size:1.15rem;color:#fff}";
+const PZ_BODY = "<p class=\"sub\" style=\"margin-top:12px\">期分けのやり方を、論文に書かれていることから選ぶ画面です。選手を選ぶと、その選手の記録から経験の判定と、伸びが止まっていないかを出します。</p>\n  <label class=\"f\" for=\"pzWho\">選手</label>\n  <select id=\"pzWho\" class=\"txt\"></select>\n  <p class=\"sub\" id=\"pzWhoNote\" style=\"margin:4px 0 0\"></p>\n  <section class=\"card\" aria-labelledby=\"qT\">\n    <details id=\"qBox\"><summary id=\"qT\">4つの質問<span id=\"qState\" class=\"tag\" style=\"margin-left:8px\"></span></summary>\n    <label class=\"f\" for=\"qExp\">ウエイトの経験</label>\n    <select id=\"qExp\"><option value=\"\">選んでください</option><option value=\"new\">始めたばかり</option><option value=\"tr\">経験あり</option></select>\n    <label class=\"f\" for=\"qAge\">年代</label>\n    <select id=\"qAge\"><option value=\"\">選んでください</option><option value=\"jr\">中学・高校（ジュニア）</option><option value=\"ad\">大学・一般</option></select>\n    <label class=\"f\" for=\"qGoal\">いちばんの目的</label>\n    <select id=\"qGoal\"><option value=\"\">選んでください</option><option value=\"str\">最大筋力を伸ばす</option><option value=\"hyp\">筋肉を大きくする</option><option value=\"swim\">泳ぎ（スタートやタイム）につなげる</option></select>\n    <label class=\"f\" for=\"qWeeks\">大会までの週数</label>\n    <select id=\"qWeeks\"></select>\n    <button type=\"button\" class=\"btn\" id=\"qReset\" style=\"margin-top:12px\">答えを消して、答え直す</button>\n    </details>\n  </section>\n\n  <section class=\"card ans\" aria-labelledby=\"aT\" aria-live=\"polite\">\n    <h2 id=\"aT\" style=\"margin-top:0\">論文から言えること</h2>\n    <div id=\"ans\"></div>\n  </section>\n\n  <h2 id=\"mT\">やり方を選ぶ</h2>\n  <div class=\"seg\" role=\"group\" aria-labelledby=\"mT\">\n    <button type=\"button\" data-m=\"lin\">線形</button><button type=\"button\" data-m=\"dup\">波状</button><button type=\"button\" data-m=\"blk\">ブロック</button><button type=\"button\" data-m=\"non\">期分けなし</button>\n  </div>\n  <section class=\"card\" aria-labelledby=\"dT\">\n    <h2 id=\"dT\" style=\"margin-top:0\"></h2>\n    <p id=\"dDesc\" class=\"sub\"></p>\n    <details><summary>良い点と弱い点（根拠つき）</summary>\n    <div class=\"two\" style=\"margin-top:8px\">\n      <div class=\"card pro\" style=\"margin:0\"><h3>良い点</h3><ul class=\"ev\" id=\"dPro\"></ul></div>\n      <div class=\"card con\" style=\"margin:0\"><h3>弱い点・注意</h3><ul class=\"ev\" id=\"dCon\"></ul></div>\n    </div></details>\n  </section>\n\n  <section class=\"card\" aria-labelledby=\"tT\">\n    <h2 id=\"tT\" style=\"margin-top:0\">週ごとの見本</h2>\n    <details><summary>この表の決め方と根拠</summary><div class=\"note\">色の並べ方（何週ずつにするか）は、論文で決められた線ではなく、このアプリの仮の設定です。回数の幅は、アプリで使っている ACSM 2009 と NSCA の目安（6〜12回は筋肥大、1〜6回は最大筋力）です。</div></details>\n    <div class=\"tl\" id=\"tl\" aria-describedby=\"tT\"></div>\n    <div class=\"legend\" aria-hidden=\"true\"><span style=\"--c:#b9a6ff\">筋肥大　6〜12回</span><span style=\"--c:#7ec8ff\">最大筋力　1〜6回</span><span style=\"--c:#ffb27a\">パワー（速く）</span><span style=\"--c:#e0e0e0\">日ごとに変える</span><span style=\"--c:#9be3b4\">量を減らす（仮）</span><span style=\"--c:#ffc400\">大会</span></div>\n    <details><summary>競泳ジュニアの研究で実際に使われた流れ（Schumann ら 2020）</summary>\n      <p>16週間。最初の7週は全員で週2〜3回、1RMの75〜85%で6〜10回を3セット。8週目からは、期分けの群が1RMの85〜90%で3〜4回を3セットに、投げとジャンプを足しました。比べた群は最初のやり方を続けました。泳ぎの成績はどちらの群も同じように伸び、期分けの方が上回ることはありませんでした。垂直跳び（反動あり）が伸びたのは期分けの群だけでした。</p>\n    </details>\n  </section>\n\n\n\n\n  <section class=\"card\" aria-labelledby=\"exT\">\n    <details id=\"exBox\"><summary id=\"exT\">経験の自動判定<span id=\"exState\" class=\"tag\" style=\"margin-left:8px\"></span></summary>\n    <p class=\"sub\">「始めたばかり」か「経験あり」かを、選手に聞かずに記録から出します。体重は、選手が記録した体重の最新を使います。伸びが止まったときは、この結果で4つの質問を答え直します。</p>\n    <label class=\"f\" for=\"exSex\">筋力の線に使う区分（論文の線が男女で違うため）</label>\n    <select id=\"exSex\"><option value=\"\">選ばない（筋力は判定に使わない）</option><option value=\"m\">男子の線</option><option value=\"f\">女子の線</option></select>\n    <label class=\"f\" for=\"exTech\">フォーム（コーチが見て選ぶ）</label>\n    <select id=\"exTech\"><option value=\"\">まだ見ていない（判定に使わない）</option><option value=\"1\">初心者　基本の動きが崩れる</option><option value=\"2\">中級</option><option value=\"3\">上級</option><option value=\"4\">とても上級</option></select>\n    <div id=\"exOut\" aria-live=\"polite\"></div>\n    </details>\n  </section>\n\n  <section class=\"card\" aria-labelledby=\"plT\">\n    <h2 id=\"plT\" tabindex=\"-1\" style=\"margin-top:0\">伸びが止まったとき</h2>\n    <p class=\"sub\">推定1RMの最高が4週間更新されていないと、「伸びが止まっています」と出します。4週間はコーチの決めた仮の設定で、論文で決められた線ではありません。</p>\n    <label class=\"f\" for=\"plEx\">種目</label>\n    <select id=\"plEx\"></select>\n    <div id=\"plGraph\"></div>\n    <div id=\"plMsg\" aria-live=\"polite\"></div>\n    <div id=\"plStep1\" hidden>\n      <h3>1　まず調子を確かめる</h3>\n      <p class=\"sub\" style=\"margin-top:0\">伸びが止まる原因には、疲れすぎもあります。この1週間をふり返って選んでください。</p>\n      <label class=\"f\" for=\"cSleep\">睡眠</label><select id=\"cSleep\"><option value=\"0\">いつもどおり眠れている</option><option value=\"1\">少し足りない</option><option value=\"2\">かなり足りない</option></select>\n      <label class=\"f\" for=\"cFat\">疲れ</label><select id=\"cFat\"><option value=\"0\">ふつう</option><option value=\"1\">いつもより疲れている</option><option value=\"2\">とても疲れている、抜けない</option></select>\n      <label class=\"f\" for=\"cSore\">筋肉痛</label><select id=\"cSore\"><option value=\"0\">ふつう</option><option value=\"1\">いつもより強い</option><option value=\"2\">とても強い、抜けない</option></select>\n      <label class=\"f\" for=\"cMood\">気分・やる気</label><select id=\"cMood\"><option value=\"0\">ふつう</option><option value=\"1\">少し落ちている</option><option value=\"2\">かなり落ちている</option></select>\n      <label class=\"f\" for=\"cLoad\">練習の量（水中を含む）</label><select id=\"cLoad\"><option value=\"0\">いつもどおり</option><option value=\"1\">最近増えた</option><option value=\"2\">大きく増えた（合宿など）</option></select>\n      <button type=\"button\" class=\"btn cta\" id=\"cCheck\" style=\"margin-top:12px\">調子を確かめる</button>\n    </div>\n    <div id=\"plResult\" aria-live=\"polite\"></div>\n  </section>\n\n  <section class=\"card\" aria-labelledby=\"regT\">\n    <h2 id=\"regT\" tabindex=\"-1\" style=\"margin-top:0\">期分けを登録する</h2>\n    <p class=\"sub\">マクロは大会までの全体、メゾは数週間のまとまりです。メゾごとに、曜日の目的（ミクロ＝1週間の並び）を決めます。</p>\n    <label class=\"f\" for=\"rWhoSel\">選手</label>\n    <select id=\"rWhoSel\"></select>\n    <p class=\"sub\" id=\"rWhoNote\" style=\"margin:4px 0 0\"></p>\n    <input id=\"rWho\" placeholder=\"名前を入れる（例：佐々木）\" autocomplete=\"off\" aria-label=\"選手の名前を入れる\" style=\"margin-top:8px\" hidden><datalist id=\"rWhoList\"></datalist>\n    <h3>マクロ（全体）</h3>\n    <label class=\"f\" for=\"rName\">名前</label><input id=\"rName\" placeholder=\"例：冬季〜日本選手権\" autocomplete=\"off\">\n    <div class=\"two\" style=\"grid-template-columns:1fr 1fr\"><div><label class=\"f\" for=\"rStart\">始める日</label><input type=\"date\" id=\"rStart\"></div><div><label class=\"f\" for=\"rEnd\">大会の日</label><input type=\"date\" id=\"rEnd\"></div></div>\n    <h3>メゾ（数週間のまとまり）</h3>\n    <div id=\"mesos\"></div>\n    <div class=\"two\" style=\"grid-template-columns:1fr 1fr;margin-top:8px\"><button type=\"button\" class=\"btn\" id=\"mAdd\">メゾを足す</button><button type=\"button\" class=\"btn\" id=\"mDel\">メゾを減らす</button></div>\n    <p class=\"sub\" id=\"rSum\" aria-live=\"polite\"></p>\n    <button type=\"button\" class=\"btn cta\" id=\"rSave\" style=\"margin-top:10px\">登録する</button>\n    <p class=\"sub\" id=\"rUndoP\" hidden><button type=\"button\" class=\"btn\" id=\"rUndo\">元に戻す</button></p>\n  </section>\n\n  <section class=\"card\" aria-labelledby=\"lsT\">\n    <h2 id=\"lsT\" tabindex=\"-1\" style=\"margin-top:0\">登録した期分け</h2>\n    <label class=\"f\" for=\"vWho\">選手</label><select id=\"vWho\"></select>\n    <div id=\"vCal\"></div>\n    <div id=\"plans\"></div>\n  </section>\n\n  <section class=\"card\" aria-labelledby=\"rT\">\n    <details id=\"refBox\"><summary id=\"rT\">根拠の資料（7本）</summary>\n    <p class=\"sub\">星3つは競泳選手を直接調べた研究、星2つはトレーニング全般の研究（メタ分析など）、星1つは考え方を述べた総説です。種目を押すと中身が開きます。</p>\n    <div id=\"refs\"></div></details>\n  </section>\n";
+(function(){ const st = document.createElement('style'); st.textContent = PZ_CSS; document.head.appendChild(st); })();
+/* ============ 期分け（ピリオダイゼーション）　コーチの画面 ============
+   論文の要旨を読めた資料だけを使う。4週間（途切れ）と4週間（伸びが止まった）はコーチの決めた仮の設定 */
+const PZ_REF = {
+  williams:{st:2, t:'Williams TD, Tolusso DV, Fedewa MV, Esco MR. Comparison of Periodized and Non-Periodized Resistance Training on Maximal Strength: A Meta-Analysis. Sports Med. 2017. doi:10.1007/s40279-017-0734-y', u:'https://doi.org/10.1007/s40279-017-0734-y', s:'18研究、612人。期分けした方が1RMの伸びが大きい（効果量0.43。外れ値を除くと0.23）。トレーニング初心者、長い期間、波状、週の回数が多いほど伸びが大きかった。出版の偏りの可能性あり。', w:'巻とページは確認できていません。'},
+  moesgaard:{st:2, t:'Moesgaard L, Beck MM, Christiansen L, Aagaard P, Lundbye-Jensen J. Effects of Periodization on Strength and Muscle Hypertrophy in Volume-Equated Resistance Training Programs: A Systematic Review and Meta-analysis. Sports Med. 2022;52(7):1647-1666.', u:'https://pubmed.ncbi.nlm.nih.gov/35044672/', s:'量をそろえて比べると、期分けは最大筋力をやや多く伸ばした（効果量0.31）が、筋肥大は差がなかった（0.13）。波状は線形より最大筋力が伸びた（0.31）。その差は経験者で大きく（0.61）、初心者ではほとんど無かった（0.06）。', w:'内容は解説記事で確認したもので、原文の要旨は読めていません。'},
+  harries:{st:2, t:'Harries SK, Lubans DR, Callister R. Systematic review and meta-analysis of linear and undulating periodized resistance training programs on muscular strength. J Strength Cond Res. 2015;29(4):1113-1125.', u:'https://pubmed.ncbi.nlm.nih.gov/25268290/', s:'17研究、510人。線形と波状で、上半身・下半身の筋力の伸びに差はなかった。目新しさや変化が大事かもしれない。ジュニアや競技選手を調べた研究は少ない。', w:''},
+  grgic:{st:2, t:'Grgic J, et al. Effects of linear and daily undulating periodized resistance training programs on measures of muscle hypertrophy: a systematic review and meta-analysis. PeerJ. 2017;5:e3695.', u:'https://doi.org/10.7717/peerj.3695', s:'13研究。筋肥大について、線形と日ごとの波状に差はなかった（効果量マイナス0.02）。', w:'第2著者以降の名前は確認できていません。'},
+  schumann:{st:3, t:'Schumann M, Notbohm HL, Bäcker S, Klocke J, Fuhrmann S, Clephas C. Strength-Training Periodization: No Effect on Swimming Performance in Well-Trained Adolescent Swimmers. Int J Sports Physiol Perform. 2020;15(9):1272-1280.', u:'https://doi.org/10.1123/ijspp.2019-0715', s:'競泳ジュニア16人（平均14.9歳）、16週間。期分けしても泳ぎの成績は上回らなかった。筋力はどちらも伸び、垂直跳びは期分けの群だけ伸びた。ハーフスクワットの伸びと泳ぎの伸びに関連あり。', w:'人数が少ない研究です。'},
+  issurin:{st:1, t:'Issurin V. Block periodization versus traditional training theory: a review. J Sports Med Phys Fitness. 2008;48(1):65-75.', u:'https://coachsci.sdsu.edu/csa/vol161/issurin.htm', s:'数週間ずつ、少ない能力に集中した「ブロック」を順に並べる考え方。年に何度も山を作る競技に合うとする。前のブロックの効果が残ることを利用する。', w:'内容は解説の要約で確認したもので、効果の大きさの数字は示されていません。'},
+  kiely:{st:1, t:'Kiely J. Periodization Theory: Confronting an Inconvenient Truth. Sports Med. 2018;48(4):753-764.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC5856877/', s:'期分けの考え方は古いストレスの理論にもとづいており、今のストレスの科学（気持ちや予想も体の反応を変える）に合わせて見直すべきだと論じた。', w:''},
+  pickering:{st:2, t:'Pickering C, Kiely J. Do Non-Responders to Exercise Exist—and If So, What Should We Do About Them? Sports Med. 2019;49(1):1-7.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC6349783/', s:'伸びないように見えるのは、測り方の誤差や、測った項目のせいのことがある。量、強さ、回数を増やす、または種類を変えると伸びることが多い。「反応しない人」ではなく「このやり方では伸びなかった人」と考える。', w:''},
+  meeusen:{st:2, t:'Meeusen R, Duclos M, Foster C, Fry A, Gleeson M, Nieman D, Raglin J, Rietjens G, Steinacker J, Urhausen A. Prevention, diagnosis, and treatment of the overtraining syndrome: joint consensus statement of the ECSS and the ACSM. Med Sci Sports Exerc. 2013;45(1):186-205.', u:'https://sportgeneeskunde.com/wp-content/uploads/Meeusen-et-al-2013-Overtraining-Consensus-ECSS-ACSM.pdf', s:'練習のしすぎでは成績が止まる、または下がり、回復に数週間から数か月かかる。決め手の検査は無く、ほかの原因を除いて判断する。練習記録、きつさ、睡眠、筋肉痛、気分を合わせて見る。気分のアンケートは練習量が増えると悪くなり、量を減らすと戻る。', w:''},
+  saw:{st:2, t:'Saw AE, Main LC, Gastin PB. Monitoring the athlete training response: subjective self-reported measures trump commonly used objective measures: a systematic review. Br J Sports Med. 2016;50(5):281.', u:'https://bjsm.bmj.com/content/50/5/281', s:'56研究のまとめ。本人が答えるアンケートは、客観的な指標より練習量の変化を敏感に、安定してとらえた。違いがあった研究の85%でアンケートの方がよかった。', w:'巻、号、最初のページは掲載ページのアドレスから読んだもので、最後のページは確認できていません。'},
+  santos:{st:2, t:'Santos Junior ER, de Salles BF, Dias I, Ribeiro AS, Simão R, Willardson JM. Classification and Determination Model of Resistance Training Status. Strength Cond J. 2021.', u:'https://www.researchgate.net/profile/Evaldo-Junior-3/publication/349287497_Classification_and_Determination_Model_of_Resistance_Training_Status/links/6029329b299bf1cc26c4894e/Classification-and-Determination-Model-of-Resistance-Training-Status.pdf', s:'期間だけの分け方は誤りやすい。続けている期間（2か月まで初心者、2〜12か月中級、1〜3年上級、3年以上とても上級）、休んでいる期間（8か月以上で初心者、4〜8か月中級、1〜4か月上級、いま続けていればとても上級）、過去の経験、フォーム、体重に対する筋力で点を付け、平均で決める。筋力の線（体重に対する1RM）は、男子でベンチプレス60%、100%、120%、バックスクワット80%、120%、150%、デッドリフト100%、150%、180%。女子でベンチプレス40%、60%、80%、バックスクワット60%、100%、130%、デッドリフト80%、120%、160%。', w:'研究者が公開している本文の写しで読みました。巻とページは確認できていません。表と本文で境目の書き方が少し違います（本文は「60〜99.9%」のような書き方）。'},
+  acsm09:{st:2, t:'American College of Sports Medicine. Position Stand: Progression Models in Resistance Training for Healthy Adults. Med Sci Sports Exerc. 2009.', u:'https://www.sportgeneeskunde.com/wp-content/uploads/ACSM-Position-Stand-Progression-Models-in-Resistance-Training-for-Healthy-Adults.pdf', s:'初心者は経験が無いか数年していない人、中級はおよそ6か月の継続した経験がある人、上級は数年の経験がある人。重さは、決めた回数より1〜2回多くできたら2〜10%上げる。経験者は1〜12回の幅を期分けして使い、重い1〜6回に重点を置く。週の回数は初心者2〜3回、中級3〜4回。', w:'著者名とページは確認できていません。'},
+  reynolds:{st:2, t:'Reynolds JM, Gordon TJ, Robergs RA. Prediction of one repetition maximum strength from multiple repetition maximum testing and anthropometry. J Strength Cond Res. 2006;20(3):584-592.', u:'https://www.unm.edu/~rrobergs/478RMStrengthPrediction.pdf', s:'5回、10回、20回できる重さから1RMを推定すると、5回が最も正確で、回数が増えるほどずれが大きくなった。式で推定するなら10回以下を勧める。', w:''}
+};
+const PZ_ORDER = ['schumann','williams','moesgaard','harries','grgic','santos','acsm09','reynolds','pickering','meeusen','saw','issurin','kiely'];
+const PZ_RSHORT = {schumann:'競泳ジュニア16人　期分けの有無', williams:'期分けあり・なしのメタ分析', moesgaard:'量をそろえた期分けのメタ分析', harries:'線形と波状のメタ分析（筋力）', grgic:'線形と波状のメタ分析（筋肥大）', issurin:'ブロックの考え方（総説）', kiely:'期分けの理論への疑問（総説）', meeusen:'練習のしすぎの見分け方（合同声明）', saw:'アンケートと客観的な指標の比較', pickering:'伸びない人への対応（総説）', santos:'経験の分け方（判定の方法）', acsm09:'初心者・中級・上級の定義（立場表明）', reynolds:'何回の記録から1RMを推定すると当たるか'};
+const PZ_MODEL = {
+  lin:{t:'線形（だんだん重く）', d:'数週間ごとに、筋肥大の回数（多い回数）から最大筋力の回数（少ない回数）へ、少しずつ重くしていくやり方。',
+    pro:[['harries','波状と比べて、筋力の伸びに差はなかった。'],['grgic','筋肥大でも、波状と差はなかった。']],
+    con:[['moesgaard','経験者の最大筋力では、波状の方が伸びたという報告がある。'],['harries','ジュニアや競技選手を調べた研究は少ない。']]},
+  dup:{t:'波状（日ごとに変える）', d:'同じ週の中で、日ごとに回数と重さを変えるやり方。たとえば月曜は多い回数、木曜は少ない回数。',
+    pro:[['moesgaard','経験者では最大筋力が線形より伸びた（効果量0.61）。'],['williams','波状の研究ほど伸びが大きい傾向があった。']],
+    con:[['harries','線形との差はなかったというメタ分析もある。'],['moesgaard','初心者では線形との差はほとんどない（0.06）。'],['grgic','筋肥大では線形との差はない。']]},
+  blk:{t:'ブロック（数週ずつ集中）', d:'数週間ずつ、少ない目的（たとえば最大筋力だけ）に集中したブロックを順に並べるやり方。大会が年に何度もある競技向けとされる。',
+    pro:[['issurin','年に何度も山を作る必要がある競技（競泳を含む）に合うとされる。']],
+    con:[['issurin','考え方の総説で、効果を数字で比べた研究は、ここでは確認できていない。'],['kiely','期分けの考え方そのものを見直すべきだという意見もある。']]},
+  non:{t:'期分けなし（同じやり方を続ける）', d:'回数と重さの幅を大きく変えず、同じやり方を続けるやり方。重さは少しずつ上げる。',
+    pro:[['schumann','競泳ジュニアでは、期分けしなくても泳ぎの成績は同じように伸びた。'],['moesgaard','筋肥大だけが目的なら、期分けとの差はなかった。']],
+    con:[['williams','最大筋力は、期分けした方が伸びたというメタ分析がある（効果量0.43）。'],['schumann','垂直跳びが伸びたのは期分けした群だけだった。']]}
+};
+const PZ_PURP = [['','休み'],['hyp','筋肥大'],['max','最大筋力'],['pow','パワー'],['light','軽め'],['end','筋持久力'],['rec','リカバリー']];
+const PZ_DOW = ['月','火','水','木','金','土','日'];
+const PZ_MK = {max:['力','#4f8fd8'], hyp:['肥','#9a6fd6'], end:['持','#2ea3a3'], pow:['瞬','#e07bbf'], rec:['回','#8a8f98'], light:['軽','#b98a5e']};
+const PZ_LV = ['','初心者','中級','上級','とても上級'];
+const PZ_GAP_WEEKS = 4, PZ_PLATEAU_WEEKS = 4;
+/* 体重に対する筋力の線（Santos Junior ら 2021 の表）。順に 初心者まで、中級まで、上級まで（%） */
+const PZ_STR = {bench:{n:'ベンチプレス', m:[60,100,120], f:[40,60,80]}, squat:{n:'バックスクワット', m:[80,120,150], f:[60,100,130]}, dl:{n:'デッドリフト', m:[100,150,180], f:[80,120,160]}};
+const PZ_LIFT = {'ベンチプレス':'bench', 'バックスクワット':'squat', 'スクワット':'squat', 'デッドリフト':'dl'};
+let pzState = {model:null, vYM:null, form:null, undo:null, ex:{}};
+
+function pzIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function pzMonday(s){ const d = new Date(s+'T12:00:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; }
+function pzAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return pzIso(d); }
+function pzDD(x,y){ return Math.round((new Date(y+'T12:00:00')-new Date(x+'T12:00:00'))/86400000); }
+const pzStar = n=>'<span class="stars" aria-label="星'+n+'つ">'+'★'.repeat(n)+'☆'.repeat(3-n)+'</span>';
+const pzCite = k=>{ const r = PZ_REF[k]; return '<a href="#pzref-'+k+'" data-pzref="'+k+'">'+esc(r.t.split('.')[0].split(',')[0].replace(/ [A-Z]+$/,''))+' ら '+(r.t.match(/(19|20)\d\d/)||[''])[0]+'</a>'; };
+const pzName = k=>(PZ_PURP.find(x=>x[0]===k)||['','休み'])[1];
+
+/* 選手の記録（自分の名前なら、この端末の記録も合わせる） */
+function pzIsMe(n){ return !!db.me && normName(n)===normName(db.me); }
+function pzRows(n){ if(!n) return []; const by = teamByName(); let L = pzIsMe(n) ? myRows() : [];
+  Object.keys(by).forEach(k=>{ if(normName(k)===normName(n)) L = L.concat(by[k]); });
+  const seen = new Set(); return L.filter(x=>{ const k = [rowDate(x), x['種類'], x['種目'], x['セットの内容']].join('|'); if(seen.has(k)) return false; seen.add(k); return true; }); }
+function pzSets(x){ const out = []; String(x['セットの内容']||'').split(/[,、]/).forEach(s=>{ const m = s.match(/([\d.]+)\s*kg\s*[×x*]\s*(\d+)/); if(m) out.push({w:Number(m[1]), r:Number(m[2])}); }); return out; }
+function pzE1(x){ const v = Number(x['推定1RM']); if(v>0) return v; let b = 0; pzSets(x).forEach(s=>{ if(s.r>=1 && s.r<=10) b = Math.max(b, s.w*(1+s.r/30)); }); return b ? Math.round(b*2)/2 : 0; }
+const pzRec = (x, ex)=>String(x['種類'])==='記録' && (!ex || String(x['種目'])===ex);
+function pzDays(rows){ return [...new Set(rows.filter(x=>pzRec(x)).map(rowDate).filter(Boolean))].sort(); }
+function pzExList(rows){ const c = {}; rows.forEach(x=>{ if(pzRec(x) && pzE1(x)>0){ const k = String(x['種目']); c[k] = (c[k]||0)+1; } }); return Object.keys(c).sort((a,b)=>c[b]-c[a]||a.localeCompare(b,'ja')); }
+function pzWeekly(rows, ex){ const by = {}; rows.forEach(x=>{ if(!pzRec(x, ex)) return; const v = pzE1(x); const d = rowDate(x); if(!v || !d) return; const wk = pzIso(pzMonday(d)); by[wk] = Math.max(by[wk]||0, v); }); return Object.keys(by).sort().map(k=>[k, by[k]]); }
+function pzLogs(rows, ex){ const L = []; rows.forEach(x=>{ if(!pzRec(x, ex)) return; const d = rowDate(x); if(d) pzSets(x).forEach(s=>L.push({d, w:s.w, r:s.r})); }); return L.sort((a,b)=>a.d<b.d?-1:1); }
+function pzBW(n, rows){ if(pzIsMe(n)){ const b = lastBW(); if(b && Number(b.w)>0) return {w:Number(b.w), date:b.date}; }
+  let best = null; rows.forEach(x=>{ if(String(x['種類'])!=='調子') return; const m = String(x['メモ']||'').match(/体重\s*([\d.]+)\s*kg/); const d = rowDate(x); if(m && d && (!best || d>best.date)) best = {w:Number(m[1]), date:d}; }); return best; }
+function pzLift(rows){ const cut = pzAgo(84); const best = {};
+  rows.forEach(x=>{ if(!pzRec(x)) return; const k = PZ_LIFT[normName(String(x['種目']))]; const d = rowDate(x); if(!k || !d || d<cut) return; const v = pzE1(x); if(v>0 && (!best[k] || v>best[k].v)) best[k] = {k, v, ex:String(x['種目'])}; });
+  return best.bench || best.squat || best.dl || null; }
+function pzJudge(n, tech, sex){ const rows = pzRows(n); const D = pzDays(rows); const td = today();
+  const lastGap = D.length ? pzDD(D[D.length-1], td) : 9999;
+  let startI = 0; for(let i=1;i<D.length;i++){ if(pzDD(D[i-1], D[i]) >= PZ_GAP_WEEKS*7) startI = i; }
+  const contDays = lastGap >= PZ_GAP_WEEKS*7 || !D.length ? 0 : pzDD(D[startI], td); const contM = contDays/30.4;
+  const sCont = contM<=2?1:contM<=12?2:contM<=36?3:4;
+  const gapM = lastGap/30.4; const sGap = !D.length?1: gapM>=8?1:gapM>=4?2:gapM>=1?3:4;
+  const items = [['続けている期間', sCont, contDays ? (Math.round(contM*10)/10)+'か月（4週間以上空かずに）' : '0か月（いま4週間以上空いている、または記録なし）'], ['休んでいる期間', sGap, lastGap>=9999 ? '記録なし' : lastGap+'日（最後の練習から）']];
+  const bw = pzBW(n, rows), lift = pzLift(rows); let strNote = '';
+  if(!sex) strNote = '筋力の線の区分を選ぶと、体重に対する筋力も使います。';
+  else if(!bw) strNote = '体重の記録が無いので、体重に対する筋力は使っていません。';
+  else if(!lift) strNote = '直近12週にベンチプレス、バックスクワット（スクワット）、デッドリフトの推定1RMが無いので、体重に対する筋力は使っていません。';
+  else { const T = PZ_STR[lift.k][sex]; const ratio = lift.v/bw.w*100; const s = ratio<T[0]?1:ratio<T[1]?2:ratio<=T[2]?3:4;
+    items.push(['体重に対する筋力', s, esc(lift.ex)+' 体重の'+Math.round(ratio)+'%（推定1RM '+lift.v+' kg、体重 '+bw.w+' kg）']); }
+  if(tech) items.push(['フォーム', Number(tech), 'コーチが選んだ']);
+  const avg = items.reduce((x,i)=>x+i[1],0)/items.length; const sLv = avg>=4?4:avg>=3?3:avg>=2?2:1;
+  const coachBeg = lastGap >= PZ_GAP_WEEKS*7 || contM <= 2;
+  return {items, avg:Math.round(avg*10)/10, sLv, coachBeg, final: coachBeg ? 1 : sLv, n:D.length, strNote}; }
+
+function pzReview(rows, ex, J){ const L = pzLogs(rows, ex); const c28 = pzAgo(28), c56 = pzAgo(56);
+  const r4 = L.filter(x=>x.d>=c28), p4 = L.filter(x=>x.d<c28 && x.d>=c56), r8 = L.filter(x=>x.d>=c56); const out = [];
+  const mxR = Math.max(0,...r4.map(x=>x.w)), mxP = Math.max(0,...p4.map(x=>x.w));
+  if(r4.length && p4.length && mxR<=mxP) out.push({t:'重さを変えずにトレーニングしている', d:'直近4週間の最も重い重さ '+kg(mxR)+' kg は、その前の4週間（'+kg(mxP)+' kg）から上がっていません。', a:'決めた回数より1〜2回多くできるようになったら、重さを2〜10%上げます。', ref:'acsm09', ok:true});
+  if(r4.length && !r4.some(x=>x.r<=6) && J.final>=2) out.push({t:'最大筋力の練習をしていない', d:'直近4週間に、6回以下の重い練習がありません。いつも '+[...new Set(r4.map(x=>x.r))].sort((a,b)=>a-b).join('、')+' 回です。', a:'経験者では、1〜12回の幅を期分けして使い、最後は重い1〜6回に重点を置くことが勧められています。', ref:'acsm09', ok:true});
+  if(r8.length && !r8.some(x=>x.r<=5)) out.push({t:'1RMに近い重さで確かめていない', d:'直近8週間、5回以下の記録がありません。', a:'推定1RMは、5回できる重さから出すと最も当たり、回数が増えるほどずれます。止まって見えるのは推定のずれのこともあるので、5回前後の重さで確かめます。いきなり1回の最大に挑む必要はありません。', ref:'reynolds', ok:true});
+  const days4 = pzDays(rows).filter(d=>d>=c28).length, wk4 = days4/4; if(days4 && wk4<2) out.push({t:'週の回数が少ない', d:'直近4週間、ウエイトの日は週に平均 '+(Math.round(wk4*10)/10)+' 回です。', a:'初心者で週2〜3回、中級で週3〜4回が目安とされています。週の回数が多い研究ほど伸びが大きい傾向もありました。', ref:'acsm09', ref2:'williams', ok:true});
+  const d8 = new Set(r8.map(x=>x.d)).size; if(d8>=6 && new Set(r8.map(x=>x.r)).size===1) out.push({t:'同じ回数をずっと続けている', d:'直近8週間、すべて '+r8[0].r+' 回です。', a:'線形と波状の差は無かったものの、目新しさや変化が大事かもしれないと述べられています。回数の幅を変えるのは一つの手です。', ref:'harries', ok:false});
+  return out; }
+function pzPlateau(data){ const c = pzAgo(7*PZ_PLATEAU_WEEKS);
+  const before = data.filter(x=>x[0]<c).map(x=>x[1]), recent = data.filter(x=>x[0]>=c).map(x=>x[1]);
+  if(!before.length || !recent.length) return null; const b = Math.max(...before), r = Math.max(...recent); return {stuck: r<=b, b, r}; }
+function pzSVG(data){ const W = 340, H = 140; const ys = data.map(x=>x[1]); const y0 = Math.min(...ys)-1, y1 = Math.max(...ys)+1; const px = i=>data.length<2 ? W/2 : 10+i*(W-20)/(data.length-1), py = v=>H-14-(v-y0)/(y1-y0)*(H-28);
+  const c = pzAgo(7*PZ_PLATEAU_WEEKS); const cutI = data.findIndex(x=>x[0]>=c);
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img" aria-label="週ごとの推定1RMの最高　'+data.map(x=>x[1]).join('、')+' キロ">'+(cutI>0?'<rect x="'+(px(cutI)-6)+'" y="0" width="'+(W-px(cutI)+6)+'" height="'+H+'" fill="#26282c"/><text x="'+(px(cutI))+'" y="12" fill="#c4c7cc" font-size="11">直近4週</text>':'')+
+    '<polyline fill="none" stroke="#ffc400" stroke-width="3" points="'+data.map((x,i)=>px(i)+','+py(x[1])).join(' ')+'"/>'+data.map((x,i)=>'<circle cx="'+px(i)+'" cy="'+py(x[1])+'" r="3.5" fill="#ffc400"/>').join('')+
+    '<text x="4" y="'+(H-2)+'" fill="#c4c7cc" font-size="11">'+data[0][0].slice(5).replace('-','/')+'</text><text x="'+(W-40)+'" y="'+(H-2)+'" fill="#c4c7cc" font-size="11">'+data[data.length-1][0].slice(5).replace('-','/')+'</text></svg>'; }
+function pzPlanDays(p){ const out = []; const d = pzMonday(p.start); const end = new Date(p.end+'T12:00:00'); let mi = 0, wk = 0;
+  while(d<=end){ const week = []; for(let j=0;j<7;j++){ const k = pzIso(d); const m = p.mesos[mi]; let v = m ? m.days[j] : ''; if(k<p.start) v = 'before'; if(k===p.end) v = 'race'; else if(d>end) v = 'after'; week.push([k, v, mi]); d.setDate(d.getDate()+1); }
+    out.push(week); wk++; if(p.mesos[mi] && wk>=p.mesos[mi].weeks){ mi++; wk = 0; } }
+  return out; }
+/* 今日の期分けの目的（登録した期分けから）。メニュー作りの画面で見せるために使う */
+function pzToday(n, k){ k = k||today(); let hit = null; (db.periods||[]).forEach(p=>{ if(normName(p.who)!==normName(n) || k<p.start || k>p.end) return; pzPlanDays(p).forEach(w=>w.forEach(x=>{ if(x[0]===k) hit = {v:x[1], meso:x[2]+1, plan:p}; })); }); return hit; }
+
+VIEWS.period = cur=>({title:'期分け', html:'<div id="pz">'+PZ_BODY+'</div>', after:()=>pzMount(cur)});
+
+function pzMount(cur){ const R = document.getElementById('pz'); if(!R) return; const $ = s=>R.querySelector(s);
+  db.perQ = db.perQ||{}; db.perTech = db.perTech||{}; db.perSex = db.perSex||{}; db.periods = db.periods||[];
+  const names = ()=>{ const s = sortedNames().slice(); if(db.me && !s.some(n=>normName(n)===normName(db.me))) s.push(db.me); return s; };
+  /* 選手の選択 */
+  const want = cur.id===SELF_KEY ? db.me : (cur.id || db.pzWho || '');
+  const N = names(); const curN = N.find(n=>normName(n)===normName(want||'')) || N[0] || '';
+  $('#pzWho').innerHTML = N.length ? N.map(n=>'<option value="'+esc(n)+'"'+(n===curN?' selected':'')+'>'+esc(n)+(pzIsMe(n)?'（自分）':'')+'</option>').join('') : '<option value="">選手がいません</option>';
+  const who = ()=>$('#pzWho').value;
+  $('#pzWhoNote').textContent = N.length ? 'コーチの名前の一覧と、記録を送ってきた選手 '+N.length+'人から選べます。' : '選手がいません。「選手」の画面で記録を取り込むか、名前の一覧に入れてください。';
+  $('#pzWho').addEventListener('change', ()=>{ db.pzWho = who(); save(); pzState.vYM = null; loadQ(); drawAll(); });
+
+  /* 4つの質問（選手ごとに保存） */
+  const QS = ['qExp','qAge','qGoal','qWeeks'];
+  $('#qWeeks').innerHTML = '<option value="">選んでください</option>'+[6,8,10,12,16,20,24].map(n=>'<option value="'+n+'">'+n+'週</option>').join('');
+  const qDone = ()=>QS.every(id=>$('#'+id).value);
+  function loadQ(){ const a = db.perQ[who()]||{}; QS.forEach(k=>$('#'+k).value = a[k]||''); $('#exTech').value = db.perTech[who()]||''; $('#exSex').value = db.perSex[who()]||''; }
+  function saveQ(){ const o = {}; QS.forEach(k=>o[k] = $('#'+k).value); if(who()){ db.perQ[who()] = o; save(); } }
+  function qState(){ const done = qDone(); const t = $('#qState'); t.textContent = done ? '回答済み' : '未回答'; t.className = 'tag '+(done?'ok':'bad'); if(!done) $('#qBox').open = true; }
+  function answer(){ qState(); if(!qDone()){ $('#ans').innerHTML = '<p class="sub">4つの質問に答えると、ここに出ます。まだ答えていない質問 '+QS.filter(id=>!$('#'+id).value).length+'つ。</p>'; return pzState.model||'dup'; }
+    const exp = $('#qExp').value, age = $('#qAge').value, goal = $('#qGoal').value; let rec, lines = [];
+    if(goal==='hyp'){ rec = 'non'; lines.push('筋肉を大きくすることが目的なら、期分けしてもしなくても差はなく（'+pzCite('moesgaard')+'）、線形と波状でも差はありません（'+pzCite('grgic')+'）。続けやすいやり方で良いと言えます。'); }
+    else if(goal==='swim'){ rec = 'non'; lines.push('泳ぎの成績については、競泳ジュニアの研究で、期分けしても上回りませんでした（'+pzCite('schumann')+'）。下半身の筋力が伸びるほど泳ぎも伸びる関連があったので、筋力を伸ばし続けることが大事だと考えられます。'); lines.push('ただし、垂直跳びは期分けした群だけが伸びたので、スタートを重視するなら最大筋力とジャンプの期間を入れる考え方もあります。'); }
+    else if(exp==='tr'){ rec = 'dup'; lines.push('経験者の最大筋力では、波状が線形より伸びたという報告があります（'+pzCite('moesgaard')+'）。一方で、差がなかったというメタ分析もあります（'+pzCite('harries')+'）。どちらか一つに決めつけられる強さの根拠ではありません。'); }
+    else { rec = 'lin'; lines.push('始めたばかりの人では、線形と波状の差はほとんどありません（'+pzCite('moesgaard')+'）。分かりやすい線形から始めるのが無理のない選び方です。これは論文の数字からの推測です。'); lines.push('期分けそのものは、初心者ほど伸びが大きかったという報告があります（'+pzCite('williams')+'）。'); }
+    if(age==='jr') lines.push('ジュニアを調べた研究は少なく（'+pzCite('harries')+'）、大人向けの目安をそのまま当てはめないでください。ここで競泳ジュニアを直接調べたのは '+pzCite('schumann')+' の1本（16人）だけです。');
+    const w = Number($('#qWeeks').value); if(w<8) lines.push('大会まで'+w+'週と短い場合、期間が長い研究ほど伸びが大きかった（'+pzCite('williams')+'）ので、短い期間で大きな差は期待しにくいと考えられます。');
+    $('#ans').innerHTML = '<p><strong>'+esc(who())+'に合いそうなやり方：'+esc(PZ_MODEL[rec].t)+'</strong>　<span class="tag">推測を含む</span></p><details><summary>理由と根拠</summary>'+lines.map(l=>'<p>'+l+'</p>').join('')+'</details><p class="sub">下の「やり方を選ぶ」で、ほかのやり方の良い点と弱い点も比べられます。</p>';
+    return rec; }
+  function drawModel(){ const M = PZ_MODEL[pzState.model];
+    R.querySelectorAll('[data-m]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.m===pzState.model));
+    $('#dT').textContent = M.t; $('#dDesc').textContent = M.d;
+    const li = a=>'<li>'+esc(a[1])+'<br><span class="sub">'+pzCite(a[0])+'　'+pzStar(PZ_REF[a[0]].st)+'</span></li>';
+    $('#dPro').innerHTML = M.pro.map(li).join(''); $('#dCon').innerHTML = M.con.map(li).join(''); drawTL(); }
+  function drawTL(){ const w = Number($('#qWeeks').value)||12; const out = []; const model = pzState.model;
+    for(let i=1;i<=w;i++){ let cls, txt; const left = w-i;
+      if(left===0){ cls = 'ph-race'; txt = '大会'; }
+      else if(left<=1){ cls = 'ph-tap'; txt = '量を減らす（仮の設定）'; }
+      else if(model==='lin'){ const r = (i-1)/(w-2); cls = r<0.5?'ph-hyp':r<0.85?'ph-str':'ph-pow'; txt = cls==='ph-hyp'?'筋肥大　6〜12回':cls==='ph-str'?'最大筋力　1〜6回':'パワー　軽めを速く'; }
+      else if(model==='dup'){ cls = 'ph-mix'; txt = '日ごとに変える　多い回数の日と少ない回数の日'; }
+      else if(model==='blk'){ const b = Math.floor((i-1)/3)%3; cls = ['ph-hyp','ph-str','ph-pow'][b]; txt = ['筋肥大のブロック','最大筋力のブロック','パワーのブロック'][b]; }
+      else { cls = 'ph-hyp'; txt = '同じやり方を続ける　重さは少しずつ'; }
+      out.push('<div class="wk"><span class="n">'+i+'週</span><span class="b '+cls+'">'+esc(txt)+'</span></div>'); }
+    $('#tl').innerHTML = out.join(''); }
+  QS.forEach(id=>$('#'+id).addEventListener('change', ()=>{ saveQ(); pzState.model = answer(); drawModel(); exState(); }));
+  R.querySelectorAll('[data-m]').forEach(b=>b.addEventListener('click', ()=>{ pzState.model = b.dataset.m; drawModel(); }));
+  $('#qReset').addEventListener('click', ()=>{ QS.forEach(id=>$('#'+id).value = ''); saveQ(); pzState.model = answer(); drawModel(); exState(); $('#qExp').focus(); });
+
+  /* 根拠の資料 */
+  $('#refs').innerHTML = PZ_ORDER.map(k=>{ const r = PZ_REF[k]; const yr = (r.t.match(/(19|20)\d\d/)||[''])[0]; const au = r.t.split(',')[0].replace(/ [A-Z]+$/,'');
+    return '<details class="ref" id="pzref-'+k+'"><summary>'+pzStar(r.st)+'　'+esc(au)+' ら '+yr+'　'+esc(PZ_RSHORT[k]||'')+'</summary><p class="sub" style="margin:6px 0">'+esc(r.t)+'</p><p style="margin:6px 0">分かったこと　'+esc(r.s)+'</p>'+(r.w?'<p style="margin:6px 0"><span class="tag bad">確認の状況</span><span class="sub">'+esc(r.w)+'</span></p>':'')+'<a href="'+r.u+'" target="_blank" rel="noopener">原文のページを開く</a></details>'; }).join('');
+  $('#rT').textContent = '根拠の資料（'+PZ_ORDER.length+'本）';
+  R.addEventListener('click', e=>{ const a = e.target.closest('a[data-pzref]'); if(!a) return; e.preventDefault(); const d = document.getElementById('pzref-'+a.dataset.pzref); if(!d) return; $('#refBox').open = true; d.open = true; d.scrollIntoView({block:'center'}); d.querySelector('summary').focus(); });
+
+  /* 経験の自動判定 */
+  const J = ()=>pzJudge(who(), $('#exTech').value, $('#exSex').value);
+  function drawExp(){ const j = J();
+    $('#exOut').innerHTML = '<p id="exWhy" class="sub" style="color:var(--red);margin:10px 0 0"></p><p style="margin:14px 0 6px"><b>判定：'+PZ_LV[j.final]+'</b>　<span class="tag">'+(j.final===1?'4つの質問では「始めたばかり」':'4つの質問では「経験あり」')+'</span></p>'+
+      '<ul class="ev">'+j.items.map(i=>'<li><b>'+esc(i[0])+'</b>　'+PZ_LV[i[1]]+'<br><span class="sub">'+i[2]+'</span></li>').join('')+'</ul>'+
+      (j.strNote ? '<p class="sub">'+esc(j.strNote)+'</p>' : '')+
+      '<p class="sub">記録のある日 '+j.n+'日。論文の方法での平均は '+j.avg+' で「'+PZ_LV[j.sLv]+'」。'+(j.coachBeg && j.sLv>1 ? 'ただし、4週間以上空いた、または続けている期間が2か月以下なので、コーチの設定で「初心者」にしています。' : '')+'</p>'+
+      (j.coachBeg && j.sLv>1 ? '<div class="note warn">論文とコーチの設定が食い違っています。論文の方法では、休みが8か月以上で初心者の点、1〜4か月なら上級の点になり、ほかの項目と平均します。コーチの設定は「4週間空いたら初心者」です。厳しめに見るほど、重さを急に戻さずに済む一方、筋力が残っている選手には軽すぎる案になりえます。</div>' : '')+
+      '<button type="button" class="btn" id="exApply2" style="margin-top:8px;width:100%">この判定で「経験」を直す</button>'+
+      '<details><summary>判定の決め方と根拠</summary><p>期間だけで分けると判定を誤りやすいので、続けている期間、休んでいる期間、過去の経験、フォーム、体重に対する筋力の五つで点を付け、平均で決める方法です（'+pzCite('santos')+'）。ここでは、記録から出せる三つ（筋力は体重と区分があるときだけ）と、コーチが選んだフォームを使っています。過去の経験の項目は、まだ入れていません。</p><p>中級は「およそ6か月の継続した経験」とされています（'+pzCite('acsm09')+'）。半年たっても、続けていなければ中級にはあたりません。</p><p>「4週間空いたら途切れた、初心者に戻す」はコーチの決めた設定で、論文の線ではありません。筋力の線は一般の大人向けで、競泳選手やジュニアを調べたものではありません。ジュニアにはそのまま当てはめないでください。</p></details>';
+    $('#exApply2').addEventListener('click', ()=>applyExp(j)); }
+  function applyExp(j){ $('#qExp').value = j.final===1 ? 'new' : 'tr'; $('#qExp').dispatchEvent(new Event('change')); $('#qBox').open = true; $('#qT').scrollIntoView({block:'start'}); $('#qExp').focus(); say('ウエイトの経験を「'+(j.final===1?'始めたばかり':'経験あり')+'」にしました'); }
+  $('#exTech').addEventListener('change', ()=>{ db.perTech[who()] = $('#exTech').value; save(); drawExp(); drawPlateau(); });
+  $('#exSex').addEventListener('change', ()=>{ db.perSex[who()] = $('#exSex').value; save(); drawExp(); drawPlateau(); });
+  function exState(){ const j = J(); const ansExp = $('#qExp').value; const want = j.final===1 ? 'new' : 'tr';
+    const stuck = !$('#plStep1').hidden; const differ = ansExp && ansExp!==want;
+    const t = $('#exState'); t.textContent = (stuck || differ) ? '判定見直し' : '判定済み：'+PZ_LV[j.final]; t.className = 'tag '+((stuck||differ)?'bad':'ok');
+    if(stuck || differ) $('#exBox').open = true;
+    const why = $('#exWhy'); if(why) why.textContent = differ ? '4つの質問では「'+(ansExp==='new'?'始めたばかり':'経験あり')+'」と答えていますが、記録からは「'+PZ_LV[j.final]+'」です。' : stuck ? '伸びが止まっているので、判定を確かめてください。' : ''; }
+
+  /* 伸びが止まったとき */
+  function exOpts(){ const rows = pzRows(who()); const L = pzExList(rows); const keep = pzState.ex[who()];
+    const cur = L.includes(keep) ? keep : (L.find(n=>PZ_LIFT[normName(n)]==='bench') || L[0] || '');
+    $('#plEx').innerHTML = L.length ? L.map(n=>'<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(shortName({name:n}))+'</option>').join('') : '<option value="">推定1RMの記録がありません</option>'; }
+  $('#plEx').addEventListener('change', ()=>{ pzState.ex[who()] = $('#plEx').value; drawPlateau(); });
+  function drawPlateau(){ const old = R.querySelector('#rvBox'); if(old) old.remove(); $('#plResult').innerHTML = '';
+    const rows = pzRows(who()), ex = $('#plEx').value; const data = ex ? pzWeekly(rows, ex) : [];
+    $('#plGraph').innerHTML = data.length ? pzSVG(data) : '';
+    const P = pzPlateau(data);
+    if(!data.length){ $('#plMsg').innerHTML = '<p class="sub">この選手の、10回以内の重さの記録（推定1RMが出る記録）がまだありません。</p>'; $('#plStep1').hidden = true; exState(); return; }
+    if(!P){ $('#plMsg').innerHTML = '<p class="sub">判断するには、4週間より前と直近4週間の、両方の記録が要ります。いまある記録 '+data.length+'週分。</p>'; $('#plStep1').hidden = true; exState(); return; }
+    if(P.stuck){ const j = J();
+      $('#plMsg').innerHTML = '<div class="note bad"><b>伸びが止まっています</b><br>4週間より前の最高 '+kg(P.b)+' kg、直近4週間の最高 '+kg(P.r)+' kg。</div><p class="sub">推定1RMは、その日の調子や測り方でぶれます。1回の記録ではなく、4週間の最高で判断しています（'+pzCite('pickering')+'）。</p>'+
+        '<div class="note">記録から見た経験：<b>'+PZ_LV[j.final]+'</b>（続けている期間 '+esc(j.items[0][2])+'）。<button type="button" class="btn sm" id="exApply" style="margin-top:8px;width:100%">この判定で4つの質問を答え直す</button></div>';
+      $('#exApply').addEventListener('click', ()=>applyExp(j)); $('#plStep1').hidden = false;
+      const C = pzReview(rows, ex, j);
+      $('#plStep1').insertAdjacentHTML('beforebegin', '<div id="rvBox"><h3 id="rvT">トレーニングを見直す提案</h3>'+(C.length ? '<p class="sub" style="margin-top:0">記録から、能力が停滞している原因になりうる点が '+C.length+' つ見つかりました。</p><ul class="ev">'+C.map(c=>'<li><b>'+esc(c.t)+'</b><br><span class="sub">'+esc(c.d)+'</span><details><summary>どうするか、根拠</summary><p style="margin:6px 0">'+esc(c.a)+'</p><p class="sub" style="margin:0">'+pzCite(c.ref)+(c.ref2?'、'+pzCite(c.ref2):'')+(c.ok?'':'　<span class="tag">推測を含む</span>')+'</p></details></li>').join('')+'</ul>' : '<p class="sub">記録からは、目立つ原因は見つかりませんでした。下の調子の確認に進んでください。</p>')+
+        '<details><summary>この提案の決め方</summary><p>直近4週間とその前の4週間の記録を比べています。4週間と8週間は、伸びが止まったと判断する期間に合わせた仮の設定です。それぞれの見直しの中身は、下の根拠の資料にもとづきます。</p></details></div>'); }
+    else { $('#plMsg').innerHTML = '<div class="note good">伸びています。4週間より前の最高 '+kg(P.b)+' kg、直近4週間の最高 '+kg(P.r)+' kg。</div>'; $('#plStep1').hidden = true; }
+    exState(); }
+  $('#cCheck').addEventListener('click', ()=>{ const v = ['cSleep','cFat','cSore','cMood','cLoad'].map(id=>Number($('#'+id).value)); const strong = v.filter(x=>x===2).length, mid = v.filter(x=>x===1).length; let h;
+    if(strong>=1 || mid>=3){ h = '<h3>2　まず疲れを抜く</h3><div class="note bad">調子のアンケートに、疲れすぎの印があります。やり方を変える前に、量を減らすか休みを入れて、様子を見るのが先です。</div>'+
+      '<details><summary>理由と根拠</summary><p>練習のしすぎでも成績は止まったり下がったりし、回復に数週間から数か月かかることがあります。決め手の検査は無く、練習記録、きつさ、睡眠、筋肉痛、気分を合わせて見るよう勧められています。治し方は主に休みと量を減らすことです（'+pzCite('meeusen')+'）。</p><p>本人が答えるアンケートは、血液などの指標より練習量の変化を敏感にとらえたという報告があります（'+pzCite('saw')+'）。</p><p>「かなり」が1つ、または「少し」が3つ以上で疲れを先に見る、という線は、このアプリの仮の設定です。</p></details>'+
+      '<p class="sub">疲れが長く抜けない、体調が悪いときは、病気が隠れていないか医師に相談してください（'+pzCite('meeusen')+'）。</p>'; }
+    else { h = '<h3>2　期分けの質問を答え直す</h3><p>疲れすぎの印はありません。今のやり方では伸びにくくなっている可能性があります。上の「4つの質問」を答え直してください。特に「ウエイトの経験」が、始めたときから変わっていないか確かめてください。</p>'+
+      '<button type="button" class="btn cta" id="toQ">4つの質問へ戻る</button>'+
+      '<h3>変え方の案</h3><ul class="ev"><li>量を増やす（セット数を増やす）</li><li>強さを上げる（回数を減らして重くする）</li><li>週の回数を増やす</li><li>種類を変える（似た目的の別の種目、ジャンプや投げを足す）</li></ul>'+
+      '<details><summary>理由と根拠</summary><p>伸びない人を「反応しない人」と決めつけず、「このやり方では伸びなかった人」と考えるべきだとされます。量、強さ、回数を増やす、または種類を変えると伸びることが多いと述べられています（'+pzCite('pickering')+'）。</p><p>波状が線形より最大筋力を伸ばしたのは経験者で、初心者ではほとんど差がありませんでした（'+pzCite('moesgaard')+'）。経験が変われば、合うやり方も変わりえます。</p><p>答え直しで伸びが戻るかを直接確かめた研究は、今回見つかりませんでした。この流れは上の論文からの推測です。</p></details>'; }
+    $('#plResult').innerHTML = h; const t = $('#toQ'); if(t) t.addEventListener('click', ()=>{ $('#qBox').open = true; $('#qT').scrollIntoView({block:'start'}); $('#qExp').focus(); });
+    const h3 = $('#plResult h3'); h3.setAttribute('tabindex','-1'); h3.focus(); });
+
+  /* 期分けの登録（マクロとメゾ、曜日ごとの目的） */
+  if(!pzState.form) pzState.form = {mesos:[{weeks:3, days:['hyp','','hyp','light','light','max','']}]};
+  const form = pzState.form;
+  function say0(t){ $('#rSum').textContent = t; say(t); setTimeout(sumUp, 2500); }
+  function drawForm(){
+    $('#mesos').innerHTML = form.mesos.map((m,i)=>'<div class="meso" aria-label="メゾ'+(i+1)+'"><div class="hd"><b>メゾ '+(i+1)+'</b><span></span>'+
+      '<div class="wkn" role="group" aria-label="メゾ'+(i+1)+'の週数"><button type="button" data-wk="'+i+'" data-d="-1" aria-label="メゾ'+(i+1)+'の週数を減らす">−</button><input type="number" min="1" max="20" value="'+m.weeks+'" data-wki="'+i+'" aria-label="メゾ'+(i+1)+'の週数"><button type="button" data-wk="'+i+'" data-d="1" aria-label="メゾ'+(i+1)+'の週数を増やす">＋</button></div></div>'+
+      '<p class="sub" style="margin:4px 0 0;text-align:right">'+m.weeks+'週</p>'+
+      '<div class="days">'+PZ_DOW.map((d,j)=>'<label for="pzd'+i+'_'+j+'">'+d+'</label><select id="pzd'+i+'_'+j+'" data-mi="'+i+'" data-dj="'+j+'">'+PZ_PURP.map(o=>'<option value="'+o[0]+'"'+(o[0]===m.days[j]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>').join('')+'</div>'+
+      '<div class="two" style="grid-template-columns:1fr 1fr;margin-top:8px"><button type="button" class="btn sm" data-copy="'+i+'" style="width:100%">前のメゾを写す</button><button type="button" class="btn sm" data-clear="'+i+'" style="width:100%">全部休みにする</button></div></div>').join('');
+    $('#mDel').disabled = form.mesos.length<=1; sumUp(); }
+  function sumUp(){ const w = form.mesos.reduce((a,m)=>a+m.weeks,0); const s = $('#rStart').value, e = $('#rEnd').value; let t = 'メゾ '+form.mesos.length+'つ、合計 '+w+'週。';
+    if(s && e && e>=s){ const days = Math.round((new Date(e+'T12:00:00')-pzMonday(s))/86400000)+1; const need = Math.ceil(days/7); t += '始める週の月曜から大会の日までは '+need+'週です。'+(w<need?'メゾが'+(need-w)+'週足りません。足りない週は休みとして扱います。':w>need?'メゾが'+(w-need)+'週多いので、大会のあとの分は使いません。':'ちょうど合っています。'); }
+    $('#rSum').textContent = t; }
+  $('#mesos').addEventListener('click', e=>{ let b;
+    if((b = e.target.closest('[data-wk]'))){ const i = Number(b.dataset.wk); form.mesos[i].weeks = Math.max(1, Math.min(20, form.mesos[i].weeks+Number(b.dataset.d))); drawForm(); R.querySelector('[data-wk="'+i+'"][data-d="'+b.dataset.d+'"]').focus(); return; }
+    if((b = e.target.closest('[data-copy]'))){ const i = Number(b.dataset.copy); if(i===0){ say0('前のメゾがありません'); return; } form.mesos[i].days = form.mesos[i-1].days.slice(); drawForm(); say0('メゾ'+i+'の曜日を写しました'); return; }
+    if((b = e.target.closest('[data-clear]'))){ const i = Number(b.dataset.clear); const before = form.mesos[i].days.slice(); form.mesos[i].days = ['','','','','','','']; pzState.undo = ()=>{ form.mesos[i].days = before; drawForm(); }; $('#rUndoP').hidden = false; drawForm(); say0('メゾ'+(i+1)+'を全部休みにしました。元に戻すで戻せます'); } });
+  $('#mesos').addEventListener('change', e=>{ const el = e.target; if(el.dataset.mi!=null) form.mesos[Number(el.dataset.mi)].days[Number(el.dataset.dj)] = el.value; if(el.dataset.wki!=null){ form.mesos[Number(el.dataset.wki)].weeks = Math.max(1, Math.min(20, Number(el.value)||1)); drawForm(); } });
+  $('#mAdd').addEventListener('click', ()=>{ const last = form.mesos[form.mesos.length-1]; form.mesos.push({weeks:3, days:last.days.slice()}); drawForm(); R.querySelectorAll('.meso')[form.mesos.length-1].querySelector('input').focus(); say0('メゾ'+form.mesos.length+'を足しました（曜日は前のメゾと同じ）'); });
+  $('#mDel').addEventListener('click', ()=>{ if(form.mesos.length<=1) return; const m = form.mesos.pop(); pzState.undo = ()=>{ form.mesos.push(m); drawForm(); }; $('#rUndoP').hidden = false; drawForm(); say0('最後のメゾを減らしました。元に戻すで戻せます'); });
+  ['#rStart','#rEnd'].forEach(id=>$(id).addEventListener('change', sumUp));
+  $('#rUndo').addEventListener('click', ()=>{ if(pzState.undo){ pzState.undo(); pzState.undo = null; } $('#rUndoP').hidden = true; say0('元に戻しました'); });
+  function drawWho(keep){ const linked = names(); const mine = [...new Set(db.periods.map(p=>p.who))].filter(n=>!linked.some(x=>normName(x)===normName(n)));
+    const sel = $('#rWhoSel'); const cur = keep!=null ? keep : (sel.value || who());
+    sel.innerHTML = '<option value="">選手を選ぶ</option>'+(linked.length?'<optgroup label="つながっている選手（'+linked.length+'人）">'+linked.map(n=>'<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>').join('')+'</optgroup>':'')+
+      (mine.length?'<optgroup label="ここで登録した選手">'+mine.map(n=>'<option value="'+esc(n)+'"'+(n===cur?' selected':'')+'>'+esc(n)+'</option>').join('')+'</optgroup>':'')+'<option value="_new"'+(cur==='_new'?' selected':'')+'>新しい名前を入れる</option>';
+    $('#rWhoNote').textContent = linked.length ? 'アプリでつながっている選手 '+linked.length+'人を出しています。' : 'つながっている選手がいません。「新しい名前を入れる」で入れてください。';
+    $('#rWho').hidden = sel.value!=='_new'; if(sel.value!=='_new') $('#rWho').value = sel.value; }
+  $('#rWhoSel').addEventListener('change', ()=>{ const v = $('#rWhoSel').value; $('#rWho').hidden = v!=='_new'; $('#rWho').value = v==='_new' ? '' : v; if(v==='_new') $('#rWho').focus(); });
+  $('#rSave').addEventListener('click', ()=>{ const w = $('#rWho').value.trim(), start = $('#rStart').value, end = $('#rEnd').value;
+    if(!w){ say0('選手を選んでください'); $('#rWhoSel').focus(); return; }
+    if(!start || !end || end<start){ say0('始める日と大会の日を入れてください（大会の日は始める日より後）'); $('#rStart').focus(); return; }
+    const p = {id:'p'+Date.now(), who:w, name:$('#rName').value.trim()||'名前なし', start, end, mesos:form.mesos.map(m=>({weeks:m.weeks, days:m.days.slice()}))};
+    db.periods.push(p); save(); pzState.undo = ()=>{ db.periods = db.periods.filter(x=>x.id!==p.id); save(); drawPlans(); }; $('#rUndoP').hidden = false;
+    pzState.vYM = start.slice(0,7); drawPlans(w); say0(w+'の期分けを登録しました'); $('#lsT').focus(); });
+  function drawCal(cur){ const ns = [...new Set(db.periods.map(p=>p.who))].sort((a,b)=>a.localeCompare(b,'ja'));
+    const sel = $('#vWho'); const c = ns.includes(cur) ? cur : ns.find(n=>normName(n)===normName(who())) || (ns.includes(sel.value) ? sel.value : (ns[0]||''));
+    sel.innerHTML = ns.length ? ns.map(n=>'<option value="'+esc(n)+'"'+(n===c?' selected':'')+'>'+esc(n)+'</option>').join('') : '<option value="">登録した選手がいません</option>';
+    if(!ns.length){ $('#vCal').innerHTML = ''; return ''; }
+    const map = {}; db.periods.filter(p=>p.who===c).forEach(p=>pzPlanDays(p).forEach(w=>w.forEach(x=>{ if(x[1] && x[1]!=='before' && x[1]!=='after') map[x[0]] = {v:x[1], meso:x[2]+1}; })));
+    const td = today(); if(!pzState.vYM){ const ks = Object.keys(map).sort(); pzState.vYM = (ks.find(k=>k>=td)||ks[0]||td).slice(0,7); }
+    const [Y,M] = pzState.vYM.split('-').map(Number); const first = new Date(Y, M-1, 1); const n = new Date(Y, M, 0).getDate(); const lead = (first.getDay()+6)%7;
+    const cnt = {}; let cells = ''; for(let i=0;i<lead;i++) cells += '<span></span>';
+    for(let d=1; d<=n; d++){ const k = pzState.vYM+'-'+String(d).padStart(2,'0'); const x = map[k]; let inner = '';
+      if(x && x.v==='race') inner = '<span class="r">大会</span>'; else if(x && PZ_MK[x.v]){ cnt[x.v] = (cnt[x.v]||0)+1; inner = '<span class="mk" style="--c:'+PZ_MK[x.v][1]+'" aria-hidden="true">'+PZ_MK[x.v][0]+'</span>'; }
+      const lab = d+'日'+(x ? (x.v==='race'?'、大会':'、'+pzName(x.v)+'、メゾ'+x.meso) : '');
+      cells += '<span class="c'+(x?' in':'')+(x&&x.v==='race'?' race':'')+(k===td?' today':'')+'" role="img" aria-label="'+esc(lab)+'">'+d+inner+'</span>'; }
+    const sum = Object.keys(PZ_MK).filter(k=>cnt[k]).map(k=>pzName(k)+' '+cnt[k]+'日').join('、');
+    $('#vCal').innerHTML = '<h3>'+Y+'年'+M+'月　'+esc(c)+'</h3><div class="cnav"><button type="button" class="btn sm" id="vPrev" style="width:100%">前の月</button><button type="button" class="btn sm" id="vNow" style="width:100%">今月</button><button type="button" class="btn sm" id="vNext" style="width:100%">次の月</button></div>'+
+      '<p class="sub" style="margin:0 0 8px">'+(sum ? 'この月の予定　'+esc(sum) : 'この月に予定はありません')+'</p>'+
+      '<div class="mcal">'+PZ_DOW.map(d=>'<span class="hd">'+d+'</span>').join('')+cells+'</div>'+
+      '<div class="mleg" aria-hidden="true">'+Object.keys(PZ_MK).map(k=>'<span><span class="mk" style="--c:'+PZ_MK[k][1]+'">'+PZ_MK[k][0]+'</span>'+pzName(k)+'</span>').join('')+'<span><span class="mk" style="--c:#2b2b2b;outline:2px solid #fff;color:#fff">大</span>大会</span></div>';
+    const mv = (dm, id)=>{ const d = new Date(Y, M-1+dm, 1); pzState.vYM = dm===0 ? td.slice(0,7) : pzIso(d).slice(0,7); drawPlans(c); $(id).focus(); };
+    $('#vPrev').onclick = ()=>mv(-1,'#vPrev'); $('#vNext').onclick = ()=>mv(1,'#vNext'); $('#vNow').onclick = ()=>mv(0,'#vNow');
+    return c; }
+  function drawPlans(cur){ const c = drawCal(cur); const L = db.periods.filter(p=>p.who===c).sort((a,b)=>a.start<b.start?-1:1);
+    $('#plans').innerHTML = !db.periods.length ? '<p class="sub">まだありません。上で登録すると、選手ごとにここへ並びます。</p>' : L.map(p=>'<div class="plan"><p style="margin:0"><b>'+esc(p.who)+'</b>　'+esc(p.name)+'</p><p class="sub" style="margin:2px 0 6px">'+esc(p.start)+' から '+esc(p.end)+'（大会）　メゾ '+p.mesos.length+'つ</p>'+
+      p.mesos.map((m,i)=>'<p class="sub" style="margin:2px 0">メゾ'+(i+1)+'　'+m.weeks+'週　'+PZ_DOW.map((d,j)=>m.days[j]?d+' '+pzName(m.days[j]):'').filter(Boolean).join('、')+'</p>').join('')+
+      '<div class="two" style="grid-template-columns:1fr 1fr;margin-top:8px"><button type="button" class="btn sm" data-pedit="'+p.id+'" style="width:100%">写して直す</button><button type="button" class="btn sm" data-pdel="'+p.id+'" style="width:100%">消す</button></div></div>').join('');
+    drawWho(); }
+  $('#vWho').addEventListener('change', ()=>{ pzState.vYM = null; drawPlans($('#vWho').value); });
+  $('#plans').addEventListener('click', e=>{ let b;
+    if((b = e.target.closest('[data-pdel]'))){ const i = db.periods.findIndex(p=>p.id===b.dataset.pdel); const p = db.periods.splice(i,1)[0]; save(); pzState.undo = ()=>{ db.periods.splice(i,0,p); save(); drawPlans(p.who); }; $('#rUndoP').hidden = false; drawPlans(p.who); say0(p.who+'の期分けを消しました。元に戻すで戻せます'); $('#lsT').focus(); return; }
+    if((b = e.target.closest('[data-pedit]'))){ const p = db.periods.find(x=>x.id===b.dataset.pedit); drawWho(p.who); $('#rWho').value = p.who; $('#rName').value = p.name; $('#rStart').value = p.start; $('#rEnd').value = p.end; form.mesos = p.mesos.map(m=>({weeks:m.weeks, days:m.days.slice()})); drawForm(); $('#regT').focus(); $('#regT').scrollIntoView(); say0('上の欄に写しました。直して「登録する」を押すと、新しく登録されます'); } });
+  (function(){ const t = new Date(); $('#rStart').value = pzIso(t); const e = new Date(t); e.setDate(e.getDate()+7*9-1); $('#rEnd').value = pzIso(e); })();
+
+  function drawAll(){ exOpts(); pzState.model = answer(); drawModel(); drawExp(); drawPlateau(); drawForm(); drawPlans(); drawWho(who()); }
+  loadQ(); drawAll();
+}
+/* 入口：選手の結果、選手ごとの画面、メニュー作り */
+const PZ_BTN = (id, label)=>'<button type="button" class="ghost" data-go="period"'+(id?' data-id="'+esc(id)+'"':'')+' style="margin-top:10px">'+esc(label||'期分け（ピリオダイゼーション）を開く')+'</button>';
+const _teamPZ = VIEWS.team; VIEWS.team = ()=>{ const v = _teamPZ(); v.html = PZ_BTN(null)+v.html; return v; };
+const _athletePZ = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athletePZ(cur); const n = cur.id===SELF_KEY ? db.me : cur.id; const t = n ? pzToday(n) : null;
+  v.html = (t && t.v!=='before' && t.v!=='after' ? '<p class="note" style="margin-top:12px">今日の期分け：'+(t.v==='race'?'大会':esc(pzName(t.v)))+'（'+esc(t.plan.name)+'、メゾ'+t.meso+'）</p>' : '')+PZ_BTN(cur.id, esc(n||'')+'の期分けを開く')+v.html; return v; };
+const _coachPZ = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachPZ(); v.html = v.html.replace('</div>', '</div>'+PZ_BTN(null)); return v; };
 
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }

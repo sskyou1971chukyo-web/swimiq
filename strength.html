@@ -235,7 +235,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-26 partbw1';
+const APP_VER = '2026-10-26 cool1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -360,7 +360,7 @@ VIEWS.today = ()=>{
         '<button type="button" class="st '+r.status+'" data-st="'+r.rid+'" aria-label="'+esc(shortName(e))+'は'+(r.status==='done'?'できた。押すと、できなかったに変える':r.status==='skip'?'できなかった、またはやらなかった。押すと、まだに戻す':'まだ。押すと、できたにする')+'">'+(r.status==='done'?'✓ できた':r.status==='skip'?'✕ なし':'まだ')+'</button></li>'; }).join('')+'</ul>'+
       (d.finished ? (inbox.length ? '<div class="cnotice" style="margin-top:12px"><p class="cnh nl">新しく届いたメニュー</p><p class="sub nl" style="margin:2px 0 8px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p><p class="sub" style="margin:0 0 8px">今日の練習は一度終えています。押すと、終えた分は記録として残したまま、このメニューを続けて行えます。</p><button type="button" class="cta" id="menuCont">このメニューで続ける</button></div>' : '') : '<div class="stack two" style="margin-top:12px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(inbox.length?'<p class="sub nl" style="margin:4px 0 0;grid-column:1/-1">新しく届いたメニュー　'+esc(menuNames(inbox[0]))+'</p><button type="button" class="cta" id="menuGet" style="grid-column:1/-1">新しいメニューに入れ替える</button>':'<button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button>')+'</div>'); }
   else { menu = '<p class="sub" style="margin-top:0">'+(inbox.length ? 'コーチからメニューが届いています。' : 'まだメニューがありません。コーチから届いていれば受け取れます。自分で作ることもできます。')+'</p>'+
-      '<div class="stack">'+(inbox.length ? (inbox.length>1 ? '<label class="f" for="menuPick">届いたメニュー（'+inbox.length+'件、新しい順）</label><select id="menuPick" class="txt">'+inbox.map((m,i)=>'<option value="'+i+'">'+esc((menuTime(m)||m.date)+'　'+menuNames(m))+'</option>').join('')+'</select>' : '<p class="sub" style="margin:0 0 6px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p>')+'<button type="button" class="cta" id="menuGet">コーチのメニューを開く（'+inbox[0].rows.length+'種目）</button>' : '<button type="button" class="'+(d.pre?'cta':'ghost')+'" id="menuFetch">コーチのメニューを受け取る</button>')+
+      '<div class="stack">'+(inbox.length ? (inbox.length>1 ? '<label class="f" for="menuPick">届いたメニュー（'+inbox.length+'件、新しい順）</label><select id="menuPick" class="txt">'+inbox.map((m,i)=>'<option value="'+i+'">'+esc((menuTime(m)||m.date)+'　'+menuNames(m))+'</option>').join('')+'</select>' : '<p class="sub" style="margin:0 0 6px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p>')+'<button type="button" class="cta" id="menuGet">コーチのメニューを開く（'+menuCnt(inbox[0])+'）</button>' : '<button type="button" class="'+(d.pre?'cta':'ghost')+'" id="menuFetch">コーチのメニューを受け取る</button>')+
       '<button type="button" class="ghost" data-go="ex" data-pick="1">自分で種目を選んで作る</button>'+(prevMenuDay(k)?'<button type="button" class="ghost" id="menuPrev">前回（'+md(prevMenuDay(k))+'）のメニューを写す</button>':'')+'</div>'; }
   /* 3 終える */
   let fin;
@@ -388,7 +388,7 @@ VIEWS.today = ()=>{
       const mf = $('#menuFetch'); if(mf) mf.addEventListener('click',()=>fetchMenu(true));
       const mc = $('#menuCont'); if(mc) mc.addEventListener('click',()=>{ d.finished = null; applyInbox(k, inbox[0]); say('終えた分は残したまま、新しいメニューを入れました。終わったら、もう一度「今日の練習を終える」を押してください'); });
       const mg = $('#menuGet'); if(mg) mg.addEventListener('click',()=>{ const pk = $('#menuPick'); applyInbox(k, inbox[pk ? Number(pk.value) : 0]); });
-      const mpk = $('#menuPick'); if(mpk) mpk.addEventListener('change',()=>{ mg.textContent = 'コーチのメニューを開く（'+inbox[Number(mpk.value)].rows.length+'種目）'; });
+      const mpk = $('#menuPick'); if(mpk) mpk.addEventListener('change',()=>{ mg.textContent = 'コーチのメニューを開く（'+menuCnt(inbox[Number(mpk.value)])+'）'; });
       const mp = $('#menuPrev'); if(mp) mp.addEventListener('click',()=>{ const pk = prevMenuDay(k); d.rows = db.days[pk].rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest})); d.src = 'prev'; save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg2').focus(); });
       const fb = $('#finish'); if(fb) fb.addEventListener('click',()=>{ if(fb.disabled) return; d.finished = new Date().toISOString(); save(); say('今日の練習を記録しました'); render(false); $('#pg3').focus(); syncNow(false); });
       const uf = $('#unfinish'); if(uf) uf.addEventListener('click',()=>{ d.finished = null; save(); say('終えるを取り消しました。直したら、もう一度終えてください'); render(false); $('#pg2').focus(); });
@@ -451,7 +451,8 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('#sheet').hid
 function syncUrl(){ return (db.syncUrl||SYNC_URL||'').trim(); }
 function menuAt(m){ const x = String(m.mid||'').match(/wk_(\d+)/); return x ? Number(x[1]) : 0; }
 function inboxFor(k){ return (db.inbox||[]).filter(m=>!m.used && (m.date<=k || !m.date)).sort((a,b)=>(String(a.date)<String(b.date)?1:String(a.date)>String(b.date)?-1:0) || (menuAt(b)-menuAt(a))); }
-function menuNames(m){ return m.rows.map(r=>shortName(EXMAP[r.exId]||{name:r.exId})).join('、'); }
+function menuCnt(m){ return [m.rows.length?m.rows.length+'種目':'', m.cool?'プール':''].filter(Boolean).join('と')||'0種目'; }
+function menuNames(m){ return m.rows.map(r=>shortName(EXMAP[r.exId]||{name:r.exId})).concat(m.cool?['プールのクールダウン']:[]).join('、'); }
 function menuTime(m){ const t = menuAt(m); if(!t) return ''; const d = new Date(t); return (d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+' 送信'; }
 function rowsFromRaw(raw){ /* 新しい形 raw.rows[{exId,kg,reps,sets,rest,free}] と、前の版の形 raw.rows[{id,w,reps,iv,sets,sr}] の両方を読む */
   return (raw.rows||[]).map(r=>{ const exId = r.exId || r.id; if(!EXMAP[exId]) return null; const later = v=>v==='later';
@@ -463,10 +464,10 @@ async function fetchMenu(manual){ if(!syncUrl() || !db.me){ if(manual) say('送�
   try{ const nm = db.me.trim(); const tries = [nm]; if(normName(nm)!==nm) tries.push(normName(nm)); let j = {ok:true, rows:[]};
     for(const t of tries){ const r = await fetch(syncUrl()+'?action=menu&name='+encodeURIComponent(t)); const jj = await r.json(); if(!jj.ok){ if(/action/.test(String(jj.error||''))) throw new Error('受け口（GAS）が古いので、Code.gs を配置し直してください'); throw new Error(jj.error||'失敗'); } j.rows = j.rows.concat(jj.rows||[]); }
     let n = 0; db.inbox = db.inbox||[]; (j.rows||[]).forEach(row=>{ let raw = {}; try{ raw = JSON.parse(row.JSON||'{}'); }catch(e){} const mid = String(row.uid||''); if(!mid || db.inbox.some(m=>m.mid===mid)) return;
-      const rows = rowsFromRaw(raw); if(!rows.length) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false}); n++; });
+      const rows = rowsFromRaw(raw); if(!rows.length && !raw.cool) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, cool:raw.cool||null, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false}); n++; });
     save(); if(manual) say(n ? n+'件の新しいメニューが届きました' : '「'+db.me.trim()+'」あての新しいメニューはありません'); render(false); }
   catch(e){ if(manual) say(/GAS/.test(String(e.message)) ? e.message : '受け取れませんでした。電波のある所でもう一度押してください'); } }
-function applyInbox(k, m){ const d = day(k); (db.inbox||[]).forEach(x=>{ if(x!==m && !x.used && (x.date||'')<=(m.date||k) && menuAt(x)<menuAt(m)){ x.used = true; x.seen = true; } }); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
+function applyInbox(k, m){ const d = day(k); (db.inbox||[]).forEach(x=>{ if(x!==m && !x.used && (x.date||'')<=(m.date||k) && menuAt(x)<menuAt(m)){ x.used = true; x.seen = true; } }); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; d.cool = m.cool||null; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
 
 /* ============ コーチに送る ============ */
 function syncOn(){ return !!(syncUrl() && (db.me||'').trim()); }
@@ -615,7 +616,7 @@ function coachRowTxt(r){ const e = EXMAP[r.exId]; const f = r.free||{}; const bw
   const w = f.kg ? '重さは選手が決める' : (Number(r.kg)>0 ? (bw?'体重＋':'')+kg(r.kg)+' kg' : (bw?'体重のみ':'自重'));
   return w+' × '+(f.reps?'回数は選手が決める':(r.reps||0)+' 回')+' × '+(f.sets?'セットは選手が決める':(r.sets||0)+' セット')+(r.rest?'　休憩 '+r.rest:''); }
 function addToDraft(e){ const d = draft(); if(d.rows.some(r=>r.exId===e.id)) return false; const rx = e.rx && e.rx.power ? e.rx.power : null; const nr = newRow(e.id, {kg:0, reps:5, sets:3, rest:'', free:null}); if(d.purpose) applyAuto(nr, d.purpose); d.rows.push(nr); save(); return true; }
-function draftStep(){ const d = draft(); if(!d.rows.length) return 1; if(!(d.to||[]).length) return 2; return 3; }
+function draftStep(){ const d = draft(); if(!d.rows.length && !coolOn(d)) return 1; if(!(d.to||[]).length) return 2; return 3; }
 VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = db.names||[]; const sent = (db.sentMenus||[]).slice().reverse().slice(0,8);
   const page = (n, title, body)=>'<section class="page '+(step===n?'now':step>n?'done':'')+'" aria-labelledby="pg'+n+'"><h2 id="pg'+n+'" tabindex="-1"><span class="step" aria-hidden="true">'+n+'</span>'+title+(step===n?'<span class="here">いまここ</span>':'')+'</h2>'+body+'</section>';
   const rowsHTML = d.rows.length ? '<ul class="rows">'+d.rows.map((r,i)=>{ const e = EXMAP[r.exId]; return '<li class="row drow" data-rid="'+r.rid+'" style="grid-template-columns:auto 1fr auto"><button type="button" class="grip" data-grip="'+r.rid+'" aria-label="'+esc(shortName(e))+'、'+(i+1)+'番目。つかんで上下に動かせます。矢印キーでも動きます"><span aria-hidden="true"></span></button><button type="button" class="rmain" data-cedit="'+r.rid+'" aria-label="'+esc(shortName(e))+'、'+esc(coachRowTxt(r))+'、押すと直す"><strong>'+(i+1)+'. '+esc(shortName(e))+'</strong><span class="d">'+esc(coachRowTxt(r))+'</span></button><span class="stack" style="gap:4px"><button type="button" class="ghost sm" data-cup="'+r.rid+'" aria-label="'+esc(shortName(e))+'を上へ" '+(i===0?'disabled':'')+'>上へ</button><button type="button" class="ghost sm" data-cdown="'+r.rid+'" aria-label="'+esc(shortName(e))+'を下へ" '+(i===d.rows.length-1?'disabled':'')+'>下へ</button></span></li>'; }).join('')+'</ul>' : '<p class="sub" style="margin-top:0">まだ種目がありません。</p>';
@@ -627,7 +628,7 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
       '')+
     page(3,'送る', '<label class="f">選手へのひとこと（なくてもかまいません）<input type="text" class="txt" id="cNote" value="'+esc(d.note)+'" placeholder="例：スクワットは速さ重視"></label>'+
       '<label class="f">いつのメニューか<input type="date" class="txt" id="cDate" value="'+esc(d.date||today())+'"></label>'+
-      '<p class="sub">'+(step<3 ? '種目と選手がそろうと押せます。' : (d.to||[]).join('、')+' に '+d.rows.length+'種目を送ります。選手がアプリを開くと受け取れます。')+'</p>'+
+      '<p class="sub">'+(step<3 ? '種目（またはプールのクールダウン）と選手がそろうと押せます。' : (d.to||[]).join('、')+' に '+d.rows.length+'種目'+(coolOn(d)?'とプールのクールダウン':'')+'を送ります。選手がアプリを開くと受け取れます。')+'</p>'+
       '<button type="button" class="cta" id="cSend" '+(step<3?'disabled aria-disabled="true"':'')+'>このメニューを送る</button>')+
     (sent.length ? '<h2>送ったメニュー</h2><ul class="rows">'+sent.map(m=>'<li class="row" style="grid-template-columns:1fr auto"><span class="rmain"><strong>'+md(m.date)+'　'+esc(m.to.join('、'))+'</strong><span class="d">'+esc(m.rows.map(r=>shortName(EXMAP[r.exId])).join('、'))+'</span></span><button type="button" class="ghost sm" data-creuse="'+m.mid+'">同じものを作る</button></li>').join('')+'</ul>' : ''),
     after(){
@@ -662,15 +663,15 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
       $('#cNote').addEventListener('input',e=>{ d.note = e.target.value; save(); }); $('#cDate').addEventListener('change',e=>{ d.date = e.target.value; save(); });
       $('#cSend').addEventListener('click',()=>sendMenu());
     } }; };
-function reuseMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d = draft(); d.rows = m.rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free?Object.assign({},r.free):null})); d.note = m.note||''; d.purpose = m.purpose||''; d.to = m.to.slice(); save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg1').focus(); }
+function reuseMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d = draft(); d.rows = m.rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free?Object.assign({},r.free):null})); d.note = m.note||''; d.purpose = m.purpose||''; d.cool = m.cool ? Object.assign({on:true}, m.cool) : null; d.to = m.to.slice(); save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg1').focus(); }
 async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!syncUrl()){ say('送り先のURLが設定にありません'); return; }
   const date = d.date||today(); const mid = 'wk_'+Date.now(); const rows = d.rows.map(r=>{ const e = EXMAP[r.exId]; const u = e&&e.user ? uexAll().find(x=>x.id===e.id) : null; return {exId:r.exId, name:shortName(e), part:e&&e.user?e.part:'', bw:e&&e.user?!!e.bw:undefined, ux:u?uexFull(u):undefined, kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free||null}; });
-  const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', purpose:d.purpose||'', rows}}));
+  const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).concat(coolOn(d)?['プール '+coolTxt(d.cool)]:[]).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', purpose:d.purpose||'', rows, cool:coolOn(d)?coolData(d.cool):null}}));
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
   try{ /* 選手一人ずつ、その選手の名前で送る。前の Code.gs でも、新しい Code.gs でも、選手の行として残る */
     for(const it of items){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:it.raw.who, items:[it]})}); const j = await res.json(); if(!j.ok) throw new Error(it.raw.who+'：'+(j.error||'受け取り側の失敗')); }
-    items.forEach(it=>{ if(normName(it.raw.who)===normName(db.me||'')){ db.inbox = db.inbox||[]; if(!db.inbox.some(m=>m.mid===it.uid)){ const rr = rowsFromRaw(it.raw); if(rr.length) db.inbox.push({mid:it.uid, date:date, rows:rr, note:d.note||'', purpose:d.purpose||'', by:db.me, used:false}); } } });
-    pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, note:d.note||'', purpose:d.purpose||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
+    items.forEach(it=>{ if(normName(it.raw.who)===normName(db.me||'')){ db.inbox = db.inbox||[]; if(!db.inbox.some(m=>m.mid===it.uid)){ const rr = rowsFromRaw(it.raw); if(rr.length || it.raw.cool) db.inbox.push({mid:it.uid, date:date, rows:rr, cool:it.raw.cool, note:d.note||'', purpose:d.purpose||'', by:db.me, used:false}); } } });
+    pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, cool:coolOn(d)?coolData(d.cool):null, note:d.note||'', purpose:d.purpose||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
   catch(e){ say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); $('#cSend').focus(); } }
 /* コーチの行を直すシート */
 let csh = null;
@@ -1296,7 +1297,7 @@ function unseenMenus(){ return (db.inbox||[]).filter(m=>!m.used && !m.seen).sort
 function noticeHTML(){ if(!db.ready) return ''; const L = unseenMenus(); if(!L.length) return '';
   const m = L[0]; const md2 = m.date ? (Number(m.date.slice(5,7))+'月'+Number(m.date.slice(8,10))+'日') : '';
   return '<section class="cnotice" role="alert" aria-labelledby="cnT"><p id="cnT" class="cnh">コーチから届きました'+(L.length>1?'（'+L.length+'件）':'')+'</p>'+
-    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+m.rows.length+'種目（'+esc(menuNames(m))+'）'+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(m.purpose):'')+'</p>'+
+    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+menuCnt(m)+'（'+esc(menuNames(m))+'）'+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(m.purpose):'')+'</p>'+
     '<div class="stack two"><button type="button" class="cta" id="cnOpen">メニューを見る</button><button type="button" class="ghost" id="cnLater">あとで</button></div></section>'; }
 function paintNotice(){ let n = document.getElementById('cnotice'); if(!n){ n = document.createElement('div'); n.id = 'cnotice'; const v = document.getElementById('view'); v.parentNode.insertBefore(n, v); }
   n.innerHTML = noticeHTML();
@@ -1606,11 +1607,63 @@ function pzMount(cur){ const R = document.getElementById('pz'); if(!R) return; c
   loadQ(); drawAll();
 }
 /* 入口：選手の結果、選手ごとの画面、メニュー作り */
-const PZ_BTN = (id, label)=>'<button type="button" class="ghost" data-go="period"'+(id?' data-id="'+esc(id)+'"':'')+' style="margin-top:10px">'+esc(label||'期分け（ピリオダイゼーション）を開く')+'</button>';
+const PZ_BTN = (id, label)=>'<button type="button" class="ghost" data-go="period"'+(id?' data-id="'+esc(id)+'"':'')+' style="margin-top:10px">'+esc(label||'期分けを開く')+'</button>';
 const _teamPZ = VIEWS.team; VIEWS.team = ()=>{ const v = _teamPZ(); v.html = PZ_BTN(null)+v.html; return v; };
 const _athletePZ = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athletePZ(cur); const n = cur.id===SELF_KEY ? db.me : cur.id; const t = n ? pzToday(n) : null;
   v.html = (t && t.v!=='before' && t.v!=='after' ? '<p class="note" style="margin-top:12px">今日の期分け：'+(t.v==='race'?'大会':esc(pzName(t.v)))+'（'+esc(t.plan.name)+'、メゾ'+t.meso+'）</p>' : '')+PZ_BTN(cur.id, esc(n||'')+'の期分けを開く')+v.html; return v; };
 const _coachPZ = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachPZ(); v.html = v.html.replace('</div>', '</div>'+PZ_BTN(null)); return v; };
+/* ============ プールのクールダウン（2026-10-26） ============
+   コーチが「距離」「本数」「LT1ペース（100mあたり）」「サークル」を決めて、メニューと一緒に送る。
+   根拠：Greenwood ら 2008（200ヤード全力のあと、乳酸閾値の速さで10分泳ぐと乳酸が最も下がり、次の200ヤードも速かった）。
+   その研究の「乳酸閾値」がLT1と同じ決め方かは確かめられていない。 */
+const COOL_DIST = [25,50,75,100,150,200,300,400,500,800];
+function coolOn(d){ return !!(d && d.cool && d.cool.on); }
+function mmss(sec){ sec = Math.round(Number(sec)||0); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+function coolData(c){ return {dist:Number(c.dist)||100, reps:Number(c.reps)||1, pace:Number(c.pace)||90, circle:Number(c.circle)||120}; }
+function coolTgt(c){ return Math.round((Number(c.pace)||0)*(Number(c.dist)||0)/100); }
+function coolTxt(c){ c = coolData(c); return c.dist+'m × '+c.reps+'本　サークル '+mmss(c.circle)+'　LT1ペース 100m '+mmss(c.pace)+'（1本 '+mmss(coolTgt(c))+'）　合計 '+(c.dist*c.reps)+'m'; }
+function coolOpts(list, cur, fmt){ return list.map(v=>'<option value="'+v+'"'+(Number(cur)===v?' selected':'')+'>'+fmt(v)+'</option>').join(''); }
+const COOL_REFS = [
+  ['★★★', 'Greenwood JD, Moses GE, Bernardino FM, Gaesser GA, Weltman A. Intensity of exercise recovery, blood lactate disappearance, and subsequent swimming performance. J Sports Sci. 2008;26:29-34.', 'https://coachsci.sdsu.edu/csa/vol183/greenwoo.htm', '200ヤード全力のあと10分。乳酸閾値の速さで泳ぐと、50%、150%、休むだけより乳酸が下がり、次の200ヤードも速かった。', '研究者の要約ページで読みました。「乳酸閾値」の決め方は要約に書かれておらず、LT1と同じかは確かめられていません。'],
+  ['★★★', 'Ieno C, Baldassarre R, Quagliarotti C, Bonifazi M, Piacentini MF. Session RPE Breakpoints Corresponding to Intensity Thresholds in Elite Open Water Swimmers. J Funct Morphol Kinesiol. 2020;5(1):21.', 'https://pmc.ncbi.nlm.nih.gov/articles/PMC7739345', 'LT1を「血中乳酸が安静時から上がらない、いちばん高い強さ」とした。6×500mの段階テスト。', '外洋のエリート6人だけの研究です。「上がった」とする乳酸の上がり幅の数字は、この論文では確かめられていません。'],
+  ['★★★', 'Espada MC, Alves FB, Curto D, Ferreira CC, Santos FJ, Pessôa-Filho DM, Reis JF. Can an Incremental Step Test Be Used for Maximal Lactate Steady State Determination in Swimming? Clues for Practice. Int J Environ Res Public Health. 2021;18:477.', 'https://mdpi-res.com/d_attachment/ijerph/ijerph-18-00477/article_deploy/ijerph-18-00477.pdf', '7×200mクロール。5分ごとに1本、1本目は200m全力の速さの70%、そこから5%ずつ上げる。安静時と各200mの直後に乳酸を測る。', 'この研究が調べたのは、LT1より上の閾値（乳酸の定常状態に近いもの）です。テストの組み方だけを使っています。'],
+  ['★★★', 'The method but not the protocol affects lactate-threshold determination in competitive swimmers. Int J Sports Physiol Perform. 2024;19(10):996-1005.', 'https://doi.org/10.1123/ijspp.2023-0389', '7×200mで、休み30秒と5分サークルを比べると、閾値の速さはほぼ同じだった。10人。', '著者名は確かめられていません。調べたのはLT1より上の閾値です。']
+];
+function coolInfoHTML(){ const t200 = Number(db.coolT200)||150; const sp = [70,75,80,85,90,95,100];
+  return '<details class="more"><summary>LT1ペースの見つけ方</summary><div class="inner">'+
+    '<p>LT1は、血中乳酸が安静時の値から上がり始めない、いちばん速い強さとされます（Ieno ら 2020）。</p>'+
+    '<p>テストセット　7×200m クロール、5分ごとに1本（泳ぎと休みを合わせて）。1本目は200m全力の速さの70%、2本目から5%ずつ上げて、7本目が100%です（Espada ら 2021）。泳ぐ前と、各200mの直後に血中乳酸を測ります。安静時から乳酸が上がらなかった、いちばん速い本の速さをLT1ペースにします。</p>'+
+    '<label class="f" for="clT200">200m全力のタイム（見本の計算用）</label><select id="clT200" class="txt">'+coolOpts(Array.from({length:151},(_,i)=>100+i), t200, mmss)+'</select>'+
+    '<ol class="dsets">'+sp.map((p,i)=>{ const t = t200*100/p; return '<li>'+(i+1)+'本目　'+p+'%　200m '+mmss(t)+'（100m '+mmss(t/2)+'）</li>'; }).join('')+'</ol>'+
+    '<p class="sub">速さの%はタイムの%ではないので、タイムは「200m全力のタイム ÷ %」で出しています。どれだけ乳酸が上がったら「上がった」とするかの数字は、今回読めた資料では確かめられていないため、アプリでは決めていません（仮の設定もしていません）。</p>'+
+    '<p class="sub">休みを30秒にしても、5分サークルでも、閾値の速さはほぼ同じだったという報告があります（IJSPP 2024）。ただしこの研究と Espada ら 2021 が調べたのは、LT1より上の閾値です。</p>'+
+    '<h3>根拠の資料</h3><ul class="rows">'+COOL_REFS.map(r=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain" style="white-space:normal"><span aria-label="星'+r[0].length+'つ" style="color:var(--am)">'+r[0]+'</span>　'+esc(r[3])+'<span class="d" style="white-space:normal">'+esc(r[1])+'</span><span class="d" style="white-space:normal">確認の状況　'+esc(r[4])+'</span><a href="'+r[2]+'" target="_blank" rel="noopener">原文のページを開く</a></span></li>').join('')+'</ul>'+
+    '</div></details>'; }
+function coolCoachHTML(d){ const c = d.cool||{}; const on = coolOn(d); const cd = coolData(c); const tg = coolTgt(cd); const short = on && cd.circle < tg;
+  return '<section class="page" aria-labelledby="pgCool"><h2 id="pgCool" tabindex="-1">プールのクールダウン</h2>'+
+    '<label class="f" for="clOn">メニューに入れるか</label><select id="clOn" class="txt"><option value="">入れない</option><option value="1"'+(on?' selected':'')+'>入れる</option></select>'+
+    (on ? '<div class="stack two">'+
+      '<div><label class="f" for="clDist">距離</label><select id="clDist" class="txt">'+coolOpts(COOL_DIST, cd.dist, v=>v+'m')+'</select></div>'+
+      '<div><label class="f" for="clReps">本数</label><select id="clReps" class="txt">'+coolOpts(Array.from({length:20},(_,i)=>i+1), cd.reps, v=>v+'本')+'</select></div>'+
+      '<div><label class="f" for="clPace">LT1ペース（100mあたり）</label><select id="clPace" class="txt">'+coolOpts(Array.from({length:121},(_,i)=>60+i), cd.pace, mmss)+'</select></div>'+
+      '<div><label class="f" for="clCircle">サークル</label><select id="clCircle" class="txt">'+coolOpts(Array.from({length:95},(_,i)=>20+i*5), cd.circle, mmss)+'</select></div></div>'+
+      '<p style="margin-top:12px">'+esc(coolTxt(cd))+'</p>'+
+      (short ? '<p class="note bad">サークル '+mmss(cd.circle)+' が、1本の目安 '+mmss(tg)+' より短いです。</p>' : '<p class="sub">休み 1本あたり およそ '+mmss(cd.circle-tg)+'</p>')+
+      '<p class="sub">LT1ペースは選手ごとに違います。選手ごとに変えるときは、選手ごとに送ってください。</p>' : '')+
+    coolInfoHTML()+'</section>'; }
+const _coachCool = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachCool(); const d = draft(); const i = v.html.indexOf('<section class="page'); const j = i<0 ? -1 : v.html.indexOf('<section class="page', i+10);
+  const h = coolCoachHTML(d); v.html = j>0 ? v.html.slice(0,j)+h+v.html.slice(j) : v.html+h;
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const set = (id, k)=>{ const el = $('#'+id); if(!el) return; el.addEventListener('change',()=>{ d.cool = d.cool||coolData({}); if(k==='on'){ d.cool.on = !!el.value; } else d.cool[k] = Number(el.value); save(); render(false); const n = $('#'+id); if(n) n.focus(); say(k==='on' ? (el.value?'プールのクールダウンを入れました':'プールのクールダウンを外しました') : coolTxt(d.cool)); }); };
+    set('clOn','on'); set('clDist','dist'); set('clReps','reps'); set('clPace','pace'); set('clCircle','circle');
+    const t = $('#clT200'); if(t) t.addEventListener('change',()=>{ db.coolT200 = Number(t.value); save(); render(false); const n = $('#clT200'); if(n){ n.closest('details').open = true; n.focus(); } }); };
+  return v; };
+/* 選手の今日の画面：コーチから届いたクールダウンを出す */
+const _todayCool = VIEWS.today; VIEWS.today = ()=>{ const v = _todayCool(); const d = day(curDay()); if(!d.cool) return v; const c = coolData(d.cool);
+  v.html += '<section class="page" aria-labelledby="pgCoolT"><h2 id="pgCoolT" tabindex="-1">最後にプールでクールダウン</h2>'+
+    '<p style="font-size:1.15rem;font-weight:700;margin:6px 0">'+c.dist+'m × '+c.reps+'本　サークル '+mmss(c.circle)+'</p>'+
+    '<p>LT1ペース　100m '+mmss(c.pace)+'　1本の目安 '+mmss(coolTgt(c))+'</p><p class="sub">合計 '+(c.dist*c.reps)+'m。コーチから届いたメニューです。</p></section>';
+  return v; };
+
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
 </script>

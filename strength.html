@@ -235,7 +235,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-26 daydetail1';
+const APP_VER = '2026-10-26 partbw1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -279,9 +279,12 @@ function finishedDays(){ return daysSorted().filter(k=>db.days[k].finished); }
 function rowSets(r){ if(r.setList && r.setList.length) return r.setList; const n = Math.max(1, Number(r.sets)||1); const out = []; for(let i=0;i<n;i++) out.push({w:Number(r.kg)||0, r:Number(r.reps)||0}); return out; }
 /* 送る文字：重さが無いセットは「10回」と書く（スプレッドシートが「10, 10, 9」を日付に変えてしまうのを防ぐ） */
 function setsStr(r){ return rowSets(r).map(s=>Number(s.w)>0 ? kg(s.w)+'kg×'+s.r : s.r+'回').join(', '); }
-function rowLoad(r, k){ const e = EXMAP[r.exId]; if(!bwEx(e)) return 0; const b = lastBW(k); return b ? Number(b.w) : 0; }
+/* 体重の一部しかかからない種目（腕立て伏せなど）。推定1RMは出さず、体重を負荷に足さない */
+const PART_RE = /プッシュアップ|腕立て/;
+function partEx(e){ return !!e && PART_RE.test(e.name); }
+function rowLoad(r, k){ const e = EXMAP[r.exId]; if(!bwEx(e) || partEx(e)) return 0; const b = lastBW(k); return b ? Number(b.w) : 0; }
 function rowVol(r, k){ const add = rowLoad(r, k); return r1(rowSets(r).reduce((t,s)=>t+(Number(s.w)+add)*Number(s.r),0)); }
-function rowBest(r, k){ const add = rowLoad(r, k); let best = null; rowSets(r).forEach(s=>{ const v = e1rm(Number(s.w)+add, s.r); if(v!=null && (best==null || v>best)) best = v; }); return best; }
+function rowBest(r, k){ if(partEx(EXMAP[r.exId])) return null; const add = rowLoad(r, k); let best = null; rowSets(r).forEach(s=>{ const v = e1rm(Number(s.w)+add, s.r); if(v!=null && (best==null || v>best)) best = v; }); return best; }
 function rowTxt(r){ const e = EXMAP[r.exId]; const bw = bwEx(e);
   const w = r.free && r.free.kg && !r.touched ? '重さは自分で' : (Number(r.kg)>0 ? kg(r.kg)+' kg' : (bw ? '体重のみ' : '自重'));
   const rp = r.free && r.free.reps && !r.touched ? '回数は自分で' : (r.reps||0)+' 回';
@@ -698,7 +701,7 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   catch(e){ say('取り込めませんでした。'+String(e.message||e)); } }
 function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー').map(fixRow); }
 /* スプレッドシートが日付に変えてしまった「セットの内容」を元に戻す。まず一緒に送った元の記録（JSON）から、無ければ日付の数字から */
-function fixRow(x){ const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
+function fixRow(x){ if(PART_RE.test(String(x['種目']||'')) && x['推定1RM']!=='' && x['推定1RM']!=null) x = Object.assign({}, x, {'推定1RM':''}); const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
   try{ const raw = JSON.parse(x['JSON']||'null'); if(raw && (raw.setList || raw.reps!=null)) t = setsStr(raw); }catch(e){}
   if(!t){ const d = new Date(Date.parse(v)+9*3600000); if(!isNaN(d)) t = [d.getUTCFullYear()%100, d.getUTCMonth()+1, d.getUTCDate()].map(n=>n+'回').join(', '); }
   return t ? Object.assign({}, x, {'セットの内容':t}) : x; }
@@ -1055,21 +1058,25 @@ function calHTML(n, days){ const ks = Object.keys(days).sort(); const latest = k
     '<ol class="cal" aria-label="'+y+'年'+m+'月のカレンダー"><li class="wk" aria-hidden="true">月</li><li class="wk" aria-hidden="true">火</li><li class="wk" aria-hidden="true">水</li><li class="wk" aria-hidden="true">木</li><li class="wk" aria-hidden="true">金</li><li class="wk" aria-hidden="true">土</li><li class="wk" aria-hidden="true">日</li>'+cells.join('')+'</ol>'+legendHTML()+purposeRuleHTML(); }
 /* 1日の実施内容（下から出る画面） */
 let dsh = null;
-function openDay(n, k){ const L = srcRows(n).filter(x=>rowDate(x)===k); dsh = {n, k, last:document.activeElement}; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類']))); const dp = dayPurpose(L);
+function openDay(n, k){ const L = srcRows(n).filter(x=>rowDate(x)===k); dsh = {n, k, last:document.activeElement, bw:bwOn(n, k)}; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類']))); const dp = dayPurpose(L);
   $('#sheet').innerHTML = '<div class="sheetin"><h2 id="shT" tabindex="-1">'+jdate(k)+(s?'　'+kg(s['動かした重さkg']||0)+' kg':'')+'</h2>'+
     (dp.p?'<p>'+markHTML(dp.p, dp.set, true)+' '+PURP[dp.p].name+(dp.set?'':'（記録からの推定）')+'</p>':'')+
     (c?'<p class="sub">睡眠 '+(c['睡眠h']!==''?c['睡眠h']+'h':'未')+'、疲れ '+(c['疲れ']!==''?FAT_WORDS[Number(c['疲れ'])-1]||c['疲れ']:'未')+(c['メモ']?'、'+esc(c['メモ']):'')+'</p>':'')+
     (rec.length?'<p class="sub" style="margin:4px 0">種目を押すと、実施した内容が出ます。</p><ul class="rows dsl">'+rec.map(x=>dayRowHTML(x)).join('')+'</ul>':'<p class="sub">種目の記録はありません。</p>')+
     '<button type="button" class="cta" id="dsOk" style="margin-top:14px">閉じる</button></div>';
   $('#sheet').hidden = false; document.body.classList.add('lock'); $('#shT').focus(); $('#dsOk').addEventListener('click', closeDay); }
-function dayRowHTML(x){ const done = String(x['種類'])==='記録'; const id = String(x['種目ID']||''); const ep = done ? exPurpose(id, x['セットの内容']) : null; const e = EXMAP[id]; const bw = bwEx(e||{name:String(x['種目']||'')});
+/* その日（無ければそれより前で最新）の体重。自分なら体重の記録、選手なら「調子」のメモから */
+function bwOn(n, k){ if(n===SELF_KEY){ const b = lastBW(k); return b ? {w:Number(b.w), date:b.date} : null; }
+  let best = null; srcRows(n).forEach(x=>{ if(String(x['種類'])!=='調子') return; const m = String(x['メモ']||'').match(/体重\s*([\d.]+)\s*kg/); const d = rowDate(x); if(m && d && d<=k && (!best || d>best.date)) best = {w:Number(m[1]), date:d}; }); return best; }
+function dayRowHTML(x){ const done = String(x['種類'])==='記録'; const id = String(x['種目ID']||''); const ep = done ? exPurpose(id, x['セットの内容']) : null; const e = EXMAP[id]; const ex0 = e||{name:String(x['種目']||'')}; const part = partEx(ex0); const bw = bwEx(ex0) && !part;
   const sets = String(x['セットの内容']||'').split(/[,、]\s*/).filter(Boolean); const e1 = Number(x['推定1RM']); const vol = Number(x['動かした重さkg']);
   const head = (done?'実施':'未実施')+'　'+(sets.length?sets.length+'セット':'')+(e1>0?'　推定1RM '+kg(e1)+' kg':'');
   const lines = sets.map((t,i)=>{ const m = t.match(/([\d.]+)\s*kg\s*[×x*]\s*(\d+)/); const r = (t.match(/(\d+)\s*回?\s*$/)||[])[1];
-    return '<li>'+(i+1)+'セット目　'+(m ? kg(m[1])+' kg × '+m[2]+'回' : (r ? (bw?'自分の体重で ':'重さなしで ')+r+'回' : esc(t)))+'</li>'; }).join('');
+    return '<li>'+(i+1)+'セット目　'+(m ? kg(m[1])+' kg × '+m[2]+'回' : (r ? ((bw||part)?'自分の体重で ':'重さなしで ')+r+'回' : esc(t)))+'</li>'; }).join('');
   return '<li class="row" style="grid-template-columns:1fr"><details class="dsd"><summary><strong>'+(done?'✓ ':'✕ ')+esc(x['種目'])+(ep?' <span class="tag">'+PURP[ep].name+'</span>':'')+'</strong><span class="d">'+esc(head)+'</span></summary>'+
     (lines?'<ol class="dsets">'+lines+'</ol>':'<p class="sub">セットの記録はありません。</p>')+
     (e1>0?'<p>推定1RM '+kg(e1)+' kg'+(bw?'<br><span class="sub">体重を負荷として足して計算しています（その日までに記録した最新の体重）。10回以内のセットだけを使います。</span>':'<br><span class="sub">10回以内のセットから、Epley の式で出しています。</span>')+'</p>':(bw&&done?'<p class="sub">体重の記録が無いか、10回を超えるセットだけなので、推定1RMは出していません。</p>':''))+
+    (part&&done?'<p>推定1RMは出していません。<br><span class="sub">腕立て伏せのように、体重の一部しかかからない種目のためです。</span></p>'+(dsh&&dsh.bw?'<p>この日の体重 '+kg(dsh.bw.w)+' kg'+(dsh.bw.date!==dsh.k?'<span class="sub">（'+md(dsh.bw.date)+'の記録）</span>':'')+'</p>':'<p class="sub">体重の記録がありません。</p>'):'')+
     (vol>0?'<p>動かした重さ '+kg(vol)+' kg'+(bw?'<span class="sub">（体重を含む）</span>':'')+'</p>':'')+
     (x['メモ']?'<p>メモ　'+esc(x['メモ'])+'</p>':'')+'</details></li>'; }
 function closeDay(){ $('#sheet').hidden = true; $('#sheet').innerHTML = ''; document.body.classList.remove('lock'); const k = dsh && dsh.k; dsh = null; const b = k && document.querySelector('[data-cday="'+k+'"]'); if(b) b.focus(); }

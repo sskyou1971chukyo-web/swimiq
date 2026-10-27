@@ -235,7 +235,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-26 cool2';
+const APP_VER = '2026-10-27 cool4';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -1621,11 +1621,9 @@ const _coachPZ = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachPZ(); v.html =
 const COOL_DIST = [25,50,75,100,150,200,300,400,500,800];
 function coolOn(d){ return !!(d && d.cool && d.cool.on); }
 function mmss(sec){ sec = Math.round(Number(sec)||0); return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
-function coolData(c){ return {dist:Number(c.dist)||100, reps:Number(c.reps)||1, pace:Number(c.pace)||90, gap:c.gap||'circle', circle:Number(c.circle)||120, rest:Number(c.rest)||20, stroke:Number(c.stroke)||0, hr:!!c.hr}; }
-function gapTxt(c){ return c.gap==='rest' ? '休憩 '+mmss(c.rest) : c.gap==='free' ? '間は選手にまかせる' : 'サークル '+mmss(c.circle); }
-function coolExtra(c){ return [c.stroke>0 ? 'ストローク数 25mで'+c.stroke+'回まで' : c.stroke<0 ? 'ストローク数を数える' : '', c.hr ? '心拍（直後と60秒後）' : ''].filter(Boolean).join('、'); }
+function coolData(c){ return {dist:Number(c.dist)||100, reps:Number(c.reps)||1, pace:Number(c.pace)||90, circle:Number(c.circle)||120}; }
 function coolTgt(c){ return Math.round((Number(c.pace)||0)*(Number(c.dist)||0)/100); }
-function coolTxt(c){ c = coolData(c); return c.dist+'m × '+c.reps+'本　'+gapTxt(c)+'　LT1ペース 100m '+mmss(c.pace)+'（1本 '+mmss(coolTgt(c))+'）　合計 '+(c.dist*c.reps)+'m'+(coolExtra(c)?'　'+coolExtra(c):''); }
+function coolTxt(c){ c = coolData(c); return c.dist+'m × '+c.reps+'本　サークル '+mmss(c.circle)+'　LT1ペース 100m '+mmss(c.pace)+'（1本 '+mmss(coolTgt(c))+'）　合計 '+(c.dist*c.reps)+'m'; }
 function coolOpts(list, cur, fmt){ return list.map(v=>'<option value="'+v+'"'+(Number(cur)===v?' selected':'')+'>'+fmt(v)+'</option>').join(''); }
 const COOL_REFS = [
   ['★★★', 'Greenwood JD, Moses GE, Bernardino FM, Gaesser GA, Weltman A. Intensity of exercise recovery, blood lactate disappearance, and subsequent swimming performance. J Sports Sci. 2008;26:29-34.', 'https://coachsci.sdsu.edu/csa/vol183/greenwoo.htm', '200ヤード全力のあと10分。乳酸閾値の速さで泳ぐと、50%、150%、休むだけより乳酸が下がり、次の200ヤードも速かった。', '研究者の要約ページで読みました。「乳酸閾値」の決め方は要約に書かれておらず、LT1と同じかは確かめられていません。'],
@@ -1649,51 +1647,51 @@ const HR_REFS = [
   ['★★★', 'Heart-rate recovery after warm-up in swimming: a useful predictor of training heart-rate response. Int J Sports Physiol Perform. 2017;12(6):742-748.', 'https://www.iat.uni-leipzig.de/datenbanken/iks/sponet/Record/4044983', '競泳選手13人。ウォーミングアップ後60秒の下がり方は、そのあとの練習の心拍を予測しなかった。同じ速さでも練習中の心拍は日によって大きく違った。', '著者名は確かめられていません。下がり方だけで調子を決めつけない方がよいという、食い違う結果です。']
 ];
 function hrInfoHTML(){ return '<details class="more"><summary>心拍の測り方と根拠</summary><div class="inner">'+
-  '<p>最後の1本を泳ぎ終えた直後の心拍と、60秒休んだあとの心拍を記録します。その差（60秒で何拍下がったか）を、回復の目安として見ます（Daanen ら 2012 のまとめで多く使われていた方法）。</p>'+
+  '<p>最後の1本を泳ぎ終えた直後と、60秒休んだあとの心拍を記録します。その差（60秒で何拍下がったか）を、回復の目安として見ます（Daanen ら 2012 のまとめで多く使われていた方法）。</p><p>心拍は、それぞれ10秒間数え、拍/10秒のまま記録します（1分あたりに直すと6倍）。10秒で数えるのはコーチの決めた方法で、資料で確かめた方法ではありません（仮の設定）。60秒後は、60秒たってから10秒数えます。</p>'+
   '<p>比べるのは、同じ距離、同じ本数、同じペースのクールダウンどうしだけにします。下がり方が大きいほど回復が良いと考えられますが、きつい練習のあとは小さくなりやすく、競泳選手ではウォーミングアップ後の下がり方がその日の練習の心拍を予測しなかった報告もあります。1回の数字で決めつけず、推移で見てください。</p>'+
   '<p class="sub">何拍下がれば良い、という線は、読めた資料には無く、アプリでは決めていません。</p>'+
   '<ul class="rows">'+HR_REFS.map(r=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain" style="white-space:normal"><span aria-label="星'+r[0].length+'つ" style="color:var(--am)">'+r[0]+'</span>　'+esc(r[3])+'<span class="d" style="white-space:normal">'+esc(r[1])+'</span><span class="d" style="white-space:normal">確認の状況　'+esc(r[4])+'</span><a href="'+r[2]+'" target="_blank" rel="noopener">原文のページを開く</a></span></li>').join('')+'</ul></div></details>'; }
-function coolCoachHTML(d){ const c = d.cool||{}; const on = coolOn(d); const cd = coolData(c); const tg = coolTgt(cd); const short = on && cd.gap==='circle' && cd.circle < tg;
+function coolCoachHTML(d){ const c = d.cool||{}; const on = coolOn(d); const cd = coolData(c); const tg = coolTgt(cd); const short = on && cd.circle < tg;
   return '<section class="page" aria-labelledby="pgCool"><h2 id="pgCool" tabindex="-1">プールのクールダウン</h2>'+
     '<label class="f" for="clOn">メニューに入れるか</label><select id="clOn" class="txt"><option value="">入れない</option><option value="1"'+(on?' selected':'')+'>入れる</option></select>'+
     (on ? '<div class="stack two">'+
       '<div><label class="f" for="clDist">距離</label><select id="clDist" class="txt">'+coolOpts(COOL_DIST, cd.dist, v=>v+'m')+'</select></div>'+
       '<div><label class="f" for="clReps">本数</label><select id="clReps" class="txt">'+coolOpts(Array.from({length:20},(_,i)=>i+1), cd.reps, v=>v+'本')+'</select></div>'+
       '<div><label class="f" for="clPace">LT1ペース（100mあたり）</label><select id="clPace" class="txt">'+coolOpts(Array.from({length:121},(_,i)=>60+i), cd.pace, mmss)+'</select></div>'+
-      '<div><label class="f" for="clGap">間の取り方</label><select id="clGap" class="txt"><option value="circle"'+(cd.gap==='circle'?' selected':'')+'>サークル</option><option value="rest"'+(cd.gap==='rest'?' selected':'')+'>休憩</option><option value="free"'+(cd.gap==='free'?' selected':'')+'>選手にまかせる</option></select></div>'+
-      (cd.gap==='circle' ? '<div><label class="f" for="clCircle">サークル</label><select id="clCircle" class="txt">'+coolOpts(Array.from({length:95},(_,i)=>20+i*5), cd.circle, mmss)+'</select></div>' : cd.gap==='rest' ? '<div><label class="f" for="clRest">休憩</label><select id="clRest" class="txt">'+coolOpts(Array.from({length:36},(_,i)=>5+i*5), cd.rest, mmss)+'</select></div>' : '')+
-      '<div><label class="f" for="clStroke">ストローク数</label><select id="clStroke" class="txt"><option value="0">入れない</option><option value="-1"'+(cd.stroke<0?' selected':'')+'>数えるだけ</option>'+coolOpts(Array.from({length:35},(_,i)=>6+i), cd.stroke, v=>'25mで'+v+'回まで')+'</select></div>'+
-      '<div><label class="f" for="clHR">心拍（HR）</label><select id="clHR" class="txt"><option value="">入れない</option><option value="1"'+(cd.hr?' selected':'')+'>測る（直後と60秒後）</option></select></div></div>'+
+      '<div><label class="f" for="clCircle">サークル</label><select id="clCircle" class="txt">'+coolOpts(Array.from({length:95},(_,i)=>20+i*5), cd.circle, mmss)+'</select></div></div>'+
       '<p style="margin-top:12px">'+esc(coolTxt(cd))+'</p>'+
-      (short ? '<p class="note bad">サークル '+mmss(cd.circle)+' が、1本の目安 '+mmss(tg)+' より短いです。</p>' : cd.gap==='circle' ? '<p class="sub">休み 1本あたり およそ '+mmss(cd.circle-tg)+'</p>' : '')+
-      (cd.hr ? hrInfoHTML() : '')+
+      (short ? '<p class="note bad">サークル '+mmss(cd.circle)+' が、1本の目安 '+mmss(tg)+' より短いです。</p>' : '<p class="sub">休み 1本あたり およそ '+mmss(cd.circle-tg)+'</p>')+
+      '<p class="sub">選手は、心拍（直後と60秒後、10秒で数える）、ストローク数、休みのだいたいの秒数を記録します。</p>'+hrInfoHTML()+
       '<p class="sub">LT1ペースは選手ごとに違います。選手ごとに変えるときは、選手ごとに送ってください。</p>' : '')+
     coolInfoHTML()+'</section>'; }
 const _coachCool = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachCool(); const d = draft(); const i = v.html.indexOf('<section class="page'); const j = i<0 ? -1 : v.html.indexOf('<section class="page', i+10);
   const h = coolCoachHTML(d); v.html = j>0 ? v.html.slice(0,j)+h+v.html.slice(j) : v.html+h;
-  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const set = (id, k)=>{ const el = $('#'+id); if(!el) return; el.addEventListener('change',()=>{ d.cool = d.cool||coolData({}); if(k==='on'){ d.cool.on = !!el.value; } else if(k==='hr') d.cool.hr = !!el.value; else d.cool[k] = Number(el.value); save(); render(false); const n = $('#'+id); if(n) n.focus(); say(k==='on' ? (el.value?'プールのクールダウンを入れました':'プールのクールダウンを外しました') : coolTxt(d.cool)); }); };
-    set('clOn','on'); set('clDist','dist'); set('clReps','reps'); set('clPace','pace'); set('clCircle','circle'); set('clRest','rest'); set('clStroke','stroke'); set('clHR','hr'); const gp = $('#clGap'); if(gp) gp.addEventListener('change',()=>{ d.cool.gap = gp.value; save(); render(false); $('#clGap').focus(); say(gapTxt(coolData(d.cool))); });
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const set = (id, k)=>{ const el = $('#'+id); if(!el) return; el.addEventListener('change',()=>{ d.cool = d.cool||coolData({}); if(k==='on'){ d.cool.on = !!el.value; } else d.cool[k] = Number(el.value); save(); render(false); const n = $('#'+id); if(n) n.focus(); say(k==='on' ? (el.value?'プールのクールダウンを入れました':'プールのクールダウンを外しました') : coolTxt(d.cool)); }); };
+    set('clOn','on'); set('clDist','dist'); set('clReps','reps'); set('clPace','pace'); set('clCircle','circle'); 
     const t = $('#clT200'); if(t) t.addEventListener('change',()=>{ db.coolT200 = Number(t.value); save(); render(false); const n = $('#clT200'); if(n){ n.closest('details').open = true; n.focus(); } }); };
   return v; };
 /* 選手の今日の画面：コーチから届いたクールダウンを出す */
 const _todayCool = VIEWS.today; VIEWS.today = ()=>{ const v = _todayCool(); const k = curDay(); const d = day(k); if(!d.cool) return v; const c = coolData(d.cool); const L = d.coolLog||{};
-  const hrOpt = (id, cur, lab)=>'<label class="f" for="'+id+'">'+lab+'</label><select id="'+id+'" class="txt"><option value="">まだ</option>'+coolOpts(Array.from({length:161},(_,i)=>60+i), cur, v=>v+' 拍/分')+'</select>';
-  const hist = c.hr ? Object.keys(db.days).filter(x=>x<k && db.days[x].coolLog && db.days[x].coolLog.hr0 && db.days[x].cool && coolData(db.days[x].cool).dist===c.dist && coolData(db.days[x].cool).reps===c.reps && coolData(db.days[x].cool).pace===c.pace).sort().slice(-5) : [];
+  const cnt = (id, cur, lab)=>'<label class="f" for="'+id+'">'+lab+'</label><select id="'+id+'" class="txt"><option value="">まだ</option>'+coolOpts(Array.from({length:21},(_,i)=>10+i), cur, v=>v+' 拍/10秒')+'</select>';
+  const same = x=>{ const cc = coolData(db.days[x].cool||{}); return cc.dist===c.dist && cc.reps===c.reps && cc.pace===c.pace; };
+  const hist = Object.keys(db.days).filter(x=>x<k && db.days[x].coolLog && db.days[x].coolLog.h0 && db.days[x].coolLog.h60 && db.days[x].cool && same(x)).sort().slice(-5);
   v.html += '<section class="page" aria-labelledby="pgCoolT"><h2 id="pgCoolT" tabindex="-1">最後にプールでクールダウン</h2>'+
-    '<p style="font-size:1.15rem;font-weight:700;margin:6px 0">'+c.dist+'m × '+c.reps+'本　'+esc(gapTxt(c))+'</p>'+
+    '<p style="font-size:1.15rem;font-weight:700;margin:6px 0">'+c.dist+'m × '+c.reps+'本　サークル '+mmss(c.circle)+'</p>'+
     '<p>LT1ペース　100m '+mmss(c.pace)+'　1本の目安 '+mmss(coolTgt(c))+'</p>'+
-    (c.stroke>0 ? '<p>ストローク数　25mで'+c.stroke+'回まで</p>' : c.stroke<0 ? '<p>ストローク数を数えてください</p>' : '')+
-    '<p class="sub">合計 '+(c.dist*c.reps)+'m。コーチから届いたメニューです。</p>'+
-    (c.stroke ? '<label class="f" for="clSt">25mのストローク数（実際）</label><select id="clSt" class="txt"><option value="">まだ</option>'+coolOpts(Array.from({length:45},(_,i)=>4+i), L.stroke, v=>v+'回')+'</select>' : '')+
-    (c.hr ? '<p class="sub" style="margin-top:12px">最後の1本の直後と、60秒休んだあとの心拍を入れてください。</p>'+hrOpt('clH0', L.hr0, '直後の心拍')+hrOpt('clH60', L.hr60, '60秒後の心拍')+
-      (L.hr0 && L.hr60 ? '<p style="font-weight:700;margin-top:10px">60秒で '+(L.hr0-L.hr60)+' 拍下がりました</p>' : '')+
-      (hist.length ? '<p class="sub">同じクールダウンの前の記録　'+hist.map(x=>md(x)+' '+(db.days[x].coolLog.hr0-db.days[x].coolLog.hr60)+'拍').join('、')+'</p>' : '') : '')+
+    '<p class="sub">合計 '+(c.dist*c.reps)+'m。終わったら、下を入れて記録してください。入れない欄があってもかまいません。</p>'+
+    '<h3>心拍（10秒間数える）</h3><p class="sub" style="margin-top:0">最後の1本の直後に10秒、60秒たってからもう一度10秒数えます。</p>'+
+    cnt('clH0', L.h0, '直後')+cnt('clH60', L.h60, '60秒後')+
+    (L.h0 && L.h60 ? '<p style="font-weight:700;margin-top:10px">60秒で '+(L.h0-L.h60)+' 拍/10秒 下がった</p>' : '')+
+    (hist.length ? '<p class="sub">同じクールダウンの前の記録　'+hist.map(x=>md(x)+' '+(db.days[x].coolLog.h0-db.days[x].coolLog.h60)+'拍/10秒').join('、')+'</p>' : '')+
+    '<h3>ストローク数</h3><label class="f" for="clSt">25mのストローク数</label><select id="clSt" class="txt"><option value="">まだ</option>'+coolOpts(Array.from({length:45},(_,i)=>4+i), L.stroke, v=>v+'回')+'</select>'+
+    '<h3>休み</h3><label class="f" for="clRs">1本ごとに、だいたい何秒休めたか</label><select id="clRs" class="txt"><option value="">まだ</option>'+coolOpts(Array.from({length:37},(_,i)=>i*5), L.rest, v=>v+'秒')+'</select>'+
+    '<p class="sub">サークル '+mmss(c.circle)+' で、目安どおりなら休みは およそ '+Math.max(0, c.circle-coolTgt(c))+'秒です。</p>'+
     '<button type="button" class="'+(L.at?'ghost':'cta')+'" id="clDone" style="margin-top:12px">'+(L.at?'記録しました（直したら押し直す）':'クールダウンを記録する')+'</button></section>';
-  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const b = $('#clDone'); if(!b) return;
-    ['clSt','clH0','clH60'].forEach(id=>{ const el = $('#'+id); if(el) el.addEventListener('change',()=>{ d.coolLog = d.coolLog||{}; d.coolLog[{clSt:'stroke',clH0:'hr0',clH60:'hr60'}[id]] = Number(el.value)||null; save(); render(false); const n = $('#'+id); if(n) n.focus(); }); });
-    b.addEventListener('click',()=>{ d.coolLog = d.coolLog||{}; if(c.hr && d.coolLog.hr0 && d.coolLog.hr60 && d.coolLog.hr60>d.coolLog.hr0){ say('60秒後の心拍が直後より高くなっています。確かめてください'); return; } d.coolLog.at = new Date().toISOString(); save(); try{ syncNow(false); }catch(e){} say('クールダウンを記録しました'); render(false); const n = $('#clDone'); if(n) n.focus(); }); };
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const b = $('#clDone'); if(!b) return; const K = {clSt:'stroke', clH0:'h0', clH60:'h60', clRs:'rest'};
+    Object.keys(K).forEach(id=>{ const el = $('#'+id); if(el) el.addEventListener('change',()=>{ d.coolLog = d.coolLog||{}; d.coolLog[K[id]] = el.value==='' ? null : Number(el.value); save(); render(false); const n = $('#'+id); if(n) n.focus(); }); });
+    b.addEventListener('click',()=>{ d.coolLog = d.coolLog||{}; if(d.coolLog.h0 && d.coolLog.h60 && d.coolLog.h60>d.coolLog.h0){ say('60秒後の心拍が直後より多くなっています。確かめてください'); return; } d.coolLog.at = new Date().toISOString(); save(); try{ syncNow(false); }catch(e){} say('クールダウンを記録しました'); render(false); const n = $('#clDone'); if(n) n.focus(); }); };
   return v; };
-function coolLogTxt(d){ const c = coolData(d.cool||{}), L = d.coolLog||{}; return coolTxt(c)+(L.stroke?'　ストローク 25mで'+L.stroke+'回':'')+(L.hr0?'　心拍 直後'+L.hr0+(L.hr60?'、60秒後'+L.hr60+'（'+(L.hr0-L.hr60)+'拍下がった）':''):''); }
+function coolLogTxt(d){ const c = coolData(d.cool||{}), L = d.coolLog||{}; return coolTxt(c)+(L.h0?'　心拍 直後'+L.h0+'拍/10秒'+(L.h60?'、60秒後'+L.h60+'拍/10秒（'+(L.h0-L.h60)+'拍/10秒 下がった）':''):'')+(L.stroke?'　ストローク 25mで'+L.stroke+'回':'')+(L.rest!=null?'　休み だいたい'+L.rest+'秒':''); }
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
 </script>

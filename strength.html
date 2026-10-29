@@ -138,6 +138,16 @@ thead th{background:var(--pane2)}
 #sheet[hidden]{display:none}
 .sheetin{background:#000;border:1px solid #3a3b3d;border-radius:16px 16px 0 0;width:100%;max-width:720px;margin:0 auto;max-height:92vh;overflow:auto;padding:14px 16px calc(24px + env(safe-area-inset-bottom))}
 .sheetin h2{margin:4px 0 8px}
+.vbtcard{border:2px solid #fff;border-radius:14px;padding:14px;margin:10px 0;background:#0d0e0f}
+.vbtcard .k{color:var(--sub);font-weight:700;margin:0;display:flex;align-items:center;gap:8px}
+.vbtcard .msg{font-size:1.3rem;font-weight:700;line-height:1.5;margin:8px 0 4px}
+.vbtcard .mk,.vbtmini .mk{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--c);color:#000;font-size:.85rem;font-weight:800;flex:none}
+.vbtpm{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.vbtpm div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.9rem}
+.vbtpm .p{border-top:3px solid var(--green)}.vbtpm .m{border-top:3px solid var(--red)}
+@media(max-width:420px){.vbtpm{grid-template-columns:1fr}}
+.vbtmini{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin:8px 0}
+.vbtmini .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dsl details.dsd summary{list-style:none;cursor:pointer;display:block;min-height:54px;padding:4px 0}
 .dsl details.dsd summary::-webkit-details-marker{display:none}
 .dsl details.dsd summary strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -235,7 +245,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-10-27 cool4';
+const APP_VER = '2026-10-28 vbt1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -1692,6 +1702,45 @@ const _todayCool = VIEWS.today; VIEWS.today = ()=>{ const v = _todayCool(); cons
     b.addEventListener('click',()=>{ d.coolLog = d.coolLog||{}; if(d.coolLog.h0 && d.coolLog.h60 && d.coolLog.h60>d.coolLog.h0){ say('60秒後の心拍が直後より多くなっています。確かめてください'); return; } d.coolLog.at = new Date().toISOString(); save(); try{ syncNow(false); }catch(e){} say('クールダウンを記録しました'); render(false); const n = $('#clDone'); if(n) n.focus(); }); };
   return v; };
 function coolLogTxt(d){ const c = coolData(d.cool||{}), L = d.coolLog||{}; return coolTxt(c)+(L.h0?'　心拍 直後'+L.h0+'拍/10秒'+(L.h60?'、60秒後'+L.h60+'拍/10秒（'+(L.h0-L.h60)+'拍/10秒 下がった）':''):'')+(L.stroke?'　ストローク 25mで'+L.stroke+'回':'')+(L.rest!=null?'　休み だいたい'+L.rest+'秒':''); }
+/* ============ 動作の速さのコメント（VBT、2026-10-28） ============
+   今日の目的が最大筋力、筋肥大、筋持久力、パワーのとき、今日のメニューのはじめに出す。
+   目的ごとの速さの数字（m/秒の区切り）は資料で確かめられなかったので出さない。
+   20%の線（速さが20%落ちたらセットを終える）は Pareja-Blanco ら 2016 のスクワットの数字。ほかの種目に使うのは仮の設定。 */
+const VBT_REF = {
+  pareja:{st:2, s:'鍛えた男子22人、フルスクワット8週間。セットの中で速さが20%落ちたら終える群と、40%落ちたら終える群を比べた。最大筋力の伸びは同じくらい（18.0%と13.4%、差は無し）で、20%の群は回数が約40%少なかった。垂直跳びは20%の群だけ伸びた（9.5%）。太ももの筋肉の量は40%の群の方が増えた（9.0%と3.4%）が、速い筋線維の割合が減った。', t:'Pareja-Blanco F, Rodríguez-Rosell D, Sánchez-Medina L, ほか. Effects of velocity loss during resistance training on athletic performance, strength gains and muscle adaptations. Scand J Med Sci Sports. 2016（オンライン）. doi:10.1111/sms.12678', w:'人数が少なく、何もしない群がありません。巻とページは確認できていません。競泳選手の研究ではありません。', u:'https://paulogentil.com/pdf/Effects%20of%20velocity%20loss%20during%20resistance%20training%20on%20athletic%20performance,%20strength%20gains%20and%20muscle%20adaptations.pdf', c:'Pareja-Blanco ら 2016'},
+  weakley:{st:2, s:'練習中に速さを伝えると、速さとパワーが最大で10%ほど上がる。1回ごとに伝える方が効果が大きい。ただし速さを求めすぎてフォームが崩れることがある。速さと%1RMの関係は人によって違う。', t:'Weakley J, Mann B, Banyard H, McLaren S, Scott T, Garcia-Ramos A. Velocity-Based Training: From Theory to Application. Strength Cond J. 2020.', w:'巻とページは確認できていません。', u:'https://www.nsca.com/contentassets/7fc346ec744044b6871541e5a6ee5c63/velocity_based_training__from_theory_to.99257.pdf', c:'Weakley ら 2020'}
+};
+const VBT = {
+  strength:{msg:'重くても、上げるときは毎回できるだけ速く。', why:'速さが落ちてきたら、そのセットは終えてかまいません。', refs:['pareja','weakley'], stop:true,
+    detail:'速さが20%落ちたところでセットを終えた群は、40%まで続けた群より回数が約40%少なくても、最大筋力は同じくらい伸び、垂直跳びは20%の群だけ伸びました（Pareja-Blanco ら 2016）。'},
+  hypertrophy:{msg:'上げるときはできるだけ速く。後半に遅くなるのはかまいません。', why:'どこまで続けるかで、得られるものが変わります。下の二つを比べてください。', refs:['pareja','weakley'], pm:true,
+    detail:'速さが40%落ちるまで続けた群は、太ももの筋肉の量が多く増えましたが、速い筋線維の割合が減り、垂直跳びは伸びませんでした（Pareja-Blanco ら 2016）。'},
+  endurance:{msg:'上げるときは速く、下ろすときはコントロール。', why:'この目的について、動作の速さの資料はまだ確認できていません。仮のコメントです。', refs:[]},
+  power:{msg:'1回ごとに最大スピード。遅くなったらすぐやめる。', why:'速さを求めても、フォームは崩さないこと。', refs:['weakley','pareja'], stop:true,
+    detail:'練習中に速さを伝えると、速さとパワーが最大で10%ほど上がり、1回ごとに伝える方が効果が大きいとされます。ただし、速さを求めすぎてフォームが崩れることがあります（Weakley ら 2020）。'}
+};
+const vbtStar = n=>'<span style="color:var(--am)" aria-label="星'+n+'つ">'+'★'.repeat(n)+'☆'.repeat(3-n)+'</span>';
+function vbtHTML(k, d){ const c = VBT[d.purpose]; const P = PURP[d.purpose]; const seen = (db.vbtSeen||{})[k]===d.purpose;
+  if(seen) return '<div class="vbtmini"><span class="mk" style="--c:'+P.color+'" aria-hidden="true">'+P.ch+'</span><span class="t">'+esc(c.msg)+'</span><button type="button" class="ghost sm" id="vbtOpen" aria-label="動作の速さのコメントを開く">開く</button></div>';
+  let h = '<section class="vbtcard" aria-labelledby="vbtT"><p class="k" id="vbtT" tabindex="-1"><span class="mk" style="--c:'+P.color+'" aria-hidden="true">'+P.ch+'</span>今日は'+P.name+'　動作の速さ</p>'+
+    '<p class="msg">'+esc(c.msg)+'</p><p>'+esc(c.why)+'</p>'+
+    (c.refs.length ? '<p class="sub">'+c.refs.map(r=>vbtStar(VBT_REF[r].st)+' '+VBT_REF[r].c).join('　')+'</p>' : '<p class="sub">根拠の資料：確認できていません（仮のコメント）</p>')+
+    (c.pm ? '<div class="vbtpm"><div class="p"><b>速さが40%落ちるまで続ける</b><br>太ももの筋肉の量が多く増えた（9.0%と3.4%）</div><div class="m"><b>弱い点</b><br>速い筋線維が減り、垂直跳びは伸びなかった</div><div class="p"><b>20%落ちたら終える</b><br>垂直跳びが伸び（9.5%）、回数は約40%少ない</div><div class="m"><b>弱い点</b><br>筋肉の量の増え方は小さかった</div></div><p class="sub">どちらもスクワットの研究で、競泳選手ではありません。</p>' : '')+
+    (c.stop ? '<details class="more"><summary>速度計を使う場合</summary><div class="inner"><label class="f" for="vbtV1">1本目の速さ（m/秒）</label><select id="vbtV1" class="txt">'+Array.from({length:28},(_,i)=>((i+3)/20).toFixed(2)).map(v=>'<option value="'+v+'"'+(v===String(db.vbtV1||'0.50')?' selected':'')+'>'+v+' m/秒</option>').join('')+'</select><p id="vbtOut" style="font-weight:700;margin-top:10px" aria-live="polite"></p><p class="sub">速さが1本目から20%落ちたら、そのセットを終える目安です。20%の線はスクワットの研究の数字で、ほかの種目に使うのは仮の設定です。</p></div></details>' : '')+
+    (c.refs.length ? '<details class="more"><summary>理由と根拠の資料</summary><div class="inner">'+(c.detail?'<p>'+esc(c.detail)+'</p>':'')+'<p class="sub">目的ごとの速さの数字（秒速何メートル）は、読めた資料では確かめられず、速さと重さの関係は人によって違うとされるため、出していません。</p>'+
+      c.refs.map(r=>{ const x = VBT_REF[r]; return '<p style="border-top:1px solid var(--line);padding-top:8px">'+vbtStar(x.st)+'　'+esc(x.s)+'<br><span class="sub">'+esc(x.t)+'</span><br><span class="sub">確認の状況　'+esc(x.w)+'</span><br><a href="'+x.u+'" target="_blank" rel="noopener">原文のページを開く</a></p>'; }).join('')+'</div></details>' : '')+
+    '<button type="button" class="cta" id="vbtOk" style="margin-top:12px">わかった、始める</button></section>';
+  return h; }
+const _todayVbt0 = VIEWS.today; VIEWS.today = ()=>{ const v = _todayVbt0(); const a0 = v.after; v.after = ()=>{ if(a0) a0(); const t = $('#tPurp'); if(t) t.addEventListener('change',()=>{ render(false); const n = $('#tPurp'); if(n) n.focus(); }); }; return v; };
+const _todayVbt = VIEWS.today; VIEWS.today = ()=>{ const v = _todayVbt(); const k = curDay(); const d = day(k);
+  if(!d.rows.length || d.finished || !VBT[d.purpose]) return v;
+  const i = v.html.indexOf('aria-labelledby="pg2"'); const j = i<0 ? -1 : v.html.indexOf('</h2>', i); if(j<0) return v;
+  v.html = v.html.slice(0, j+5)+vbtHTML(k, d)+v.html.slice(j+5);
+  const a0 = v.after; v.after = ()=>{ if(a0) a0();
+    const ok = $('#vbtOk'); if(ok) ok.addEventListener('click',()=>{ db.vbtSeen = db.vbtSeen||{}; db.vbtSeen[k] = d.purpose; save(); render(false); const o = $('#vbtOpen'); say('動作の速さ　'+VBT[d.purpose].msg); const f = document.querySelector('#pg2'); if(f) f.focus(); });
+    const op = $('#vbtOpen'); if(op) op.addEventListener('click',()=>{ db.vbtSeen = db.vbtSeen||{}; delete db.vbtSeen[k]; save(); render(false); const t = $('#vbtT'); if(t) t.focus(); });
+    const s = $('#vbtV1'); if(s){ const calc = ()=>{ db.vbtV1 = s.value; save(); $('#vbtOut').textContent = (Number(s.value)*0.8).toFixed(2)+' m/秒 より遅くなったら、そのセットを終える'; }; s.addEventListener('change', calc); $('#vbtOut').textContent = (Number(s.value)*0.8).toFixed(2)+' m/秒 より遅くなったら、そのセットを終える'; } };
+  return v; };
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
 </script>

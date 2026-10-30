@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="app-ver" content="2026.10.24.1">
+<meta name="app-ver" content="2026.10.30.1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SWIMIQ B">
@@ -1091,6 +1091,11 @@ select.rdSel{ width:100%; min-height:54px; padding:6px 12px; border-radius:10px;
 .svWrap h3{ margin:0; font-size:21px; font-weight:900; }
 .svWrap .lead{ margin:4px 0 12px; font-size:13px; font-weight:700; color:var(--dim); line-height:1.6; }
 .sq{ margin:0 0 14px; }
+.svSep{ margin:18px 0 10px; padding-top:10px; border-top:2px solid var(--line);
+  font-size:13px; font-weight:900; color:var(--dim); }
+#svLinkRow{ display:flex; justify-content:flex-end; margin:-8px 0 12px; }
+#svLink{ min-height:36px; padding:4px 12px; border-radius:999px; border:2px solid var(--am);
+  background:transparent; color:var(--am); font-size:13px; font-weight:900; cursor:pointer; }
 .sq .q{ font-size:15px; font-weight:900; margin:0 0 6px; padding-left:9px; border-left:5px solid var(--am); }
 .sq .opts{ display:flex; flex-wrap:wrap; gap:6px; }
 .sq .opts.sc5{ display:grid; grid-template-columns:repeat(5,1fr); }
@@ -2143,6 +2148,7 @@ body.vs #saveBar{ bottom:calc(env(safe-area-inset-bottom) + 76px); }
       <button type="button" id="verChk" data-t="verChkBtn" data-ta="verChkA"></button>
     </div>
   </div>
+  <div id="svLinkRow"><button type="button" id="svLink" data-t="svLink"></button></div>
 
   <div id="upBar" class="hide">
     <b data-t="upNew"></b><span id="upVer"></span>
@@ -4222,6 +4228,8 @@ var W={
  svClose:['やめる','閉じる'],
  svThanks:['ありがとうございました','ご協力ありがとうございました'],
  svNG:['送れませんでした。電波の いい ところで もう一度 おしてください','送信できませんでした。通信状況のよい場所でもう一度お試しください'],
+ svLink:['アンケートは こちら','アンケートはこちら'],
+ svOpt:['ここから下は 書かなくても だいじょうぶです','ここから下は任意です'],
  svNeed:['答えていない ところが あります','未回答の項目があります'],
  svSending:['送っています…','送信中…'],
  svAgain:['もう一度 送る','もう一度送信'],
@@ -9842,32 +9850,28 @@ $('upGo').onclick=function(){
 var SURVEY_URL = 'https://script.google.com/macros/s/AKfycbxwccEfOhQWuzjZe-c8D4fmiuRWcxN5YXj0lNU9Kn73UrVzagSKOROYAjkRstR2Q1JOGA/exec';
 
 var SVQ = [
- { id:'role', q:['あなたは どれですか','あなたの立場'], t:'one',
-   o:[['選手','選手'],['コーチ','コーチ'],['保護者','保護者'],['その他','その他']] },
- { id:'scene', q:['どこで つかいましたか','使った場面'], t:'one',
-   o:[['練習','練習'],['記録会・試合','記録会・試合'],['まだ つかっていない','まだ使っていない']] },
+ { id:'role', q:['あなたは どれですか','あなたの立場'], t:'one', o:[['選手','選手'],['コーチ','コーチ'],['保護者','保護者'],['その他','その他']] },
+ { id:'scene', q:['どこで つかいましたか','使った場面'], t:'one', o:[['練習','練習'],['記録会・試合','記録会・試合'],['まだ つかっていない','まだ使っていない']] },
+ { id:'mins', q:['1本の レースを きろく・分析するのに 何分 かかりましたか','1本のレースを記録・分析するのに、何分くらいかかりましたか'], t:'one',
+   o:[['5分より みじかい','5分未満'],['5〜10分','5〜10分'],['10〜20分','10〜20分'],['20分より ながい','20分以上'],['まだ 分析していない','まだ分析していない']] },
  { id:'easy', q:['そうさは 分かりやすかったですか','操作は分かりやすかったですか'], t:'sc' },
  { id:'see', q:['文字や 数字は 見やすかったですか','文字や数字は見やすかったですか'], t:'sc' },
  { id:'flow', q:['とる → 分析 の ながれは スムーズでしたか','撮影から分析までの流れはスムーズでしたか'], t:'sc' },
  { id:'good', q:['役に立った ところ（いくつでも）','役に立った機能（複数選択可）'], t:'many',
-   o:[['タイム','タイム計測'],['音で スタート','音声スタート'],['ラップ','ラップ'],
-      ['ST・SR','ST・SR'],['動画の 見直し','動画の見直し'],['画像で ほぞん','画像で保存']] },
+   o:[['タイム','タイム計測'],['音で スタート','音声スタート'],['ラップ','ラップ'],['ST・SR','ST・SR'],['動画の 見直し','動画の見直し'],['画像で ほぞん','画像で保存']] },
+ { id:'change', q:['けっかを 見て、れんしゅうや 教え方を かえましたか','SwimIQの結果を見て、指導や練習を変えたことはありますか'], t:'one',
+   o:[['かえた','変えた'],['かえようと 思っている','変えようと思っている'],['かえていない','変えていない']] },
+ { id:'changeWhat', q:['どこを かえましたか（いくつでも・かえていない人は とばして OK）','どこを変えましたか（複数選択可・変えていない人は飛ばしてかまいません）'], t:'many',
+   o:[['ペース','ペース配分'],['かきの テンポ・回数','ストローク（テンポ・かき数）'],['スタート','スタート'],['ターン','ターン'],['れんしゅうメニュー','練習メニュー'],['選手への 声かけ','選手への声かけ']] },
  { id:'again', q:['これからも つかいたいですか','今後も使いたいですか'], t:'sc' },
+ { id:'club', q:['クラブとして お金を はらっても つづけたいですか','クラブとして、費用を払ってでも続けたいですか'], t:'one',
+   o:[['ぜひ つづけたい','ぜひ続けたい'],['条件が あえば つづけたい','条件が合えば続けたい'],['無料なら つづけたい','無料なら続けたい'],['つづけない','続けない'],['わからない','わからない（決める立場ではない）']] },
  { id:'pay', q:['もし 有料なら いくらまで','有料の場合いくらまで'], t:'one',
-   o:[['無料だけ','無料のみ'],['月300円','月300円'],['月500円','月500円'],
-      ['月1000円','月1000円'],['それ以上','それ以上']] },
+   o:[['無料だけ','無料のみ'],['月300円','月300円'],['月500円','月500円'],['月1000円','月1000円'],['それ以上','それ以上']] },
  { id:'want', q:['あったら つかいたい きのう（いくつでも）','あれば使いたい機能（複数選択可）'], t:'many',
-   o:[['2本を ならべて くらべる','2本を並べて比較'],
-      ['前の 記録と くらべる・のびを 見る','過去の記録と比較・伸びを見る'],
-      ['動画に 線や 印を かく','動画に線や印を描く'],
-      ['かきを 自動で 数える','ストロークの自動カウント'],
-      ['選手に そのまま わたす','選手への共有'],
-      ['チームで まとめて 見る','チームでまとめて管理'],
-      ['ターンや とび込みの 分析','ターン・飛び込みの分析'],
-      ['パソコンで 見る・書き出し','パソコンで閲覧・データ書き出し']] },
- { id:'want2', q:['ほかに ほしい きのう（自由に）','ほかに欲しい機能（自由記入）'], t:'text' },
- { id:'free', q:['こまったこと、つかいにくかったこと','困ったこと・使いにくかったこと'], t:'text' },
- { id:'who', q:['お名前（書かなくても だいじょうぶ）','お名前（任意）'], t:'name' }
+   o:[['2本を ならべて くらべる','2本を並べて比較'],['前の 記録と くらべる・のびを 見る','過去の記録と比較・伸びを見る'],['動画に 線や 印を かく','動画に線や印を描く'],['かきを 自動で 数える','ストロークの自動カウント'],['選手に そのまま わたす','選手への共有'],['チームで まとめて 見る','チームでまとめて管理'],['ターンや とび込みの 分析','ターン・飛び込みの分析'],['パソコンで 見る・書き出し','パソコンで閲覧・データ書き出し']] },
+ { id:'free', q:['かえた 教え方の れい、こまったこと、ほしい きのう（自由に・書かなくても OK）','指導が変わった例、困ったこと、欲しい機能（自由記入・任意）'], t:'text' },
+ { id:'who', q:['お名前と クラブ名（書かなくても だいじょうぶ）','お名前・クラブ名（任意）'], t:'name' }
 ];
 var SVA = {};
 try{ SVA = JSON.parse(localStorage.getItem('swimiq_survey')||'{}'); }catch(e){ SVA={}; }
@@ -9879,9 +9883,13 @@ function svScale(i){
   return h+'</div><div class="ends"><span>1 '+w[0]+'</span><span>5 '+w[1]+'</span></div>';
 }
 function svPaint(){
-  var b=$('svBody'); b.innerHTML='';
+  var b=$('svBody'); b.innerHTML=''; var sepDone=false;
   for(var i=0;i<SVQ.length;i++){
     var Q=SVQ[i], d=document.createElement('div'); d.className='sq';
+    if((Q.t==='text'||Q.t==='name') && !sepDone){       /* 文字を書く欄の前に「ここから下は任意」 */
+      sepDone=true; var sp=document.createElement('div'); sp.className='svSep';
+      sp.textContent=T('svOpt'); b.appendChild(sp);
+    }
     var h='<p class="q">'+(MODE==='k'?Q.q[0]:Q.q[1])+'</p>';
     if(Q.t==='sc') h+=svScale(i);
     else if(Q.t==='text') h+='<textarea data-q="'+i+'"></textarea>';
@@ -9927,9 +9935,10 @@ function svMark(){
   try{ localStorage.setItem('swimiq_survey', JSON.stringify(SVA)); }catch(e){}
 }
 $('openSurvey').onclick=function(){ svPaint(); $('survey').classList.remove('hide'); };
+$('svLink').onclick=function(){ svPaint(); $('survey').classList.remove('hide'); };
 $('svCancel').onclick=function(){ $('survey').classList.add('hide'); };
 $('svSend').onclick=function(){
-  var need=['role','scene','easy','see','flow','again','pay'], i;
+  var need=['role','scene','mins','easy','see','flow','change','again','club','pay'], i;
   for(i=0;i<need.length;i++) if(!SVA[need[i]]){ toast(T('svNeed')); return; }
   var btn=this; btn.disabled=true; toast(T('svSending'));
   var body={ at:new Date().toISOString(), ver:APP_VER, mode:MODE,

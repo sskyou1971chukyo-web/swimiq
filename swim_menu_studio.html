@@ -5301,7 +5301,7 @@ function yearBind(){
 /* =====================================================================
    テストとLTの計算（ここだけで計算する。どの画面もPDFも、この関数の答えを使う）
    ===================================================================== */
-const APP_VERSION = '2026.10.30 第1版';
+const APP_VERSION = '2026.10.30 第4版';
 const LT_METHOD = {lt1:'基準＋0.5 第1版', lt2:'2直線の交点 第1版'};
 const LT1_COLOR = '#1e88e5', LT2_COLOR = '#c98a00';
 
@@ -7107,6 +7107,668 @@ if(document.readyState !== 'loading'){ install(); hookShowView(); }
 window.wsDayTip = dayTipText;
 window.renderWeekSchedView = renderWS;
 window.wsParse = {parseMatches, parseWeekly, parseTimetable, timesForCoach, parsePlan, readXlsx};
+})();
+
+/* =====================================================================
+   トレーニング分析：練習・テスト・レースの記録をためて、選手ごとに分析する
+   保存するもの：
+     S.roster    部員名簿 [{sei, mei, kana, grade, sex}]
+     S.trainRec  記録 [{id, date, who, kind:'set'|'max'|'race'|'lactate', dist, reps, cycle, times[], t, hr, steps[], event, raw, src}]
+   根拠：
+     クリティカルスピード … Wakayoshi ほか 1992（距離と時間の回帰直線の傾き）
+     スピードの余力      … Dalamitros ほか 2015（50mと400mの全力の速さの差）
+     乳酸4mmolの速さ     … Wakayoshi ほか 1992 で V-OBLA として使われた
+     最大有酸素スピード  … ECSS 2012 要旨（400mの真ん中300mの平均から推定）※根拠は弱い
+     伸び・停滞・衰退    … Hopkins 2004（意味のある最小の変化＝ぶれの0.3倍、確率で判断）
+                           Pyne・Trewin・Hopkins 2004（レースの大会間のぶれ0.8%）
+   ===================================================================== */
+(function(){
+const g = id => document.getElementById(id);
+const E = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const pad = n => String(n).padStart(2, '0');
+const ymdOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const pY = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const dayN = s => Math.round(pY(s).getTime() / 864e5);
+const md = s => s ? (+s.slice(5, 7)) + '/' + (+s.slice(8)) : '';
+const today = () => ymdOf(new Date());
+const say = (m, ms) => { if(typeof toast === 'function') toast(m, ms); };
+const save = () => { if(typeof saveNow === 'function') saveNow(); };
+const roster = () => { if(!Array.isArray(S.roster)) S.roster = []; return S.roster; };
+const recs = () => { if(!Array.isArray(S.trainRec)) S.trainRec = []; return S.trainRec; };
+const full = r => r.sei + (r.mei ? ' ' + r.mei : '');
+const uid = () => 'tr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+/* ---------- タイム ---------- */
+function z2h(s){ return String(s).replace(/[０-９．：]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)); }
+function tsec(s){
+  s = z2h(String(s)).trim().replace(/[’'′]/g, "'").replace(/[”"″]/g, '"');
+  let m;
+  if((m = /^(\d{1,2}):(\d{1,2}(?:\.\d+)?)$/.exec(s))) return +m[1] * 60 + +m[2];
+  if((m = /^(\d{1,2})'(\d{1,2})"(\d{1,2})$/.exec(s))) return +m[1] * 60 + +m[2] + +('0.' + m[3]);   // 1'05"7（ストップウォッチの書き方）
+  if((m = /^(\d{1,2})'(\d{1,2}(?:\.\d+)?)"?$/.exec(s))) return +m[1] * 60 + +m[2];
+  if((m = /^(\d{1,2})"(\d{1,2})$/.exec(s))) return +m[1] + +('0.' + m[2]);   // 59"8
+  if((m = /^(\d{1,2})[.](\d{2})[.](\d{1,2})$/.exec(s))) return +m[1] * 60 + +m[2] + +('0.' + m[3]);
+  if((m = /^(\d{1,3}\.\d{1,2})$/.exec(s))) return +m[1];
+  return null;
+}
+function fmt(t){ if(t == null || !isFinite(t)) return '—'; const m = Math.floor(t / 60), s = t - m * 60; return m ? m + ':' + s.toFixed(2).padStart(5, '0') : s.toFixed(2); }
+const fv = (u, v) => u === 't' ? fmt(v) : v.toFixed(3) + ' m/秒';
+
+/* ---------- 名簿 ---------- */
+const KANJI = '[\\u4E00-\\u9FFF\\u3005\\u30F6]';
+const NAMECH = '[\\u4E00-\\u9FFF\\u3005\\u30F6\\u3041-\\u3096\\u30A1-\\u30FA\\u30FC]';
+/* ホームページの文字を貼りつけたものから名前を読む。「佐藤 健太（さとう けんた）」「3年 佐藤健太」などに対応 */
+function parseRoster(text){
+  const out = [], seen = new Set();
+  const lines = String(text).replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
+  let grade = null, sex = '';
+  lines.forEach((l, i) => {
+    const gm = /([1-4１-４])\s*年/.exec(l); if(gm) grade = +z2h(gm[1]);
+    if(/男子/.test(l) && l.length < 10) sex = '男'; if(/女子/.test(l) && l.length < 10) sex = '女';
+    if(/(監督|コーチ|部長|顧問|トレーナー|マネージャー|スタッフ)/.test(l) && l.length < 14) return;
+    const m = new RegExp('^(?:[1-4１-４]\\s*年\\s*)?(' + KANJI + '{1,4})[\\s\\u3000]+(' + NAMECH + '{1,6})(?:[\\s\\u3000]*[（(]([\\u3041-\\u3096\\u30A1-\\u30FA\\u30FC\\s\\u3000]+)[）)])?').exec(l);
+    if(!m) return;
+    if(/^(自由形|背泳ぎ|平泳ぎ|バタフライ|個人メドレー|出身|専門|種目|学年|高校)$/.test(m[2])) return;
+    let kana = m[3] || '';
+    if(!kana && lines[i + 1] && /^[ぁ-ゖァ-ヺー\s　]+$/.test(lines[i + 1])) kana = lines[i + 1];
+    const k = m[1] + m[2]; if(seen.has(k)) return; seen.add(k);
+    out.push({sei:m[1], mei:m[2], kana:kana.replace(/　/g, ' ').trim(), grade, sex});
+  });
+  return out;
+}
+/* 名前の候補：名簿＋ピリオダイゼーションの選手一覧 */
+function people(){
+  const list = roster().slice();
+  (Array.isArray(S.athletes) ? S.athletes : []).forEach(a => {
+    if(list.some(r => full(r) === a.name || r.sei + r.mei === a.name.replace(/\s/g, '') || r.mei === a.name)) return;
+    const p = a.name.trim().split(/[\s　]+/);
+    list.push(p.length > 1 ? {sei:p[0], mei:p.slice(1).join(''), kana:'', athlete:true} : {sei:p[0], mei:'', kana:'', athlete:true});
+  });
+  return list;
+}
+function kanaParts(r){ return (r.kana || '').split(/[\s　]+/).filter(Boolean); }
+function matchName(txt){
+  const hit = [];
+  people().forEach(r => {
+    let sc = 0; const kp = kanaParts(r);
+    if(r.mei && (txt.includes(r.sei + r.mei) || txt.includes(r.sei + ' ' + r.mei) || txt.includes(r.sei + '　' + r.mei))) sc = 4;
+    else if(kp.length > 1 && txt.includes(kp.join(''))) sc = 4;
+    else if(r.mei && r.mei.length >= 2 && txt.includes(r.mei)) sc = 2;
+    else if(kp[1] && kp[1].length >= 2 && txt.includes(kp[1])) sc = 2;
+    else if(txt.includes(r.sei) || (kp[0] && kp[0].length >= 2 && txt.includes(kp[0]))) sc = 1;
+    if(sc) hit.push({r, sc});
+  });
+  if(!hit.length) return {state:'none', cands:[]};
+  const top = Math.max(...hit.map(h => h.sc)), best = hit.filter(h => h.sc === top);
+  if(best.length === 1) return {state:'sure', pick:best[0].r, cands:[best[0].r], why:top === 4 ? '苗字と名前が一致' : top === 2 ? '下の名前が一致（一人だけ）' : '苗字が一致（一人だけ）'};
+  return {state:'multi', cands:best.map(h => h.r), why:'同じ' + (top === 1 ? '苗字' : '名前') + 'の人が' + best.length + '人'};
+}
+
+/* ---------- 1行の記録を読む ---------- */
+const STROKE = [[/個人メドレー|個メ|\bIM\b/i, '個人メドレー'], [/バタフライ|\bFly\b|\bBa\b/i, 'バタフライ'], [/背泳|\bBack\b|\bBk\b/i, '背泳ぎ'], [/平泳|\bBr\b|\bBreast\b/i, '平泳ぎ'], [/自由形|\bFr\b|\bFree\b/i, '自由形']];
+function parseDateIn(s, fallback){
+  s = z2h(s); let m;
+  if((m = /(20\d{2})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/.exec(s))) return {d:m[1] + '-' + pad(m[2]) + '-' + pad(m[3]), hit:m[0]};
+  if((m = /(?:^|\s)(\d{1,2})\/(\d{1,2})(?=\s|$|[（(])/.exec(s)) || (m = /(\d{1,2})月(\d{1,2})日/.exec(s))){
+    const t = pY(today()); let y = t.getFullYear(); const mo = +m[1], da = +m[2];
+    if(mo < 1 || mo > 12 || da < 1 || da > 31) return {d:fallback || '', hit:''};
+    const d = new Date(y, mo - 1, da); if(d - t > 60 * 864e5) y--;
+    return {d:y + '-' + pad(mo) + '-' + pad(da), hit:m[0]};
+  }
+  return {d:fallback || '', hit:''};
+}
+function grabTimes(s){ return s.split(/[\s,，、\/]+/).map(tsec).filter(x => x != null && x > 5 && x < 3600); }
+function parseLine(line, ctx){
+  line = z2h(String(line)).replace(/　/g, ' ').replace(/[×xX＊*]/g, '×').trim();
+  if(!line || line.length < 4) return null;
+  const dt = parseDateIn(line, ctx.date); if(dt.d) ctx.date = dt.d;
+  let body = dt.hit ? line.replace(dt.hit, ' ') : line;
+  const mt = matchName(body);
+  let nameTxt = '';
+  if(mt.state !== 'none'){ const r = mt.cands[0]; const ks = [r.sei + ' ' + r.mei, r.sei + r.mei, r.mei, r.sei].concat(kanaParts(r).join('') ? [kanaParts(r).join('')] : []).filter(x => x && x.trim());
+    nameTxt = ks.find(k => body.includes(k)) || ''; }
+  if(!nameTxt){ const w = new RegExp('(' + NAMECH + '{2,8})').exec(body); nameTxt = w && !/全力|乳酸|心拍|レース|試合|大会|ベスト|本目|サイクル|自由形|背泳|平泳|バタフライ|個人メドレー/.test(w[1]) ? w[1] : ''; }
+  if(nameTxt) body = body.replace(nameTxt, ' ');
+  const o = {date:ctx.date || '', nameTxt, raw:line, match:mt, unclear:/読めない数字/.test(line)};
+  body = body.replace(/[（(]読めない数字あり[)）]/g, ' ').replace(/名前不明/g, ' ');
+  let m;
+  const hr = /(?:心拍|HR|ＨＲ)\s*[:：]?\s*(\d{2,3})/i.exec(body); if(hr){ o.hr = +hr[1]; body = body.replace(hr[0], ' '); }
+  if(/乳酸|lactate|\bLa\b/i.test(body) && (m = /(\d{2,4})\s*m?\s*×\s*(\d{1,2})/.exec(body))){
+    o.kind = 'lactate'; o.dist = +m[1];
+    const rest = body.slice(body.indexOf(m[0]) + m[0].length);
+    const parts = rest.split(/[\/／|]/).map(x => x.trim()).filter(Boolean);
+    o.steps = parts.map(p => { const a = p.split(/\s+/); const t = tsec(a[0]); const la = parseFloat(a[1]); return t && isFinite(la) ? {t, la} : null; }).filter(Boolean);
+    o.text = '乳酸のステップテスト ' + o.dist + 'm×' + o.steps.length + '本';
+    if(o.steps.length < 2) o.kind = '?';
+  } else if((m = /(\d{2,4})\s*m?\s*×\s*(\d{1,3})\s*(?:[（(]\s*([^)）]*)\s*[)）]|on\s*([\d:'"]+)|サイクル\s*([\d:'"]+))?/.exec(body))){
+    o.kind = 'set'; o.dist = +m[1]; o.reps = +m[2]; o.cycle = (m[3] || m[4] || m[5] || '').trim();
+    o.times = grabTimes(body.slice(body.indexOf(m[0]) + m[0].length));
+    o.text = o.dist + 'm×' + o.reps + (o.cycle ? '（' + o.cycle + '）' : '') + '　' + o.times.length + '本のタイム' + (o.hr ? '　心拍' + o.hr : '');
+    if(!o.times.length) o.needTimes = true;
+  } else if((m = /(\d{2,4})\s*m(?![a-z])/i.exec(body))){
+    o.dist = +m[1];
+    const rest = body.slice(body.indexOf(m[0]) + m[0].length);
+    const ts = grabTimes(rest);
+    const st = STROKE.find(x => x[0].test(body));
+    if(ts.length){
+      o.t = Math.min(...ts);
+      if(/レース|試合|大会|予選|決勝|タイム決勝|公式/.test(body)){ o.kind = 'race'; o.event = (st ? st[1] : '自由形') ; }
+      else o.kind = 'max';
+      o.stroke = st ? st[1] : '';
+      o.text = (o.kind === 'race' ? 'レース ' + o.dist + 'm' + o.event : o.dist + 'm' + (o.stroke && o.stroke !== '自由形' ? o.stroke : '') + ' 全力') + ' ' + fmt(o.t) + (o.hr ? '　心拍' + o.hr : '');
+    } else { o.kind = '?'; o.headerDist = o.dist; }
+  } else o.kind = '?';
+  if(o.kind === '?') o.text = '記録として読めませんでした';
+  o.who = mt.state === 'sure' ? full(mt.pick) : (ctx.who && !nameTxt ? ctx.who : '');
+  if(mt.state === 'sure') ctx.who = o.who;
+  return o;
+}
+function setText(o){ return (o.dist ? o.dist + 'm' : '距離？') + '×' + o.reps + (o.cycle ? '（' + o.cycle + '）' : '') + '　' + o.times.length + '本のタイム（' + o.times.map(fmt).join(' ') + '）' + (o.hr ? '　心拍' + o.hr : ''); }
+/* 「12　1'05"7」のように、本数とタイムだけが並ぶ行 */
+function blockLine(l){
+  const s = z2h(String(l)).replace(/　/g, ' ').trim(); if(!s) return null;
+  let m = /^(\d{1,3})\s*(?:本目|本)?\s*[.)）:：、]?\s+(\S+)$/.exec(s);
+  if(m){ const t = tsec(m[2]); return t != null && t > 5 ? t : null; }
+  if(!/\s/.test(s)){ const t = tsec(s); return t != null && t > 5 && /['"’”:]/.test(s) ? t : null; }
+  return null;
+}
+function parseText(text, src){
+  const ctx = {date:'', who:''}, out = []; let block = null;
+  const flush = () => {
+    if(!block) return;
+    const prev = out[out.length - 1];
+    if(prev && ((prev.kind === 'set' && prev.needTimes) || (prev.kind === '?' && prev.headerDist))){
+      if(prev.kind === '?'){ prev.kind = 'set'; prev.dist = prev.headerDist; prev.reps = 0; prev.cycle = ''; }
+      prev.times = block.times; prev.needTimes = false; prev.reps = prev.reps || block.times.length;
+      prev.raw += ' / ' + block.raw.join(' / '); prev.text = setText(prev);
+    } else {
+      const o = {date:ctx.date || '', nameTxt:'', raw:block.raw.join(' / '), match:{state:'none', cands:[]}, kind:'set', dist:null, reps:block.times.length, cycle:'', times:block.times, who:ctx.who || '', src, needDist:true, fromBlock:true};
+      o.text = setText(o); out.push(o);
+    }
+    block = null;
+  };
+  String(text).replace(/\r/g, '').split('\n').forEach(l => {
+    const t = blockLine(l);
+    if(t != null){ (block = block || {times:[], raw:[]}).times.push(t); block.raw.push(z2h(l).trim()); return; }
+    flush();
+    const o = parseLine(l, ctx); if(o){ o.src = src; out.push(o); }
+  });
+  flush();
+  out.forEach(o => { if(o.kind === 'set' && o.needTimes){ o.kind = '?'; o.text = 'セットの見出しだけで、タイムが読めませんでした'; } if(o.kind === 'set' && !o.dist) o.needDist = true; });
+  return out.filter(o => o.kind !== '?' || o.match.state !== 'none');
+}
+
+/* ---------- ファイルを読む ---------- */
+function serialToYmd(n){ const d = new Date(Math.round((Math.floor(n) - 25569) * 86400000)); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+function cellTxt(v, isFirst){
+  if(typeof v === 'number'){
+    if(isFirst && v > 20000 && v < 80000) return serialToYmd(v).replace(/-/g, '/');
+    if(v > 0 && v < 1) { const s = v * 86400; return fmt(Math.round(s * 100) / 100); }   // 時刻の形式で入ったタイム
+    return String(Math.round(v * 100) / 100);
+  }
+  return String(v == null ? '' : v).replace(/\n/g, ' ');
+}
+async function readFileLines(f){
+  const n = f.name.toLowerCase(), buf = await f.arrayBuffer();
+  if(/\.xlsx$/.test(n)){
+    if(!window.wsParse || !wsParse.readXlsx) throw new Error('エクセルを読む部品がありません');
+    const x = await wsParse.readXlsx(buf); let txt = '';
+    for(const nm of x.names){ const rows = await x.rows(nm) || []; txt += rows.map(r => r.map((v, i) => cellTxt(v, i < 2)).join(' ')).join('\n') + '\n'; }
+    return txt;
+  }
+  if(/\.(csv|txt|tsv)$/.test(n)){
+    let t = new TextDecoder('utf-8').decode(buf);
+    if(/�/.test(t)) try{ t = new TextDecoder('shift_jis').decode(buf); }catch(_){}
+    return t.replace(/[,\t]/g, ' ');
+  }
+  if(/\.pdf$/.test(n)) return await pdfLines(buf);
+  if(/^image\//.test(f.type) || /\.(png|jpe?g|heic|gif|webp)$/.test(n)) throw new Error('IMG');
+  throw new Error('この形式は読めません');
+}
+async function pdfLines(buf){
+  if(typeof loadInlineLib === 'function'){ loadInlineLib('srcPdfWorker'); loadInlineLib('srcPdf'); }
+  const lib = window.pdfjsLib; if(!lib) throw new Error('PDFを読む部品がありません');
+  if(!window.__cmaps){ try{ window.__cmaps = JSON.parse(g('srcCmaps').textContent); }catch(e){ window.__cmaps = {}; } }
+  class F { async fetch({name}){ const b = window.__cmaps[name]; if(!b) throw new Error('CMap'); return {cMapData:Uint8Array.from(atob(b), c => c.charCodeAt(0)), compressionType:1}; } }
+  const pdf = await lib.getDocument({data:new Uint8Array(buf), isEvalSupported:false, useSystemFonts:true, useWorkerFetch:false, CMapReaderFactory:F, cMapUrl:'inline/', cMapPacked:true}).promise;
+  let out = '';
+  for(let p = 1; p <= pdf.numPages; p++){
+    const tc = await (await pdf.getPage(p)).getTextContent();
+    const rows = [];
+    tc.items.forEach(it => { if(!it.str || !it.str.trim()) return; const y = it.transform[5], x = it.transform[4];
+      let r = rows.find(r => Math.abs(r.y - y) < 3); if(!r){ r = {y, it:[]}; rows.push(r); } r.it.push({x, s:it.str}); });
+    rows.sort((a, b) => b.y - a.y).forEach(r => { out += r.it.sort((a, b) => a.x - b.x).map(i => i.s).join(' ') + '\n'; });
+  }
+  if(!out.trim()) throw new Error('PDFIMG');
+  return out;
+}
+
+/* ---------- 計算 ---------- */
+function linreg(xs, ys){ const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n; let sxy = 0, sxx = 0, syy = 0;
+  xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; syy += (ys[i] - my) ** 2; });
+  const b = sxx ? sxy / sxx : 0; return {b, a:my - b * mx, r2:syy && sxx ? sxy * sxy / (sxx * syy) : 1}; }
+function setStats(t){
+  const so = t.slice().sort((a, b) => a - b), mean = t.reduce((a, b) => a + b) / t.length;
+  const trim = so.length > 2 ? so.slice(1, -1).reduce((a, b) => a + b) / (so.length - 2) : mean;
+  const sd = Math.sqrt(t.reduce((a, b) => a + (b - mean) ** 2, 0) / t.length);
+  const k = Math.max(1, Math.floor(t.length / 3)), f = t.slice(0, k).reduce((a, b) => a + b) / k, l = t.slice(-k).reduce((a, b) => a + b) / k;
+  return {best:so[0], worst:so[so.length - 1], mean, trim, sd, k, drop:l - f};
+}
+const setKey = r => r.dist + 'm×' + r.reps + (r.cycle ? '（' + r.cycle + '）' : '');
+/* ある日を中心に、前後14日以内の全力記録（200〜1500m）からCSを出す */
+function csAt(R, date){
+  const lo = R.filter(r => (r.kind === 'max' || (r.kind === 'race' && (r.event || '自由形') === '自由形')) && r.t && r.dist >= 200 && r.dist <= 1500 && Math.abs(dayN(r.date) - dayN(date)) <= 14 && r.date <= date);
+  const by = {}; lo.forEach(r => { if(!by[r.dist] || r.t < by[r.dist].t) by[r.dist] = r; });
+  const ds = Object.keys(by).map(Number).sort((a, b) => a - b);
+  if(ds.length < 2) return null;
+  const L = linreg(ds.map(d => by[d].t), ds);
+  return {cs:L.b, adc:L.a, r2:L.r2, by, ds};
+}
+function vobla(r){
+  const st = r.steps.map(s => ({v:r.dist / s.t, la:s.la, t:s.t})).sort((a, b) => a.v - b.v);
+  for(let i = 1; i < st.length; i++) if(st[i - 1].la <= 4 && st[i].la >= 4) return {v:st[i - 1].v + (4 - st[i - 1].la) * (st[i].v - st[i - 1].v) / (st[i].la - st[i - 1].la), st};
+  return {v:null, st};
+}
+function ncdf(z){ const t = 1 / (1 + 0.2316419 * Math.abs(z)), d = 0.3989423 * Math.exp(-z * z / 2), p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
+/* 伸び・停滞・衰退：直近4週とその前8週 */
+function judge(h, td){
+  const dd = s => dayN(td) - dayN(s);
+  const rec = h.pts.filter(p => dd(p.d) <= 28 && dd(p.d) >= 0), base = h.pts.filter(p => dd(p.d) > 28 && dd(p.d) <= 84);
+  const res = {rec, base};
+  if(rec.length < 2 || base.length < 2){ res.v = '記録不足'; res.why = '直近4週とその前8週に、それぞれ2回以上の記録が必要です（今は' + rec.length + '回と' + base.length + '回）'; return res; }
+  const m = a => a.reduce((x, p) => x + p.v, 0) / a.length; res.mr = m(rec); res.mb = m(base);
+  let cv = h.cv, cvSrc = 'レースの大会間のぶれ0.8%（Pyne ほか 2004）';
+  if(cv == null){
+    if(h.pts.length < 5){ res.v = '記録不足'; res.why = 'この選手の記録のぶれを出すのに、5回以上の記録が必要です（今は' + h.pts.length + '回）'; return res; }
+    const xs = h.pts.map(p => dayN(p.d)), ys = h.pts.map(p => p.v), L = linreg(xs, ys);
+    const sd = Math.sqrt(ys.reduce((a, y, i) => a + (y - (L.a + L.b * xs[i])) ** 2, 0) / Math.max(1, ys.length - 2));
+    cv = Math.max(0.1, sd / m(h.pts) * 100); cvSrc = 'この選手の記録のぶれ ' + cv.toFixed(2) + '%（' + h.pts.length + '回の記録から）';
+  }
+  const chg = (res.mr - res.mb) / res.mb * 100 * (h.lower ? -1 : 1);
+  const swc = 0.3 * cv, se = cv * Math.sqrt(1 / rec.length + 1 / base.length);
+  const pUp = 1 - ncdf((swc - chg) / se), pDn = ncdf((-swc - chg) / se), pTr = Math.max(0, 1 - pUp - pDn);
+  Object.assign(res, {chg, swc, cv, cvSrc, pUp, pDn, pTr});
+  res.v = pUp >= 0.75 ? '伸び' : pDn >= 0.75 ? '衰退' : pTr >= 0.75 ? '停滞' : 'はっきりしない';
+  res.why = res.v !== 'はっきりしない' ? '' : (pTr >= pUp && pTr >= pDn ? 'ほとんど変わっていないようですが、停滞と言い切るには記録のぶれに対して回数が足りません' : '変化はありそうですが、記録のぶれに対して回数が足りません');
+  return res;
+}
+/* ピリオダイゼーションの期分け（その選手の計画、なければチームの計画） */
+function phaseFn(who){
+  const ath = (Array.isArray(S.athletes) ? S.athletes : []).find(a => a.name === who || a.name.replace(/\s/g, '') === who.replace(/\s/g, '') || who.endsWith(' ' + a.name));
+  const plans = (Array.isArray(S.plans) ? S.plans : []).filter(p => p.weeks && p.weeks.length);
+  const own = plans.filter(p => p.target && p.target.type === 'athlete' && ath && p.target.name === ath.name);
+  const team = plans.filter(p => !(p.target && p.target.type === 'athlete') && (!ath || !ath.team || p.team === ath.team));
+  return d => {
+    for(const p of own.concat(team)){ if(typeof planWeekIndex !== 'function') return null; const i = planWeekIndex(p, d); if(i >= 0){ const w = p.weeks[i]; const ph = (typeof PH !== 'undefined' && PH[w.phase]) || {name:w.phase, color:'#8fa9bf'}; return {name:ph.name, color:ph.color, key:w.phase}; } }
+    return null;
+  };
+}
+
+
+/* ---------- Claudeで読みとる（プロジェクトの指示） ---------- */
+function rosterSig(){ return people().map(r => full(r) + '/' + (r.kana || '')).sort().join('|'); }
+function claudePrompt(){
+  const names = people().map(r => full(r) + (r.kana ? '（' + r.kana + '）' : '') + (r.grade ? '　' + r.grade + '年' : ''));
+  return 'あなたは中京大学水泳部の練習記録を、練習メニューアプリ（MENU STUDIO）に取りこめる文章に書き直す係です。\n' +
+    'この会話で貼られる画像・スクショ・手書きメモの写真・表・文章から、練習やテストやレースの記録を読みとり、下の書き方の決まりどおりに書き直してください。\n\n' +
+    '書き方の決まり\n' +
+    '1行に1つの記録を書く。行の始めは「日付 選手の名前」。\n' +
+    '日付は 10/30 のように書く。日付が書いていないときは、今日の日付にする。\n' +
+    '選手の名前は、下の部員名簿の書き方にそろえる（苗字と名前の間は空白）。苗字だけ、名前だけ、ふりがなだけでも、名簿で一人に決まるならその人の名前にする。名簿にない名前は、読みとれたとおりに書く。\n' +
+    "セットは「100m×10 (1'40) 1:05.2 1:04.8 …」のように、距離×本数、かっこの中にサイクル、そのあとに1本ずつのタイムを空白で区切って並べる。\n" +
+    '全力は「400m 全力 4:39.8」、レースは「200m自由形 レース 2:05.3」と書く。種目は 自由形・背泳ぎ・平泳ぎ・バタフライ・個人メドレー のどれかで書く。\n' +
+    '乳酸は「乳酸 200m×5 2:42.0 1.6 / 2:36.5 2.2 / …」と、1本ごとにタイムと乳酸値を書き、/ で区切る。\n' +
+    '心拍があれば、その行の最後に「心拍 184」と書く。\n' +
+    "タイムは 1:05.7 の形にそろえる（1'05\"7 と書いてあれば 1:05.7 にする。60秒より短いものは 29.85 のように書く）。\n\n" +
+    '守ること\n' +
+    '読めない数字は推測で埋めず、その行の最後に「（読めない数字あり）」と書く。\n' +
+    'どの選手の記録か分からないときは、名前のところに「名前不明」と書く。\n' +
+    '記録以外の説明やあいさつは書かない。書き直した行だけを、一つのコードブロックに入れて返す。\n\n' +
+    '部員名簿（' + names.length + '人）\n' + (names.length ? names.join('\n') : '（まだ登録されていません）') + '\n';
+}
+async function copyTxt(t){
+  try{ await navigator.clipboard.writeText(t); return true; }catch(e){}
+  try{ const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; }catch(e){ return false; }
+}
+function renderClNote(){
+  const box = g('trClNote'); if(!box) return;
+  const url = S.settings.trClaudeUrl || '', sig = S.settings.trPromptSig;
+  let h = '';
+  if(!url) h = '<div class="trWarn">まだ読みとり用のプロジェクトが登録されていません。下の「Claudeの読みとり用プロジェクトの準備」を一度だけしてください。それまでは、押すと指示の文章をコピーしてClaudeの新しい会話を開きます。</div>';
+  else if(sig != null && sig !== rosterSig()) h = '<div class="trWarn">名簿が変わりました。プロジェクトの指示を貼り直してください（下の準備の1から3）。</div>';
+  box.innerHTML = h;
+  if(g('trClUrl') && document.activeElement !== g('trClUrl')) g('trClUrl').value = url;
+}
+
+/* ---------- 画面 ---------- */
+const CSS = `
+#vTrain h2{font-size:20px;margin:18px 0 8px}
+#vTrain h3{font-size:17px;margin:0 0 6px}
+#vTrain .tCard{background:#fff;border:2px solid #16202e;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+#vTrain textarea{width:100%;min-height:140px;font-size:16px;font-family:inherit;border:2px solid #c9d2dd;border-radius:8px;padding:8px}
+#vTrain table.tT{border-collapse:collapse;width:100%;font-size:15px}
+#vTrain table.tT th,#vTrain table.tT td{border-bottom:1px solid #c9d2dd;padding:6px 8px;text-align:left;vertical-align:top}
+#vTrain table.tT th{background:#f2f5f9;font-size:13px;color:#4f5d6e}
+#vTrain td.n{white-space:nowrap}
+#vTrain .ok{color:#1d7a46;font-weight:700}#vTrain .ng{color:#a01818;font-weight:700}#vTrain .mid{color:#8a5a00;font-weight:700}
+#vTrain .tGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+#vTrain .big{font-size:28px;font-weight:700}
+#vTrain .need{margin-top:8px;border-top:1px dashed #c9d2dd;padding-top:6px;font-size:14px}
+#vTrain .src{font-size:13px;color:#4f5d6e;margin-top:6px}
+#vTrain .tag{display:inline-block;border-radius:6px;padding:1px 8px;font-size:13px;font-weight:700;margin-left:6px}
+#vTrain .t-ev{background:#dff3e6;color:#1d7a46}#vTrain .t-gs{background:#fff2cc;color:#8a5a00}#vTrain .t-no{background:#f6dcdc;color:#a01818}
+#vTrain .tWrap{overflow-x:auto}
+#vTrain .trWay{border:2px dashed #c9d2dd;border-radius:10px;padding:10px 12px;flex:1;min-width:280px}
+#vTrain .trWay h3{font-size:16px}
+#vTrain .trCl{background:#c96442;border-color:#c96442;color:#fff;font-size:17px;min-height:50px}
+#vTrain ol.trSteps{padding-left:22px;margin:0}#vTrain ol.trSteps li{margin:8px 0}
+#vTrain .trPre{white-space:pre-wrap;background:#f4f7fb;border:1px solid #c9d2dd;border-radius:8px;padding:10px;font-size:13px;max-height:260px;overflow:auto;font-family:inherit}
+#vTrain .trWarn{background:#fff3cd;border-left:5px solid #e0a800;padding:6px 10px;border-radius:6px;margin-top:6px;font-weight:700}
+`;
+function install(){
+  if(g('vTrain')) return;
+  const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+  const tabs = document.querySelector('.tabs');
+  if(tabs){
+    const b = document.createElement('button'); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', 'false'); b.dataset.view = 'vTrain'; b.textContent = 'トレーニング分析';
+    const after = tabs.querySelector('[data-view="vWeekSched"]') || tabs.querySelector('[data-view="vMenu"]');
+    if(after) after.after(b); else tabs.appendChild(b);
+    b.addEventListener('click', () => { if(typeof showView === 'function') showView('vTrain'); });
+  }
+  const sec = document.createElement('section'); sec.id = 'vTrain'; sec.className = 'view'; sec.setAttribute('aria-label', 'トレーニング分析');
+  sec.innerHTML =
+    '<h2>一、記録を取りこむ</h2><div class="tCard">' +
+      '<div class="row" style="align-items:stretch">' +
+        '<div class="trWay"><h3>画像・スクショ・手書きのメモ・形のばらばらな表</h3><button class="btn trCl" id="trClaude">Claudeで読みとる</button>' +
+        '<p class="muted">読みとり用のClaudeのプロジェクトが開きます。画像を貼って送ると、メモの形の文章が返ってくるので、その下の「コピー」を押してこの画面に戻り、「コピーした文章を貼りつけて読む」を押します。インターネットが必要です。</p><div id="trClNote"></div></div>' +
+        '<div class="trWay"><h3>エクセル・CSV・文字のPDF</h3><input type="file" id="trFile" multiple accept=".xlsx,.csv,.txt,.pdf,image/*" aria-label="エクセル、CSV、PDFのファイルを選ぶ"><p class="muted">このアプリだけで読みます。インターネットはいりません。</p></div>' +
+      '</div>' +
+      '<details id="trClSet" style="margin:10px 0"><summary>Claudeの読みとり用プロジェクトの準備（最初に一度だけ）</summary><div style="padding:8px 4px">' +
+        '<ol class="trSteps"><li>下の「指示の文章をコピー」を押します。名簿の全員の名前と、このアプリの書き方の決まりが入った文章がコピーされます。<div class="row" style="margin-top:6px"><button class="btn primary" id="trPrCopy">指示の文章をコピー</button><button class="btn ghost" id="trPrShow">中身を見る</button></div><pre id="trPrBox" class="trPre" hidden></pre></li>' +
+        '<li>「Claudeを開く」を押し、左の「プロジェクト」から新しいプロジェクトを作ります。名前は「練習記録の読みとり」などにします。<div class="row" style="margin-top:6px"><button class="btn" id="trPrOpen">Claudeを開く</button></div></li>' +
+        '<li>プロジェクトの「指示」（Instructions）の欄に、Command キーを押しながら V で貼りつけて保存します。</li>' +
+        '<li>そのプロジェクトの画面のアドレス（URL）をコピーして、下の欄に貼り、「保存」を押します。<div class="row" style="margin-top:6px"><label class="fld">読みとり用プロジェクトのURL<input type="text" id="trClUrl" style="width:min(480px,80vw)" placeholder="https://claude.ai/project/…"></label><button class="btn primary" id="trClUrlSave">保存</button></div></li></ol>' +
+        '<p class="muted">名簿の名前を変えたり、人を増やしたり消したりしたときは、もう一度1から3をして、指示を貼り直してください。そのときはこの欄の上にお知らせが出ます。</p></div></details>' +
+      '<label class="fld" for="trMemo">メモ（Claudeから返ってきた文章や、声で入力した文をそのまま。1行に1つの記録）</label>' +
+      '<textarea id="trMemo" placeholder="例　10/28 鈴木 100m×10 (1\'40) 1:05.2 1:04.8 1:05.0 …&#10;10/20 鈴木 400m 全力 4:39.8 心拍 188&#10;10/23 鈴木 乳酸 200m×5 2:42.0 1.6 / 2:36.5 2.2 / 2:31.0 3.1 / 2:26.4 4.6 / 2:21.0 8.2&#10;10/25 鈴木 200m個人メドレー レース 2:14.7"></textarea>' +
+      '<div class="row" style="margin-top:8px"><button class="btn primary" id="trPaste">コピーした文章を貼りつけて読む</button><button class="btn" id="trRead">メモを読む</button><span class="muted" id="trReadMsg" role="status" aria-live="polite"></span></div>' +
+      '<details style="margin-top:8px"><summary>書き方の例</summary><p class="muted">日付は 10/28、10月28日、2026/10/28 のどれでも読めます。日付や名前がない行は、上の行と同じ日付・同じ選手として読みます。セットは「100m×10 (1\'40)」のあとにタイムを並べます。全力は「400m 全力 4:39.8」、レースは「200m自由形 レース 2:05.3」のように書きます。乳酸は「乳酸 200m×5」のあとに「タイム 乳酸値」を / で区切って並べます。心拍は「心拍 184」です。</p></details>' +
+    '</div>' +
+    '<h2>二、名前の振り分け（確かめてから保存）</h2><div class="tCard">' +
+      '<p class="muted" style="margin-top:0">名簿の苗字と下の名前（ふりがなも）から判断します。同じ苗字の人が二人以上いるときは「候補が複数」になるので選んでください。</p>' +
+      '<div class="tWrap"><table class="tT"><thead><tr><th>日付</th><th>読みとった名前</th><th>振り分け先</th><th>判定</th><th>内容</th></tr></thead><tbody id="trAssign"><tr><td colspan="5" class="muted">まだ読みこんでいません</td></tr></tbody></table></div>' +
+      '<div class="row" style="margin-top:8px"><button class="btn primary" id="trSave">この内容で記録に保存</button><button class="btn ghost" id="trClear">読みこんだものを消す</button><span class="muted" id="trSaveMsg" role="status" aria-live="polite"></span></div>' +
+    '</div>' +
+    '<h2>三、選手ごとの分析</h2><div class="tCard"><div class="row"><label class="fld">選手<select id="trWho"></select></label><span class="muted" id="trCnt"></span></div></div>' +
+    '<div class="tGrid" id="trAna"></div>' +
+    '<h2>四、伸び・停滞・衰退の判断</h2><div class="tCard"><p class="muted" style="margin-top:0">同じ条件の記録どうし（同じセット、同じ距離の全力、同じ種目のレース）だけを比べます。直近4週の平均とその前の8週の平均の差が、意味のある変化の大きさをこえたかを、その選手自身の記録のぶれを入れて確率で判断します。グラフの背景の色はピリオダイゼーションの期分けです。強い練習の時期の落ちこみを衰退と取り違えないために見てください。</p>' +
+      '<div class="tWrap"><table class="tT"><thead><tr><th>見ているもの</th><th>判断</th><th>直近4週</th><th>その前8週</th><th>変化</th><th>意味のある変化の目安</th><th>確率</th></tr></thead><tbody id="trTrend"></tbody></table></div>' +
+      '<div class="src">根拠：Hopkins（2004、Sportscience）。個人競技で意味のある最小の変化は、ふだんのぶれの0.3倍。変化が本物かは、測定のぶれを入れて確率で判断する。Pyne・Trewin・Hopkins（2004、Journal of Sports Sciences）。五輪選手のレースのタイムのぶれは大会間で0.8%、1年間の伸びは平均約0.9%。判断の線（75%以上で「伸び」「衰退」「停滞」）は、Hopkins の考え方の「たぶん」にあたる水準をあてはめたもの。</div></div>' +
+    '<div class="tGrid" id="trCharts"></div>' +
+    '<h2>五、記録の一覧</h2><div class="tCard"><div class="tWrap" id="trList"></div></div>' +
+    '<h2>六、部員名簿</h2><div class="tCard">' +
+      '<p class="muted" style="margin-top:0">中京大学水泳部のホームページの部員紹介（chukyoswim.com の page_id=35）を開き、ページの文字を全部選んでコピーし、下に貼りつけて「名簿を読む」を押します。ピリオダイゼーションの画面で登録した選手も、名前の候補に入ります。</p>' +
+      '<textarea id="trRosterTxt" placeholder="部員紹介のページの文字をここに貼りつけ"></textarea>' +
+      '<div class="row" style="margin-top:8px"><button class="btn primary" id="trRosterRead">名簿を読む</button><span class="muted" id="trRosterMsg" role="status" aria-live="polite"></span></div>' +
+      '<h3 style="margin-top:12px">1人ずつ手で入れる</h3><div class="row"><label class="fld">苗字<input type="text" id="trRsSei" style="width:110px"></label><label class="fld">名前<input type="text" id="trRsMei" style="width:110px"></label><label class="fld">ふりがな（さとう けんた）<input type="text" id="trRsKana" style="width:170px"></label>' +
+      '<label class="fld">学年<select id="trRsGrade"><option value="">なし</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label><button class="btn primary" id="trRosterAdd">名簿に追加</button></div>' +
+      '<p class="muted">下の一覧の名前やふりがなは、その場で書き直せます。書き直すと自動で保存されます。</p>' +
+      '<div class="tWrap" id="trRoster" style="margin-top:8px"></div>' +
+    '</div>';
+  const anchor = g('vWeekSched') || g('vMenu');
+  if(anchor) anchor.after(sec); else document.body.appendChild(sec);
+  bind();
+}
+
+let PEND = [];
+function renderAssign(){
+  const tb = g('trAssign');
+  if(!PEND.length){ tb.innerHTML = '<tr><td colspan="5" class="muted">振り分けを待っている記録はありません</td></tr>'; return; }
+  const ppl = people();
+  tb.innerHTML = PEND.map((o, i) => {
+    const st = o.kind === '?' ? '<span class="ng">記録として読めない</span>' : o.match.state === 'sure' ? '<span class="ok">確実</span><div class="muted">' + E(o.match.why) + '</div>' : o.match.state === 'multi' ? '<span class="mid">候補が複数</span><div class="muted">' + E(o.match.why) + '</div>' : (o.who ? '<span class="mid">上の行と同じ選手として推定</span>' : '<span class="ng">名簿にない</span>');
+    const first = o.match.cands || [];
+    const opts = first.concat(ppl.filter(r => !first.includes(r)));
+    return '<tr><td class="n"><input type="date" data-trd="' + i + '" value="' + E(o.date) + '" aria-label="日付"></td><td class="n">' + E(o.nameTxt || '（なし）') + '</td><td><select data-tri="' + i + '" aria-label="' + E((o.nameTxt || '名前なし') + 'の振り分け先') + '"><option value="">選んでください</option>' +
+      opts.map(r => '<option' + (full(r) === o.who ? ' selected' : '') + '>' + E(full(r)) + '</option>').join('') + '</select></td><td>' + st + (o.dateGuess ? '<div class="mid">日付がないので今日にしています</div>' : '') + (o.unclear ? '<div class="ng">読めない数字があります。元の画像で確かめてください</div>' : '') + (!o.who && o.kind !== '?' ? '<div class="ng">選手を選んでください</div>' : '') + '</td><td>' + E(o.text) +
+      (o.kind === 'set' ? '<div class="row" style="gap:6px;margin-top:4px"><label class="fld">距離（m）<input type="number" data-trdist="' + i + '" value="' + (o.dist || '') + '" style="width:80px" aria-label="このセットの1本の距離（m）"></label><label class="fld">サイクル<input type="text" data-trcyc="' + i + '" value="' + E(o.cycle || '') + '" style="width:80px" aria-label="このセットのサイクル"></label>' + (o.dist ? '' : '<span class="ng">距離を入れてください</span>') + '</div>' : '') +
+      '<div class="muted">' + E(o.raw.slice(0, 100)) + '</div></td></tr>';
+  }).join('');
+}
+function addPending(list){
+  list.forEach(o => { if(!o.date){ o.date = today(); o.dateGuess = true; } });
+  PEND = PEND.concat(list);
+  const ok = list.filter(o => o.kind !== '?' && o.who && o.match.state === 'sure').length;
+  g('trReadMsg').textContent = list.length + '行を読みました。名前と記録が確実なのは' + ok + '行、確かめが必要なのは' + (list.length - ok) + '行です。';
+  renderAssign();
+}
+function savePending(){
+  const ok = PEND.filter(o => o.who && o.kind !== '?' && o.date && !(o.kind === 'set' && !o.dist));
+  ok.forEach(o => {
+    const r = {id:uid(), date:o.date, who:o.who, kind:o.kind, dist:o.dist, raw:o.raw, src:o.src || 'メモ'};
+    if(o.kind === 'set'){ r.reps = o.reps; r.cycle = o.cycle; r.times = o.times; }
+    if(o.kind === 'max' || o.kind === 'race'){ r.t = o.t; r.stroke = o.stroke || ''; if(o.event) r.event = o.event; }
+    if(o.kind === 'lactate') r.steps = o.steps;
+    if(o.hr) r.hr = o.hr;
+    const dup = recs().find(x => x.who === r.who && x.date === r.date && x.raw === r.raw);
+    if(!dup) recs().push(r);
+  });
+  const left = PEND.length - ok.length;
+  PEND = PEND.filter(o => !ok.includes(o));
+  save(); renderAssign();
+  g('trSaveMsg').textContent = ok.length + '件を保存しました' + (left ? '。選手・日付・距離のどれかが決まっていない、または読めない' + left + '件は残しています' : '');
+  if(ok.length){ const w = ok[ok.length - 1].who; S.settings.trWho = w; }
+  renderTrainBody();
+}
+
+function whoList(){ return [...new Set(recs().map(r => r.who))].sort((a, b) => a.localeCompare(b, 'ja')); }
+function renderTrain(){ renderAssign(); renderRoster(); renderTrainBody(); renderClNote(); }
+function renderTrainBody(){
+  const sel = g('trWho'), names = whoList(); let cur = S.settings.trWho || '';
+  if(!names.includes(cur)) cur = names[0] || '';
+  sel.innerHTML = names.length ? names.map(n => '<option' + (n === cur ? ' selected' : '') + '>' + E(n) + '</option>').join('') : '<option value="">（まだ記録がありません）</option>';
+  const R = recs().filter(r => r.who === cur).sort((a, b) => a.date < b.date ? -1 : 1);
+  g('trCnt').textContent = cur ? '保存されている記録 ' + R.length + '件' : '';
+  renderAna(R); renderTrend(R, cur); renderList(R);
+}
+const need = (ok, t) => '<div class="' + (ok ? 'ok' : 'ng') + '">' + (ok ? 'あり：' : '足りない：') + E(t) + '</div>';
+const tagEv = '<span class="tag t-ev">研究に根拠あり</span>', tagRec = '<span class="tag t-ev">記録そのまま</span>', tagGs = '<span class="tag t-gs">目安（根拠は弱い）</span>', tagNo = '<span class="tag t-no">データ不足</span>';
+function renderAna(R){
+  const box = g('trAna'); if(!R.length){ box.innerHTML = ''; return; }
+  let h = '';
+  // 平均タイム：セットごとの直近
+  const sets = R.filter(r => r.kind === 'set'); const lastBy = {}; sets.forEach(s => lastBy[setKey(s)] = s);
+  h += '<div class="tCard"><h3>平均タイム（練習のセット、種類ごとの最新）' + (sets.length ? tagRec : tagNo) + '</h3>';
+  if(!sets.length) h += '<p>セットの記録がありません。</p>';
+  Object.values(lastBy).slice(-4).forEach(s => { const st = setStats(s.times);
+    h += '<p><b>' + md(s.date) + '　' + E(setKey(s)) + '</b>' + (s.hr ? '　心拍' + s.hr : '') + '</p><table class="tT"><tbody>' +
+      '<tr><th>最高タイム</th><td>' + fmt(st.best) + '</td><th>最低タイム</th><td>' + fmt(st.worst) + '</td></tr>' +
+      '<tr><th>全体の平均</th><td>' + fmt(st.mean) + '</td><th>最高と最低を除いた平均</th><td><b>' + fmt(st.trim) + '</b></td></tr>' +
+      '<tr><th>ばらつき（標準偏差）</th><td>' + st.sd.toFixed(2) + '秒</td><th>最初の' + st.k + '本と最後の' + st.k + '本の差</th><td>' + (st.drop >= 0 ? '+' : '') + st.drop.toFixed(2) + '秒' + (st.drop > 0.8 ? '（後半に落ちた）' : '') + '</td></tr></tbody></table>' +
+      '<div class="need">' + need(s.times.length >= s.reps, '全' + s.reps + '本のタイム（' + s.times.length + '本入力）') + need(!!s.cycle, 'サイクル') + '</div>'; });
+  h += '<div class="src">記録をそのまま数えたもの（平均、最高と最低を除いた平均、標準偏差、前半と後半の差）。</div></div>';
+  // CS
+  const lastD = R[R.length - 1].date, cs = csAt(R, lastD) || (() => { const ds = [...new Set(R.filter(r => r.kind === 'max' && r.dist >= 200).map(r => r.date))].sort().reverse(); for(const d of ds){ const c = csAt(R, d); if(c) return Object.assign(c, {at:d}); } return null; })();
+  const maxs = R.filter(r => r.kind === 'max' && r.dist >= 200 && r.dist <= 1500);
+  h += '<div class="tCard"><h3>クリティカルスピード（CS）' + (cs ? tagEv : tagNo) + '</h3>';
+  if(cs){ h += '<div class="big">' + cs.cs.toFixed(3) + ' m/秒</div><p>100mに直すと <b>' + fmt(100 / cs.cs) + '</b>。距離と時間の直線の切片（無酸素で泳げる距離の目安）は ' + cs.adc.toFixed(1) + 'm。あてはまり R²=' + cs.r2.toFixed(4) + (cs.ds.length === 2 ? '（2距離だけなので必ず1になり、確かさは分かりません。3距離以上あると確かめられます）' : '') + '</p><p class="muted">使った記録：' + cs.ds.map(d => d + 'm ' + fmt(cs.by[d].t) + '（' + md(cs.by[d].date) + '）').join('、') + '</p>'; }
+  else h += '<p>200m〜1500mの全力（自由形のレースも可）が、14日以内に2つ以上の距離でそろうと出せます。</p>';
+  h += '<div class="need">' + need(!!cs, '200m〜1500mの全力タイムが14日以内に2距離以上（今ある距離：' + ([...new Set(maxs.map(r => r.dist))].sort((a, b) => a - b).join('m・') || 'なし') + (maxs.length ? 'm' : '') + '）') +
+    '<div class="muted">心拍だけではCSは出せません。心拍は、同じ速さで泳いだときの心拍が下がっていくかを見る材料に使えます（一般的な見方で、論文では確かめていません）。</div></div>' +
+    '<div class="src">根拠：Wakayoshi ほか（1992、Int J Sports Med）。50〜400mの全力タイムで距離と時間の回帰直線を引き、その傾きをCSとした。プールで出したCSは400mの平均速度と非常に強く相関した（r=0.998）。</div></div>';
+  // 予想ベスト
+  h += '<div class="tCard"><h3>予想ベストタイム' + (cs ? tagEv : tagNo) + '</h3>';
+  if(cs){ const bestOf = d => { const l = R.filter(r => (r.kind === 'max' || r.kind === 'race') && r.dist === d && (!r.stroke || r.stroke === '自由形')).map(r => r.t); return l.length ? Math.min(...l) : null; };
+    h += '<table class="tT"><thead><tr><th>距離</th><th>予想タイム</th><th>今までのベスト（記録の中）</th></tr></thead><tbody>' + [200, 400, 800, 1500].map(d => '<tr><td>' + d + 'm</td><td><b>' + fmt((d - cs.adc) / cs.cs) + '</b></td><td>' + fmt(bestOf(d)) + '</td></tr>').join('') + '</tbody></table><p class="muted">CSの直線から逆算したもの（自由形）。直線を作った距離から遠いほど外れやすく、100m以下には使えません。</p>'; }
+  else h += '<p>CSが出ると出せます。</p>';
+  h += '<div class="need">' + need(!!cs, 'クリティカルスピード') + '</div><div class="src">根拠：上と同じ距離と時間の直線（Wakayoshi ほか 1992）。</div></div>';
+  // 25m
+  const mx = R.filter(r => r.kind === 'max');
+  const best = d => mx.filter(r => r.dist === d).sort((a, b) => a.t - b.t)[0];
+  const r25 = best(25), r50 = best(50), r400 = best(400);
+  h += '<div class="tCard"><h3>25mタイムと最大スピード' + (r25 ? tagRec : tagNo) + '</h3>';
+  if(r25) h += '<div class="big">' + fmt(r25.t) + '</div><p>25mの全力の最高記録（' + md(r25.date) + '）。平均の速さ ' + (25 / r25.t).toFixed(2) + ' m/秒。</p>';
+  else h += '<p>25mの全力タイムがありません。50mや100mから25mを予想する確かな方法は、見つけた研究の中にはありませんでした。</p>';
+  if(r50 && r400) h += '<p><b>スピードの余力</b>（50mの速さ − 400mの速さ）：' + (50 / r50.t - 400 / r400.t).toFixed(3) + ' m/秒</p>';
+  h += '<div class="need">' + need(!!r25, '25mの全力タイム（飛びこみか水中スタートかも書く）') + need(!!(r50 && r400), '50mと400mの全力タイム（スピードの余力に使う）') + '<div class="muted">乳酸からは最大スピードは出せません。最大スピードは短い距離の全力タイムで測ります。</div></div>' +
+    '<div class="src">根拠：Dalamitros ほか（2015、J Strength Cond Res）。50mと400mの全力の速さの差をスピードの余力とし、CSと負の相関、無酸素で泳げる距離と正の相関があった。</div></div>';
+  // 乳酸
+  const lt = R.filter(r => r.kind === 'lactate').slice(-1)[0];
+  h += '<div class="tCard"><h3>乳酸から出す速さ' + (lt ? tagEv : tagNo) + '</h3>';
+  if(lt){ const vo = vobla(lt);
+    h += '<p class="muted">' + md(lt.date) + 'のステップテスト ' + lt.dist + 'm×' + lt.steps.length + '</p><table class="tT"><thead><tr><th>本目</th><th>タイム</th><th>速さ</th><th>乳酸</th></tr></thead><tbody>' + vo.st.map((s, i) => '<tr><td>' + (i + 1) + '</td><td>' + fmt(s.t) + '</td><td>' + s.v.toFixed(3) + '</td><td>' + s.la + '</td></tr>').join('') + '</tbody></table>' +
+      (vo.v ? '<p>乳酸4mmolの速さ（V-OBLA）：<b>' + vo.v.toFixed(3) + ' m/秒</b>（100mに直すと ' + fmt(100 / vo.v) + '）' + (cs ? '。CSとの差 ' + ((vo.v - cs.cs) / cs.cs * 100).toFixed(1) + '%' : '') + '</p>' : '<p>4mmolをはさむ2本がないので、4mmolの速さは出せません。</p>'); }
+  else h += '<p>ステップテスト（速さを上げながら泳ぎ、毎回乳酸を測る）の記録がありません。</p>';
+  if(r400) h += '<p><b>最大有酸素スピードの目安</b>：400m全力の平均 ' + (400 / r400.t).toFixed(3) + ' m/秒' + tagGs + '</p>';
+  h += '<div class="need">' + need(!!lt, 'ステップテストの記録（3本以上、タイムと乳酸）') + need(!!r400, '400mの全力タイム（最大有酸素スピードの目安）') + '</div>' +
+    '<div class="src">根拠：Wakayoshi ほか（1992）は乳酸4mmolの速さ（V-OBLA）も測り、400mの速さとの関係はCSより弱かった。最大有酸素スピード（vVO2max）は、2012年の欧州スポーツ科学会の発表で、400mの全体の平均ではなく真ん中300mの平均の速さから推定できたとされる（学会の要旨で、論文ではない）。</div></div>';
+  box.innerHTML = h;
+}
+/* 伸び・停滞・衰退に使う系列を作る */
+function buildSeries(R){
+  const S2 = [];
+  const sets = {}; R.filter(r => r.kind === 'set' && r.times && r.times.length >= 3).forEach(r => (sets[setKey(r)] = sets[setKey(r)] || []).push({d:r.date, v:setStats(r.times).trim}));
+  Object.keys(sets).forEach(k => S2.push({name:k + '　最高と最低を除いた平均', unit:'t', lower:true, cv:null, pts:sets[k]}));
+  const mx = {}; R.filter(r => r.kind === 'max').forEach(r => { const k = r.dist + 'm' + (r.stroke && r.stroke !== '自由形' ? r.stroke : '') + ' 全力'; (mx[k] = mx[k] || []).push({d:r.date, v:r.t}); });
+  Object.keys(mx).forEach(k => S2.push({name:k, unit:'t', lower:true, cv:null, pts:mx[k]}));
+  const rc = {}; R.filter(r => r.kind === 'race').forEach(r => { const k = r.dist + 'm' + (r.event || '') + ' レース'; (rc[k] = rc[k] || []).push({d:r.date, v:r.t}); });
+  Object.keys(rc).forEach(k => S2.push({name:k, unit:'t', lower:true, cv:0.8, pts:rc[k]}));
+  const csp = []; [...new Set(R.filter(r => (r.kind === 'max' || r.kind === 'race') && r.dist >= 200).map(r => r.date))].sort().forEach(d => { const c = csAt(R, d); if(c && !csp.some(p => p.v === c.cs)) csp.push({d, v:c.cs}); });
+  if(csp.length) S2.push({name:'クリティカルスピード', unit:'v', lower:false, cv:null, pts:csp});
+  const ob = R.filter(r => r.kind === 'lactate').map(r => ({d:r.date, v:vobla(r).v})).filter(p => p.v);
+  if(ob.length) S2.push({name:'乳酸4mmolの速さ', unit:'v', lower:false, cv:null, pts:ob});
+  S2.forEach(s => s.pts.sort((a, b) => a.d < b.d ? -1 : 1));
+  return S2;
+}
+function chart(h, res, ph){
+  const W = 420, H = 170, P = 30, td = today();
+  const xs = h.pts.map(p => dayN(p.d)), ys = h.pts.map(p => p.v);
+  const x0 = Math.min(dayN(td) - 84, ...xs) - 3, x1 = dayN(td) + 2, y0 = Math.min(...ys), y1 = Math.max(...ys), pd = (y1 - y0) * 0.25 || Math.abs(y0) * 0.01 || 0.5;
+  const X = x => P + (x - x0) / (x1 - x0) * (W - P - 8), Y = y => { const t = (y - (y0 - pd)) / ((y1 + pd) - (y0 - pd)); return h.lower ? 8 + t * (H - 30) : H - 22 - t * (H - 30); };
+  let gs = '', last = null;
+  for(let x = x0; x <= x1; x += 7){ const d = ymdOf(new Date(x * 864e5)); const p = ph(d); if(p){ gs += '<rect x="' + X(x) + '" y="0" width="' + (X(x + 7) - X(x)) + '" height="' + (H - 20) + '" fill="' + p.color + '" opacity=".14"/>'; if(!last || last !== p.name){ gs += '<text x="' + (X(x) + 2) + '" y="' + (H - 6) + '" font-size="10" fill="#4f5d6e">' + E(p.name) + '</text>'; last = p.name; } } }
+  gs += '<line x1="' + X(dayN(td) - 28) + '" x2="' + X(dayN(td) - 28) + '" y1="0" y2="' + (H - 20) + '" stroke="#999" stroke-dasharray="2 3"/>';
+  if(res.mb != null) [['mb', '#4f5d6e'], ['mr', '#005bac']].forEach(([k, c]) => { gs += '<line x1="' + P + '" x2="' + (W - 8) + '" y1="' + Y(res[k]) + '" y2="' + Y(res[k]) + '" stroke="' + c + '" stroke-dasharray="4 3"/>'; });
+  gs += '<polyline fill="none" stroke="#16202e" stroke-width="1.5" points="' + xs.map((x, i) => X(x) + ',' + Y(ys[i])).join(' ') + '"/>' + xs.map((x, i) => '<circle cx="' + X(x) + '" cy="' + Y(ys[i]) + '" r="3.5" fill="' + (res.rec && res.rec.includes(h.pts[i]) ? '#005bac' : '#fff') + '" stroke="#16202e"/>').join('');
+  gs += '<text x="2" y="12" font-size="10" fill="#4f5d6e">上ほど良い</text>';
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + E(h.name) + 'の推移。判断は' + E(res.v) + '">' + gs + '</svg>';
+}
+function renderTrend(R, who){
+  const td = today(), ph = phaseFn(who || ''), list = buildSeries(R);
+  if(!list.length){ g('trTrend').innerHTML = '<tr><td colspan="7" class="muted">同じ条件の記録が2回以上たまると判断します。</td></tr>'; g('trCharts').innerHTML = ''; return; }
+  let t = '', c = '';
+  list.forEach(h => { const r = judge(h, td); const cls = r.v === '伸び' ? 'ok' : r.v === '衰退' ? 'ng' : r.v === '停滞' ? 'mid' : 'muted';
+    t += '<tr><td>' + E(h.name) + '</td><td class="' + cls + '">' + r.v + (r.why ? '<div class="muted">' + E(r.why) + '</div>' : '') + '</td><td class="n">' + (r.mr != null ? fv(h.unit, r.mr) : '—') + '</td><td class="n">' + (r.mb != null ? fv(h.unit, r.mb) : '—') + '</td><td class="n">' + (r.chg != null ? (r.chg >= 0 ? '良くなった ' : '悪くなった ') + Math.abs(r.chg).toFixed(2) + '%' : '—') + '</td><td>' + (r.swc != null ? r.swc.toFixed(2) + '%<div class="muted">' + E(r.cvSrc) + 'の0.3倍</div>' : '—') + '</td><td class="n">' + (r.pUp != null ? '伸び ' + Math.round(r.pUp * 100) + '%<br>変わらない ' + Math.round(r.pTr * 100) + '%<br>落ちた ' + Math.round(r.pDn * 100) + '%' : '—') + '</td></tr>';
+    const lp = ph(td);
+    let note = '';
+    if(r.v === '衰退' && lp && ['gen', 'spe', 'acc', 'wv', 'pg'].includes(lp.key)) note = '今は' + lp.name + 'で練習量の多い時期です。疲れで落ちている可能性があるので、量を減らした後の記録で確かめてください。';
+    if(r.v === '衰退' && lp && ['tap', 'race', 'rea'].includes(lp.key)) note = '量を減らす' + lp.name + 'に入っても戻っていません。疲れだけでは説明しにくいので、体調やテストの条件を確かめてください。';
+    if(r.v === '伸び' && h.unit === 't' && !/レース/.test(h.name) && lp && ['tap', 'race'].includes(lp.key)) note = '今は' + lp.name + 'で、練習のタイムは良く出やすい時期です。';
+    c += '<div class="tCard"><h3>' + E(h.name) + '　<span class="' + cls + '">' + r.v + '</span></h3>' + chart(h, r, ph) + '<p class="muted">青い点が直近4週。点線は直近4週（青）とその前8週（灰色）の平均。' + E(note) + '</p></div>';
+  });
+  g('trTrend').innerHTML = t; g('trCharts').innerHTML = c;
+}
+function renderList(R){
+  const box = g('trList');
+  if(!R.length){ box.innerHTML = '<p class="muted">記録はまだありません。</p>'; return; }
+  const kn = {set:'セット', max:'全力', race:'レース', lactate:'乳酸'};
+  box.innerHTML = '<table class="tT"><thead><tr><th>日付</th><th>種類</th><th>内容</th><th>取りこみ元</th><th>操作</th></tr></thead><tbody>' + R.slice().reverse().map(r =>
+    '<tr><td class="n">' + md(r.date) + '</td><td class="n">' + kn[r.kind] + '</td><td>' + E(r.kind === 'set' ? setKey(r) + '　' + r.times.map(fmt).join(' ') : r.kind === 'lactate' ? r.dist + 'm×' + r.steps.length + '　' + r.steps.map(s => fmt(s.t) + '(' + s.la + ')').join(' ') : r.dist + 'm' + (r.event || r.stroke || '') + '　' + fmt(r.t)) + (r.hr ? '　心拍' + r.hr : '') + '</td><td>' + E(r.src || '') + '</td><td><button class="btn small red" data-trdel="' + r.id + '" aria-label="' + md(r.date) + 'の記録を削除">削除</button></td></tr>').join('') + '</tbody></table>';
+}
+function renderRoster(){
+  setTimeout(renderClNote, 0);
+  const L = roster();
+  g('trRoster').innerHTML = L.length ? '<table class="tT"><thead><tr><th>学年</th><th>苗字</th><th>名前</th><th>ふりがな</th><th>記録</th><th>操作</th></tr></thead><tbody>' + L.map((r, i) => { const n = recs().filter(x => x.who === full(r)).length;
+    return '<tr><td><select data-rg="' + i + '" aria-label="' + E(full(r)) + 'の学年"><option value="">なし</option>' + [1, 2, 3, 4].map(k => '<option' + (+r.grade === k ? ' selected' : '') + '>' + k + '</option>').join('') + '</select></td>' +
+      '<td><input type="text" data-rs="' + i + '" value="' + E(r.sei) + '" style="width:90px" aria-label="' + E(full(r)) + 'の苗字"></td><td><input type="text" data-rm="' + i + '" value="' + E(r.mei) + '" style="width:90px" aria-label="' + E(full(r)) + 'の名前"></td>' +
+      '<td><input type="text" data-rk="' + i + '" value="' + E(r.kana || '') + '" style="width:150px" aria-label="' + E(full(r)) + 'のふりがな"></td><td>' + n + '件</td>' +
+      '<td><button class="btn small red" data-rdel="' + i + '" aria-label="' + E(full(r)) + 'を名簿から削除">削除</button></td></tr>'; }).join('') + '</tbody></table><p class="muted">名簿 ' + L.length + '人</p>' : '<p class="muted">名簿はまだ空です（' + (Array.isArray(S.athletes) && S.athletes.length ? 'ピリオダイゼーションの選手' + S.athletes.length + '人は候補に入ります' : '名前の候補がありません') + '）。</p>';
+}
+function bind(){
+  g('trClaude').addEventListener('click', async () => {
+    const url = S.settings.trClaudeUrl;
+    if(url){ window.open(url, '_blank'); say('読みとり用のプロジェクトを開きました。画像を貼って送り、返ってきた文章をコピーしてください', 5000); return; }
+    const ok = await copyTxt(claudePrompt());
+    window.open('https://claude.ai/new', '_blank');
+    say((ok ? '指示の文章をコピーしました。' : '') + 'Claudeの入力欄に Command キーを押しながら V で貼り、画像も貼って送ってください', 6000);
+  });
+  g('trPrCopy').addEventListener('click', async () => {
+    const ok = await copyTxt(claudePrompt());
+    if(ok){ S.settings.trPromptSig = rosterSig(); save(); renderClNote(); say('指示の文章をコピーしました。名簿は' + people().length + '人分入っています'); }
+    else { g('trPrBox').hidden = false; g('trPrBox').textContent = claudePrompt(); say('コピーできませんでした。下に出た文章を選んでコピーしてください', 5000); }
+  });
+  g('trPrShow').addEventListener('click', () => { const b = g('trPrBox'); b.hidden = !b.hidden; b.textContent = claudePrompt(); g('trPrShow').textContent = b.hidden ? '中身を見る' : '中身を閉じる'; });
+  g('trPrOpen').addEventListener('click', () => window.open('https://claude.ai/projects', '_blank'));
+  g('trClUrlSave').addEventListener('click', () => {
+    const v = g('trClUrl').value.trim();
+    if(v && !/^https:\/\/claude\.ai\//.test(v)){ say('https://claude.ai/ で始まるアドレスを貼ってください', 5000); return; }
+    S.settings.trClaudeUrl = v; save(); renderClNote(); say(v ? '読みとり用のプロジェクトを登録しました。これからは「Claudeで読みとる」で開きます' : '登録を消しました');
+  });
+  g('trPaste').addEventListener('click', async () => {
+    let t = '';
+    try{ t = await navigator.clipboard.readText(); }catch(e){}
+    if(!t || !t.trim()){ say('貼りつけの許可がありませんでした。メモ欄を押して、Command キーを押しながら V で貼り、「メモを読む」を押してください', 7000); g('trMemo').focus(); return; }
+    t = t.replace(/^```[^\n]*\n?/gm, '').replace(/```/g, '');
+    g('trMemo').value = t; addPending(parseText(t, 'Claude'));
+  });
+  g('trRead').addEventListener('click', () => { const t = g('trMemo').value.replace(/^```[^\n]*\n?/gm, '').replace(/```/g, ''); if(!t.trim()){ say('メモ欄に記録を入れてください'); return; } addPending(parseText(t, 'メモ')); });
+  g('trFile').addEventListener('change', async e => {
+    const fs = [...e.target.files]; e.target.value = '';
+    for(const f of fs){
+      g('trReadMsg').textContent = f.name + 'を読んでいます…';
+      try{ addPending(parseText(await readFileLines(f), f.name)); }
+      catch(err){ const m = err && err.message;
+        g('trReadMsg').textContent = m === 'IMG' ? f.name + 'は画像なので、このアプリでは文字を読めません。Macで画像を開き、文字を選んでコピーして、メモ欄に貼りつけてください。' : m === 'PDFIMG' ? f.name + 'は写真のPDFで、文字が入っていません。Macのプレビューで開いて文字をコピーし、メモ欄に貼りつけてください。' : f.name + 'を読めませんでした。' + (m || ''); }
+    }
+  });
+  g('trAssign').addEventListener('change', e => {
+    const s = e.target.closest('[data-tri]'); if(s){ PEND[+s.dataset.tri].who = s.value; return; }
+    const d = e.target.closest('[data-trd]'); if(d){ PEND[+d.dataset.trd].date = d.value; PEND[+d.dataset.trd].dateGuess = false; return; }
+    const ds = e.target.closest('[data-trdist]'); if(ds){ const o = PEND[+ds.dataset.trdist]; o.dist = +ds.value || null; o.needDist = !o.dist; o.text = setText(o); renderAssign(); return; }
+    const cy = e.target.closest('[data-trcyc]'); if(cy){ const o = PEND[+cy.dataset.trcyc]; o.cycle = cy.value.trim(); o.text = setText(o); renderAssign(); }
+  });
+  g('trSave').addEventListener('click', savePending);
+  g('trClear').addEventListener('click', () => { PEND = []; renderAssign(); g('trReadMsg').textContent = ''; g('trSaveMsg').textContent = '読みこんだものを消しました'; });
+  g('trWho').addEventListener('change', () => { S.settings.trWho = g('trWho').value; save(); renderTrainBody(); });
+  g('trList').addEventListener('click', e => { const b = e.target.closest('[data-trdel]'); if(!b) return; if(!confirm('この記録を削除します。よろしいですか。')) return; S.trainRec = recs().filter(r => r.id !== b.dataset.trdel); save(); renderTrainBody(); say('削除しました'); });
+  g('trRosterRead').addEventListener('click', () => {
+    const L = parseRoster(g('trRosterTxt').value);
+    if(!L.length){ g('trRosterMsg').textContent = '名前を読みとれませんでした。「佐藤 健太」のように苗字と名前の間に空白がある形で読みます。'; return; }
+    let add = 0; L.forEach(r => { const ex = roster().find(x => x.sei === r.sei && x.mei === r.mei); if(ex){ if(r.kana) ex.kana = r.kana; if(r.grade) ex.grade = r.grade; } else { roster().push(r); add++; } });
+    save(); renderRoster(); g('trRosterMsg').textContent = L.length + '人を読みとり、' + add + '人を新しく入れました。名前がまちがっていないか一覧で確かめてください。';
+  });
+  g('trRosterAdd').addEventListener('click', () => {
+    let sei = g('trRsSei').value.trim(), mei = g('trRsMei').value.trim();
+    if(sei && !mei && /[\s\u3000]/.test(sei)){ const p = sei.split(/[\s\u3000]+/); sei = p[0]; mei = p.slice(1).join(''); }
+    if(!sei){ say('苗字を入れてください'); g('trRsSei').focus(); return; }
+    if(roster().some(x => x.sei === sei && x.mei === mei)){ say('もう名簿にあります'); return; }
+    roster().push({sei, mei, kana:g('trRsKana').value.trim().replace(/\u3000/g, ' '), grade:+g('trRsGrade').value || null}); save(); renderRoster();
+    ['trRsSei', 'trRsMei', 'trRsKana'].forEach(id => g(id).value = ''); g('trRsGrade').value = ''; g('trRsSei').focus();
+    say(sei + (mei ? ' ' + mei : '') + 'さんを名簿に入れました');
+  });
+  g('trRoster').addEventListener('change', e => {
+    const t = e.target, L = roster(); let i, k;
+    if(t.dataset.rs != null){ i = +t.dataset.rs; k = 'sei'; } else if(t.dataset.rm != null){ i = +t.dataset.rm; k = 'mei'; } else if(t.dataset.rk != null){ i = +t.dataset.rk; k = 'kana'; } else if(t.dataset.rg != null){ i = +t.dataset.rg; k = 'grade'; } else return;
+    const r = L[i]; if(!r) return; const old = full(r);
+    const v = k === 'grade' ? (+t.value || null) : t.value.trim();
+    if(k === 'sei' && !v){ t.value = r.sei; say('苗字は空にできません'); return; }
+    r[k] = v;
+    const nw = full(r);
+    if(old !== nw){ const n = recs().filter(x => x.who === old); if(n.length && confirm('この選手の記録' + n.length + '件の名前も「' + nw + '」に変えますか。')) n.forEach(x => x.who = nw); if(S.settings.trWho === old) S.settings.trWho = nw; }
+    save(); renderRoster(); renderTrainBody(); say('名簿を直しました');
+  });
+  g('trRoster').addEventListener('click', e => { const b = e.target.closest('[data-rdel]'); if(!b) return; const r = roster()[+b.dataset.rdel]; if(!confirm(full(r) + 'さんを名簿から削除します。記録は残ります。')) return; roster().splice(+b.dataset.rdel, 1); save(); renderRoster(); say(full(r) + 'さんを名簿から削除しました'); });
+}
+function hook(){
+  if(typeof showView !== 'function' || showView.__tr) return;
+  const orig = showView;
+  const w = function(id){ const r = orig.apply(this, arguments); if(id === 'vTrain') renderTrain(); return r; };
+  w.__tr = true; w.__ws = orig.__ws; window.showView = w; try{ showView = w; }catch(_){}
+}
+
+if(document.querySelector('.tabs')) install();
+document.addEventListener('DOMContentLoaded', () => { install(); setTimeout(hook, 0); });
+window.trainParse = {parseLine, parseText, parseRoster, matchName, judge, csAt, tsec};
 })();
 
 /* =====================================================================

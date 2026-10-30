@@ -5301,7 +5301,7 @@ function yearBind(){
 /* =====================================================================
    テストとLTの計算（ここだけで計算する。どの画面もPDFも、この関数の答えを使う）
    ===================================================================== */
-const APP_VERSION = '2026.10.13 第1版';
+const APP_VERSION = '2026.10.30 第1版';
 const LT_METHOD = {lt1:'基準＋0.5 第1版', lt2:'2直線の交点 第1版'};
 const LT1_COLOR = '#1e88e5', LT2_COLOR = '#c98a00';
 
@@ -6382,6 +6382,732 @@ function backupLoad(file){
   };
   r.readAsText(file);
 }
+
+/* =====================================================================
+   週間スケジュールの画面（チーム・選手個人）、ピリオダイゼーションとの連携、
+   年間スケジュールの日付にカーソルを置くと練習予定が出る仕組み、
+   スタッフ共有用スプレッドシート（.xlsx）からの取りこみ
+   保存するもの：
+     S.wsPlan               日付ごとの練習予定 {'2026-10-26':{AM:{plan,note,ev,visit}, PM:{...}}}
+     S.settings.wsCoach     取りこむときに選んだコーチ
+     S.athletes[].wpat      選手個人の週間パターン [[朝,午後]×7]（水中・WT・水中＋WT・OFF）
+   ===================================================================== */
+(function(){
+const g = id => document.getElementById(id);
+const E = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const DN = ['月','火','水','木','金','土','日'];
+const pad = n => String(n).padStart(2, '0');
+const ymdOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const pYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addD = (s, n) => { const d = pYmd(s); d.setDate(d.getDate() + n); return ymdOf(d); };
+const monOf = s => { const d = pYmd(s); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return ymdOf(d); };
+const md = s => (+s.slice(5, 7)) + '/' + (+s.slice(8));
+const mdJ = s => (+s.slice(5, 7)) + '月' + (+s.slice(8)) + '日';
+const today = () => ymdOf(new Date());
+const say = (m, ms) => { if(typeof toast === 'function') toast(m, ms); };
+const save = () => { if(typeof saveNow === 'function') saveNow(); };
+const clk = t => { const m = /(\d{1,2})\s*[:：]\s*(\d{2})/.exec(t || ''); return m ? (+m[1]) + ':' + m[2] : ''; };
+const clkSec = t => { const m = /(\d{1,2}):(\d{2})/.exec(t || ''); return m ? +m[1] * 3600 + +m[2] * 60 : -1; };
+const isAM = t => { const s = clkSec(t); return s >= 0 && s < 12 * 3600; };
+const holName = d => (typeof holidayName === 'function' ? holidayName(d) : '');
+const PAT_OPTS = ['水中', 'WT', '水中＋WT', 'OFF'];
+
+function wsPlan(){ if(!S.wsPlan || typeof S.wsPlan !== 'object') S.wsPlan = {}; return S.wsPlan; }
+function sched(){ return typeof weekSched === 'function' ? weekSched() : (S.settings.weekSched || [[],[],[],[],[],[],[]]); }
+function athList(){ if(!Array.isArray(S.athletes)) S.athletes = []; return S.athletes; }
+function poolShort(p){ return /短|SC/i.test(p || '') ? 'SC' : /長|LC/i.test(p || '') ? 'LC' : ''; }
+
+/* ---------- スプレッドシートの「Swim2h(LC)*2」などを読む ---------- */
+function parsePlan(p){
+  p = String(p || '').trim();
+  if(!p) return null;
+  if(/^off\b/i.test(p) && !/swim/i.test(p)) return {off:true, text:p};
+  const m = /Swim\s*([\d.]+)\s*(h|min)\s*\(\s*(LC|SC|LC\s*or\s*SC)\s*\)\s*(\*\s*(\d+))?/i.exec(p);
+  if(!m) return {text:p};
+  const pool = /or/i.test(m[3]) ? 'LCかSC' : m[3].toUpperCase();
+  const dur = (m[2].toLowerCase() === 'h' ? m[1] + '時間' : m[1] + '分') + (m[5] ? ' ×' + m[5] : '');
+  const durS = m[1] + (m[2].toLowerCase() === 'h' ? 'h' : 'min') + (m[5] ? ' ×' + m[5] : '');
+  const extra = p.replace(m[0], '').replace(/^[\s+＋*]+/, '').trim();
+  return {pool, dur, durS, extra};
+}
+
+/* ---------- ある日の午前・午後の中身をまとめる ---------- */
+function slotInfo(date, ap){
+  const wd = (pYmd(date).getDay() + 6) % 7;
+  const times = (sched()[wd] || []).filter(s => (ap === 'AM') === isAM(clk(s.start)));
+  const o = (wsPlan()[date] || {})[ap] || null;
+  const p = o ? parsePlan(o.plan) : null;
+  const menus = S.menus ? Object.values(S.menus).filter(m => m.date === date && (ap === 'AM') === isAM(clk(m.start) || '6:00')) : [];
+  const has = menus.some(m => typeof menuHasContent === 'function' ? menuHasContent(m) : (m.panels || []).some(x => (x.text || '').trim()));
+  const practice = !(p && p.off) && (times.length > 0 || (p && (p.pool || p.text)));
+  return {date, ap, wd, times, o, p, has, practice};
+}
+/* 年間スケジュールの吹き出し用の短い文 例：AM 6:20(LC)　2h */
+function slotShort(date, ap){
+  const x = slotInfo(date, ap);
+  if(x.p && x.p.off) return ap + ' OFF';
+  if(x.p && x.p.text) return ap + ' ' + x.p.text;
+  if(!x.times.length && !x.p) return '';
+  const t = x.times.length ? clk(x.times[0].start) : '時刻未設定';
+  const pool = x.p ? x.p.pool : poolShort(x.times[0] && x.times[0].pool);
+  return ap + ' ' + t + (pool ? '(' + pool + ')' : '') + (x.p ? '　' + x.p.durS + (x.p.extra ? '＋' + x.p.extra : '') : '');
+}
+function dayTipText(date){
+  const parts = [slotShort(date, 'AM'), slotShort(date, 'PM')].filter(Boolean);
+  const o = wsPlan()[date] || {};
+  const notes = [];
+  ['AM', 'PM'].forEach(ap => { const z = o[ap]; if(!z) return; if(z.note) notes.push('コーチ：' + z.note); if(z.ev) notes.push(z.ev); });
+  const evs = typeof yItems === 'function' ? yItems().filter(x => x.start <= date && x.end >= date).map(x => x.title) : [];
+  const uniq = [...new Set(notes.concat(evs))];
+  return {main:parts.length ? parts.join(' / ') : '練習の予定なし', sub:uniq.join('、')};
+}
+
+/* ---------- ピリオダイゼーション ---------- */
+function plansFor(target, date){
+  if(!Array.isArray(S.plans)) return [];
+  return S.plans.filter(p => {
+    if(!p.weeks || !p.weeks.length || typeof planWeekIndex !== 'function' || planWeekIndex(p, date) < 0) return false;
+    const ath = p.target && p.target.type === 'athlete';
+    if(target.type === 'athlete') return ath && p.target.name === target.name;
+    if(ath) return false;
+    return target.team ? p.team === target.team : true;
+  }).sort((a, b) => pri(b) - pri(a));
+  function pri(p){ const k = typeof planKey === 'function' ? planKey(p) : ''; return (S.activePlans && S.activePlans[k] === p.id ? 2 : 0) + (p.id === S.activePlanId ? 1 : 0); }
+}
+function teamPlan(team, date){ const l = plansFor({type:'team', team}, date); return l[0] || null; }
+function personalPlan(name, date){ const l = plansFor({type:'athlete', name}, date); return l[0] || null; }
+function phaseOf(plan, date){
+  const i = planWeekIndex(plan, date); const w = plan.weeks[i];
+  const ph = (typeof PH !== 'undefined' && PH[w.phase]) || {name:w.phase, color:'#5b6672'};
+  return {i, w, name:ph.name, color:ph.color};
+}
+function microMap(plan, date){
+  const out = {};
+  if(!plan || typeof microSessions !== 'function') return out;
+  try{
+    const i = planWeekIndex(plan, date);
+    microSessions(plan, i).forEach(s => { out[s.date + (s.am ? 'AM' : 'PM')] = s; });
+  }catch(e){}
+  return out;
+}
+function microText(s){
+  const zn = (typeof ZMAP !== 'undefined' && ZMAP[s.zone]) ? ZMAP[s.zone].name : s.zone;
+  const head = s.type === 'key' ? '重点 ' + s.zone + '（' + zn + '）' : s.type === 'rec' ? '回復と技術' : '有酸素と技術（' + s.zone + '）';
+  return head + '　' + (Math.round(s.km / 100) / 10) + 'km';
+}
+
+/* ---------- 画面の部品を入れる ---------- */
+const CSS = `
+#vWeekSched .wsBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+#vWeekSched .wsTtl{font-size:20px;font-weight:700;margin:0 6px}
+.wsPhb{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.wsPh{background:#fff;border:2px solid #16202e;border-radius:10px;padding:8px 12px;flex:1;min-width:280px}
+.wsPh .k{font-size:13px;color:#4f5d6e;font-weight:700}
+.wsTag{display:inline-block;color:#fff;font-weight:700;border-radius:6px;padding:2px 10px;margin-right:6px}
+.wsWrap{overflow-x:auto}
+table.wsT{width:100%;min-width:860px;border-collapse:separate;border-spacing:0;background:#fff;border:2px solid #16202e;border-radius:10px;table-layout:fixed}
+table.wsT th,table.wsT td{border-right:1px solid #c9d2dd;border-bottom:1px solid #c9d2dd;vertical-align:top;padding:6px}
+table.wsT thead th{background:#f4f7fb;font-size:16px;padding:8px 6px}
+table.wsT thead th.off{background:#e3e3e3}
+table.wsT thead th.today{background:#ffbf00}
+table.wsT tbody th{width:64px;background:#f4f7fb;font-size:15px}
+.wsSlot{display:block;width:100%;text-align:left;border:2px solid #c9d2dd;border-radius:8px;background:#fff;padding:6px 8px;cursor:pointer;font:inherit;color:inherit;margin-bottom:4px}
+.wsSlot:hover,.wsSlot:focus-visible{border-color:#005bac;background:#eef5fd;outline:3px solid #005bac;outline-offset:1px}
+.wsSlot .t{font-size:18px;font-weight:700}
+.wsP{display:inline-block;border-radius:5px;padding:0 6px;font-size:13px;font-weight:700;margin-left:4px;background:#dbe8ff;color:#0b4a9a}
+.wsP.SC{background:#ffefc2;color:#8a5a00}
+.wsSlot .d{font-size:15px}
+.wsSlot.has{border-color:#1d7a46}
+.wsSlot .mk{font-size:12px;color:#1d7a46;font-weight:700}
+.wsOff{display:block;border:2px dashed #999;border-radius:8px;background:#f2f2f2;color:#666;padding:6px 8px;font-weight:700;margin-bottom:4px}
+.wsWT{display:block;border:2px solid #7a1f7a;border-radius:8px;background:#f7ecf7;padding:6px 8px;font-weight:700;color:#5b145b;margin-bottom:4px}
+.wsMi{font-size:13px;margin-top:3px;padding:2px 6px;border-radius:4px;background:#eef5fd;color:#0b4a9a;font-weight:700}
+.wsMi.key{background:#fde7e7;color:#a01818}.wsMi.rec{background:#eef1f5;color:#4a5560}
+.wsEv{font-size:13px;background:#fff8e6;border-left:4px solid #e0b400;padding:2px 6px;margin-top:4px;border-radius:4px}
+.wsRace{font-size:13px;font-weight:700;padding:3px 6px;border:1.5px solid #16202e;border-radius:5px;margin-bottom:4px}
+.wsDif{font-size:12px;color:#a01818;font-weight:700}
+.wsNote{font-size:13px;color:#4f5d6e}
+table.wsPat{border-collapse:collapse;margin-top:6px;background:#fff}
+table.wsPat th,table.wsPat td{border:1px solid #c9d2dd;padding:4px 6px;text-align:center}
+table.wsPat select{font-size:15px;height:36px}
+#ysTip{position:fixed;z-index:300;background:#16202e;color:#fff;border-radius:8px;padding:8px 12px;font-size:16px;font-weight:700;max-width:360px;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.3);line-height:1.5}
+#ysTip small{display:block;font-weight:400;font-size:13px;color:#d8e2ee}
+#ysTip[hidden]{display:none}
+table.wsImp{width:100%;border-collapse:collapse;font-size:14px}
+table.wsImp th,table.wsImp td{border-bottom:1px solid #c9d2dd;padding:4px 6px;text-align:left;vertical-align:top}
+table.wsImp td.nw,table.wsImp th.nw{white-space:nowrap}
+table.wsImp th{background:#f2f5f9;font-size:13px}
+.wsImpSec{margin-top:14px;border-top:2px solid #16202e;padding-top:8px}
+.wsImpSec h3{margin:0 0 6px;font-size:17px}
+`;
+function install(){
+  if(g('vWeekSched')) return;
+  const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+  // 画面切り替えのボタン（メニュー作成のすぐ後）
+  const tabs = document.querySelector('.tabs');
+  if(tabs){
+    const b = document.createElement('button');
+    b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', 'false'); b.dataset.view = 'vWeekSched'; b.textContent = '週間スケジュール';
+    const first = tabs.querySelector('[data-view="vMenu"]');
+    if(first) first.after(b); else tabs.appendChild(b);
+  }
+  // 画面
+  const sec = document.createElement('section');
+  sec.id = 'vWeekSched'; sec.className = 'view'; sec.setAttribute('aria-label', '週間スケジュール');
+  sec.innerHTML =
+    '<div class="wsBar"><label class="fld">だれの予定を見るか<select id="wsWho"></select></label></div>' +
+    '<div id="wsPhase"></div>' +
+    '<div class="wsBar"><button class="btn" id="wsPrev">前の週</button><span class="wsTtl" id="wsTtl" aria-live="polite"></span><button class="btn" id="wsNext">次の週</button><button class="btn ghost" id="wsToday">今週</button>' +
+    '<span style="flex:1"></span><button class="btn ghost" id="wsTimes">曜日ごとの時刻を設定</button><button class="btn ghost" id="wsImpBtn">スプレッドシートから取りこむ</button><button class="btn red" id="wsPrint">印刷とPDF保存</button></div>' +
+    '<div class="wsWrap"><table class="wsT" id="wsTbl"></table></div>' +
+    '<div id="wsPat"></div>' +
+    '<p class="wsNote">枠を押すと、その日のその時刻のメニュー作成の画面が開きます。緑の枠は、もうメニューが書いてある練習です。開始時刻は「曜日ごとの時刻」から、水路と練習の長さはスプレッドシートから取りこんだ予定から出しています。ピリオダイゼーションの計画がある週は、計画の1週間の配分（重点・回復・有酸素と距離）も出ます。</p>';
+  const anchor = g('vMenu');
+  if(anchor) anchor.after(sec); else document.body.appendChild(sec);
+  // 取りこみの画面
+  const ov = document.createElement('div');
+  ov.className = 'ov hidden'; ov.id = 'wsImpOv'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'wsImpTitle');
+  ov.innerHTML = '<div class="dlg" style="width:min(1000px,100%)">' +
+    '<h2 id="wsImpTitle">スプレッドシートから取りこむ <button class="btn ghost small" data-wsclose="1">閉じる</button></h2>' +
+    '<p class="muted">一、Googleスプレッドシートで「ファイル」から「ダウンロード」、「Microsoft Excel（.xlsx）」を選んで保存します。二、下のボタンでそのファイルを選びます。三、コーチを選び、取りこむものにチェックを入れて「チェックしたものを取りこむ」を押します。</p>' +
+    '<div class="row"><label class="fld">ファイル（.xlsx）<input type="file" id="wsImpFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>' +
+    '<label class="fld">コーチ<select id="wsImpCoach"></select></label></div>' +
+    '<div id="wsImpSum" class="muted" role="status" aria-live="polite" style="margin-top:8px"></div>' +
+    '<div id="wsImpBody"></div>' +
+    '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn ghost" data-wsclose="1">やめる</button><button class="btn primary" id="wsImpGo" disabled>チェックしたものを取りこむ</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('mousedown', e => { if(e.target === ov) closeImp(); });
+  ov.querySelectorAll('[data-wsclose]').forEach(b => b.addEventListener('click', closeImp));
+  // 吹き出し
+  const tip = document.createElement('div'); tip.id = 'ysTip'; tip.hidden = true; tip.setAttribute('aria-hidden', 'true'); document.body.appendChild(tip);
+  const live = document.createElement('div'); live.id = 'ysLive'; live.setAttribute('aria-live', 'polite');
+  live.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden'; document.body.appendChild(live);
+  bind();
+}
+
+/* ---------- 週間スケジュールの画面 ---------- */
+let wsMon = null;
+function whoVal(){ return (S.settings && S.settings.wsWho) || 'all'; }
+function fillWho(){
+  const sel = g('wsWho'); const v = whoVal();
+  const teams = typeof teamNames === 'function' ? teamNames() : [];
+  sel.innerHTML = '<option value="all">チーム全体</option>' +
+    (teams.length ? '<optgroup label="チーム">' + teams.map(t => '<option value="t:' + E(t) + '">' + E(t) + '</option>').join('') + '</optgroup>' : '') +
+    (athList().length ? '<optgroup label="選手（個人）">' + athList().map(a => '<option value="a:' + E(a.name) + '">' + E(a.name) + (a.team ? '（' + E(a.team) + '）' : '') + '</option>').join('') + '</optgroup>' : '');
+  sel.value = v; if(sel.value !== v) sel.value = 'all';
+}
+function phaseCard(label, plan, date, emptyMsg){
+  if(!plan) return '<div class="wsPh"><div class="k">' + E(label) + '</div><span class="wsNote">' + E(emptyMsg) + '</span></div>';
+  const f = phaseOf(plan, date);
+  const nm = plan.name || (typeof planTargetLabel === 'function' ? planTargetLabel(plan) : '');
+  return '<div class="wsPh"><div class="k">' + E(label) + '</div><span class="wsTag" style="background:' + E(f.color) + '">' + E(f.name) + '</span><b>第' + (f.i + 1) + '週　この週の目標 ' + E(f.w.km) + 'km</b>' +
+    (f.w.races && f.w.races.length ? '<div class="wsNote">試合：' + E(f.w.races.join('・').replace(/★/g, '')) + '</div>' : '') +
+    '<div class="wsNote">' + E(nm) + '</div></div>';
+}
+function renderWS(){
+  if(!g('vWeekSched')) return;
+  if(!wsMon) wsMon = monOf(today());
+  fillWho();
+  const who = whoVal(), days = [...Array(7)].map((_, i) => addD(wsMon, i)), td = today();
+  g('wsTtl').textContent = md(days[0]) + '（月）〜' + md(days[6]) + '（日）';
+  // どの計画を使うか
+  let ath = null, team = null, plan = null, pPlan = null, h = '<div class="wsPhb">';
+  if(who.startsWith('a:')){ ath = athList().find(a => a.name === who.slice(2)) || null; team = ath ? ath.team : null; }
+  else if(who.startsWith('t:')) team = who.slice(2);
+  const tPlan = team ? teamPlan(team, wsMon) : (teamPlan(null, wsMon));
+  h += phaseCard((team ? team + ' の' : 'チームの') + 'ピリオダイゼーション', tPlan, wsMon, 'この週を含むチームの計画はまだありません。ピリオダイゼーションの画面で作れます。');
+  if(ath){
+    pPlan = personalPlan(ath.name, wsMon);
+    h += phaseCard(ath.name + ' 個人のピリオダイゼーション', pPlan, wsMon, '個人の計画がないので、チームの計画で表示しています。');
+  }
+  g('wsPhase').innerHTML = h + '</div>';
+  plan = pPlan || tPlan;
+  const mm = microMap(plan, wsMon);
+  const pat = ath ? patOf(ath) : null;
+  const races = typeof yItems === 'function' ? yItems() : [];
+  const COL = typeof YCOLORS !== 'undefined' ? YCOLORS : {};
+  let t = '<thead><tr><th scope="col"><span class="wsNote">日付</span></th>' + days.map((d, i) => { const hol = holName(d);
+    return '<th scope="col" class="' + (i >= 5 || hol ? 'off' : '') + (d === td ? ' today' : '') + '">' + DN[i] + ' ' + md(d) + (d === td ? '<div class="wsNote">今日</div>' : '') + (hol ? '<div class="wsNote">' + E(hol) + '</div>' : '') + '</th>'; }).join('') + '</tr></thead><tbody>';
+  t += '<tr><th scope="row">試合<br>行事</th>' + days.map(d => '<td>' + races.filter(x => x.start <= d && x.end >= d).map(x =>
+    '<div class="wsRace" style="background:' + E((COL[x.color] || {c:'#fff'}).c) + '">' + E(x.title) + '</div>').join('') + '</td>').join('') + '</tr>';
+  ['AM', 'PM'].forEach(ap => {
+    t += '<tr><th scope="row">' + (ap === 'AM' ? '午前' : '午後') + '</th>' + days.map((d, i) => '<td>' + cellHtml(slotInfo(d, ap), mm[d + ap], pat ? pat[i][ap === 'AM' ? 0 : 1] : null) + '</td>').join('') + '</tr>';
+  });
+  g('wsTbl').innerHTML = t + '</tbody>';
+  renderPat(ath);
+}
+function cellHtml(x, mi, pat){
+  const lab = mdJ(x.date) + ' ' + (x.ap === 'AM' ? '午前' : '午後');
+  let swim = '';
+  if(x.p && x.p.off) swim = '<span class="wsOff">OFF</span>';
+  else if(x.p && x.p.text) swim = '<button type="button" class="wsSlot' + (x.has ? ' has' : '') + '" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' ' + x.p.text + (x.has ? ' メニューあり' : '')) + '"><span class="d">' + E(x.p.text) + '</span>' + (x.has ? '<div class="mk">メニューあり</div>' : '') + '</button>';
+  else if(x.practice){
+    const tm = x.times.length ? clk(x.times[0].start) : '時刻未設定';
+    const pool = x.p ? x.p.pool : poolShort(x.times[0] && x.times[0].pool);
+    const miH = mi ? '<div class="wsMi ' + E(mi.type) + '">' + E(microText(mi)) + '</div>' : '';
+    swim = '<button type="button" class="wsSlot' + (x.has ? ' has' : '') + '" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' ' + tm + (x.times.length ? '開始 ' : ' ') + pool + (x.p ? ' ' + x.p.dur + (x.p.extra ? ' ＋' + x.p.extra : '') : '') + (mi ? '　計画：' + microText(mi) : '') + (x.has ? '　メニューあり' : '')) + '">' +
+      '<span class="t">' + E(tm) + '</span>' + (pool ? '<span class="wsP ' + E(pool.slice(0, 2)) + '">' + E(pool) + '</span>' : '') +
+      '<div class="d">' + (x.p ? E(x.p.dur) + (x.p.extra ? '　＋' + E(x.p.extra) : '') : (x.times.length > 1 ? 'ほかに ' + x.times.slice(1).map(s => clk(s.start)).join('・') : '')) + '</div>' + miH +
+      (x.has ? '<div class="mk">メニューあり</div>' : '') + '</button>';
+  } else swim = '<span class="wsNote">練習なし</span>';
+  let h = '';
+  if(pat == null) h = swim;
+  else if(pat === 'OFF') h = '<span class="wsOff">OFF（個人）</span>' + (x.practice ? '<div class="wsDif">チームは練習あり</div>' : '');
+  else {
+    if(pat.includes('水中')) h += x.practice ? swim : '<span class="wsOff">水中の予定だがチームの練習なし</span>';
+    if(pat.includes('WT')) h += '<span class="wsWT">WT ウエイト</span>';
+  }
+  const o = x.o || {};
+  if(o.note) h += '<div class="wsEv">コーチ：' + E(o.note) + '</div>';
+  if(o.ev) h += '<div class="wsEv">' + E(o.ev) + '</div>';
+  if(o.visit) h += '<div class="wsEv">来校：' + E(o.visit) + '</div>';
+  return h;
+}
+/* 選手個人の週間パターン */
+function patOf(a){
+  if(!Array.isArray(a.wpat) || a.wpat.length !== 7) a.wpat = [...Array(7)].map((_, i) => i === 6 ? ['OFF', 'OFF'] : ['水中', '水中']);
+  return a.wpat;
+}
+function renderPat(ath){
+  const box = g('wsPat');
+  const teams = typeof teamNames === 'function' ? teamNames() : [];
+  const addForm = '<div class="row" style="margin-top:10px"><label class="fld">選手を追加（名前）<input type="text" id="wsAthName" style="width:160px"></label>' +
+    '<label class="fld">チーム<select id="wsAthTeam">' + teams.map(t => '<option>' + E(t) + '</option>').join('') + '</select></label><button class="btn small" id="wsAthAdd">追加</button></div>';
+  if(!ath){ box.innerHTML = '<details style="margin-top:12px"><summary>選手個人の週間スケジュールを使う</summary><p class="wsNote">上の「だれの予定を見るか」で選手を選ぶと、その選手の曜日ごとのパターン（水中・WT・OFF）で表示します。選手の一覧はピリオダイゼーションの画面と同じものです。</p>' + addForm + '</details>'; return; }
+  const p = patOf(ath);
+  box.innerHTML = '<h3 style="margin:14px 0 0">' + E(ath.name) + ' の個人の週間パターン（毎週くり返す）</h3>' +
+    '<table class="wsPat"><thead><tr><th></th>' + DN.map(d => '<th scope="col">' + d + '</th>').join('') + '</tr></thead><tbody>' +
+    ['朝', '午後'].map((l, k) => '<tr><th scope="row">' + l + '</th>' + p.map((v, i) => '<td><select data-wspat="' + i + '-' + k + '" aria-label="' + E(ath.name) + ' ' + DN[i] + '曜 ' + l + '">' +
+      PAT_OPTS.map(o => '<option' + (o === v[k] ? ' selected' : '') + '>' + o + '</option>').join('') + '</select></td>').join('') + '</tr>').join('') +
+    '</tbody></table>' + addForm;
+}
+function goSlot(key){
+  const date = key.slice(0, 10), ap = key.slice(10);
+  const x = slotInfo(date, ap);
+  const s = x.times[0] || null;
+  if(typeof openMenu !== 'function'){ return; }
+  const ex = Object.values(S.menus || {}).filter(m => m.date === date && (ap === 'AM') === isAM(clk(m.start) || '6:00'));
+  const pool = x.p && x.p.pool === 'SC' ? '短水路' : x.p && x.p.pool === 'LC' ? '長水路' : (s ? s.pool : null);
+  if(typeof showView === 'function') showView('vMenu');
+  if(ex.length){ openMenu(date, ex[0].session); }
+  else {
+    const want = ap === 'AM' ? '朝' : '午後';
+    const list = typeof SESSIONS !== 'undefined' ? SESSIONS : ['朝', '午後', '夜', 'その他'];
+    const free = [want].concat(list).find(n => !(S.menus || {})[typeof menuId === 'function' ? menuId(date, n) : date + '_' + n]);
+    openMenu(date, free || want);
+    if(typeof M !== 'undefined' && M){
+      if(s) M.start = (typeof fmtClock === 'function' ? fmtClock(s.start) : clk(s.start));
+      if(pool) M.pool = pool;
+      if(typeof renderMenuView === 'function') renderMenuView();
+    }
+  }
+  say(mdJ(date) + ' ' + (ap === 'AM' ? '午前' : '午後') + 'のメニューを開きました' + (s ? '' : '。曜日ごとの時刻が入っていないので、開始時刻を確かめてください'), 4500);
+}
+function printWS(){
+  const w = window.open('', '_blank');
+  if(!w){ say('印刷の画面を開けませんでした。ポップアップを許可してください'); return; }
+  const css = CSS + 'body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;margin:10mm;color:#16202e}table.wsT{min-width:0;font-size:12px}.wsSlot{border-width:1px}.wsSlot .t{font-size:14px}@page{size:A4 landscape;margin:8mm}';
+  w.document.write('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>週間スケジュール ' + E(g('wsTtl').textContent) + '</title><style>' + css + '</style></head><body><h2>週間スケジュール　' + E(g('wsTtl').textContent) + '</h2>' + g('wsPhase').innerHTML + '<table class="wsT">' + g('wsTbl').innerHTML + '</table><script>setTimeout(function(){print()},300)<\/script></body></html>');
+  w.document.close();
+}
+
+/* ---------- 年間スケジュールの吹き出し ---------- */
+let tipFor = null;
+function tipShow(date, el, ev){
+  const tip = g('ysTip'); if(!tip) return;
+  const t = dayTipText(date);
+  tip.innerHTML = E(mdJ(date)) + '<br>' + E(t.main).replace(/ \/ /g, '<br>') + (t.sub ? '<small>' + E(t.sub) + '</small>' : '');
+  tip.hidden = false;
+  const r = el.getBoundingClientRect();
+  let x = ev && ev.clientX != null ? ev.clientX + 16 : r.right + 8, y = ev && ev.clientY != null ? ev.clientY + 16 : r.top;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  if(x + tw > innerWidth - 8) x = Math.max(8, (ev && ev.clientX != null ? ev.clientX : r.left) - tw - 16);
+  if(y + th > innerHeight - 8) y = Math.max(8, innerHeight - th - 8);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  tipFor = date;
+}
+function tipHide(){ const tip = g('ysTip'); if(tip) tip.hidden = true; tipFor = null; }
+function dateFromYearEl(el){
+  if(!el || !el.closest) return null;
+  if(el.closest('#ysTip')) return null;
+  const row = el.closest('.yrow');
+  if(row){ const b = row.querySelector('[data-yday]'); return b ? b.dataset.yday : null; }
+  const b = el.closest('[data-yday]'); return b ? b.dataset.yday : null;
+}
+
+/* ---------- イベント ---------- */
+function bind(){
+  const tabBtn = document.querySelector('.tabs [data-view="vWeekSched"]');
+  if(tabBtn) tabBtn.addEventListener('click', () => { if(typeof showView === 'function') showView('vWeekSched'); });
+  g('wsWho').addEventListener('change', () => { S.settings.wsWho = g('wsWho').value; save(); renderWS(); });
+  g('wsPrev').addEventListener('click', () => { wsMon = addD(wsMon, -7); renderWS(); });
+  g('wsNext').addEventListener('click', () => { wsMon = addD(wsMon, 7); renderWS(); });
+  g('wsToday').addEventListener('click', () => { wsMon = monOf(today()); renderWS(); });
+  g('wsTimes').addEventListener('click', () => { if(typeof openWeekSched === 'function') openWeekSched(); else say('曜日ごとの時刻はメニュー作成の画面で設定できます'); });
+  g('wsImpBtn').addEventListener('click', openImp);
+  g('wsPrint').addEventListener('click', printWS);
+  g('wsTbl').addEventListener('click', e => { const b = e.target.closest('[data-wsgo]'); if(b) goSlot(b.dataset.wsgo); });
+  g('wsPat').addEventListener('change', e => {
+    const s = e.target.closest('[data-wspat]'); if(!s) return;
+    const a = athList().find(x => 'a:' + x.name === whoVal()); if(!a) return;
+    const [i, k] = s.dataset.wspat.split('-').map(Number); patOf(a)[i][k] = s.value; save(); renderWS();
+    say(a.name + ' ' + DN[i] + '曜の' + (k ? '午後' : '朝') + 'を' + s.value + 'にしました');
+  });
+  g('wsPat').addEventListener('click', e => {
+    if(e.target.id !== 'wsAthAdd') return;
+    const name = g('wsAthName').value.trim(); if(!name){ say('選手の名前を入れてください'); return; }
+    if(athList().find(x => x.name === name)){ say('同じ名前の選手がすでにいます'); return; }
+    athList().push({name, team:g('wsAthTeam').value}); S.settings.wsWho = 'a:' + name; save(); renderWS();
+    say(name + 'さんを追加しました。曜日ごとのパターンを選んでください');
+    if(typeof renderAthletes === 'function') try{ renderAthletes(); }catch(_){}
+  });
+  // 年間スケジュールの吹き出し
+  document.addEventListener('mouseover', e => {
+    const yv = g('vYear'); if(!yv || !yv.contains(e.target)) { if(tipFor) tipHide(); return; }
+    const d = dateFromYearEl(e.target);
+    if(d) tipShow(d, e.target, e); else if(tipFor) tipHide();
+  });
+  document.addEventListener('mousemove', e => { if(g('vYear') && g('vYear').contains(e.target)){ const d = dateFromYearEl(e.target); if(d) tipShow(d, e.target, e); else if(tipFor) tipHide(); } });
+  document.addEventListener('focusin', e => {
+    const yv = g('vYear'); if(!yv || !yv.contains(e.target)){ if(tipFor) tipHide(); return; }
+    const b = e.target.closest && e.target.closest('[data-yday]');
+    if(b){ tipShow(b.dataset.yday, b, null); const t = dayTipText(b.dataset.yday); g('ysLive').textContent = '練習予定　' + t.main.replace(/ \/ /g, '、') + (t.sub ? '。' + t.sub : ''); }
+    else tipHide();
+  });
+  document.addEventListener('focusout', e => { if(e.target.closest && e.target.closest('[data-yday]')) tipHide(); });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && tipFor) tipHide(); }, true);
+  window.addEventListener('scroll', () => { if(tipFor) tipHide(); }, true);
+  // 取りこみ
+  g('wsImpFile').addEventListener('change', e => { const f = e.target.files[0]; if(f) readImp(f); });
+  g('wsImpCoach').addEventListener('change', () => { S.settings.wsCoach = g('wsImpCoach').value; save(); buildImp(); });
+  g('wsImpGo').addEventListener('click', doImp);
+  g('wsImpBody').addEventListener('change', e => { if(e.target.id === 'wsImpAll1') g('wsImpBody').querySelectorAll('[data-wsr]').forEach(c => c.checked = e.target.checked); });
+}
+function hookShowView(){
+  if(typeof showView !== 'function' || showView.__ws) return;
+  const orig = showView;
+  const wrapped = function(id){
+    if(id === 'vWeekSched'){ const r = orig.apply(this, arguments); tipHide(); renderWS(); return r; }
+    tipHide();
+    return orig.apply(this, arguments);
+  };
+  wrapped.__ws = true;
+  window.showView = wrapped;
+  try{ showView = wrapped; }catch(_){}
+  if(typeof saveWeekSched === 'function' && !saveWeekSched.__ws){
+    const o2 = saveWeekSched;
+    const w2 = function(){ const r = o2.apply(this, arguments); if(g('vWeekSched') && g('vWeekSched').classList.contains('active')) renderWS(); return r; };
+    w2.__ws = true; window.saveWeekSched = w2; try{ saveWeekSched = w2; }catch(_){}
+  }
+}
+
+/* =====================================================================
+   .xlsx を読む（ブラウザの機能だけで解凍。オフラインで動く）
+   ===================================================================== */
+async function inflateRaw(u8){
+  if(typeof DecompressionStream === 'function'){
+    const ds = new DecompressionStream('deflate-raw');
+    const out = new Response(new Blob([u8]).stream().pipeThrough(ds));
+    return new Uint8Array(await out.arrayBuffer());
+  }
+  if(window.fflate && fflate.inflateSync) return fflate.inflateSync(u8);
+  throw new Error('このブラウザでは .xlsx を開けません');
+}
+async function unzip(buf){
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let eo = -1;
+  for(let i = u8.length - 22; i >= Math.max(0, u8.length - 70000); i--){ if(dv.getUint32(i, true) === 0x06054b50){ eo = i; break; } }
+  if(eo < 0) throw new Error('.xlsx のファイルではないようです');
+  const n = dv.getUint16(eo + 10, true); let p = dv.getUint32(eo + 16, true);
+  const files = {}, td = new TextDecoder();
+  for(let k = 0; k < n; k++){
+    if(dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = td.decode(u8.subarray(p + 46, p + 46 + nl));
+    files[name] = {method, csize, lo};
+    p += 46 + nl + xl + cl;
+  }
+  return {
+    has: name => !!files[name],
+    async text(name){
+      const f = files[name]; if(!f) return null;
+      const ln = dv.getUint16(f.lo + 26, true), lx = dv.getUint16(f.lo + 28, true);
+      const s = f.lo + 30 + ln + lx, raw = u8.subarray(s, s + f.csize);
+      return td.decode(f.method === 0 ? raw : await inflateRaw(raw));
+    }
+  };
+}
+function colIdx(ref){ const m = /^([A-Z]+)(\d+)$/.exec(ref); let c = 0; for(const ch of m[1]) c = c * 26 + ch.charCodeAt(0) - 64; return [c - 1, +m[2] - 1]; }
+function tText(node){ return [...node.getElementsByTagName('t')].map(t => t.textContent).join(''); }
+async function readXlsx(buf){
+  const z = await unzip(buf), dp = new DOMParser();
+  const xml = async n => { const t = await z.text(n); return t ? dp.parseFromString(t, 'application/xml') : null; };
+  const ss = await xml('xl/sharedStrings.xml');
+  const shared = ss ? [...ss.getElementsByTagName('si')].map(tText) : [];
+  const wb = await xml('xl/workbook.xml'), rels = await xml('xl/_rels/workbook.xml.rels');
+  const rmap = {}; [...rels.getElementsByTagName('Relationship')].forEach(r => rmap[r.getAttribute('Id')] = r.getAttribute('Target'));
+  const sheets = [];
+  for(const s of [...wb.getElementsByTagName('sheet')]){
+    const rid = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+    let tg = rmap[rid] || ''; tg = tg.replace(/^\/?xl\//, '').replace(/^\//, '');
+    sheets.push({name:s.getAttribute('name'), path:'xl/' + tg});
+  }
+  return {
+    names: sheets.map(s => s.name),
+    async rows(name){
+      const sh = sheets.find(s => s.name === name); if(!sh) return null;
+      const d = await xml(sh.path); if(!d) return null;
+      const out = [];
+      [...d.getElementsByTagName('c')].forEach(c => {
+        const [ci, ri] = colIdx(c.getAttribute('r')); const t = c.getAttribute('t');
+        const v = c.getElementsByTagName('v')[0];
+        let val = '';
+        if(t === 's') val = v ? shared[+v.textContent] : '';
+        else if(t === 'inlineStr') val = tText(c);
+        else if(t === 'str' || t === 'e') val = v ? v.textContent : '';
+        else if(t === 'b') val = v ? v.textContent : '';
+        else val = v ? +v.textContent : '';
+        (out[ri] = out[ri] || [])[ci] = val;
+      });
+      for(let i = 0; i < out.length; i++){ out[i] = out[i] || []; for(let j = 0; j < out[i].length; j++) if(out[i][j] == null) out[i][j] = ''; }
+      return out;
+    }
+  };
+}
+const cellS = v => typeof v === 'number' ? String(v) : String(v == null ? '' : v).trim();
+function serialToYmd(n){ const d = new Date(Math.round((Math.floor(n) - 25569) * 86400000)); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+/* 年度の決まり：4〜12月はその年度の年、1〜3月は次の年 */
+function parseDate(v, fy){
+  if(typeof v === 'number' && v > 20000 && v < 80000) return serialToYmd(v);
+  const s = cellS(v); let m;
+  if((m = /(\d{4})\s*[\/\-.年]\s*(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})/.exec(s))) return m[1] + '-' + pad(m[2]) + '-' + pad(m[3]);
+  if((m = /(\d{1,2})\s*[\/月]\s*(\d{1,2})/.exec(s))){ const mo = +m[1], da = +m[2]; if(mo < 1 || mo > 12 || da < 1 || da > 31) return ''; return (mo >= 4 ? fy : fy + 1) + '-' + pad(mo) + '-' + pad(da); }
+  return '';
+}
+function nearYear(mo, da){
+  const t = pYmd(today()); let best = '', bd = 1e15;
+  [t.getFullYear() - 1, t.getFullYear(), t.getFullYear() + 1].forEach(y => { const d = new Date(y, mo - 1, da); const df = Math.abs(d - t); if(df < bd){ bd = df; best = ymdOf(d); } });
+  return best;
+}
+const NOT_RACE_RE = /発表|壮行会|説明会|歓迎会|親睦|交代式|回忌|会議|ミーティング|打ち合わせ|仕事/;
+const RACE_RE = /大会|カップ|cup|選手権|インカレ|記録会|招待|オープン|open|杯|チャレンジ|フェスティバル|ジュニア|短水路|長水路|対抗戦|地域|とこわか|室内|春季|秋季|冬季|夏季|パンパシ|アジア|世界/i;
+
+/* 試合スケジュールのシート */
+function parseMatches(rows, sheetName){
+  const fyM = /(\d{4})\s*年度/.exec(sheetName || '') ;
+  const t = pYmd(today()); const fy = fyM ? +fyM[1] : (t.getMonth() + 1 >= 4 ? t.getFullYear() : t.getFullYear() - 1);
+  const hi = rows.findIndex(r => r.some(c => cellS(c) === '試合名'));
+  if(hi < 0) return [];
+  const H = rows[hi].map(cellS), col = re => H.findIndex(h => re.test(h));
+  const cN = col(/^試合名$/), cS = col(/日程開始|開始/), cE = col(/日程終了|終了/), cP = col(/^場所/), cW = col(/水路/), cM = col(/参加/), cB = col(/備考/);
+  const out = [];
+  rows.slice(hi + 1).forEach((r, k) => {
+    const name = cellS(r[cN]); if(!name) return;
+    const start = parseDate(r[cS], fy);
+    let end = parseDate(r[cE], fy);
+    if(!start){ if(cellS(r[cS])) out.push({name, bad:true, raw:cellS(r[cS]), row:hi + k + 2}); return; }
+    if(!end || end < start) end = start;
+    const pool = cellS(r[cW]);
+    const isOff = /^off$/i.test(name) || /テスト期間|ゴールデンウィーク|休み/.test(name);
+    const kind = !isOff && (/長水路|短水路/.test(pool) || (RACE_RE.test(name) && !NOT_RACE_RE.test(name))) ? 'race' : 'event';
+    out.push({name, start, end, place:cellS(r[cP]), pool, who:cellS(r[cM]), memo:cellS(r[cB]), kind, isOff, row:hi + k + 2});
+  });
+  return out;
+}
+/* Weekly Schedule のシート */
+function parseWeekly(rows){
+  const hi = rows.findIndex(r => r.some(c => cellS(c) === '練習予定'));
+  if(hi < 1) return {coaches:[], days:{}};
+  const nameRow = rows[hi - 1].map(cellS), sub = rows[hi].map(cellS);
+  const coaches = [];
+  sub.forEach((v, c) => { if(v === '練習予定'){ let n = nameRow[c]; if(!n){ for(let j = c; j >= 0 && !n; j--) n = nameRow[j]; } coaches.push({name:n, col:c, noteCol:/予定/.test(sub[c + 1] || '') && sub[c + 1] !== '練習予定' ? c + 1 : -1}); } });
+  const find = re => nameRow.findIndex(v => re.test(v));
+  const cV = find(/勧誘|来校/), cAll = find(/^全体$/), cEv = find(/イベント/);
+  const days = {};
+  rows.slice(hi + 1).forEach(r => {
+    let date = '', ap = '';
+    for(let c = 0; c < Math.min(r.length, 3) && !date; c++){
+      const v = r[c];
+      if(typeof v === 'number' && v > 20000 && v < 80000){ date = serialToYmd(v); ap = (v % 1) >= 0.5 ? 'PM' : 'AM'; }
+      else { const m = /(\d{1,2})\s*月\s*(\d{1,2})\s*日?\s*(AM|PM|午前|午後)/i.exec(cellS(v)); if(m){ date = nearYear(+m[1], +m[2]); ap = /PM|午後/i.test(m[3]) ? 'PM' : 'AM'; } }
+    }
+    if(!date) return;
+    const evs = [cAll, cEv].filter(c => c >= 0).map(c => cellS(r[c]).replace(/\s*\n\s*/g, ' ')).filter(Boolean);
+    const d = days[date] = days[date] || {};
+    d[ap] = {per:{}, ev:[...new Set(evs)].join('、'), visit:cV >= 0 ? cellS(r[cV]).replace(/\s*\n\s*/g, '、') : ''};
+    coaches.forEach(co => { d[ap].per[co.name] = {plan:cellS(r[co.col]).replace(/\s*\n\s*/g, ' '), note:co.noteCol >= 0 ? cellS(r[co.noteCol]).replace(/\s*\n\s*/g, ' ') : ''}; });
+  });
+  return {coaches:coaches.map(c => c.name).filter(Boolean), days};
+}
+/* 週間タイムテーブルのシート：コーチ名が入っている枠の開始時刻と水路 */
+function parseTimetable(rows){
+  const dayRow = rows.findIndex(r => r.filter(c => /^[月火水木金土日]$/.test(cellS(c))).length >= 5);
+  if(dayRow < 0) return null;
+  const poolRow = rows.findIndex((r, i) => i > dayRow && r.some(c => /長水路|短水路/.test(cellS(c))));
+  const map = [];
+  let cur = -1, lastPool = '';
+  const dr = rows[dayRow], pr = poolRow >= 0 ? rows[poolRow] : [];
+  const W = Math.max(dr.length, pr.length);
+  for(let c = 0; c < W; c++){
+    const dn = cellS(dr[c]); if(/^[月火水木金土日]$/.test(dn)){ cur = DN.indexOf(dn); lastPool = ''; }
+    const pl = cellS(pr[c]); if(pl) lastPool = pl;
+    map[c] = cur >= 0 ? {d:cur, pool:/短/.test(pl || lastPool) ? '短水路' : '長水路'} : null;
+  }
+  // 下の方にもう一度、曜日の行がある場合はそこまで
+  let endRow = rows.findIndex((r, i) => i > poolRow + 1 && r.filter(c => /^[月火水木金土日]$/.test(cellS(c))).length >= 5);
+  if(endRow < 0) endRow = rows.length;
+  const cells = [];
+  for(let i = Math.max(dayRow, poolRow) + 1; i < endRow; i++){
+    (rows[i] || []).forEach((v, c) => {
+      const s = cellS(v); if(!map[c] || !s) return;
+      const m = /(\d{1,2}:\d{2})/.exec(s); if(!m) return;
+      const body = s.replace(/[\d:：~〜\s]+/g, ' ');
+      cells.push({d:map[c].d, pool:map[c].pool, start:clk(m[1]), text:body});
+    });
+  }
+  return cells;
+}
+function timesForCoach(cells, coach){
+  if(!cells || !coach) return null;
+  const out = [...Array(7)].map(() => []);
+  cells.filter(x => x.text.includes(coach)).forEach(x => { if(!out[x.d].some(y => y.start === x.start)) out[x.d].push({start:x.start, pool:x.pool}); });
+  out.forEach(l => l.sort((a, b) => clkSec(a.start) - clkSec(b.start)));
+  return out;
+}
+
+/* ---------- 取りこみの画面 ---------- */
+let IMP = null;
+function openImp(){
+  IMP = null; g('wsImpFile').value = ''; g('wsImpBody').innerHTML = ''; g('wsImpGo').disabled = true;
+  g('wsImpSum').textContent = 'まだファイルが選ばれていません。';
+  g('wsImpCoach').innerHTML = '<option>' + E(S.settings.wsCoach || '佐々木') + '</option>';
+  if(typeof showOv === 'function') showOv('wsImpOv'); else g('wsImpOv').classList.remove('hidden');
+}
+function closeImp(){ if(typeof closeOv === 'function') closeOv('wsImpOv'); else g('wsImpOv').classList.add('hidden'); }
+async function readImp(file){
+  g('wsImpSum').textContent = '読みこんでいます…';
+  try{
+    const x = await readXlsx(await file.arrayBuffer());
+    const pick = re => x.names.find(n => re.test(n));
+    const nM = pick(/試合スケジュール|試合日程/), nW = pick(/^weekly\s*schedule/i), nT = pick(/タイムテーブル|time\s*table/i);
+    const res = {names:x.names};
+    if(nM) res.matches = parseMatches(await x.rows(nM), nM);
+    if(nW) res.weekly = parseWeekly(await x.rows(nW));
+    if(nT) res.tt = parseTimetable(await x.rows(nT));
+    res.sheetM = nM; res.sheetW = nW; res.sheetT = nT;
+    if(!nM && !nW && !nT){ g('wsImpSum').textContent = 'このファイルには「試合スケジュール」「Weekly Schedule」「週間タイムテーブル」のシートが見つかりませんでした。シートの名前：' + x.names.join('、'); return; }
+    IMP = res;
+    const coaches = (res.weekly && res.weekly.coaches.length) ? res.weekly.coaches : ['佐々木'];
+    const want = S.settings.wsCoach && coaches.includes(S.settings.wsCoach) ? S.settings.wsCoach : coaches[0];
+    g('wsImpCoach').innerHTML = coaches.map(c => '<option' + (c === want ? ' selected' : '') + '>' + E(c) + '</option>').join('');
+    buildImp();
+  }catch(e){ g('wsImpSum').textContent = '読みこめませんでした。' + (e && e.message ? e.message : ''); }
+}
+function existsRace(m){
+  if(m.kind === 'race') return (S.races || []).find(r => r.name === m.name && r.date === m.start);
+  return (S.events || []).find(e => e.title === m.name && e.start === m.start);
+}
+function buildImp(){
+  if(!IMP) return;
+  const coach = g('wsImpCoach').value;
+  const ms = (IMP.matches || []).filter(m => !m.bad), bad = (IMP.matches || []).filter(m => m.bad);
+  const nR = ms.filter(m => m.kind === 'race').length, nE = ms.length - nR;
+  const times = timesForCoach(IMP.tt, coach);
+  const wdays = IMP.weekly ? Object.keys(IMP.weekly.days).sort() : [];
+  let nSlots = 0; wdays.forEach(d => nSlots += Object.keys(IMP.weekly.days[d]).length);
+  g('wsImpSum').textContent = '試合 ' + nR + '件・行事 ' + nE + '件・曜日ごとの時刻 ' + (times ? times.filter(l => l.length).length + '曜日分' : 'なし') + '・日付ごとの練習予定 ' + nSlots + '件（' + coach + 'コーチ）';
+  let h = '';
+  // 一、試合と行事
+  h += '<div class="wsImpSec"><h3>一、試合と行事（年間スケジュールと試合の一覧へ）</h3>';
+  if(!ms.length) h += '<p class="muted">試合スケジュールのシートが見つからないか、読める行がありませんでした。</p>';
+  else {
+    h += '<label><input type="checkbox" id="wsImpAll1"> 全部にチェックを入れる・外す</label><table class="wsImp"><thead><tr><th class="nw">取りこむ</th><th class="nw">種類</th><th>名前</th><th class="nw">期間</th><th>場所</th><th class="nw">水路</th></tr></thead><tbody>' +
+      ms.map((m, i) => { const ex = existsRace(m);
+        return '<tr><td class="nw"><input type="checkbox" data-wsr="' + i + '"' + (ex ? '' : ' checked') + ' aria-label="' + E(m.name + ' ' + mdJ(m.start) + 'を取りこむ') + '"></td>' +
+          '<td class="nw"><select data-wsk="' + i + '" aria-label="' + E(m.name) + 'の種類"><option value="race"' + (m.kind === 'race' ? ' selected' : '') + '>試合</option><option value="event"' + (m.kind !== 'race' ? ' selected' : '') + '>行事</option></select></td>' +
+          '<td>' + E(m.name) + (ex ? '<div class="muted">登録ずみ（チェックすると上書き）</div>' : '') + '</td><td class="nw">' + md(m.start) + (m.end !== m.start ? '〜' + md(m.end) : '') + '</td><td>' + E(m.place) + '</td><td class="nw">' + E(m.pool) + '</td></tr>'; }).join('') + '</tbody></table>';
+    if(bad.length) h += '<p class="muted">日付が読めなかったので外した行：' + bad.map(b => E(b.name) + '（' + E(b.raw) + '）').join('、') + '</p>';
+  }
+  h += '</div>';
+  // 二、曜日ごとの時刻
+  h += '<div class="wsImpSec"><h3>二、曜日ごとの開始時刻と水路（週間タイムテーブルの' + E(coach) + 'コーチの枠から）</h3>';
+  if(!times || !times.some(l => l.length)) h += '<p class="muted">週間タイムテーブルに' + E(coach) + 'コーチの枠が見つかりませんでした。</p>';
+  else {
+    const cur = sched(), f = l => l && l.length ? l.map(s => clk(s.start) + ' ' + (/短/.test(s.pool) ? '短' : '長')).join('、') : '休み';
+    h += '<label><input type="checkbox" id="wsImpTimes"> 曜日ごとの時刻を、スプレッドシートの時刻におきかえる</label><p class="muted">今の設定と違う曜日が多いときは、チェックを入れずに取りこむこともできます。1日に3回以上ある曜日は、早い方から2回だけ入ります。</p>' +
+      '<table class="wsImp"><thead><tr><th class="nw">曜日</th><th>今の設定</th><th>取りこんだ後</th></tr></thead><tbody>' +
+      DN.map((d, i) => { const a = f(cur[i]), b = f(times[i].slice(0, 2)); return '<tr><th class="nw">' + d + '</th><td>' + E(a) + '</td><td>' + (a !== b ? '<b>' + E(b) + '</b>（変わる）' : E(b)) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  h += '</div>';
+  // 三、日付ごとの予定
+  h += '<div class="wsImpSec"><h3>三、日付ごとの練習予定（Weekly Schedule の' + E(coach) + 'コーチの列から）</h3>';
+  if(!wdays.length) h += '<p class="muted">Weekly Schedule のシートが見つからないか、日付の行がありませんでした。</p>';
+  else {
+    h += '<label><input type="checkbox" id="wsImpDays" checked> ' + mdJ(wdays[0]) + 'から' + mdJ(wdays[wdays.length - 1]) + 'までの予定を取りこむ（同じ日の前の予定はおきかわります）</label>' +
+      '<table class="wsImp"><thead><tr><th class="nw">日付</th><th class="nw">午前</th><th class="nw">午後</th><th>コーチの予定・行事</th></tr></thead><tbody>' +
+      wdays.map(d => { const o = IMP.weekly.days[d]; const pp = ap => o[ap] && o[ap].per[coach] ? o[ap].per[coach].plan : '';
+        const notes = ['AM', 'PM'].map(ap => o[ap] ? [o[ap].per[coach] && o[ap].per[coach].note, o[ap].ev].filter(Boolean).join('、') : '').filter(Boolean);
+        return '<tr><td class="nw">' + md(d) + '（' + DN[(pYmd(d).getDay() + 6) % 7] + '）</td><td class="nw">' + E(pp('AM')) + '</td><td class="nw">' + E(pp('PM')) + '</td><td>' + E([...new Set(notes)].join('、')) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+  h += '</div>';
+  g('wsImpBody').innerHTML = h;
+  g('wsImpGo').disabled = false;
+}
+function doImp(){
+  if(!IMP) return;
+  const coach = g('wsImpCoach').value, ms = (IMP.matches || []).filter(m => !m.bad);
+  let nR = 0, nE = 0, nT = 0, nD = 0;
+  g('wsImpBody').querySelectorAll('[data-wsr]').forEach(cb => {
+    if(!cb.checked) return;
+    const m = ms[+cb.dataset.wsr]; const kind = g('wsImpBody').querySelector('[data-wsk="' + cb.dataset.wsr + '"]').value;
+    const end = m.end > m.start ? m.end : '';
+    if(kind === 'race'){
+      if(!Array.isArray(S.races)) S.races = [];
+      let r = S.races.find(x => x.name === m.name && x.date === m.start);
+      if(!r){ r = {id:'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)}; S.races.push(r); }
+      Object.assign(r, {name:m.name, date:m.start, end, place:m.place, shape:r.shape || 'box', color:r.color || (/短水路/.test(m.pool) ? 'green' : 'yellow')});
+      nR++;
+    } else {
+      if(!Array.isArray(S.events)) S.events = [];
+      let e = S.events.find(x => x.title === m.name && x.start === m.start);
+      if(!e){ e = {id:'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)}; S.events.push(e); }
+      const long = m.end > m.start && (m.isOff || /期間|ウィーク/.test(m.name));
+      Object.assign(e, {title:m.name, sub:m.place, start:m.start, end:m.end, kind:e.kind || (long ? 'other' : 'meet'), shape:e.shape || (long ? 'arrow' : m.end > m.start ? 'box' : 'text'), color:e.color || (m.isOff ? 'red' : 'white')});
+      nE++;
+    }
+  });
+  const tcb = g('wsImpTimes');
+  if(tcb && tcb.checked){
+    const t = timesForCoach(IMP.tt, coach);
+    if(t){ S.settings.weekSched = t.map(l => l.slice(0, 2)); nT = 1; if(typeof renderWeekRow === 'function') try{ renderWeekRow(); }catch(_){} }
+  }
+  const dcb = g('wsImpDays');
+  if(dcb && dcb.checked && IMP.weekly){
+    Object.keys(IMP.weekly.days).forEach(d => {
+      const o = IMP.weekly.days[d], out = {};
+      ['AM', 'PM'].forEach(ap => { if(!o[ap]) return; const p = o[ap].per[coach] || {}; out[ap] = {plan:p.plan || '', note:p.note || '', ev:o[ap].ev || '', visit:o[ap].visit || ''}; });
+      wsPlan()[d] = out; nD++;
+    });
+  }
+  S.settings.wsCoach = coach;
+  save(); closeImp();
+  if(typeof renderYear === 'function' && g('vYear') && g('vYear').classList.contains('active')) try{ renderYear(); }catch(_){}
+  if(typeof ySyncOthers === 'function') try{ ySyncOthers(); }catch(_){}
+  if(g('vWeekSched').classList.contains('active')) renderWS();
+  say('取りこみました。試合' + nR + '件、行事' + nE + '件、' + (nT ? '曜日ごとの時刻、' : '') + '練習予定' + nD + '日分', 5000);
+}
+
+/* ---------- 起動 ---------- */
+if(document.querySelector('.tabs')) install();
+document.addEventListener('DOMContentLoaded', () => { install(); hookShowView(); setTimeout(hookShowView, 0); });
+if(document.readyState !== 'loading'){ install(); hookShowView(); }
+
+// ほかから使えるように
+window.wsDayTip = dayTipText;
+window.renderWeekSchedView = renderWS;
+window.wsParse = {parseMatches, parseWeekly, parseTimetable, timesForCoach, parsePlan, readXlsx};
+})();
 
 /* =====================================================================
    起動

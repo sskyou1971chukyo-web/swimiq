@@ -296,6 +296,50 @@ details.kc-dt .kc-bb{padding:0 14px 12px}
 .kc-cbtn{margin-top:0;text-align:left;justify-content:flex-start}
 .kc-cbox{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .kc-vid{display:flex;align-items:center;min-height:48px;font-weight:700;color:#9fd3ff}
+.kc-cardbtn{display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:12px;width:100%;text-align:left;background:#fff;color:#111;border:3px solid #fff;border-radius:12px;padding:4px 12px 4px 4px;cursor:pointer;min-height:80px}
+.kc-cardbtn img{width:72px;height:72px;object-fit:cover;border-radius:8px;display:block}
+.kc-cardbtn b{display:block;font-size:1.05rem;line-height:1.3;color:#111}
+.kc-cardbtn span span{display:block;font-size:.85rem;color:#333;line-height:1.35}
+.kc-cardbtn:hover,.kc-cardbtn:focus-visible{border-color:var(--am)}
+.kc-learn{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.kc-learn .kc-ytbtn{margin:0;width:100%;max-width:none}
+.kc-dh{margin:18px 0 0}
+.kc-none{margin-left:auto;font-size:.8rem;font-weight:400;color:var(--sub);border:1px dashed var(--line);border-radius:6px;padding:0 6px;flex:none}
+details.kc-dt>summary .kc-none~*{display:none}
+details.kc-dt.kc-empty>summary::after{content:none}
+details.kc-dt.kc-empty>summary .kc-bt{color:var(--sub)}
+/* コーチ：メニューを作る流れ */
+.cz-bar{position:sticky;top:0;z-index:5;background:#000;border-bottom:1px solid var(--line);padding:8px 0;margin:0 0 6px}
+.cz-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;list-style:none;margin:0;padding:0}
+.cz-steps li{border-radius:8px;background:var(--soft);border:2px solid transparent;overflow:hidden}
+.cz-steps li button{display:block;width:100%;background:none;border:0;color:var(--sub);text-align:center;font-size:.8rem;font-weight:700;padding:5px 2px;white-space:nowrap;cursor:pointer;min-height:48px}
+.cz-steps li b{display:block;font-size:1rem}
+.cz-steps li.done button{color:var(--green)}
+.cz-steps li.done b::after{content:" 済"}
+.cz-steps li.now{border-color:var(--am)}
+.cz-steps li.now button{color:#fff}
+.cz-saved{font-size:.8rem;color:var(--sub);margin:6px 0 0;display:flex;justify-content:space-between;gap:8px;white-space:nowrap}
+.cz-saved .ok{color:var(--green);font-weight:700}
+.page{scroll-margin-top:110px}
+.cz-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:6px 0 10px}
+.cz-nums div{background:#0b0b0c;border-radius:10px;padding:8px 10px;min-width:0}
+.cz-nums b{display:block;font-size:1.45rem;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cz-nums span{display:block;font-size:.8rem;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cz-rows{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cz-row{background:#0b0b0c;border:2px solid var(--line);border-radius:12px;padding:12px}
+.cz-ph{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cz-ph strong{font-size:1.1rem}
+.cz-tag{font-size:.8rem;border:1px solid var(--line);border-radius:6px;padding:0 8px;color:var(--sub);white-space:nowrap}
+.cz-tag.need{border-color:var(--red);color:var(--red)}
+.cz-rx{display:block;width:100%;text-align:left;background:none;border:0;color:#fff;font-size:1.15rem;font-weight:800;padding:6px 0 0;cursor:pointer;font-variant-numeric:tabular-nums}
+.cz-pv{margin:2px 0 0;font-size:.9rem}
+.cz-nocard{display:flex;align-items:center;justify-content:center;font-size:.85rem;color:var(--sub);border:2px dashed var(--line);border-radius:12px;min-height:56px;padding:4px 8px;text-align:center}
+.cz-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.cz-acts button{min-height:48px;white-space:nowrap;padding:4px}
+.cz-ord{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+.cz-ord button{width:auto;min-height:40px;padding:2px 14px}
+.cz-swap{margin-top:8px;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.cz-cool{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
 </style>
 </head>
 <body>
@@ -319,7 +363,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-07 card3';
+const APP_VER = '2026-11-07 coach1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2037,9 +2081,8 @@ function kcForEx(e){ if(!e) return []; const s = kcBase(shortName(e)); return KC
 /* 名前は違うが近い種目（器具や形が少し違う）。どれを近いとするかは、このアプリの作り手の判断で、資料の裏付けはない */
 const KC_NEAR = {'ブルガリアンスプリットスクワット':[14],'ヒップスラスト':[31],'スラスター':[143],'平行棒ディップス':[63,123],'リングディップス':[63,123],'ステップアップ':[16],'カーフレイズ':[45,48],'クラムシェル':[44],'ハングパワークリーン':[145],'ダンベルロウ':[75],'スタンディング・ダブルアーム・トライセプス・プッシュダウン':[116],'インクラインベンチプレス':[51],'ダンベルプレス':[53],'フロントプランク':[126],'リバースリストカール':[115]};
 function kcNearEx(e){ if(!e) return []; if(kcForEx(e).length) return []; return KC_NEAR[shortName(e)] || KC_NEAR[kcBase(shortName(e))] || []; }
-function kcBtns(e, attr){ const L = kcForEx(e), N = kcNearEx(e);
-  return L.map(no=>'<button type="button" class="ghost kc-cbtn" '+attr+'="'+no+'">種目カード '+kcPad(no)+' '+esc(KC_CBY[no].name)+'を見る</button>').join('')+
-    N.map(no=>'<button type="button" class="ghost kc-cbtn" '+attr+'="'+no+'">近い種目のカード '+kcPad(no)+' '+esc(KC_CBY[no].name)+'を見る</button>').join(''); }
+function kcCardBtn(no, attr, near){ return '<button type="button" class="kc-cardbtn" '+attr+'="'+no+'" aria-label="'+(near?'近い種目の':'')+'種目カード'+no+'、'+esc(KC_CBY[no].name)+'を開く"><img src="'+KC_IMG[no]+'" alt=""><span><b>'+(near?'近い種目のカード ':'種目カード ')+kcPad(no)+'</b><span>'+esc(KC_CBY[no].name)+'</span></span></button>'; }
+function kcBtns(e, attr){ return kcForEx(e).map(no=>kcCardBtn(no, attr, false)).join('')+kcNearEx(e).map(no=>kcCardBtn(no, attr, true)).join(''); }
 function kcYtBtn(name, id){ const q = String(name).replace(/（.*?）/g,'').replace(/\(.*?\)/g,'');
   return '<a class="kc-ytbtn"'+(id?' id="'+id+'"':'')+' target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q+' やり方')+'" aria-label="ユーチューブで'+esc(q)+'の動画を探す（新しい画面で開きます）"><img src="'+KC_YTLOGO+'" alt=""><span>で動画を見る</span></a>'; }
 function kcMirror(d){ let i=0; return d.replace(/-?\d+(\.\d+)?/g,n=>{ const v=(i++%2===0)?(896-Number(n)):Number(n); return String(Math.round(v*10)/10); }); }
@@ -2112,37 +2155,63 @@ function kcLink(t){ /* 文の中の筋肉の名前を、押せる文字にする
 function kcOpenMuscle(n){ for(const v of ['front','back','side']){ const z = KC_ZONES[v].find(z=>z.m.includes(n)); if(z){ kcSt.view = v; kcSt.zone = z.key; kcSt.mus = n; break; } }
   kcSt.q = ''; kcSt.how = 'body'; kcSt.focusPanel = true;
   const i = stack.map(s=>s.name).lastIndexOf('cards'); if(i>=0){ stack = stack.slice(0,i+1); render(true); } else go('cards'); }
+/* カードの欄（プルダウン）。カードの画面と、種目の詳しい画面の両方で使う */
+function kcBlk(k,n,t,body,empty){ return '<details class="kc-blk kc-dt'+(empty?' kc-empty':'')+'" data-ksec="'+k+'"'+(kcOpen[k]&&!empty?' open':'')+'><summary><span class="kc-bt">'+(n?n+'　':'')+t+'</span>'+(empty?'<span class="kc-none">未登録</span>':'')+'</summary><div class="kc-bb">'+body+'</div></details>'; }
+function kcLi(a){ return '<ul>'+a.map(x=>'<li>'+kcLink(x)+'</li>').join('')+'</ul>'; }
+function kcSections(c){ return kcBlk('fm',1,'正しいフォーム','<ol style="margin:0;padding-left:1.4em">'+c.fm.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>')+
+   kcBlk('ms',2,'よくあるミスと直し方','<ul class="kc-ms">'+c.ms.map(m=>'<li><span class="x">'+esc(m.x)+'</span><span class="f">'+esc(m.f)+'</span></li>').join('')+'</ul>')+
+   (c.tip?kcBlk('tip','','黄金のコツ','<p style="margin:0">'+esc(c.tip)+'</p>'):'')+
+   kcBlk('ag',3,'主動筋（アゴニスト）',kcLi(c.ag))+kcBlk('sy',4,'協働筋（シナジスト）',kcLi(c.sy))+kcBlk('st',5,'安定筋（スタビライザー）',kcLi(c.st))+
+   kcBlk('jt',6,'関節の動き',kcLi(c.jt))+kcBlk('pl',7,'運動面と軸','<p style="margin:0">'+esc(c.pl)+'</p>'); }
+/* カードのない種目：このアプリに登録してある説明を、カードと同じ並びに置く。資料にない欄は「未登録」と書き、中身は作らない */
+function kcSectionsEx(e){ const nr = '<p class="sub" style="margin:0">この種目の資料には、この項目がまだありません。</p>'; const sp = t=>String(t||'').split(/[・、]/).map(x=>x.trim()).filter(Boolean);
+  const dm = e.demerit||[], mr = e.merit||[];
+  return kcBlk('fm',1,'正しいフォーム', e.why ? '<p style="margin:0;white-space:pre-wrap">'+esc(e.why)+'</p>' : nr, !e.why)+
+   kcBlk('ms',2,'よくあるミスと直し方', dm.length ? '<p class="sub" style="margin:0 0 6px">この種目の資料には「ミスと直し方」の形の記述がないため、注意することを載せています。</p><ul class="kc-ms">'+dm.map(x=>'<li><span class="x">'+esc(x)+'</span></li>').join('')+'</ul>' : nr, !dm.length)+
+   kcBlk('tip','','黄金のコツ', e.cue ? '<p style="margin:0">'+esc(e.cue)+'</p>' : nr, !e.cue)+
+   kcBlk('ag',3,'主動筋（アゴニスト）', e.muscles ? kcLi(sp(e.muscles)) : nr, !e.muscles)+kcBlk('sy',4,'協働筋（シナジスト）',nr,true)+kcBlk('st',5,'安定筋（スタビライザー）',nr,true)+
+   kcBlk('jt',6,'関節の動き',nr,true)+kcBlk('pl',7,'運動面と軸',nr,true)+
+   (e.swim?kcBlk('swim','','水泳との関連','<p style="margin:0">'+esc(e.swim)+'</p>'):'')+
+   (mr.length?kcBlk('merit','','良いところ','<ul>'+mr.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'):''); }
+function kcBindSecs(){ document.querySelectorAll('[data-kgom]').forEach(b=>b.addEventListener('click',()=>kcOpenMuscle(b.dataset.kgom)));
+  document.querySelectorAll('details.kc-dt').forEach(d=>d.addEventListener('toggle',()=>{ kcOpen[d.dataset.ksec] = d.open; }));
+  const setAll = on=>{ document.querySelectorAll('details.kc-dt').forEach(d=>{ if(on && d.querySelector('.kc-none')) return; d.open = on; kcOpen[d.dataset.ksec] = on; }); say(on?'全部開きました':'全部閉じました'); };
+  const o = $('#kcAllOpen'), c = $('#kcAllClose'); if(o) o.addEventListener('click',()=>setAll(true)); if(c) c.addEventListener('click',()=>setAll(false)); }
+const KC_ALLBAR = '<div class="kc-allbar"><button type="button" class="ghost kc-sm" id="kcAllOpen">全部開く</button><button type="button" class="ghost kc-sm" id="kcAllClose">全部閉じる</button></div>';
+/* 同じ種目が二つ（体操のデータから移した写し）あるときは、もとの一つだけを出す */
+function kcAppExFor(no){ const seen = new Set(); return EX.filter(e=>(kcForEx(e).includes(no) || kcNearEx(e).includes(no)) && !(e.twin && EXMAP[e.twin])).filter(e=>{ const k = shortName(e); if(seen.has(k)) return false; seen.add(k); return true; }); }
 VIEWS.card = cur=>{ const no = cur.no; const c = KC_CBY[no]; if(!c) return {title:'種目カード', html:'<p>カードが見つかりません。</p>'};
   const li = a=>'<ul>'+a.map(x=>'<li>'+kcLink(x)+'</li>').join('')+'</ul>';
   const blk = (k,n,t,body)=>'<details class="kc-blk kc-dt" data-ksec="'+k+'"'+(kcOpen[k]?' open':'')+'><summary><span class="kc-bt">'+(n?n+'　':'')+t+'</span></summary><div class="kc-bb">'+body+'</div></details>';
   const yt = 'https://www.youtube.com/results?search_query='+encodeURIComponent(c.name.replace(/（.*?）/g,'')+' やり方');
-  const same = EX.filter(e=>kcForEx(e).includes(no) || kcNearEx(e).includes(no));
+  const same = kcAppExFor(no);
   return {title: c.name, html:
    '<div class="kc-top"><p class="kc-sub2">'+esc(c.sub)+'</p><p class="kc-no2"><b>'+esc(c.cat)+'</b>カード '+kcPad(no)+'</p></div>'+
    '<div class="kc-pic"><img src="'+KC_IMG[no]+'" alt="'+esc(c.name)+'の動きと、使う筋肉に色を付けた絵"></div>'+
    '<a class="kc-ytbtn" target="_blank" rel="noopener" href="'+yt+'" aria-label="ユーチューブで'+esc(c.name)+'の動画を探す（新しい画面で開きます）"><img src="'+KC_YTLOGO+'" alt=""><span>で動画を見る</span></a>'+
-   '<div class="kc-allbar"><button type="button" class="ghost kc-sm" id="kcAllOpen">全部開く</button><button type="button" class="ghost kc-sm" id="kcAllClose">全部閉じる</button></div>'+
-   blk('fm',1,'正しいフォーム','<ol style="margin:0;padding-left:1.4em">'+c.fm.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol>')+
-   blk('ms',2,'よくあるミスと直し方','<ul class="kc-ms">'+c.ms.map(m=>'<li><span class="x">'+esc(m.x)+'</span><span class="f">'+esc(m.f)+'</span></li>').join('')+'</ul>')+
-   (c.tip?blk('tip','','黄金のコツ','<p style="margin:0">'+esc(c.tip)+'</p>'):'')+
-   blk('ag',3,'主動筋（アゴニスト）',li(c.ag))+blk('sy',4,'協働筋（シナジスト）',li(c.sy))+blk('st',5,'安定筋（スタビライザー）',li(c.st))+
-   blk('jt',6,'関節の動き',li(c.jt))+blk('pl',7,'運動面と軸','<p style="margin:0">'+esc(c.pl)+'</p>')+
-   (same.length?'<section class="kc-blk" aria-labelledby="kcbe"><h2 id="kcbe">このアプリの種目</h2>'+same.map(e=>'<button type="button" class="ghost" data-kex="'+e.id+'" style="margin-top:6px">'+esc(e.name)+'の画面を開く</button>').join('')+'</section>':'')+
+   KC_ALLBAR+kcSections(c)+
+   (same.length?'<section class="kc-blk" aria-labelledby="kcbe"><h2 id="kcbe">このアプリの種目</h2>'+same.map(e=>'<button type="button" class="ghost" data-kex="'+e.id+'" style="margin-top:6px">'+esc(shortName(e))+'の画面を開く（記録とメニュー）</button>').join('')+'</section>':'')+
    '<div class="kc-nav"><button type="button" class="ghost" id="kcPv" '+(no<=1?'disabled':'')+' aria-label="前のカード'+(no>1?'、'+kcPad(no-1):'')+'">‹ 前　'+(no>1?kcPad(no-1):'')+'</button><button type="button" class="ghost" id="kcNx" '+(no>=150?'disabled':'')+' aria-label="次のカード'+(no<150?'、'+kcPad(no+1):'')+'">次　'+(no<150?kcPad(no+1):'')+' ›</button></div>'+
    '<p class="kc-src">'+esc(KC_SRC)+'。カードの文と絵はPDFのものをそのまま使っています。効果を調べた論文ではないため、根拠の星は付けていません。</p>',
-   after(){ document.querySelectorAll('[data-kgom]').forEach(b=>b.addEventListener('click',()=>kcOpenMuscle(b.dataset.kgom)));
+   after(){ kcBindSecs();
      document.querySelectorAll('[data-kex]').forEach(b=>b.addEventListener('click',()=>go('detail',{id:b.dataset.kex})));
-     document.querySelectorAll('details.kc-dt').forEach(d=>d.addEventListener('toggle',()=>{ kcOpen[d.dataset.ksec] = d.open; }));
-     const setAll = on=>{ document.querySelectorAll('details.kc-dt').forEach(d=>{ d.open = on; kcOpen[d.dataset.ksec] = on; }); say(on?'全部開きました':'全部閉じました'); };
-     $('#kcAllOpen').addEventListener('click',()=>setAll(true)); $('#kcAllClose').addEventListener('click',()=>setAll(false));
      const mv = d=>{ stack[stack.length-1] = {name:'card', no:no+d}; render(true); };
      const pv = $('#kcPv'), nx = $('#kcNx'); if(pv) pv.addEventListener('click',()=>mv(-1)); if(nx) nx.addEventListener('click',()=>mv(1)); } }; };
 /* 種目の画面の上に入り口、種目の詳しい画面に同じ名前のカードへの入り口 */
 const _exViewKC = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewKC(); v.html = '<button type="button" class="ghost kc-entry" data-go="cards">種目カード150枚から探す</button>'+v.html; return v; };
-const _detailKC = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailKC(cur); const e = EXMAP[cur.id]; const h = kcBtns(e, 'data-kc2');
-  if(h){ const add = '<div class="kc-cbox">'+h+'</div>';
-    const i = v.html.indexOf('<h2>主な筋肉</h2>'); v.html = i>=0 ? v.html.slice(0,i)+add+v.html.slice(i) : v.html+add;
-    const a0 = v.after; v.after = ()=>{ if(a0) a0(); document.querySelectorAll('[data-kc2]').forEach(b=>b.addEventListener('click',()=>go('card',{no:Number(b.dataset.kc2)}))); }; }
+const _detailKC = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailKC(cur); const e = EXMAP[cur.id]; if(!e) return v;
+  /* 説明の部分（主な筋肉から、根拠の文献または動画の手前まで）を入れ替える */
+  const i = v.html.indexOf('<h2>主な筋肉</h2>'); let j = v.html.indexOf('<details class="more"><summary>根拠の文献'); const jv = v.html.indexOf('<details class="more"><summary>英語の原文'); const jy = v.html.indexOf('<details class="more"><summary>動画で見る');
+  j = [j, jv, jy].filter(x=>x>i).sort((a,b)=>a-b)[0]; if(i<0 || j==null) return v;
+  /* 前の文字だけの動画のリンクは、ロゴのボタンにして上へ移す */
+  let tail = v.html.slice(j); const y0 = tail.indexOf('<details class="more"><summary>動画で見る'); if(y0>=0){ const y1 = tail.indexOf('</details>', y0); tail = tail.slice(0,y0)+tail.slice(y1+10); }
+  tail = tail.replace('<details class="more"><summary>根拠の文献','<details class="more kc-ref"><summary>根拠の文献');
+  const same = kcForEx(e); const near = kcNearEx(e);
+  let body = '<div class="kc-learn">'+kcYtBtn(shortName(e))+same.map(no=>kcCardBtn(no,'data-kc2',false)).join('')+near.map(no=>kcCardBtn(no,'data-kc2',true)).join('')+'</div>';
+  if(same.length){ const c = KC_CBY[same[0]]; body += '<h2 class="kc-dh">説明（種目カード '+kcPad(c.no)+' より）</h2>'+KC_ALLBAR+kcSections(c)+'<p class="kc-src">'+esc(KC_SRC)+'</p>'; }
+  else body += '<h2 class="kc-dh">説明</h2>'+(near.length?'':'<p class="sub" style="margin-top:0">この種目のカードはまだありません。このアプリに登録してある説明を、カードと同じ並びで出しています。</p>')+KC_ALLBAR+kcSectionsEx(e);
+  v.html = v.html.slice(0,i)+body+tail;
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); kcBindSecs(); document.querySelectorAll('[data-kc2]').forEach(b=>b.addEventListener('click',()=>go('card',{no:Number(b.dataset.kc2)}))); };
   return v; };
 /* 選手がメニューの種目を開いたとき（重さと回数を入れる画面）にも、ユーチューブとカードを出す */
 const _drawSheetKC = drawSheet; drawSheet = function(){ _drawSheetKC(); if(!sh) return; const d = day(sh.k); const r = d.rows.find(x=>x.rid===sh.rid); const e = r && EXMAP[r.exId]; if(!e) return;
@@ -2151,6 +2220,121 @@ const _drawSheetKC = drawSheet; drawSheet = function(){ _drawSheetKC(); if(!sh) 
   p.insertAdjacentHTML('afterend', '<div class="kc-sheetbox">'+kcYtBtn(shortName(e))+(e.video?'<a class="kc-vid" target="_blank" rel="noopener" href="'+esc(e.video)+'">登録された動画を開く</a>':'')+
     (cards || '<p class="sub" style="margin:6px 0 0">この種目の解剖学カードはまだありません。</p>')+'</div>');
   document.querySelectorAll('#sheet [data-kcs]').forEach(b=>b.addEventListener('click',()=>{ const no = Number(b.dataset.kcs); closeSheet(); go('card',{no}); })); };
+
+/* ============ コーチ：メニューを作る流れの作り直し（2026-11-07） ============
+   順番は「1 選手 → 2 この選手の今 → 3 メニュー → 4 送る」。選手の記録から種目の案を作れる。
+   案の種目の選び方：続けている種目（直近4週間でセットが多い順に2つ）、足りない部位（分析の「足りない部位の種目の案」の1番目）、
+   押す種目が引く種目より多いときは引く種目を1つ。多くて6種目。
+   目的：期分けにその日の目的があればそれ、なければ直近4週間になかった目的（筋持久力、筋肥大、最大筋力、パワーの順で最初のもの）。
+   この選び方と順番は、このアプリが決めた仮の決め方で、論文の裏付けはない。重さ、回数、セット、休憩は、今までの目的別の自動の決め方をそのまま使う */
+let czSwap = null; /* 「別の種目」を開いている行 */
+let czPrev = null; /* 案を作る前の種目（元に戻す用） */
+function czWho(d){ const to = d.to||[]; if(anaSel && to.includes(anaSel)) return anaSel; return to.length ? to[0] : ''; }
+function czHasRec(n){ return !!n && srcRows(n).some(x=>String(x['種類'])==='記録'); }
+function czPurpose(n){ const pz = pzToday(n, draft().date||today()); if(pz && PURP[pz.v]) return {p:pz.v, why:'期分けのこの日の目的'};
+  const td = today(); const C = anaCount(srcRows(n), addDays(td, -(ANA_DAYS-1)), td);
+  const miss = ['endurance','hypertrophy','strength','power'].find(p=>!C.P[p]); if(miss) return {p:miss, why:'4週間なかった目的'};
+  return {p:'', why:''}; }
+function czPlan(n){ const td = today(); const rows = srcRows(n); const C = anaCount(rows, addDays(td, -(ANA_DAYS-1)), td);
+  const out = []; const has = id=>out.some(x=>x.e.id===id); const add = (e, why)=>{ if(!e || has(e.id) || out.length>=6) return; out.push({e, why:[why]}); };
+  /* 続けている種目 */
+  const cnt = {}; rows.forEach(x=>{ if(String(x['種類'])!=='記録') return; const k = rowDate(x); if(!k || k<addDays(td, -(ANA_DAYS-1))) return; const e = anaEx(x); if(!e) return; cnt[e.id] = (cnt[e.id]||0) + Math.max(1, repsOf(x['セットの内容']).length); });
+  Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]).slice(0,2).forEach(id=>add(EXMAP[id], '続けている種目'));
+  /* 引く種目を増やす */
+  if(C.push.push > C.push.pull){ const L = anaSuggest('back', n, 8).map(x=>x.e).filter(e=>anaPush(e)==='pull' && !has(e.id)); add(L[0], '引く種目を増やす'); }
+  /* 足りない部位 */
+  PARTS.filter(p=>!C.Pt[p.k]).forEach(p=>{ const S = anaSuggest(p.k, n, 3).map(x=>x.e).filter(e=>!has(e.id)); add(S[0], '足りない部位：'+p.name); });
+  return out; }
+function czMake(n){ const d = draft(); czPrev = {rows:JSON.stringify(d.rows), purpose:d.purpose||'', why:d.purposeWhy||''};
+  const pp = czPurpose(n); d.purpose = pp.p; d.purposeWhy = pp.why; d.rows = [];
+  czPlan(n).forEach(x=>{ const r = newRow(x.e.id, {kg:0, reps:5, sets:3, rest:'', free:null}); r.why = x.why; if(d.purpose) applyAuto(r, d.purpose); d.rows.push(r); });
+  save(); return d.rows.length; }
+function czSwapList(r, n){ const e = EXMAP[r.exId]; const part = anaPart(e); const d = draft(); const inD = id=>d.rows.some(x=>x.exId===id);
+  let L = part && n ? anaSuggest(part, n, 8).map(x=>x.e) : EX.filter(x=>anaPart(x)===part && !x.norx && !x.adv && !(x.twin && EXMAP[x.twin]));
+  return L.filter(x=>x.id!==e.id && !inD(x.id)).slice(0,3); }
+function czRowHTML(r, i, n, names){ const e = EXMAP[r.exId]; const d = draft(); const nm = shortName(e); const pv = previewKg(r, names);
+  const tags = (r.why||[]).map(w=>'<span class="cz-tag'+(/足りない/.test(w)?' need':'')+'">'+esc(w)+'</span>').join('');
+  const cards = kcBtns(e, 'data-czcard');
+  return '<li class="cz-row" data-rid="'+r.rid+'"><div class="cz-ph"><strong>'+(i+1)+'. '+esc(nm)+'</strong>'+tags+'</div>'+
+    '<button type="button" class="cz-rx" data-cedit="'+r.rid+'" aria-label="'+esc(nm)+'、'+esc(coachRowTxt(r))+'、押すと直す">'+esc(coachRowTxt(r))+'</button>'+(pv?'<p class="cz-pv">'+pv+'</p>':'')+
+    '<div class="kc-learn">'+(cards || '<div class="cz-nocard">この種目のカードはまだありません</div>')+kcYtBtn(nm)+'</div>'+
+    '<div class="cz-acts"><button type="button" class="ghost" data-cedit="'+r.rid+'">直す</button><button type="button" class="ghost" data-czswap="'+r.rid+'" aria-expanded="'+(czSwap===r.rid)+'">別の種目</button><button type="button" class="ghost" data-czdel="'+r.rid+'">外す</button></div>'+
+    '<div class="cz-ord"><button type="button" class="ghost sm" data-czup="'+r.rid+'" '+(i===0?'disabled':'')+' aria-label="'+esc(nm)+'を上へ">上へ</button><button type="button" class="ghost sm" data-czdown="'+r.rid+'" '+(i===d.rows.length-1?'disabled':'')+' aria-label="'+esc(nm)+'を下へ">下へ</button></div>'+
+    (czSwap===r.rid ? (()=>{ const L = czSwapList(r, n); return '<div class="cz-swap" role="group" aria-label="'+esc(nm)+'と入れ替える種目"><p class="sub" style="margin:0 0 6px">同じ部位の種目です。押すと入れ替わります。</p>'+(L.length?L.map(x=>'<button type="button" class="ghost" data-czto="'+x.id+'" data-czfrom="'+r.rid+'">'+esc(shortName(x))+'</button>').join(''):'<p class="sub">入れ替えられる種目が見つかりません。</p>')+'</div>'; })() : '')+'</li>'; }
+VIEWS.coach = ()=>{ const d = draft(); const sent = (db.sentMenus||[]).slice().reverse().slice(0,8); const to = d.to||[]; const n = czWho(d); const rec = czHasRec(n);
+  const ok1 = to.length>0, ok3 = d.rows.length>0 || coolOn(d); const step = !ok1 ? 1 : !ok3 ? (d.czSeen ? 3 : 2) : 4;
+  const st = (k, label)=>'<li class="'+(k<step?'done':k===step?'now':'')+'"><button type="button" data-czjump="'+k+'" aria-label="'+k+' '+label+'へ移る'+(k<step?'（済み）':k===step?'（いまここ）':'')+'"><b>'+k+'</b>'+label+'</button></li>';
+  const cl = db.cloud||{}; const savedTxt = cl.pass ? (cl.err ? '携帯とパソコン：つながりません' : '携帯とパソコンで共有しています') : 'この端末に保存しています';
+  const page = (k, title, body)=>'<section class="page '+(step===k?'now':step>k?'done':'')+'" aria-labelledby="pg'+k+'"><h2 id="pg'+k+'" tabindex="-1"><span class="step" aria-hidden="true">'+k+'</span>'+title+(step===k?'<span class="here">いまここ</span>':'')+'</h2>'+body+'</section>';
+  /* 2 この選手の今 */
+  let p2 = '';
+  if(!n) p2 = '<p class="sub" style="margin-top:0">1で選手を選ぶと、ここにその選手の今が出ます。</p>';
+  else { const full = anaHTML(n, {cal:true}); const a = full.indexOf('<div class="anasum">'); const ends = a<0 ? [] : [full.indexOf('<h3 class="anah">', a), full.indexOf('<ul class="tiles anatiles">', a)].filter(x=>x>a); const e2 = a<0 ? -1 : (ends.length ? Math.min(...ends) : full.length);
+    const sum = a<0 ? '' : full.slice(a, e2); const restH = a<0 ? full : full.slice(0,a)+full.slice(e2);
+    const s = athleteSummary(n, srcRows(n)); const R = anaRM(n, addDays(today(), -(ANA_DAYS-1))); const C = anaCount(srcRows(n), addDays(today(), -(ANA_DAYS-1)), today());
+    const top = R.length ? R.reduce((x,y)=>y.best.v>x.best.v?y:x) : null;
+    p2 = (to.length>1 ? '<label class="f" for="czWho">分析を見る選手（選んだ'+to.length+'人から）</label><select class="txt" id="czWho">'+to.map(x=>'<option value="'+esc(x)+'"'+(x===n?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>' : '')+
+      (rec ? '<div class="cz-nums"><div><b>'+r1(C.days/4)+'回</b><span>週の練習（目安 週'+WEEK_GOAL+'）</span></div><div><b>'+(s.last?md(s.last):'なし')+'</b><span>最後の練習</span></div><div><b>'+(top?kg(top.best.v)+'kg':'なし')+'</b><span>'+(top?esc(top.name)+'の推定1RM':'推定1RM')+'</span></div></div>'+sum+
+        '<details class="more"><summary>詳しい分析を開く（目的の割合、推定1RM、部位、曜日、カレンダー、根拠）</summary><div class="inner anabox">'+restH+'</div></details>'
+        : '<div class="note warn">'+esc(n)+'さんの記録がまだありません。'+(db.coachKey?'記録が届くと、ここに分析が出ます。':'設定でコーチの合言葉を入れると、記録を取り込めます。')+'</div>')+
+      (rec ? '<button type="button" class="'+(d.rows.length?'ghost':'cta')+'" id="czMake" style="margin-top:12px">'+(d.rows.length?esc(n)+'に合わせて案を作り直す（今の種目と入れ替わります）':esc(n)+'に合わせてメニューを作る')+'</button>' : '')+
+      (czPrev ? '<button type="button" class="link" id="czUndo">案を作る前の種目に戻す</button>' : '')+
+      '<div class="stack two" style="margin-top:8px"><button type="button" class="ghost" data-go="ex" data-pick="1" id="czManual">自分で種目を選ぶ</button>'+(sent.length?'<button type="button" class="ghost" id="czCopy">前回を写す</button>':'<span></span>')+'</div>'+
+      PZ_BTN(n, n+'の期分けを開く'); }
+  /* 3 メニュー */
+  const p3 = '<div class="autobox">'+purpSelect('cPurp', d.purpose||'', '目的（変えると、全部の種目の重さ、回数、セット数、休憩を入れ直します）')+(d.purposeWhy && d.purpose?'<p class="sub" style="margin:4px 0 0">今の目的は「'+esc(d.purposeWhy)+'」から選びました。</p>':'')+(db.autoUndo?'<button type="button" class="link" id="cAutoUndo">自動で入れる前に戻す</button>':'')+'</div>'+
+    (d.rows.length ? '<ol class="cz-rows">'+d.rows.map((r,i)=>czRowHTML(r, i, n, to)).join('')+'</ol>' : '<p class="sub">まだ種目がありません。2の「メニューを作る」か「自分で種目を選ぶ」から入れてください。</p>')+
+    '<div class="stack two" style="margin-top:10px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(d.rows.length?'<button type="button" class="ghost" id="cClear">全部外す</button>':'<span></span>')+'</div>'+
+    '<details class="more"><summary>案の決め方と、重さや回数の決め方</summary><div class="inner"><p class="sub">種目は、この選手が続けている種目（直近4週間でセットが多い順に2つ）、押す種目が引く種目より多いときは引く種目を1つ、足りない部位の種目の案の1番目から選び、多くて6種目にしています。目的は、期分けにその日の目的があればそれ、なければ4週間なかった目的です。この選び方は、このアプリが決めた仮の決め方で、論文の裏付けはありません。</p>'+autoRulesHTML()+'</div></details>'+
+    coolCoachHTML(d).replace('<section class="page"','<section class="cz-cool"');
+  /* 4 送る */
+  const ready = ok1 && ok3;
+  const p4 = '<label class="f" for="cDate">いつのメニューか</label><input type="date" class="txt" id="cDate" value="'+esc(d.date||today())+'">'+
+    '<label class="f" for="cNote">選手へのひとこと（なくてもかまいません）</label><input type="text" class="txt" id="cNote" value="'+esc(d.note)+'" placeholder="例：引く種目を増やしました">'+
+    '<p class="sub">'+(ready ? '受け取った選手の携帯では、その選手の推定1RMから重さが入ります。' : '選手と種目がそろうと押せます。')+'</p>'+
+    '<button type="button" class="cta" id="cSend" '+(ready?'':'disabled aria-disabled="true"')+'>'+(ready ? esc(to.length>2 ? to.slice(0,2).join('、')+' ほか'+(to.length-2)+'人' : to.join('、'))+'に '+d.rows.length+'種目'+(coolOn(d)?'とクールダウン':'')+'を送る' : '送る')+'</button>';
+  return {title:'メニューを作って渡す', html:
+    '<div class="cz-bar"><ol class="cz-steps" aria-label="メニュー作りの段階">'+st(1,'選手')+st(2,'選手の今')+st(3,'メニュー')+st(4,'送る')+'</ol><p class="cz-saved" role="status"><span class="ok">下書きは自動で保存</span><span>'+esc(savedTxt)+'</span></p></div>'+
+    coachHint()+
+    page(1, 'だれのメニューを作りますか'+(to.length?'　'+to.length+'人':''), pickerHTML(d)+'<form id="cNameF" class="stepper" style="grid-template-columns:1fr 100px;margin-top:10px"><label class="sr" for="cName">選手の名前を足す</label><input type="text" id="cName" placeholder="一覧にない名前を足す" autocomplete="off"><button type="submit" style="font-size:1rem">足す</button></form>')+
+    page(2, n ? esc(n)+'の今' : 'この選手の今', p2)+
+    page(3, 'メニュー'+(d.rows.length?'　'+d.rows.length+'種目':''), p3)+
+    page(4, '送る', p4)+
+    (sent.length ? '<h2>送ったメニュー</h2><ul class="rows">'+sent.map(m=>'<li class="row" style="grid-template-columns:1fr auto"><span class="rmain"><strong>'+md(m.date)+'　'+esc(m.to.join('、'))+'</strong><span class="d">'+esc(m.rows.map(r=>shortName(EXMAP[r.exId])).join('、'))+'</span></span><button type="button" class="ghost sm" data-creuse="'+m.mid+'">同じものを作る</button></li>').join('')+'</ul>' : ''),
+    after(){ const fx = sel=>{ const f = sel && document.querySelector(sel); if(f) f.focus(); };
+      const re = (sel, msg)=>{ save(); render(false); fx(sel); if(msg) say(msg); };
+      pickerAfter(d); autoTeam();
+      document.querySelectorAll('[data-czjump]').forEach(b=>b.addEventListener('click',()=>{ const h = $('#pg'+b.dataset.czjump); if(h){ h.closest('section').scrollIntoView({behavior:'smooth', block:'start'}); h.focus({preventScroll:true}); } }));
+      $('#cNameF').addEventListener('submit',ev=>{ ev.preventDefault(); const v = $('#cName').value.trim(); if(!v) return; db.namesGone = (db.namesGone||[]).filter(x=>x!==v); db.names = db.names||[]; if(!db.names.includes(v)) db.names.push(v); d.to = d.to||[]; if(!d.to.includes(v)) d.to.push(v); re('#cName', v+'を足して選びました'); });
+      const w = $('#czWho'); if(w) w.addEventListener('change',()=>{ anaSel = w.value; re('#czWho', w.value+'さんの分析を出しました'); });
+      const mk = $('#czMake'); if(mk) mk.addEventListener('click',()=>{ const k = czMake(n); d.czSeen = true; czSwap = null; save(); render(false); const h = $('#pg3'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say(k ? n+'さんに合わせて'+k+'種目の案を作りました' : '案に出せる種目が見つかりませんでした。自分で種目を選んでください'); });
+      const un = $('#czUndo'); if(un) un.addEventListener('click',()=>{ d.rows = JSON.parse(czPrev.rows); d.purpose = czPrev.purpose; d.purposeWhy = czPrev.why; czPrev = null; re('#pg3', '案を作る前に戻しました'); });
+      const cp = $('#czCopy'); if(cp) cp.addEventListener('click',()=>{ const m = (db.sentMenus||[]).slice().reverse().find(x=>(x.to||[]).includes(n)) || sent[0]; d.czSeen = true; reuseMenu(m.mid); });
+      const mn = $('#czManual'); if(mn) mn.addEventListener('click',()=>{ d.czSeen = true; save(); }, true);
+      /* 3 */
+      const s = $('#cPurp'); if(s) s.addEventListener('change',()=>{ const before = JSON.stringify(d.rows); d.purpose = s.value; d.purposeWhy = ''; let k = 0; if(s.value) d.rows.forEach(r=>{ if(applyAuto(r, s.value)) k++; }); if(k) db.autoUndo = {rows:before, purpose:''}; re('#cPurp', s.value ? (k ? k+'種目に「'+PURP[s.value].name+'」の目安を入れました' : '目的を「'+PURP[s.value].name+'」にしました') : '目的を決めないにしました'); });
+      const au = $('#cAutoUndo'); if(au) au.addEventListener('click',()=>{ d.rows = JSON.parse(db.autoUndo.rows); db.autoUndo = null; re('#cPurp', '自動で入れる前の値に戻しました'); });
+      document.querySelectorAll('[data-cedit]').forEach(b=>b.addEventListener('click',()=>openCoachRow(b.dataset.cedit)));
+      document.querySelectorAll('[data-czdel]').forEach(b=>b.addEventListener('click',()=>{ const r = d.rows.find(x=>x.rid===b.dataset.czdel); d.rows = d.rows.filter(x=>x!==r); db.draftUndo = [r]; re('#pg3', shortName(EXMAP[r.exId])+'を外しました'); }));
+      const mv = (rid, dir)=>{ const i = d.rows.findIndex(r=>r.rid===rid); const j = i+dir; if(j<0||j>=d.rows.length) return; [d.rows[i], d.rows[j]] = [d.rows[j], d.rows[i]]; save(); render(false); const b = document.querySelector('[data-'+(dir<0?'czup':'czdown')+'="'+rid+'"]'); if(b && !b.disabled) b.focus(); else fx('#pg3'); say(shortName(EXMAP[d.rows[j].exId])+'を'+(j+1)+'番目にしました'); };
+      document.querySelectorAll('[data-czup]').forEach(b=>b.addEventListener('click',()=>mv(b.dataset.czup,-1)));
+      document.querySelectorAll('[data-czdown]').forEach(b=>b.addEventListener('click',()=>mv(b.dataset.czdown,1)));
+      document.querySelectorAll('[data-czswap]').forEach(b=>b.addEventListener('click',()=>{ czSwap = czSwap===b.dataset.czswap ? null : b.dataset.czswap; render(false); fx('[data-czswap="'+b.dataset.czswap+'"]'); }));
+      document.querySelectorAll('[data-czto]').forEach(b=>b.addEventListener('click',()=>{ const r = d.rows.find(x=>x.rid===b.dataset.czfrom); if(!r) return; const old = shortName(EXMAP[r.exId]); r.exId = b.dataset.czto; r.pct = null; r.kg = 0; if(d.purpose) applyAuto(r, d.purpose); czSwap = null; re('[data-cedit="'+r.rid+'"]', old+'を'+shortName(EXMAP[r.exId])+'に入れ替えました'); }));
+      document.querySelectorAll('[data-czcard]').forEach(b=>b.addEventListener('click',()=>go('card',{no:Number(b.dataset.czcard)})));
+      const cl2 = $('#cClear'); if(cl2) cl2.addEventListener('click',()=>{ db.draftUndo = d.rows; d.rows = []; re('#pg3', '全部外しました。設定から戻せます'); });
+      { const set = (id, k)=>{ const el = $('#'+id); if(!el) return; el.addEventListener('change',()=>{ d.cool = d.cool||coolData({}); if(k==='on'){ d.cool.on = !!el.value; } else d.cool[k] = Number(el.value); save(); render(false); fx('#'+id); say(k==='on' ? (el.value?'プールのクールダウンを入れました':'プールのクールダウンを外しました') : coolTxt(d.cool)); }); };
+        set('clOn','on'); set('clDist','dist'); set('clReps','reps'); set('clPace','pace'); set('clCircle','circle');
+        const t = $('#clT200'); if(t) t.addEventListener('change',()=>{ db.coolT200 = Number(t.value); save(); render(false); const x = $('#clT200'); if(x){ x.closest('details').open = true; x.focus(); } }); }
+      /* 2 の詳しい分析の中 */
+      if(n){ document.querySelectorAll('.anabox [data-cday]').forEach(b=>b.addEventListener('click',()=>openDay(n, b.dataset.cday)));
+        document.querySelectorAll('.anabox [data-cm]').forEach(b=>b.addEventListener('click',()=>{ calMonth[n] = b.dataset.cm; render(false); const x = $('#calH'); if(x){ x.closest('details').open = true; x.focus(); } }));
+        document.querySelectorAll('[data-anaadd]').forEach(b=>b.addEventListener('click',()=>{ if(b.disabled) return; const e = EXMAP[b.dataset.anaadd]; addToDraft(e); const r = d.rows[d.rows.length-1]; if(r && r.exId===e.id) r.why = ['足りない部位']; d.czSeen = true; re('#pg3', shortName(e)+'を入れました（'+d.rows.length+'種目）'); })); }
+      /* 4 */
+      $('#cNote').addEventListener('input',e=>{ d.note = e.target.value; save(); }); $('#cDate').addEventListener('change',e=>{ d.date = e.target.value; save(); });
+      $('#cSend').addEventListener('click',()=>sendMenu());
+      document.querySelectorAll('[data-creuse]').forEach(b=>b.addEventListener('click',()=>{ d.czSeen = true; reuseMenu(b.dataset.creuse); }));
+    } }; };
 
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }

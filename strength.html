@@ -340,6 +340,13 @@ details.kc-dt.kc-empty>summary .kc-bt{color:var(--sub)}
 .cz-ord button{width:auto;min-height:40px;padding:2px 14px}
 .cz-swap{margin-top:8px;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
 .cz-cool{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
+/* 選手の入力画面：結果の三つは横一列、セットごとに変えるは目立つボタン */
+#sheet .chips.kc-res{display:grid;grid-template-columns:1fr 1.35fr .85fr;gap:6px;flex-wrap:nowrap}
+#sheet .chips.kc-res .chip{min-width:0;padding:6px 4px;font-size:1rem;line-height:1.25;text-align:center;min-height:64px}
+#sheet #shPer{display:flex;align-items:center;gap:12px;width:100%;margin:12px 0 4px;padding:10px 14px;min-height:64px;background:var(--pane2);border:2px solid #fff;border-radius:12px;color:#fff;font-weight:800;font-size:1.05rem;text-decoration:none;text-align:left}
+#sheet #shPer .kc-perI{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#fff;color:#000;font-size:1.5rem;font-weight:800;flex:none}
+#sheet #shPer small{display:block;font-weight:400;font-size:.85rem;color:var(--sub)}
+#sheet #shPer:hover,#sheet #shPer:focus-visible{border-color:var(--am)}
 </style>
 </head>
 <body>
@@ -363,7 +370,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-07 list1';
+const APP_VER = '2026-11-07 sheet1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2242,6 +2249,9 @@ KC_CARDS.forEach(c=>{ const m = EX.find(e=>!e.kc && kcForEx(e).includes(c.no) &&
 function kcExForCard(no){ return EX.find(e=>e.kc===no) || EX.find(e=>kcForEx(e).includes(no) && !(e.twin && EXMAP[e.twin])) || EX.find(e=>kcForEx(e).includes(no)) || null; }
 const _exListKC = exList; exList = function(key){ if(key==='kc'){ const out = []; KC_CARDS.forEach(c=>{ const e = kcExForCard(c.no); if(e && !out.includes(e)) out.push(e); }); return out; } return _exListKC(key); };
 const _exViewKC2 = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewKC2(); v.html = v.html.replace('<option value="fav"', '<option value="kc"'+(exSel==='kc'?' selected':'')+'>種目カードの150種目（カードの順）</option><option value="fav"'); return v; };
+/* 選手の入力画面の見た目（結果を横一列、セットごとに変えるを目立つボタンに） */
+const _drawSheetKC2 = drawSheet; drawSheet = function(){ _drawSheetKC2(); const g = document.querySelector('#sheet .chips[aria-label="結果"]'); if(g){ g.classList.add('kc-res'); const sk = g.querySelector('[data-shst="skip"]'); if(sk) sk.innerHTML = '✕ できなかった<br>やらなかった'; }
+  const p = $('#shPer'); if(p){ p.innerHTML = '<span class="kc-perI" aria-hidden="true">＋</span><span>セットごとに重さを変える<small>回数も1セットずつ変えられます</small></span>'; const u = p.previousElementSibling; if(u && u.classList.contains('unit')) u.style.display = 'block'; } };
 
 /* ============ クールダウンのサークルを、選手の前回のタイムから決める（2026-11-07） ============
    選手は泳いだあと「1本のだいたいのタイム」を記録する。コーチが「選手の前回から決める」を選ぶと、

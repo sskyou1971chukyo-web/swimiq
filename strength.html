@@ -363,7 +363,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-07 coach1';
+const APP_VER = '2026-11-07 list1';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2077,7 +2077,7 @@ function kcNorm(s){ return String(s||'').normalize('NFKC').replace(/[ぁ-ゖ]/g,
 function kcBase(s){ return String(s||'').normalize('NFKC').split('(')[0].replace(/[\s・]/g,''); }
 /* カードの名前のかっこの中の別の名前（4文字以上）も同じ種目として扱う。例：腕立て伏せ（プッシュアップ） */
 function kcKeys(n){ const k = [kcBase(n)]; const m = String(n).normalize('NFKC').match(/\(([^)]*)\)/); if(m){ const a = m[1].replace(/[\s・]/g,''); if(a.length>=4) k.push(a); } return k; }
-function kcForEx(e){ if(!e) return []; const s = kcBase(shortName(e)); return KC_CARDS.filter(c=>kcKeys(c.name).includes(s)).map(c=>c.no); }
+function kcForEx(e){ if(!e) return []; if(e.kc) return [e.kc]; const s = kcBase(shortName(e)); return KC_CARDS.filter(c=>kcKeys(c.name).includes(s)).map(c=>c.no); }
 /* 名前は違うが近い種目（器具や形が少し違う）。どれを近いとするかは、このアプリの作り手の判断で、資料の裏付けはない */
 const KC_NEAR = {'ブルガリアンスプリットスクワット':[14],'ヒップスラスト':[31],'スラスター':[143],'平行棒ディップス':[63,123],'リングディップス':[63,123],'ステップアップ':[16],'カーフレイズ':[45,48],'クラムシェル':[44],'ハングパワークリーン':[145],'ダンベルロウ':[75],'スタンディング・ダブルアーム・トライセプス・プッシュダウン':[116],'インクラインベンチプレス':[51],'ダンベルプレス':[53],'フロントプランク':[126],'リバースリストカール':[115]};
 function kcNearEx(e){ if(!e) return []; if(kcForEx(e).length) return []; return KC_NEAR[shortName(e)] || KC_NEAR[kcBase(shortName(e))] || []; }
@@ -2221,6 +2221,63 @@ const _drawSheetKC = drawSheet; drawSheet = function(){ _drawSheetKC(); if(!sh) 
     (cards || '<p class="sub" style="margin:6px 0 0">この種目の解剖学カードはまだありません。</p>')+'</div>');
   document.querySelectorAll('#sheet [data-kcs]').forEach(b=>b.addEventListener('click',()=>{ const no = Number(b.dataset.kcs); closeSheet(); go('card',{no}); })); };
 
+/* ============ 種目の一覧とカードの種目をそろえる（2026-11-07） ============
+   カード150枚のうち、このアプリに同じ名前の種目がないものを、種目として足す（id は kc_番号）。
+   部位はカードの目次の分け方から決め、全身のカードはこのアプリの作り手が一つずつ部位を決めた（資料の裏付けはない）。
+   細かい部位は、カードの主動筋の最初の筋肉から決める。説明はカードを出す。根拠の星は、論文を確かめていないので「論文は未確認」 */
+const KC_FULL = {141:['core','kcfull'],142:['core','kcfull'],143:['power','kcfull'],144:['power','kcfull'],145:['power','olympic'],146:['core','kcfull'],147:['power','kcfull'],148:['power','mb'],149:['power','plyo'],150:['power','mb']};
+function kcPartOf(c){ if(KC_FULL[c.no]) return KC_FULL[c.no][0];
+  return {'下半身':'legs','ポステリアチェーン':'legs','ふくらはぎ':'legs','胸':'chest','背中':'back','肩':'shoulder','上腕二頭筋・前腕':'arms','上腕三頭筋':'arms','体幹(コア)':'core','体幹（コア）':'core'}[c.cat] || 'legs'; }
+function kcCatOf(c){ if(KC_FULL[c.no]) return KC_FULL[c.no][1]; const k = c.cat;
+  if(k==='胸') return 'push'; if(k==='背中') return 'pull'; if(k==='肩') return /プレス|プッシュ/.test(c.name) ? 'push' : 'kcshoulder';
+  if(/下半身|ポステリア|ふくらはぎ/.test(k)) return 'lower'; if(/体幹/.test(k)) return 'core'; return 'kcarm'; }
+function kcSubOf(part, c){ const P = PARTS.find(p=>p.k===part); if(!P) return ''; const m = (c.ag||[]).join('　'); const s = P.subs.find(x=>x[2].some(w=>m.includes(w))); return s ? s[0] : ''; }
+CATS.kcshoulder = '肩の筋力（種目カード）'; CATS.kcarm = '腕の筋力（種目カード）'; CATS.kcfull = '全身（種目カード）';
+const kcUsed = new Set();
+KC_CARDS.forEach(c=>{ const m = EX.find(e=>!e.kc && kcForEx(e).includes(c.no) && !kcUsed.has(e.id) && !(e.twin && EXMAP[e.twin])) || EX.find(e=>!e.kc && kcForEx(e).includes(c.no) && !kcUsed.has(e.id)); if(m){ kcUsed.add(m.id); if(m.twin && EXMAP[m.twin]) kcUsed.add(m.twin); EX.forEach(x=>{ if(x.twin===m.id) kcUsed.add(x.id); }); return; } const id = 'kc_'+kcPad(c.no); if(EXMAP[id]) return;
+  const part = kcPartOf(c), cat = kcCatOf(c); const type = ['olympic','plyo','mb'].includes(cat) ? cat : cat==='core' ? 'core' : 'loaded';
+  const e = {id, name:c.name, cat, type, kc:c.no, strokes:[], muscles:(c.ag||[]).join('・'), why:'', swim:'', cue:'', merit:[], demerit:[], refs:[], lv:'none', check:[]};
+  EX.push(e); EXMAP[id] = e; PLACES[id] = [{part, sub:kcSubOf(part, c), main:true}]; });
+/* 種目の選び方に「種目カードの150種目」を足す。カードの番号の順に並べる */
+function kcExForCard(no){ return EX.find(e=>e.kc===no) || EX.find(e=>kcForEx(e).includes(no) && !(e.twin && EXMAP[e.twin])) || EX.find(e=>kcForEx(e).includes(no)) || null; }
+const _exListKC = exList; exList = function(key){ if(key==='kc'){ const out = []; KC_CARDS.forEach(c=>{ const e = kcExForCard(c.no); if(e && !out.includes(e)) out.push(e); }); return out; } return _exListKC(key); };
+const _exViewKC2 = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewKC2(); v.html = v.html.replace('<option value="fav"', '<option value="kc"'+(exSel==='kc'?' selected':'')+'>種目カードの150種目（カードの順）</option><option value="fav"'); return v; };
+
+/* ============ クールダウンのサークルを、選手の前回のタイムから決める（2026-11-07） ============
+   選手は泳いだあと「1本のだいたいのタイム」を記録する。コーチが「選手の前回から決める」を選ぶと、
+   選手の携帯で「前回の同じ距離の1本のタイム＋コーチが決めた休みの秒数」をサークルにする。5秒単位に切り上げる。
+   休みの秒数（初めは20秒）と5秒単位の切り上げは、コーチの決め方（佐々木さんの例：前回1分10秒なら、今回はサークル1分30秒）で、論文の裏付けはない。
+   心拍は記録して並べて見せるが、サークルの計算には使わない */
+const _coolData0 = coolData; coolData = function(c){ const o = _coolData0(c||{}); c = c||{}; if(c.mode==='auto'){ o.mode = 'auto'; o.add = Number(c.add)||20; } return o; };
+const _coolTxt0 = coolTxt; coolTxt = function(c){ const cd = coolData(c||{}); const t = _coolTxt0(c); return cd.mode==='auto' ? t.replace(/サークル \d+:\d\d/, 'サークル 選手の前回の1本＋'+cd.add+'秒') : t; };
+function coolUp5(s){ return Math.ceil(s/5)*5; }
+/* 選手自身の前回（この携帯の記録）。同じ距離で、1本のタイムがある最後の日 */
+function coolPrevMine(dist, beforeK){ const ks = Object.keys(db.days).filter(x=>x<beforeK && db.days[x].coolLog && db.days[x].coolLog.time && db.days[x].cool && coolData(db.days[x].cool).dist===dist).sort(); const k = ks[ks.length-1]; return k ? {k, L:db.days[k].coolLog} : null; }
+/* コーチが見る、選手の前回（取り込んだ記録の「プール」の行から） */
+function coolPrevTeam(n, dist){ let best = null; srcRows(n).forEach(x=>{ if(String(x['種類'])!=='プール') return; let raw = null; try{ raw = JSON.parse(x['JSON']||'null'); }catch(e){} if(!raw || !raw.log || !raw.log.time || !raw.cool) return; if(coolData(raw.cool).dist!==dist) return; const k = rowDate(x); if(!best || k>best.k) best = {k, L:raw.log}; }); return best; }
+function coolMyCircle(c, k){ if(c.mode!=='auto') return {circle:c.circle, how:'fixed'}; const p = coolPrevMine(c.dist, k); if(!p) return {circle:c.circle, how:'none'}; return {circle:coolUp5(p.L.time + c.add), how:'prev', p}; }
+/* コーチの画面：サークルの決め方を足す */
+const _coolCoachHTML0 = coolCoachHTML; coolCoachHTML = function(d){ let h = _coolCoachHTML0(d); if(!coolOn(d)) return h; const cd = coolData(d.cool||{}); const auto = cd.mode==='auto';
+  const box = '<label class="f" for="clMode">サークルの決め方</label><select id="clMode" class="txt"><option value="">決めたサークル（全員同じ）</option><option value="auto"'+(auto?' selected':'')+'>選手の前回のタイムから決める</option></select>'+
+    (auto ? '<label class="f" for="clAdd">前回の1本のタイムに足す休み</label><select id="clAdd" class="txt">'+coolOpts(Array.from({length:12},(_,i)=>5+i*5), cd.add, v=>v+'秒')+'</select>'+
+      '<p class="sub">選手の携帯で「前回の同じ距離の1本のタイム＋'+cd.add+'秒」を5秒単位に切り上げてサークルにします。例：前回1:10なら '+mmss(coolUp5(70+cd.add))+'。前回の記録がない選手は、上のサークル '+mmss(cd.circle)+' で泳ぎます。この足し方はコーチの決め方で、論文の裏付けはありません。</p>'+
+      ((d.to||[]).length ? '<p class="sub" style="color:var(--ink)">見込み：'+(d.to||[]).slice(0,6).map(n=>{ const p = coolPrevTeam(n, cd.dist); return esc(n)+' '+(p ? mmss(coolUp5(p.L.time+cd.add))+'（'+md(p.k)+' '+mmss(p.L.time)+(p.L.h0?'、心拍 直後'+p.L.h0+'拍/10秒':'')+'）' : '前回なし'); }).join('、')+((d.to||[]).length>6?' ほか':'')+'</p>' : '') : '');
+  const i = h.indexOf('<p style="margin-top:12px">'); return i>0 ? h.slice(0,i)+box+h.slice(i) : h+box; };
+/* 選手の画面：自分のサークルと、1本のタイムの記録 */
+const _todayCoolP = VIEWS.today; VIEWS.today = ()=>{ const v = _todayCoolP(); const k = curDay(); const d = day(k); if(!d.cool) return v; const c = coolData(d.cool); const L = d.coolLog||{};
+  if(c.mode==='auto'){ const m = coolMyCircle(c, k);
+    const line = '<p style="font-size:1.15rem;font-weight:700;margin:6px 0">'+c.dist+'m × '+c.reps+'本　サークル '+mmss(m.circle)+'</p>'+
+      '<p class="note '+(m.how==='prev'?'good':'')+'" style="margin:6px 0">'+(m.how==='prev' ? 'あなたのサークル '+mmss(m.circle)+'。前回（'+md(m.p.k)+'）の1本 '+mmss(m.p.L.time)+' に休み '+c.add+'秒を足して決めました'+(m.p.L.h0?'。前回の心拍は直後 '+m.p.L.h0+'拍/10秒'+(m.p.L.h60?'、60秒後 '+m.p.L.h60+'拍/10秒':''):'')+'。' : '前回の'+c.dist+'mのタイムの記録がないので、コーチのサークル '+mmss(m.circle)+' で泳ぎます。今日のタイムを入れると、次から自分のサークルになります。')+'</p>';
+    v.html = v.html.replace(/<p style="font-size:1\.15rem;font-weight:700;margin:6px 0">[^<]*<\/p>/, line).replace(/サークル \d+:\d\d で、目安どおりなら休みは およそ \d+秒です。/, m.how==='prev' ? 'サークル '+mmss(m.circle)+' で、前回と同じタイムなら休みは およそ '+(m.circle-m.p.L.time)+'秒、LT1ペースの目安 '+mmss(coolTgt(c))+' で泳ぐと およそ '+Math.max(0, m.circle-coolTgt(c))+'秒です。' : 'サークル '+mmss(m.circle)+' で、目安どおりなら休みは およそ '+Math.max(0, m.circle-coolTgt(c))+'秒です。'); }
+  const tm = '<h3>1本のタイム</h3><label class="f" for="clTm">1本をだいたい何秒で泳いだか（'+c.dist+'m）</label><select id="clTm" class="txt"><option value="">まだ</option>'+coolOpts(Array.from({length:Math.max(60, Math.round(c.dist*2.4))},(_,i)=>Math.round(c.dist*0.25)+i), L.time, mmss)+'</select>'+
+    (L.time && L.time < coolTgt(c) - 5 ? '<p class="sub">LT1ペースの1本の目安 '+mmss(coolTgt(c))+' より速く泳いでいます。クールダウンは目安のペースで泳ぎましょう。</p>' : '');
+  v.html = v.html.replace('<h3>心拍（10秒間数える）</h3>', tm+'<h3>心拍（10秒間数える）</h3>');
+  const a0 = v.after; v.after = ()=>{ if(a0) a0(); const el = $('#clTm'); if(el) el.addEventListener('change',()=>{ d.coolLog = d.coolLog||{}; d.coolLog.time = el.value==='' ? null : Number(el.value); save(); render(false); const n = $('#clTm'); if(n) n.focus(); }); };
+  return v; };
+const _coolLogTxt0 = coolLogTxt; coolLogTxt = function(d){ const L = d.coolLog||{}; let t = _coolLogTxt0(d); const c = coolData(d.cool||{});
+  if(c.mode==='auto'){ const m = coolMyCircle(c, Object.keys(db.days).find(k=>db.days[k]===d)||today()); t = t.replace(/サークル 選手の前回の1本＋\d+秒/, 'サークル '+mmss(m.circle)); }
+  return t+(L.time?'　1本 だいたい'+mmss(L.time):''); };
+
 /* ============ コーチ：メニューを作る流れの作り直し（2026-11-07） ============
    順番は「1 選手 → 2 この選手の今 → 3 メニュー → 4 送る」。選手の記録から種目の案を作れる。
    案の種目の選び方：続けている種目（直近4週間でセットが多い順に2つ）、足りない部位（分析の「足りない部位の種目の案」の1番目）、
@@ -2323,8 +2380,8 @@ VIEWS.coach = ()=>{ const d = draft(); const sent = (db.sentMenus||[]).slice().r
       document.querySelectorAll('[data-czto]').forEach(b=>b.addEventListener('click',()=>{ const r = d.rows.find(x=>x.rid===b.dataset.czfrom); if(!r) return; const old = shortName(EXMAP[r.exId]); r.exId = b.dataset.czto; r.pct = null; r.kg = 0; if(d.purpose) applyAuto(r, d.purpose); czSwap = null; re('[data-cedit="'+r.rid+'"]', old+'を'+shortName(EXMAP[r.exId])+'に入れ替えました'); }));
       document.querySelectorAll('[data-czcard]').forEach(b=>b.addEventListener('click',()=>go('card',{no:Number(b.dataset.czcard)})));
       const cl2 = $('#cClear'); if(cl2) cl2.addEventListener('click',()=>{ db.draftUndo = d.rows; d.rows = []; re('#pg3', '全部外しました。設定から戻せます'); });
-      { const set = (id, k)=>{ const el = $('#'+id); if(!el) return; el.addEventListener('change',()=>{ d.cool = d.cool||coolData({}); if(k==='on'){ d.cool.on = !!el.value; } else d.cool[k] = Number(el.value); save(); render(false); fx('#'+id); say(k==='on' ? (el.value?'プールのクールダウンを入れました':'プールのクールダウンを外しました') : coolTxt(d.cool)); }); };
-        set('clOn','on'); set('clDist','dist'); set('clReps','reps'); set('clPace','pace'); set('clCircle','circle');
+      { const set = (id, k)=>{ const el = $('#'+id); if(!el) return; el.addEventListener('change',()=>{ d.cool = d.cool||coolData({}); if(k==='on'){ d.cool.on = !!el.value; } else if(k==='mode'){ d.cool.mode = el.value; if(el.value && !d.cool.add) d.cool.add = 20; } else d.cool[k] = Number(el.value); save(); render(false); fx('#'+id); say(k==='on' ? (el.value?'プールのクールダウンを入れました':'プールのクールダウンを外しました') : coolTxt(d.cool)); }); };
+        set('clOn','on'); set('clDist','dist'); set('clReps','reps'); set('clPace','pace'); set('clCircle','circle'); set('clMode','mode'); set('clAdd','add');
         const t = $('#clT200'); if(t) t.addEventListener('change',()=>{ db.coolT200 = Number(t.value); save(); render(false); const x = $('#clT200'); if(x){ x.closest('details').open = true; x.focus(); } }); }
       /* 2 の詳しい分析の中 */
       if(n){ document.querySelectorAll('.anabox [data-cday]').forEach(b=>b.addEventListener('click',()=>openDay(n, b.dataset.cday)));

@@ -291,6 +291,11 @@ details.kc-dt>summary .kc-bt{flex:1}
 details.kc-dt>summary::after{content:"開く";font-weight:400;font-size:.85rem;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:0 8px;flex:none}
 details.kc-dt[open]>summary::after{content:"閉じる"}
 details.kc-dt .kc-bb{padding:0 14px 12px}
+.kc-sheetbox{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
+.kc-sheetbox .kc-ytbtn{margin:0;width:100%}
+.kc-cbtn{margin-top:0;text-align:left;justify-content:flex-start}
+.kc-cbox{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.kc-vid{display:flex;align-items:center;min-height:48px;font-weight:700;color:#9fd3ff}
 </style>
 </head>
 <body>
@@ -314,7 +319,7 @@ const D = {"REFS":{"asp":"ASP × JAPAN スイムクリニック資料および S
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-07 card2';
+const APP_VER = '2026-11-07 card3';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2026,7 +2031,17 @@ function kcCardMus(no){ return KC_MUS.filter(m=>m.p.includes(no)).map(m=>m.n); }
 function kcNorm(s){ return String(s||'').normalize('NFKC').replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60)).replace(/[\s・()（）]/g,'').toLowerCase(); }
 /* このアプリの種目と同じ名前のカード（かっこの中を除いて名前が同じもの） */
 function kcBase(s){ return String(s||'').normalize('NFKC').split('(')[0].replace(/[\s・]/g,''); }
-function kcForEx(e){ if(!e) return []; const s = kcBase(shortName(e)); return KC_CARDS.filter(c=>kcBase(c.name)===s).map(c=>c.no); }
+/* カードの名前のかっこの中の別の名前（4文字以上）も同じ種目として扱う。例：腕立て伏せ（プッシュアップ） */
+function kcKeys(n){ const k = [kcBase(n)]; const m = String(n).normalize('NFKC').match(/\(([^)]*)\)/); if(m){ const a = m[1].replace(/[\s・]/g,''); if(a.length>=4) k.push(a); } return k; }
+function kcForEx(e){ if(!e) return []; const s = kcBase(shortName(e)); return KC_CARDS.filter(c=>kcKeys(c.name).includes(s)).map(c=>c.no); }
+/* 名前は違うが近い種目（器具や形が少し違う）。どれを近いとするかは、このアプリの作り手の判断で、資料の裏付けはない */
+const KC_NEAR = {'ブルガリアンスプリットスクワット':[14],'ヒップスラスト':[31],'スラスター':[143],'平行棒ディップス':[63,123],'リングディップス':[63,123],'ステップアップ':[16],'カーフレイズ':[45,48],'クラムシェル':[44],'ハングパワークリーン':[145],'ダンベルロウ':[75],'スタンディング・ダブルアーム・トライセプス・プッシュダウン':[116],'インクラインベンチプレス':[51],'ダンベルプレス':[53],'フロントプランク':[126],'リバースリストカール':[115]};
+function kcNearEx(e){ if(!e) return []; if(kcForEx(e).length) return []; return KC_NEAR[shortName(e)] || KC_NEAR[kcBase(shortName(e))] || []; }
+function kcBtns(e, attr){ const L = kcForEx(e), N = kcNearEx(e);
+  return L.map(no=>'<button type="button" class="ghost kc-cbtn" '+attr+'="'+no+'">種目カード '+kcPad(no)+' '+esc(KC_CBY[no].name)+'を見る</button>').join('')+
+    N.map(no=>'<button type="button" class="ghost kc-cbtn" '+attr+'="'+no+'">近い種目のカード '+kcPad(no)+' '+esc(KC_CBY[no].name)+'を見る</button>').join(''); }
+function kcYtBtn(name, id){ const q = String(name).replace(/（.*?）/g,'').replace(/\(.*?\)/g,'');
+  return '<a class="kc-ytbtn"'+(id?' id="'+id+'"':'')+' target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(q+' やり方')+'" aria-label="ユーチューブで'+esc(q)+'の動画を探す（新しい画面で開きます）"><img src="'+KC_YTLOGO+'" alt=""><span>で動画を見る</span></a>'; }
 function kcMirror(d){ let i=0; return d.replace(/-?\d+(\.\d+)?/g,n=>{ const v=(i++%2===0)?(896-Number(n)):Number(n); return String(Math.round(v*10)/10); }); }
 
 function kcFig(){ const V = BODY_VIEWS[kcSt.view]; const Z = KC_ZONES[kcSt.view]; const [x0,w] = KC_CROP[kcSt.view];
@@ -2101,7 +2116,7 @@ VIEWS.card = cur=>{ const no = cur.no; const c = KC_CBY[no]; if(!c) return {titl
   const li = a=>'<ul>'+a.map(x=>'<li>'+kcLink(x)+'</li>').join('')+'</ul>';
   const blk = (k,n,t,body)=>'<details class="kc-blk kc-dt" data-ksec="'+k+'"'+(kcOpen[k]?' open':'')+'><summary><span class="kc-bt">'+(n?n+'　':'')+t+'</span></summary><div class="kc-bb">'+body+'</div></details>';
   const yt = 'https://www.youtube.com/results?search_query='+encodeURIComponent(c.name.replace(/（.*?）/g,'')+' やり方');
-  const same = EX.filter(e=>kcForEx(e).includes(no));
+  const same = EX.filter(e=>kcForEx(e).includes(no) || kcNearEx(e).includes(no));
   return {title: c.name, html:
    '<div class="kc-top"><p class="kc-sub2">'+esc(c.sub)+'</p><p class="kc-no2"><b>'+esc(c.cat)+'</b>カード '+kcPad(no)+'</p></div>'+
    '<div class="kc-pic"><img src="'+KC_IMG[no]+'" alt="'+esc(c.name)+'の動きと、使う筋肉に色を付けた絵"></div>'+
@@ -2124,11 +2139,18 @@ VIEWS.card = cur=>{ const no = cur.no; const c = KC_CBY[no]; if(!c) return {titl
      const pv = $('#kcPv'), nx = $('#kcNx'); if(pv) pv.addEventListener('click',()=>mv(-1)); if(nx) nx.addEventListener('click',()=>mv(1)); } }; };
 /* 種目の画面の上に入り口、種目の詳しい画面に同じ名前のカードへの入り口 */
 const _exViewKC = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewKC(); v.html = '<button type="button" class="ghost kc-entry" data-go="cards">種目カード150枚から探す</button>'+v.html; return v; };
-const _detailKC = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailKC(cur); const L = kcForEx(EXMAP[cur.id]);
-  if(L.length){ const add = '<div class="stack two" style="margin:10px 0">'+L.map(no=>'<button type="button" class="ghost" data-kc2="'+no+'">種目カード '+kcPad(no)+' '+esc(KC_CBY[no].name)+'を見る</button>').join('')+'</div>';
+const _detailKC = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailKC(cur); const e = EXMAP[cur.id]; const h = kcBtns(e, 'data-kc2');
+  if(h){ const add = '<div class="kc-cbox">'+h+'</div>';
     const i = v.html.indexOf('<h2>主な筋肉</h2>'); v.html = i>=0 ? v.html.slice(0,i)+add+v.html.slice(i) : v.html+add;
     const a0 = v.after; v.after = ()=>{ if(a0) a0(); document.querySelectorAll('[data-kc2]').forEach(b=>b.addEventListener('click',()=>go('card',{no:Number(b.dataset.kc2)}))); }; }
   return v; };
+/* 選手がメニューの種目を開いたとき（重さと回数を入れる画面）にも、ユーチューブとカードを出す */
+const _drawSheetKC = drawSheet; drawSheet = function(){ _drawSheetKC(); if(!sh) return; const d = day(sh.k); const r = d.rows.find(x=>x.rid===sh.rid); const e = r && EXMAP[r.exId]; if(!e) return;
+  const p = document.querySelector('#sheet .sheetin > p.sub'); if(!p) return;
+  const cards = kcBtns(e, 'data-kcs');
+  p.insertAdjacentHTML('afterend', '<div class="kc-sheetbox">'+kcYtBtn(shortName(e))+(e.video?'<a class="kc-vid" target="_blank" rel="noopener" href="'+esc(e.video)+'">登録された動画を開く</a>':'')+
+    (cards || '<p class="sub" style="margin:6px 0 0">この種目の解剖学カードはまだありません。</p>')+'</div>');
+  document.querySelectorAll('#sheet [data-kcs]').forEach(b=>b.addEventListener('click',()=>{ const no = Number(b.dataset.kcs); closeSheet(); go('card',{no}); })); };
 
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }

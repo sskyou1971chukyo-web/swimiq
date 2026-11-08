@@ -160,7 +160,14 @@ thead th{background:var(--pane2)}
 #tabs button{min-height:60px;border:0;background:none;color:var(--sub);font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.78rem;border-radius:10px}
 #tabs button svg{width:26px;height:26px}
 #tabs button.on{color:var(--am);box-shadow:inset 0 4px 0 var(--am)}
-#toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:30;background:var(--am);color:#000;font-weight:700;border-radius:999px;padding:10px 20px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s;border:2px solid #000}
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:30;background:#fff;color:#000;font-weight:700;font-size:1.05rem;line-height:1.55;border-radius:12px;padding:14px 18px;width:calc(100vw - 32px);max-width:560px;text-align:left;word-break:normal;overflow-wrap:anywhere;opacity:0;pointer-events:none;transition:opacity .2s;border:3px solid var(--am);box-shadow:0 6px 24px rgba(0,0,0,.6)}
+#toast:empty{display:none}
+input[type=date].txt{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;text-align:left}
+.cz-plan{margin-top:14px;display:grid;gap:10px}
+.cz-danger{color:var(--red)!important;border-color:var(--red)!important}
+.cz-when{font-size:1.05rem;margin:10px 0 0}
+.cz-rsv .d{white-space:normal}
+
 #toast.show{opacity:1}
 .pklist{list-style:none;margin:0;padding:6px;max-height:min(52vh,460px);overflow:auto;border:1px solid var(--line);border-radius:10px;display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;background:#0b0b0c}
 .pklist li{flex:1 1 auto;min-width:132px;max-width:100%;display:flex}
@@ -388,7 +395,7 @@ function addDays(k, n){ const d = new Date(k+'T12:00:00'); d.setDate(d.getDate()
 function weekStart(k){ const d = new Date(k+'T12:00:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return dayOf(d); }
 function kg(v){ return Number(v).toLocaleString('ja-JP'); }
 function r1(v){ return Math.round(v*10)/10; }
-function say(msg){ const t = $('#toast'); t.textContent = ''; setTimeout(()=>{ t.textContent = msg; t.classList.add('show'); },30); clearTimeout(say.h); say.h = setTimeout(()=>t.classList.remove('show'),3500); }
+function say(msg){ const t = $('#toast'); t.textContent = ''; setTimeout(()=>{ t.textContent = msg; t.classList.add('show'); },30); clearTimeout(say.h); say.h = setTimeout(()=>t.classList.remove('show'), Math.max(3500, String(msg).length*130)); }
 /* 推定1RM：Epley の式。10回を超える記録は推定に使わない（前の版からの決まり） */
 function e1rm(w, r){ w = Number(w); r = Number(r); if(!(w>0) || !(r>0)) return null; if(r===1) return w; if(r>10) return null; return Math.round(w*(1+r/30)*2)/2; }
 const BW_RE = /懸垂|プルアップ|チンアップ|プッシュアップ|腕立て|ディップス|逆上がり|倒立|マッスルアップ|ロープ|雲梯/;
@@ -598,8 +605,10 @@ async function fetchMenu(manual){ if(!syncUrl() || !db.me){ if(manual) say('送�
   if(manual) say('確かめています');
   try{ const nm = db.me.trim(); const tries = [nm]; if(normName(nm)!==nm) tries.push(normName(nm)); let j = {ok:true, rows:[]};
     for(const t of tries){ const r = await fetch(syncUrl()+'?action=menu&name='+encodeURIComponent(t)); const jj = await r.json(); if(!jj.ok){ if(/action/.test(String(jj.error||''))) throw new Error('受け口（GAS）が古いので、Code.gs を配置し直してください'); throw new Error(jj.error||'失敗'); } j.rows = j.rows.concat(jj.rows||[]); }
-    let n = 0; db.inbox = db.inbox||[]; (j.rows||[]).forEach(row=>{ let raw = {}; try{ raw = JSON.parse(row.JSON||'{}'); }catch(e){} const mid = String(row.uid||''); if(!mid || db.inbox.some(m=>m.mid===mid)) return;
-      const rows = rowsFromRaw(raw); if(!rows.length && !raw.cool) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, cool:raw.cool||null, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false}); n++; });
+    let n = 0; db.inbox = db.inbox||[]; (j.rows||[]).forEach(row=>{ let raw = {}; try{ raw = JSON.parse(row.JSON||'{}'); }catch(e){} const mid = String(row.uid||''); if(!mid) return; const have = db.inbox.find(m=>m.mid===mid);
+      if(raw.cancel){ if(have && !have.cancel){ have.used = true; have.cancel = true; } return; }
+      if(have){ if(raw.rev && have.rev!==raw.rev && !have.used){ const rr = rowsFromRaw(raw); if(rr.length || raw.cool){ Object.assign(have, {rows:rr, date:String(raw.date||'').slice(0,10), cool:raw.cool||null, note:raw.note||'', purpose:raw.purpose||'', rev:raw.rev}); n++; } } return; }
+      const rows = rowsFromRaw(raw); if(!rows.length && !raw.cool) return; db.inbox.push({mid, date:String(raw.date||row['日付']||'').slice(0,10), rows, cool:raw.cool||null, note:raw.note||'', purpose:raw.purpose||'', by:raw.coach||raw.by||'', used:false, rev:raw.rev||0}); n++; });
     save(); if(manual) say(n ? n+'件の新しいメニューが届きました' : '「'+db.me.trim()+'」あての新しいメニューはありません'); render(false); }
   catch(e){ if(manual) say(/GAS/.test(String(e.message)) ? e.message : '受け取れませんでした。電波のある所でもう一度押してください'); } }
 function applyInbox(k, m){ const d = day(k); (db.inbox||[]).forEach(x=>{ if(x!==m && !x.used && (x.date||'')<=(m.date||k) && menuAt(x)<menuAt(m)){ x.used = true; x.seen = true; } }); const keep = d.rows.filter(r=>r.status==='done'); d.rows = keep.concat(m.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)}))); d.src = 'coach'; d.note = m.note||''; d.cool = m.cool||null; if(m.purpose) d.purpose = m.purpose; m.used = true; save(); say('コーチのメニューを入れました'); render(false); $('#pg2').focus(); }
@@ -801,14 +810,35 @@ VIEWS.coach = ()=>{ const d = draft(); const step = draftStep(); const names = d
     } }; };
 function reuseMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d = draft(); d.rows = m.rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free?Object.assign({},r.free):null})); d.note = m.note||''; d.purpose = m.purpose||''; d.cool = m.cool ? Object.assign({on:true}, m.cool) : null; d.to = m.to.slice(); save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg1').focus(); }
 async function sendMenu(){ const d = draft(); if(draftStep()<3) return; if(!syncUrl()){ say('送り先のURLが設定にありません'); return; }
-  const date = d.date||today(); const mid = 'wk_'+Date.now(); const rows = d.rows.map(r=>{ const e = EXMAP[r.exId]; const u = e&&e.user ? uexAll().find(x=>x.id===e.id) : null; return {exId:r.exId, name:shortName(e), part:e&&e.user?e.part:'', bw:e&&e.user?!!e.bw:undefined, ux:u?uexFull(u):undefined, kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free||null}; });
-  const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).concat(coolOn(d)?['プール '+coolTxt(d.cool)]:[]).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, date, coach:db.me, who, note:d.note||'', purpose:d.purpose||'', rows, cool:coolOn(d)?coolData(d.cool):null}}));
+  const date = d.date||today(); const old = d.editMid ? (db.sentMenus||[]).find(x=>x.mid===d.editMid) : null; const mid = old ? old.mid : 'wk_'+Date.now(); const rev = Date.now(); const goNext = !!sendMenu.next; sendMenu.next = false; const rows = d.rows.map(r=>{ const e = EXMAP[r.exId]; const u = e&&e.user ? uexAll().find(x=>x.id===e.id) : null; return {exId:r.exId, name:shortName(e), part:e&&e.user?e.part:'', bw:e&&e.user?!!e.bw:undefined, ux:u?uexFull(u):undefined, kg:Number(r.kg)||0, reps:Number(r.reps)||0, sets:Number(r.sets)||1, rest:r.rest||'', pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free||null}; });
+  const items = d.to.map(who=>({uid:'M|'+who+'|'+mid, kind:'メニュー', date, sets:rows.map(r=>r.name+' '+coachRowTxt(r)).concat(coolOn(d)?['プール '+coolTxt(d.cool)]:[]).join('　'), memo:'作成 '+db.me+(d.note?'　'+d.note:''), raw:{mid, rev, date, coach:db.me, who, note:d.note||'', purpose:d.purpose||'', rows, cool:coolOn(d)?coolData(d.cool):null}}));
+  if(old) (old.to||[]).filter(w=>!d.to.includes(w)).forEach(who=>items.push(cancelItem(old, who)));
   const b = $('#cSend'); if(b){ b.disabled = true; b.textContent = '送っています'; }
   try{ /* 選手一人ずつ、その選手の名前で送る。前の Code.gs でも、新しい Code.gs でも、選手の行として残る */
     for(const it of items){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:it.raw.who, items:[it]})}); const j = await res.json(); if(!j.ok) throw new Error(it.raw.who+'：'+(j.error||'受け取り側の失敗')); }
-    items.forEach(it=>{ if(normName(it.raw.who)===normName(db.me||'')){ db.inbox = db.inbox||[]; if(!db.inbox.some(m=>m.mid===it.uid)){ const rr = rowsFromRaw(it.raw); if(rr.length || it.raw.cool) db.inbox.push({mid:it.uid, date:date, rows:rr, cool:it.raw.cool, note:d.note||'', purpose:d.purpose||'', by:db.me, used:false}); } } });
-    pkQuery = ''; db.sentMenus = db.sentMenus||[]; db.sentMenus.push({mid, date, to:d.to.slice(), rows, cool:coolOn(d)?coolData(d.cool):null, note:d.note||'', purpose:d.purpose||'', at:new Date().toISOString()}); db.draft = {rows:[], note:'', to:[]}; save(); say(d.to.join('、')+' に送りました'); render(false); $('#title').focus(); }
-  catch(e){ say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); $('#cSend').focus(); } }
+    items.forEach(it=>{ if(!it.raw.cancel && normName(it.raw.who)===normName(db.me||'')){ db.inbox = db.inbox||[]; if(!db.inbox.some(m=>m.mid===it.uid)){ const rr = rowsFromRaw(it.raw); if(rr.length || it.raw.cool) db.inbox.push({mid:it.uid, date:date, rows:rr, cool:it.raw.cool, note:d.note||'', purpose:d.purpose||'', by:db.me, used:false}); } } });
+    pkQuery = ''; db.sentMenus = (db.sentMenus||[]).filter(x=>x.mid!==mid); db.sentMenus.push({mid, date, to:d.to.slice(), rows, cool:coolOn(d)?coolData(d.cool):null, note:d.note||'', purpose:d.purpose||'', at:new Date().toISOString(), mt:Date.now()});
+    const who = d.to.length>2 ? d.to.slice(0,2).join('、')+' ほか'+(d.to.length-2)+'人' : d.to.join('、'); const later = date>today();
+    db.draft = goNext ? {rows:d.rows.map(r=>Object.assign({}, r, {rid:'r'+Date.now()+Math.random().toString(36).slice(2,6)})), note:'', to:d.to.slice(), date:addDays(date,1), purpose:d.purpose||'', purposeWhy:d.purposeWhy||'', cool:d.cool?JSON.parse(JSON.stringify(d.cool)):null, czSeen:true} : {rows:[], note:'', to:[]};
+    save(); say((old?'直しました。':'')+who+(later?'に'+wdTxt(date)+'のメニューを予約しました。その日になると選手のアプリに出ます':'に送りました')+(goNext?'。続けて'+wdTxt(db.draft.date)+'のメニューを作れます。前の日の種目を写してあるので、直してください':''));
+    render(false); const h = goNext ? $('#pg3') : $('#title'); if(h){ if(goNext) h.scrollIntoView({block:'start'}); h.focus({preventScroll:goNext}); } }
+  catch(e){ sendMenu.next = false; say('送れませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません':String(e.message||e))); render(false); const b2 = $('#cSend'); if(b2) b2.focus(); } }
+/* 予約と保存 */
+const WD = ['日','月','火','水','木','金','土'];
+function wdTxt(k){ const p = String(k||'').split('-'); if(p.length<3) return ''; return Number(p[1])+'月'+Number(p[2])+'日（'+WD[new Date(k+'T12:00:00').getDay()]+'）'; }
+function cancelItem(m, who){ return {uid:'M|'+who+'|'+m.mid, kind:'メニュー', date:m.date, sets:'取り消し', memo:'取り消し '+(db.me||''), raw:{mid:m.mid, rev:Date.now(), date:m.date, coach:db.me, who, cancel:true, rows:[]}}; }
+async function cancelMenu(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; if(!syncUrl()){ say('送り先のURLが設定にありません'); return; }
+  try{ for(const who of m.to||[]){ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:who, items:[cancelItem(m, who)]})}); const j = await res.json(); if(!j.ok) throw new Error(who+'：'+(j.error||'受け取り側の失敗')); }
+    m.cancel = true; m.mt = Date.now(); (db.inbox||[]).forEach(x=>{ if(String(x.mid).endsWith('|'+mid)){ x.used = true; x.cancel = true; } }); const d = draft(); if(d.editMid===mid) d.editMid = ''; save(); say(wdTxt(m.date)+'の予約を取り消しました。選手のアプリには出ません'); render(false); const h = $('#czRsvH'); if(h) h.focus(); else $('#title').focus(); }
+  catch(e){ say('取り消せませんでした。'+(/Failed to fetch|NetworkError|Load failed/.test(String(e))?'通信できません。電波のある所でもう一度押してください':String(e.message||e))); } }
+function copyRows(rows){ return (rows||[]).map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest, pct:r.pct==null?null:r.pct, auto:r.auto||'', free:r.free?Object.assign({},r.free):null})); }
+function editReserved(mid){ const m = (db.sentMenus||[]).find(x=>x.mid===mid); if(!m) return; const d0 = draft(); if(d0.rows.length || (d0.to||[]).length) db.discardUndo = JSON.stringify(d0);
+  db.draft = {rows:copyRows(m.rows), note:m.note||'', to:m.to.slice(), date:m.date, purpose:m.purpose||'', cool:m.cool?Object.assign({on:true}, m.cool):null, czSeen:true, editMid:mid}; save(); render(false); const h = $('#pg3'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say(wdTxt(m.date)+'の予約を開きました。直して、4の送るを押すと入れ替わります'); }
+function savedLabel(m){ return (m.date?wdTxt(m.date)+'　':'')+((m.to||[]).length?(m.to.length>2?m.to.slice(0,2).join('、')+' ほか'+(m.to.length-2)+'人':m.to.join('、'))+'　':'')+m.rows.length+'種目'; }
+function saveDraftMenu(){ const d = draft(); if(!d.rows.length && !coolOn(d)){ say('保存する種目がありません'); return; } db.savedMenus = db.savedMenus||[]; const m = {id:'sv'+Date.now(), at:new Date().toISOString(), to:(d.to||[]).slice(), date:d.date||'', rows:JSON.parse(JSON.stringify(d.rows)), note:d.note||'', purpose:d.purpose||'', cool:d.cool?JSON.parse(JSON.stringify(d.cool)):null}; db.savedMenus.push(m); db.draft = {rows:[], note:'', to:[]}; save(); say('送らずに保存しました。3のメニューの「保存したメニューから入れる」で呼び出せます'); render(false); $('#title').focus(); }
+function loadSaved(id){ const m = (db.savedMenus||[]).find(x=>x.id===id); if(!m) return; const d = draft(); if(d.rows.length) db.discardUndo = JSON.stringify(d); d.rows = copyRows(m.rows); d.note = m.note||''; d.purpose = m.purpose||''; d.cool = m.cool?JSON.parse(JSON.stringify(m.cool)):null; if(!(d.to||[]).length) d.to = (m.to||[]).slice(); d.czSeen = true; save(); render(false); const h = $('#pg3'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say('保存したメニューの'+m.rows.length+'種目を入れました'); }
+function discardDraft(){ const d = draft(); db.discardUndo = JSON.stringify(d); db.draft = {rows:[], note:'', to:[]}; save(); render(false); const b = $('#czDiscardUndo'); if(b) b.focus(); else $('#title').focus(); say('このメニューを捨てました。選手には送っていません。すぐ上の「捨てたメニューを元に戻す」で戻せます'); }
+
 /* コーチの行を直すシート */
 let csh = null;
 function openCoachRow(rid){ const r = draft().rows.find(x=>x.rid===rid); if(!r) return; csh = {rid, orig:JSON.stringify(r)}; drawCoachSheet(); $('#sheet').hidden = false; document.body.classList.add('lock'); $('#shT').focus(); }
@@ -835,7 +865,7 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   if(manual) say('取り込んでいます');
   try{ const r = await fetch(syncUrl()+'?action=all&key='+encodeURIComponent(db.coachKey)); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
     db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); if(manual || !busyTyping()){ const y = ($('#pkList')||{}).scrollTop||0; render(false); const l = $('#pkList'); if(l) l.scrollTop = y; } }
-  catch(e){ say('取り込めませんでした。'+String(e.message||e)); } }
+  catch(e){ const m = String(e.message||e); say(/合言葉/.test(m) ? 'コーチの合言葉が違います。設定のコーチの合言葉を、Code.gs の COACH_KEY と同じにしてください' : /Failed to fetch|NetworkError|Load failed/.test(m) ? '取り込めませんでした。通信できません' : '取り込めませんでした。'+m); } }
 function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー').map(fixRow); }
 /* スプレッドシートが日付に変えてしまった「セットの内容」を元に戻す。まず一緒に送った元の記録（JSON）から、無ければ日付の数字から */
 function fixRow(x){ if(PART_RE.test(String(x['種目']||'')) && x['推定1RM']!=='' && x['推定1RM']!=null) x = Object.assign({}, x, {'推定1RM':''}); const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
@@ -2015,7 +2045,7 @@ function anaDowHTML(rows){ const td = today(); const from = addDays(td, -(ANA_WE
       return '<tr><th scope="row">'+W[i]+'</th><td>'+(a.days?a.days+'回':'<span class="sub">0</span>')+'</td><td>'+(a.days?r1(a.sets/a.days):'—')+'</td><td style="text-align:left;white-space:normal">'+(ps||'<span class="sub">—</span>')+((sl!=null||ft!=null)?'<span class="sub anasub">'+(sl!=null?'睡眠 '+sl+'h':'')+(ft!=null?(sl!=null?'<br>':'')+'疲れ '+esc(FAT_WORDS[Math.round(ft)-1]||ft):'')+'</span>':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
     '<p class="sub">目的の印の横の数字は、その曜日にその目的だった日の数です。疲れは5段階（1がとても良い、5がとても疲れている）の平均を、いちばん近い言葉で表しています。</p>'; }
 /* カレンダー：記録のある日に加え、コーチがこの選手に送ったメニューの日も押せるようにする */
-function anaSent(n, k){ return (db.sentMenus||[]).filter(m=>(m.to||[]).includes(n) && (!k || m.date===k)); }
+function anaSent(n, k){ return (db.sentMenus||[]).filter(m=>!m.cancel && (m.to||[]).includes(n) && (!k || m.date===k)); }
 function anaCalHTML(n){ const days = {}; srcRows(n).forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); }); anaSent(n).forEach(m=>{ if(!days[m.date]) days[m.date] = [{'種類':'送ったメニュー'}]; });
   return '<h3 class="anah">カレンダー（日を押すと、その日のメニューと実施内容）</h3>'+calHTML(n, days).replace('<h2 id="calH" tabindex="-1">','<h2 id="calH" tabindex="-1" class="sec2">'); }
 const _anaHTML0 = anaHTML; anaHTML = function(n, o){ let h = _anaHTML0(n); const rows = srcRows(n); if(!rows.some(x=>String(x['種類'])==='記録')) return h + (o&&o.cal ? anaCalHTML(n) : '');
@@ -2328,7 +2358,7 @@ function czRowHTML(r, i, n, names){ const e = EXMAP[r.exId]; const d = draft(); 
     '<div class="cz-acts"><button type="button" class="ghost" data-cedit="'+r.rid+'">直す</button><button type="button" class="ghost" data-czswap="'+r.rid+'" aria-expanded="'+(czSwap===r.rid)+'">別の種目</button><button type="button" class="ghost" data-czdel="'+r.rid+'">外す</button></div>'+
     '<div class="cz-ord"><button type="button" class="ghost sm" data-czup="'+r.rid+'" '+(i===0?'disabled':'')+' aria-label="'+esc(nm)+'を上へ">上へ</button><button type="button" class="ghost sm" data-czdown="'+r.rid+'" '+(i===d.rows.length-1?'disabled':'')+' aria-label="'+esc(nm)+'を下へ">下へ</button></div>'+
     (czSwap===r.rid ? (()=>{ const L = czSwapList(r, n); return '<div class="cz-swap" role="group" aria-label="'+esc(nm)+'と入れ替える種目"><p class="sub" style="margin:0 0 6px">同じ部位の種目です。押すと入れ替わります。</p>'+(L.length?L.map(x=>'<button type="button" class="ghost" data-czto="'+x.id+'" data-czfrom="'+r.rid+'">'+esc(shortName(x))+'</button>').join(''):'<p class="sub">入れ替えられる種目が見つかりません。</p>')+'</div>'; })() : '')+'</li>'; }
-VIEWS.coach = ()=>{ const d = draft(); const sent = (db.sentMenus||[]).slice().reverse().slice(0,8); const to = d.to||[]; const n = czWho(d); const rec = czHasRec(n);
+VIEWS.coach = ()=>{ const d = draft(); const tk = today(); const live = (db.sentMenus||[]).filter(m=>!m.cancel); const rsv = live.filter(m=>m.date>tk).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0); const sent = live.filter(m=>!(m.date>tk)).slice().reverse().slice(0,8); const svd = (db.savedMenus||[]).slice().reverse(); const to = d.to||[]; const n = czWho(d); const rec = czHasRec(n);
   const ok1 = to.length>0, ok3 = d.rows.length>0 || coolOn(d); const step = !ok1 ? 1 : !ok3 ? (d.czSeen ? 3 : 2) : 4;
   const st = (k, label)=>'<li class="'+(k<step?'done':k===step?'now':'')+'"><button type="button" data-czjump="'+k+'" aria-label="'+k+' '+label+'へ移る'+(k<step?'（済み）':k===step?'（いまここ）':'')+'"><b>'+k+'</b>'+label+'</button></li>';
   const cl = db.cloud||{}; const savedTxt = cl.pass ? (cl.err ? '携帯とパソコン：つながりません' : '携帯とパソコンで共有しています') : 'この端末に保存しています';
@@ -2346,27 +2376,40 @@ VIEWS.coach = ()=>{ const d = draft(); const sent = (db.sentMenus||[]).slice().r
         : '<div class="note warn">'+esc(n)+'さんの記録がまだありません。'+(db.coachKey?'記録が届くと、ここに分析が出ます。':'設定でコーチの合言葉を入れると、記録を取り込めます。')+'</div>')+
       (rec ? '<button type="button" class="'+(d.rows.length?'ghost':'cta')+'" id="czMake" style="margin-top:12px">'+(d.rows.length?esc(n)+'に合わせて案を作り直す（今の種目と入れ替わります）':esc(n)+'に合わせてメニューを作る')+'</button>' : '')+
       (czPrev ? '<button type="button" class="link" id="czUndo">案を作る前の種目に戻す</button>' : '')+
-      '<div class="stack two" style="margin-top:8px"><button type="button" class="ghost" data-go="ex" data-pick="1" id="czManual">自分で種目を選ぶ</button>'+(sent.length?'<button type="button" class="ghost" id="czCopy">前回を写す</button>':'<span></span>')+'</div>'+
+      '<div class="stack two" style="margin-top:8px"><button type="button" class="ghost" data-go="ex" data-pick="1" id="czManual">自分で種目を選ぶ</button>'+(live.length?'<button type="button" class="ghost" id="czCopy">前回を写す</button>':'<span></span>')+'</div>'+
       PZ_BTN(n, n+'の期分けを開く'); }
   /* 3 メニュー */
-  const p3 = '<div class="autobox">'+purpSelect('cPurp', d.purpose||'', '目的（変えると、全部の種目の重さ、回数、セット数、休憩を入れ直します）')+(d.purposeWhy && d.purpose?'<p class="sub" style="margin:4px 0 0">今の目的は「'+esc(d.purposeWhy)+'」から選びました。</p>':'')+(db.autoUndo?'<button type="button" class="link" id="cAutoUndo">自動で入れる前に戻す</button>':'')+'</div>'+
+  const p3 = (svd.length ? '<label class="f" for="czSaved">保存したメニューから入れる</label><select class="txt" id="czSaved"><option value="">選んでください（'+svd.length+'件）</option>'+svd.map(m=>'<option value="'+m.id+'">'+esc(savedLabel(m))+'</option>').join('')+'</select>' : '')+'<div class="autobox">'+purpSelect('cPurp', d.purpose||'', '目的（変えると、全部の種目の重さ、回数、セット数、休憩を入れ直します）')+(d.purposeWhy && d.purpose?'<p class="sub" style="margin:4px 0 0">今の目的は「'+esc(d.purposeWhy)+'」から選びました。</p>':'')+(db.autoUndo?'<button type="button" class="link" id="cAutoUndo">自動で入れる前に戻す</button>':'')+'</div>'+
     (d.rows.length ? '<ol class="cz-rows">'+d.rows.map((r,i)=>czRowHTML(r, i, n, to)).join('')+'</ol>' : '<p class="sub">まだ種目がありません。2の「メニューを作る」か「自分で種目を選ぶ」から入れてください。</p>')+
     '<div class="stack two" style="margin-top:10px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(d.rows.length?'<button type="button" class="ghost" id="cClear">全部外す</button>':'<span></span>')+'</div>'+
     '<details class="more"><summary>案の決め方と、重さや回数の決め方</summary><div class="inner"><p class="sub">種目は、この選手が続けている種目（直近4週間でセットが多い順に2つ）、押す種目が引く種目より多いときは引く種目を1つ、足りない部位の種目の案の1番目から選び、多くて6種目にしています。目的は、期分けにその日の目的があればそれ、なければ4週間なかった目的です。この選び方は、このアプリが決めた仮の決め方で、論文の裏付けはありません。</p>'+autoRulesHTML()+'</div></details>'+
     coolCoachHTML(d).replace('<section class="page"','<section class="cz-cool"');
   /* 4 送る */
   const ready = ok1 && ok3;
-  const p4 = '<label class="f" for="cDate">いつのメニューか</label><input type="date" class="txt" id="cDate" value="'+esc(d.date||today())+'">'+
+  const dt = d.date||tk; const later = dt>tk; const past = dt<tk; const whoT = esc(to.length>2 ? to.slice(0,2).join('、')+' ほか'+(to.length-2)+'人' : to.join('、'));
+  const p4 = (d.editMid ? '<div class="note warn">'+wdTxt(dt)+'に予約したメニューを直しています。送ると、前の予約と入れ替わります。</div>' : '')+
+    '<label class="f" for="cDate">いつのメニューか</label><input type="date" class="txt" id="cDate" value="'+esc(dt)+'">'+
+    '<div class="chips" role="group" aria-label="日付をすぐ選ぶ" style="margin-top:8px">'+[0,1,2,3,4,5,6].map(i=>{ const k = addDays(tk,i); return '<button type="button" class="chip" data-czday="'+k+'" aria-pressed="'+(k===dt)+'" aria-label="'+wdTxt(k)+(i===0?'、今日':'')+'">'+(i===0?'今日':Number(k.split('-')[2])+'日'+WD[new Date(k+'T12:00:00').getDay()])+'</button>'; }).join('')+'</div>'+
+    '<p class="cz-when">'+(later ? wdTxt(dt)+'になると、選手のアプリに出ます。それまで選手には見えません（予約）。' : past ? wdTxt(dt)+'は過ぎた日です。選手にはすぐ出ます。' : '今日のメニューとして、すぐ選手に届きます。')+'</p>'+
     '<label class="f" for="cNote">選手へのひとこと（なくてもかまいません）</label><input type="text" class="txt" id="cNote" value="'+esc(d.note)+'" placeholder="例：引く種目を増やしました">'+
     '<p class="sub">'+(ready ? '受け取った選手の携帯では、その選手の推定1RMから重さが入ります。' : '選手と種目がそろうと押せます。')+'</p>'+
-    '<button type="button" class="cta" id="cSend" '+(ready?'':'disabled aria-disabled="true"')+'>'+(ready ? esc(to.length>2 ? to.slice(0,2).join('、')+' ほか'+(to.length-2)+'人' : to.join('、'))+'に '+d.rows.length+'種目'+(coolOn(d)?'とクールダウン':'')+'を送る' : '送る')+'</button>';
+    '<button type="button" class="cta" id="cSend" '+(ready?'':'disabled aria-disabled="true"')+'>'+(ready ? whoT+'に '+d.rows.length+'種目'+(coolOn(d)?'とクールダウン':'')+(d.editMid?'を直して送る':later?'を'+wdTxt(dt)+'に予約':'を送る') : '送る')+'</button>'+
+    '<div class="cz-plan">'+
+      (ready ? '<button type="button" class="ghost" id="cSendNext">'+(later||d.editMid?'予約して':'送って')+'、続けて'+wdTxt(addDays(dt,1))+'のメニューを作る</button>' : '')+
+      '<div class="stack two"><button type="button" class="ghost" id="cSaveOnly" '+(d.rows.length||coolOn(d)?'':'disabled aria-disabled="true"')+'>送らずに保存する</button><button type="button" class="ghost cz-danger" id="cDiscard" '+(d.rows.length||to.length||coolOn(d)||d.editMid?'':'disabled aria-disabled="true"')+'>'+(d.editMid?'直すのをやめる':'このメニューを捨てる')+'</button></div>'+
+    '</div>';
+  const rsvH = rsv.length ? '<h2 id="czRsvH" tabindex="-1">予約中のメニュー　'+rsv.length+'件</h2><p class="sub" style="margin-top:0">その日になると選手のアプリに出ます。まだ選手には見えていません。</p><ul class="rows cz-rsv">'+rsv.map(m=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+wdTxt(m.date)+'　'+esc(m.to.join('、'))+'</strong><span class="d">'+esc(m.rows.map(r=>shortName(EXMAP[r.exId])).join('、'))+'</span></span><div class="stack two"><button type="button" class="ghost sm" data-crsvedit="'+m.mid+'" aria-label="'+wdTxt(m.date)+'の予約を直す">直す</button><button type="button" class="ghost sm cz-danger" data-crsvdel="'+m.mid+'" aria-label="'+wdTxt(m.date)+'の予約を取り消す">取り消す</button></div></li>').join('')+'</ul>' : '';
+  const svH = svd.length ? '<h2>保存したメニュー　'+svd.length+'件</h2><ul class="rows">'+svd.map(m=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+esc(savedLabel(m))+'</strong><span class="d">'+esc(m.rows.map(r=>shortName(EXMAP[r.exId])).join('、'))+'</span></span><div class="stack two"><button type="button" class="ghost sm" data-csvload="'+m.id+'" aria-label="'+esc(savedLabel(m))+'を呼び出す">呼び出す</button><button type="button" class="ghost sm cz-danger" data-csvdel="'+m.id+'" aria-label="'+esc(savedLabel(m))+'を消す">消す</button></div></li>').join('')+'</ul>' : '';
+  const undoH = (db.discardUndo && !d.rows.length && !d.editMid) ? '<button type="button" class="ghost" id="czDiscardUndo" style="margin:10px 0">捨てたメニューを元に戻す</button>' : '';
+  const svUndoH = db.savedUndo ? '<button type="button" class="link" id="czSvUndo">消した保存メニューを元に戻す</button>' : '';
   return {title:'メニューを作って渡す', html:
     '<div class="cz-bar"><ol class="cz-steps" aria-label="メニュー作りの段階">'+st(1,'選手')+st(2,'選手の今')+st(3,'メニュー')+st(4,'送る')+'</ol><p class="cz-saved" role="status"><span class="ok">下書きは自動で保存</span><span>'+esc(savedTxt)+'</span></p></div>'+
-    coachHint()+
+    coachHint()+undoH+
     page(1, 'だれのメニューを作りますか'+(to.length?'　'+to.length+'人':''), pickerHTML(d)+'<form id="cNameF" class="stepper" style="grid-template-columns:1fr 100px;margin-top:10px"><label class="sr" for="cName">選手の名前を足す</label><input type="text" id="cName" placeholder="一覧にない名前を足す" autocomplete="off"><button type="submit" style="font-size:1rem">足す</button></form>')+
     page(2, n ? esc(n)+'の今' : 'この選手の今', p2)+
     page(3, 'メニュー'+(d.rows.length?'　'+d.rows.length+'種目':''), p3)+
     page(4, '送る', p4)+
+    rsvH+svH+svUndoH+
     (sent.length ? '<h2>送ったメニュー</h2><ul class="rows">'+sent.map(m=>'<li class="row" style="grid-template-columns:1fr auto"><span class="rmain"><strong>'+md(m.date)+'　'+esc(m.to.join('、'))+'</strong><span class="d">'+esc(m.rows.map(r=>shortName(EXMAP[r.exId])).join('、'))+'</span></span><button type="button" class="ghost sm" data-creuse="'+m.mid+'">同じものを作る</button></li>').join('')+'</ul>' : ''),
     after(){ const fx = sel=>{ const f = sel && document.querySelector(sel); if(f) f.focus(); };
       const re = (sel, msg)=>{ save(); render(false); fx(sel); if(msg) say(msg); };
@@ -2376,7 +2419,7 @@ VIEWS.coach = ()=>{ const d = draft(); const sent = (db.sentMenus||[]).slice().r
       const w = $('#czWho'); if(w) w.addEventListener('change',()=>{ anaSel = w.value; re('#czWho', w.value+'さんの分析を出しました'); });
       const mk = $('#czMake'); if(mk) mk.addEventListener('click',()=>{ const k = czMake(n); d.czSeen = true; czSwap = null; save(); render(false); const h = $('#pg3'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say(k ? n+'さんに合わせて'+k+'種目の案を作りました' : '案に出せる種目が見つかりませんでした。自分で種目を選んでください'); });
       const un = $('#czUndo'); if(un) un.addEventListener('click',()=>{ d.rows = JSON.parse(czPrev.rows); d.purpose = czPrev.purpose; d.purposeWhy = czPrev.why; czPrev = null; re('#pg3', '案を作る前に戻しました'); });
-      const cp = $('#czCopy'); if(cp) cp.addEventListener('click',()=>{ const m = (db.sentMenus||[]).slice().reverse().find(x=>(x.to||[]).includes(n)) || sent[0]; d.czSeen = true; reuseMenu(m.mid); });
+      const cp = $('#czCopy'); if(cp) cp.addEventListener('click',()=>{ const m = live.slice().reverse().find(x=>(x.to||[]).includes(n)) || live[live.length-1]; d.czSeen = true; reuseMenu(m.mid); });
       const mn = $('#czManual'); if(mn) mn.addEventListener('click',()=>{ d.czSeen = true; save(); }, true);
       /* 3 */
       const s = $('#cPurp'); if(s) s.addEventListener('change',()=>{ const before = JSON.stringify(d.rows); d.purpose = s.value; d.purposeWhy = ''; let k = 0; if(s.value) d.rows.forEach(r=>{ if(applyAuto(r, s.value)) k++; }); if(k) db.autoUndo = {rows:before, purpose:''}; re('#cPurp', s.value ? (k ? k+'種目に「'+PURP[s.value].name+'」の目安を入れました' : '目的を「'+PURP[s.value].name+'」にしました') : '目的を決めないにしました'); });
@@ -2398,8 +2441,19 @@ VIEWS.coach = ()=>{ const d = draft(); const sent = (db.sentMenus||[]).slice().r
         document.querySelectorAll('.anabox [data-cm]').forEach(b=>b.addEventListener('click',()=>{ calMonth[n] = b.dataset.cm; render(false); const x = $('#calH'); if(x){ x.closest('details').open = true; x.focus(); } }));
         document.querySelectorAll('[data-anaadd]').forEach(b=>b.addEventListener('click',()=>{ if(b.disabled) return; const e = EXMAP[b.dataset.anaadd]; addToDraft(e); const r = d.rows[d.rows.length-1]; if(r && r.exId===e.id) r.why = ['足りない部位']; d.czSeen = true; re('#pg3', shortName(e)+'を入れました（'+d.rows.length+'種目）'); })); }
       /* 4 */
-      $('#cNote').addEventListener('input',e=>{ d.note = e.target.value; save(); }); $('#cDate').addEventListener('change',e=>{ d.date = e.target.value; save(); });
+      $('#cNote').addEventListener('input',e=>{ d.note = e.target.value; save(); }); $('#cDate').addEventListener('change',e=>{ d.date = e.target.value||today(); re('#cDate', wdTxt(d.date)+'にしました'); });
       $('#cSend').addEventListener('click',()=>sendMenu());
+      const sn = $('#cSendNext'); if(sn) sn.addEventListener('click',()=>{ sendMenu.next = true; sendMenu(); });
+      document.querySelectorAll('[data-czday]').forEach(b=>b.addEventListener('click',()=>{ d.date = b.dataset.czday; re('[data-czday="'+b.dataset.czday+'"]', wdTxt(d.date)+'にしました'+(d.date>today()?'。その日になると選手に出ます':'')); }));
+      const so = $('#cSaveOnly'); if(so) so.addEventListener('click', saveDraftMenu);
+      const dc = $('#cDiscard'); if(dc) dc.addEventListener('click', discardDraft);
+      const du = $('#czDiscardUndo'); if(du) du.addEventListener('click',()=>{ db.draft = JSON.parse(db.discardUndo); db.discardUndo = null; save(); render(false); const h = $('#pg4'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say('捨てたメニューを元に戻しました'); });
+      const sv = $('#czSaved'); if(sv) sv.addEventListener('change',()=>{ if(sv.value) loadSaved(sv.value); });
+      document.querySelectorAll('[data-csvload]').forEach(b=>b.addEventListener('click',()=>loadSaved(b.dataset.csvload)));
+      document.querySelectorAll('[data-csvdel]').forEach(b=>b.addEventListener('click',()=>{ const m = (db.savedMenus||[]).find(x=>x.id===b.dataset.csvdel); db.savedMenus = (db.savedMenus||[]).filter(x=>x!==m); db.savedUndo = m; re('#czSvUndo', savedLabel(m)+'を消しました'); }));
+      const su = $('#czSvUndo'); if(su) su.addEventListener('click',()=>{ db.savedMenus = (db.savedMenus||[]).concat([db.savedUndo]); db.savedUndo = null; re('#title', '保存したメニューを元に戻しました'); });
+      document.querySelectorAll('[data-crsvedit]').forEach(b=>b.addEventListener('click',()=>editReserved(b.dataset.crsvedit)));
+      document.querySelectorAll('[data-crsvdel]').forEach(b=>b.addEventListener('click',()=>{ const m = (db.sentMenus||[]).find(x=>x.mid===b.dataset.crsvdel); if(m && confirm(wdTxt(m.date)+'の予約（'+m.to.join('、')+'）を取り消しますか。選手のアプリには出なくなります。')) cancelMenu(m.mid); }));
       document.querySelectorAll('[data-creuse]').forEach(b=>b.addEventListener('click',()=>{ d.czSeen = true; reuseMenu(b.dataset.creuse); }));
     } }; };
 

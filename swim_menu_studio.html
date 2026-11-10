@@ -5301,7 +5301,7 @@ function yearBind(){
 /* =====================================================================
    テストとLTの計算（ここだけで計算する。どの画面もPDFも、この関数の答えを使う）
    ===================================================================== */
-const APP_VERSION = '2026.10.30 第4版';
+const APP_VERSION = '2026.11.10 第1版';
 const LT_METHOD = {lt1:'基準＋0.5 第1版', lt2:'2直線の交点 第1版'};
 const LT1_COLOR = '#1e88e5', LT2_COLOR = '#c98a00';
 
@@ -6434,8 +6434,9 @@ function parsePlan(p){
 /* ---------- ある日の午前・午後の中身をまとめる ---------- */
 function slotInfo(date, ap){
   const wd = (pYmd(date).getDay() + 6) % 7;
-  const times = (sched()[wd] || []).filter(s => (ap === 'AM') === isAM(clk(s.start)));
   const o = (wsPlan()[date] || {})[ap] || null;
+  let times = (sched()[wd] || []).filter(s => (ap === 'AM') === isAM(clk(s.start)));
+  if(o && o.start) times = [{start:o.start, pool:o.pool === 'SC' ? '短水路' : '長水路'}];
   const p = o ? parsePlan(o.plan) : null;
   const menus = S.menus ? Object.values(S.menus).filter(m => m.date === date && (ap === 'AM') === isAM(clk(m.start) || '6:00')) : [];
   const has = menus.some(m => typeof menuHasContent === 'function' ? menuHasContent(m) : (m.panels || []).some(x => (x.text || '').trim()));
@@ -6520,6 +6521,14 @@ table.wsT tbody th{width:64px;background:#f4f7fb;font-size:15px}
 .wsSlot.has{border-color:#1d7a46}
 .wsSlot .mk{font-size:12px;color:#1d7a46;font-weight:700}
 .wsOff{display:block;border:2px dashed #999;border-radius:8px;background:#f2f2f2;color:#666;padding:6px 8px;font-weight:700;margin-bottom:4px}
+.wsBtnOff{width:100%;text-align:left;font:inherit;font-weight:700;cursor:pointer}
+.wsBtnOff:hover,.wsBtnOff:focus-visible,.wsEmpty:hover,.wsEmpty:focus-visible{outline:3px solid #005bac;outline-offset:1px}
+.wsEmpty{display:block;width:100%;text-align:left;border:2px dashed #c9d2dd;border-radius:8px;background:#fff;color:#4f5d6e;padding:6px 8px;font:inherit;font-size:14px;cursor:pointer;margin-bottom:4px}
+.wsEmpty.has,.wsBtnOff.has{border-color:#1d7a46;color:#1d7a46}
+#wsSlotOv .wsMenuBox{border:2px solid #16202e;border-radius:10px;padding:10px 12px;margin-top:10px;background:#fff}
+#wsSlotOv .wsPan{border-top:1px solid #c9d2dd;padding-top:6px;margin-top:6px}
+#wsSlotOv .wsPan pre{white-space:pre-wrap;font-family:inherit;font-size:16px;margin:4px 0;line-height:1.6}
+#wsSlotOv fieldset{border:2px solid #c9d2dd;border-radius:10px;padding:8px 12px}
 .wsWT{display:block;border:2px solid #7a1f7a;border-radius:8px;background:#f7ecf7;padding:6px 8px;font-weight:700;color:#5b145b;margin-bottom:4px}
 .wsMi{font-size:13px;margin-top:3px;padding:2px 6px;border-radius:4px;background:#eef5fd;color:#0b4a9a;font-weight:700}
 .wsMi.key{background:#fde7e7;color:#a01818}.wsMi.rec{background:#eef1f5;color:#4a5560}
@@ -6558,7 +6567,7 @@ function install(){
     '<div class="wsBar"><label class="fld">だれの予定を見るか<select id="wsWho"></select></label></div>' +
     '<div id="wsPhase"></div>' +
     '<div class="wsBar"><button class="btn" id="wsPrev">前の週</button><span class="wsTtl" id="wsTtl" aria-live="polite"></span><button class="btn" id="wsNext">次の週</button><button class="btn ghost" id="wsToday">今週</button>' +
-    '<span style="flex:1"></span><button class="btn ghost" id="wsTimes">曜日ごとの時刻を設定</button><button class="btn ghost" id="wsImpBtn">スプレッドシートから取りこむ</button><button class="btn red" id="wsPrint">印刷とPDF保存</button></div>' +
+    '<span style="flex:1"></span><button class="btn ghost" id="wsTimes">曜日ごとの時刻を設定</button><button class="btn ghost" id="wsImpBtn">スプレッドシートから取りこむ</button><button class="btn ghost" id="wsPrint">週間表を印刷</button><button class="btn red" id="wsMenuPrint">この週のメニューをPDF・印刷</button></div>' +
     '<div class="wsWrap"><table class="wsT" id="wsTbl"></table></div>' +
     '<div id="wsPat"></div>' +
     '<p class="wsNote">枠を押すと、その日のその時刻のメニュー作成の画面が開きます。緑の枠は、もうメニューが書いてある練習です。開始時刻は「曜日ごとの時刻」から、水路と練習の長さはスプレッドシートから取りこんだ予定から出しています。ピリオダイゼーションの計画がある週は、計画の1週間の配分（重点・回復・有酸素と距離）も出ます。</p>';
@@ -6576,6 +6585,12 @@ function install(){
     '<div id="wsImpBody"></div>' +
     '<div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn ghost" data-wsclose="1">やめる</button><button class="btn primary" id="wsImpGo" disabled>チェックしたものを取りこむ</button></div></div>';
   document.body.appendChild(ov);
+  const so = document.createElement('div');
+  so.className = 'ov hidden'; so.id = 'wsSlotOv'; so.setAttribute('role', 'dialog'); so.setAttribute('aria-modal', 'true'); so.setAttribute('aria-labelledby', 'wsSlotTitle');
+  so.innerHTML = '<div class="dlg" style="width:min(900px,100%)"><h2 id="wsSlotTitle" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span id="wsSlotTtl"></span><button class="btn ghost small" data-wsslotclose="1">閉じる</button></h2><div id="wsSlotBody"></div></div>';
+  document.body.appendChild(so);
+  so.addEventListener('mousedown', e => { if(e.target === so) closeSlot(); });
+  so.addEventListener('click', slotClick);
   ov.addEventListener('mousedown', e => { if(e.target === ov) closeImp(); });
   ov.querySelectorAll('[data-wsclose]').forEach(b => b.addEventListener('click', closeImp));
   // 吹き出し
@@ -6639,7 +6654,7 @@ function renderWS(){
 function cellHtml(x, mi, pat){
   const lab = mdJ(x.date) + ' ' + (x.ap === 'AM' ? '午前' : '午後');
   let swim = '';
-  if(x.p && x.p.off) swim = '<span class="wsOff">OFF</span>';
+  if(x.p && x.p.off) swim = '<button type="button" class="wsOff wsBtnOff' + (x.has ? ' has' : '') + '" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' OFF。押すと予定を書きこめます') + '">OFF' + (x.has ? '<div class="mk">メニューあり</div>' : '') + '</button>';
   else if(x.p && x.p.text) swim = '<button type="button" class="wsSlot' + (x.has ? ' has' : '') + '" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' ' + x.p.text + (x.has ? ' メニューあり' : '')) + '"><span class="d">' + E(x.p.text) + '</span>' + (x.has ? '<div class="mk">メニューあり</div>' : '') + '</button>';
   else if(x.practice){
     const tm = x.times.length ? clk(x.times[0].start) : '時刻未設定';
@@ -6649,12 +6664,12 @@ function cellHtml(x, mi, pat){
       '<span class="t">' + E(tm) + '</span>' + (pool ? '<span class="wsP ' + E(pool.slice(0, 2)) + '">' + E(pool) + '</span>' : '') +
       '<div class="d">' + (x.p ? E(x.p.dur) + (x.p.extra ? '　＋' + E(x.p.extra) : '') : (x.times.length > 1 ? 'ほかに ' + x.times.slice(1).map(s => clk(s.start)).join('・') : '')) + '</div>' + miH +
       (x.has ? '<div class="mk">メニューあり</div>' : '') + '</button>';
-  } else swim = '<span class="wsNote">練習なし</span>';
+  } else swim = '<button type="button" class="wsEmpty' + (x.has ? ' has' : '') + '" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' 練習なし。押すと予定を書きこめます') + '">' + (x.has ? 'メニューあり' : '＋ 予定を書く') + '</button>';
   let h = '';
   if(pat == null) h = swim;
-  else if(pat === 'OFF') h = '<span class="wsOff">OFF（個人）</span>' + (x.practice ? '<div class="wsDif">チームは練習あり</div>' : '');
+  else if(pat === 'OFF') h = '<button type="button" class="wsOff wsBtnOff" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' 個人はOFF。押すとチームの予定とメニューを見られます') + '">OFF（個人）</button>' + (x.practice ? '<div class="wsDif">チームは練習あり</div>' : '');
   else {
-    if(pat.includes('水中')) h += x.practice ? swim : '<span class="wsOff">水中の予定だがチームの練習なし</span>';
+    if(pat.includes('水中')) h += x.practice ? swim : '<button type="button" class="wsOff wsBtnOff" data-wsgo="' + x.date + x.ap + '" aria-label="' + E(lab + ' 水中の予定だがチームの練習なし。押すと予定を書きこめます') + '">水中の予定だがチームの練習なし</button>';
     if(pat.includes('WT')) h += '<span class="wsWT">WT ウエイト</span>';
   }
   const o = x.o || {};
@@ -6681,8 +6696,10 @@ function renderPat(ath){
       PAT_OPTS.map(o => '<option' + (o === v[k] ? ' selected' : '') + '>' + o + '</option>').join('') + '</select></td>').join('') + '</tr>').join('') +
     '</tbody></table>' + addForm;
 }
-function goSlot(key){
+function goSlot(key, session){
   const date = key.slice(0, 10), ap = key.slice(10);
+  if(session && typeof openMenu === 'function'){ closeSlot(); if(typeof showView === 'function') showView('vMenu'); openMenu(date, session); say(mdJ(date) + 'の「' + session + '」のメニューを開きました'); return; }
+  closeSlot();
   const x = slotInfo(date, ap);
   const s = x.times[0] || null;
   if(typeof openMenu !== 'function'){ return; }
@@ -6702,6 +6719,146 @@ function goSlot(key){
     }
   }
   say(mdJ(date) + ' ' + (ap === 'AM' ? '午前' : '午後') + 'のメニューを開きました' + (s ? '' : '。曜日ごとの時刻が入っていないので、開始時刻を確かめてください'), 4500);
+}
+/* ---------- 枠を押したとき：その日の予定とメニューを見る・予定を書く ---------- */
+let slotKey = '';
+function slotMenus(date, ap){
+  return Object.values(S.menus || {}).filter(m => m.date === date && (ap === 'AM') === isAM(clk(m.start) || '6:00') && (typeof menuHasContent === 'function' ? menuHasContent(m) : true))
+    .sort((a, b) => clkSec(clk(a.start)) - clkSec(clk(b.start)));
+}
+function menuDist(m){ try{ return analyzeMenu(m).map(t => t.dist || 0); }catch(e){ return []; } }
+function menuHtml(m, withBtns){
+  const d = menuDist(m);
+  return '<div class="wsMenuBox"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><b style="font-size:17px">' + E(m.session || '') + '　' + E(clk(m.start) || '') + '開始　' + E(m.pool || '') + (m.title ? '　' + E(m.title) : '') + '</b>' +
+    (withBtns ? '<span><button class="btn small" data-wsopen="' + E(m.session) + '">メニューを開いて直す</button></span>' : '') + '</div>' +
+    (m.panels || []).filter(p => (p.text || '').trim()).map((p, i) => '<div class="wsPan"><b>' + E(p.team || '') + (p.stroke ? '　' + E(typeof strokeName === 'function' ? strokeName(p.stroke) : p.stroke) : '') + '</b>' + (d[i] ? '　<span class="wsNote">' + d[i] + 'm</span>' : '') + '<pre>' + E(p.text) + '</pre></div>').join('') + '</div>';
+}
+function openSlot(key){
+  slotKey = key;
+  const date = key.slice(0, 10), ap = key.slice(10), x = slotInfo(date, ap), o = x.o || {};
+  const p = x.p || {};
+  const wdS = sched()[x.wd] ? (sched()[x.wd] || []).filter(s => (ap === 'AM') === isAM(clk(s.start)))[0] : null;
+  g('wsSlotTtl').textContent = mdJ(date) + '（' + DN[x.wd] + '）' + (ap === 'AM' ? '午前' : '午後');
+  const ms = slotMenus(date, ap);
+  const durV = o.dur || (p.dur ? p.dur.replace(/ ×\d+$/, '') : '');
+  const offNow = !!(p && p.off);
+  let h = '<fieldset><legend style="font-weight:700">練習予定（ここで直接書きこめます）</legend>' +
+    '<div class="row"><label><input type="radio" name="wsPOn" value="on"' + (offNow ? '' : ' checked') + '> 練習あり</label><label><input type="radio" name="wsPOn" value="off"' + (offNow ? ' checked' : '') + '> OFF</label></div>' +
+    '<div class="row" style="margin-top:6px"><label class="fld">開始時刻<input type="text" id="wsPStart" value="' + E(o.start || '') + '" placeholder="' + E(wdS ? clk(wdS.start) : '例 6:20') + '" style="width:90px" inputmode="numeric"></label>' +
+    '<label class="fld">水路<select id="wsPPool"><option value="">' + (wdS ? (poolShort(wdS.pool) || '曜日の設定') + '（曜日の設定）' : '未定') + '</option>' + ['LC', 'SC', 'LCかSC'].map(v => '<option' + ((o.pool || (p.pool && o.manual ? p.pool : '')) === v ? ' selected' : '') + '>' + v + '</option>').join('') + '</select></label>' +
+    '<label class="fld">練習の長さ<input type="text" id="wsPDur" value="' + E(o.manual ? (o.dur || '') : (p.durS || '')) + '" placeholder="例 2h、90min" style="width:110px"></label>' +
+    '<label class="fld">回数<input type="number" id="wsPRep" min="1" max="4" value="' + E(o.manual ? (o.rep || '') : '') + '" style="width:60px" placeholder="1"></label>' +
+    '<label class="fld">ほかの内容（WT、Dryなど）<input type="text" id="wsPExtra" value="' + E(o.manual ? (o.extra || '') : (p.extra || '')) + '" style="width:150px"></label></div>' +
+    '<div class="row" style="margin-top:6px"><label class="fld" style="flex:1">コーチの予定・メモ<input type="text" id="wsPNote" value="' + E(o.note || '') + '" style="width:100%"></label><label class="fld" style="flex:1">行事<input type="text" id="wsPEv" value="' + E(o.ev || '') + '" style="width:100%"></label></div>' +
+    '<p class="wsNote">開始時刻を空にすると、曜日ごとの時刻を使います。' + (o.plan && !o.manual ? 'いまの予定はスプレッドシートから取りこんだもの（' + E(o.plan) + '）です。保存すると、ここで書いた内容におきかわります。' : '') + '</p>' +
+    '<div class="row"><button class="btn primary" data-wssave="1">予定を保存</button><button class="btn ghost" data-wsclear="1">この枠の予定を消す（曜日の設定にもどす）</button></div></fieldset>';
+  h += '<h3 style="margin:14px 0 0">メニュー</h3>';
+  if(ms.length) h += ms.map(m => menuHtml(m, true)).join('') + '<div class="row" style="margin-top:8px"><button class="btn" data-wsnew="1">この枠に別のメニューを作る</button><button class="btn red" data-wsslotprint="1">この枠のメニューをPDF・印刷</button></div>';
+  else h += '<p>' + (date < today() ? 'この日のメニューは登録されていません。' : 'まだメニューがありません。先に作っておくと、ここと週間メニューのPDFに出ます。') + '</p><div class="row"><button class="btn primary" data-wsnew="1">メニューを作る</button></div>';
+  g('wsSlotBody').innerHTML = h;
+  if(typeof showOv === 'function') showOv('wsSlotOv'); else g('wsSlotOv').classList.remove('hidden');
+}
+function closeSlot(){ const o = g('wsSlotOv'); if(!o || o.classList.contains('hidden')) return; if(typeof closeOv === 'function') closeOv('wsSlotOv'); else o.classList.add('hidden'); }
+function normDur(v){
+  v = String(v || '').trim().replace(/時間/, 'h').replace(/分/, 'min').replace(/\s+/g, '');
+  let m = /^([\d.]+)(h|min)?$/i.exec(v); if(!m) return '';
+  return m[1] + (m[2] ? m[2].toLowerCase() : (+m[1] <= 5 ? 'h' : 'min'));
+}
+function saveSlot(){
+  const date = slotKey.slice(0, 10), ap = slotKey.slice(10);
+  const off = (g('wsSlotBody').querySelector('[name="wsPOn"]:checked') || {}).value === 'off';
+  const st = g('wsPStart').value.trim(), start = st ? clk(st.replace(/^(\d{1,2})(\d{2})$/, '$1:$2')) : '';
+  if(st && !start){ say('開始時刻は 6:20 や 1645 のように入れてください', 5000); g('wsPStart').focus(); return; }
+  const pool = g('wsPPool').value, dur = normDur(g('wsPDur').value), rep = +g('wsPRep').value || 0, extra = g('wsPExtra').value.trim();
+  if(g('wsPDur').value.trim() && !dur){ say('練習の長さは 2h や 90min のように入れてください', 5000); g('wsPDur').focus(); return; }
+  const day = wsPlan()[date] = wsPlan()[date] || {};
+  const old = day[ap] || {};
+  const wd = (pYmd(date).getDay() + 6) % 7;
+  const wdS = (sched()[wd] || []).filter(s => (ap === 'AM') === isAM(clk(s.start)))[0];
+  const poolEff = pool || (wdS ? poolShort(wdS.pool) : '');
+  let plan = '';
+  if(off) plan = 'OFF';
+  else if(dur) plan = 'Swim' + dur + (poolEff ? '(' + poolEff.replace('LCかSC', 'LCorSC') + ')' : '(LC)') + (rep > 1 ? '*' + rep : '') + (extra ? '+' + extra : '');
+  else plan = extra;
+  day[ap] = {plan, note:g('wsPNote').value.trim(), ev:g('wsPEv').value.trim(), visit:old.visit || '', start:off ? '' : start, pool:off ? '' : pool, dur, rep, extra, manual:true};
+  save(); renderWS(); openSlot(slotKey); say(mdJ(date) + (ap === 'AM' ? '午前' : '午後') + 'の予定を保存しました');
+}
+function clearSlot(){
+  const date = slotKey.slice(0, 10), ap = slotKey.slice(10);
+  const day = wsPlan()[date]; if(day){ delete day[ap]; if(!Object.keys(day).length) delete wsPlan()[date]; }
+  save(); renderWS(); openSlot(slotKey); say('この枠の予定を消しました。曜日ごとの時刻にもどります');
+}
+function slotClick(e){
+  const t = e.target;
+  if(t.closest('[data-wsslotclose]')){ closeSlot(); return; }
+  if(t.closest('[data-wssave]')){ saveSlot(); return; }
+  if(t.closest('[data-wsclear]')){ if(confirm('この枠に書いた予定を消します。よろしいですか。')) clearSlot(); return; }
+  const op = t.closest('[data-wsopen]'); if(op){ goSlot(slotKey, op.dataset.wsopen); return; }
+  if(t.closest('[data-wsnew]')){ const k = slotKey; if(slotMenus(k.slice(0, 10), k.slice(10)).length) newSlotMenu(k); else goSlot(k); return; }
+  if(t.closest('[data-wsslotprint]')){ printMenus(slotMenus(slotKey.slice(0, 10), slotKey.slice(10)), mdJ(slotKey.slice(0, 10)) + (slotKey.slice(10) === 'AM' ? '午前' : '午後')); return; }
+}
+function newSlotMenu(key){
+  const date = key.slice(0, 10), ap = key.slice(10), x = slotInfo(date, ap);
+  const list = typeof SESSIONS !== 'undefined' ? SESSIONS : ['朝', '午後', '夜', 'その他'];
+  const free = list.find(n => !(S.menus || {})[typeof menuId === 'function' ? menuId(date, n) : date + '_' + n]);
+  if(!free){ say('この日のメニューは4つまでです'); return; }
+  closeSlot(); if(typeof showView === 'function') showView('vMenu');
+  openMenu(date, free);
+  if(typeof M !== 'undefined' && M && x.times[0]){ M.start = typeof fmtClock === 'function' ? fmtClock(x.times[0].start) : clk(x.times[0].start); if(typeof renderMenuView === 'function') renderMenuView(); }
+  say(mdJ(date) + 'に「' + free + '」のメニューを新しく作りました');
+}
+/* ---------- メニューをまとめてPDF・印刷（アプリのいつもの印刷の形をそのまま使う） ---------- */
+function collectPages(menus){
+  const pages = [], keepM = M, keepStyle = g('pageStyle') ? g('pageStyle').textContent : '';
+  try{
+    menus.forEach(m => {
+      M = JSON.parse(JSON.stringify(m));
+      const r = buildPrintPage('menu');
+      if(!r) return;
+      g('printPage').querySelectorAll('.pp-page').forEach(pg => pages.push({html:pg.outerHTML, landscape:r.landscape}));
+    });
+  } finally { M = keepM; if(g('pageStyle')) g('pageStyle').textContent = keepStyle; }
+  return pages;
+}
+function weekCoverHtml(){
+  const W = 1062, H = 733;
+  return '<div class="pp-page" style="width:' + W + 'px;height:' + H + 'px;font-size:12px"><div class="ppInner"><h2 style="margin:0 0 8px">週間スケジュール　' + E(g('wsTtl').textContent) + '</h2>' + g('wsPhase').innerHTML + '<table class="wsT" style="min-width:0;font-size:11px">' + g('wsTbl').innerHTML.replace(/<button[^>]*class="wsEmpty"[^>]*>[\s\S]*?<\/button>/g, '') + '</table><div class="pp-foot">' + E(S.settings.header || '') + ' MENU STUDIO で作成</div></div></div>';
+}
+async function printMenus(menus, label, withCover){
+  menus = menus.filter(m => typeof menuHasContent !== 'function' || menuHasContent(m));
+  if(!menus.length && !withCover){ say('印刷するメニューがありません'); return; }
+  if(typeof buildPrintPage !== 'function' || !g('printPage')){ say('印刷の部品が見つかりません'); return; }
+  closeSlot();
+  printKind = 'week'; WEEK_PDF = 'menus_' + (withCover ? 'week_' + wsMon : slotKey) + '.pdf';
+  const mode = S.settings.printMode || 'both';
+  if((mode === 'both' || mode === 'pdf') && typeof preparePdfTarget === 'function' && !(await preparePdfTarget(pdfName()))) return;
+  const pages = collectPages(menus);
+  const cover = withCover ? weekCoverHtml() : '';
+  const allLand = pages.every(p => p.landscape);
+  if(!allLand && pages.length){
+    // 縦の紙と横の紙がまざるときは、横にそろえる（PDFは1つの向きでしか作れないため）
+    pages.forEach(p => { if(!p.landscape) p.html = p.html.replace(/width:\s*733px;\s*height:\s*1062px/, 'width:1062px;height:733px').replace('class="pp-page"', 'class="pp-page" data-conv="1"'); });
+  }
+  if(g('prPer')) g('prPer').closest('label').style.display = 'none';
+  showOv('printOv');
+  g('printPage').innerHTML = cover + pages.map(p => p.html).join('');
+  g('printPage').querySelectorAll('.pp-page').forEach((pg, j) => { if(!(pg.dataset.conv || (j === 0 && cover))) return; const inner = pg.querySelector('.ppInner'); let fs = parseFloat(pg.style.fontSize) || 16; while(inner && inner.offsetHeight > 733 && fs > 7){ fs -= 0.5; pg.style.fontSize = fs + 'px'; } });
+  if(g('pageStyle')) g('pageStyle').textContent = '@media print{@page{size:A4 landscape;margin:8mm}}';
+  const msg = g('printMsg');
+  if(mode === 'both' || mode === 'pdf'){
+    msg.textContent = label + 'のメニューのPDFを作成しています…';
+    try{ const r = await makePdf(true); msg.textContent = 'PDF「' + r.name + '」を' + r.where + (mode === 'both' ? '続いて印刷の画面を開きます。' : ''); }
+    catch(e){ msg.textContent = 'PDFを作れませんでした。印刷の画面で「PDFに保存」を選ぶ方法もあります。'; }
+  } else msg.textContent = '印刷の画面を開きます。';
+  if(mode === 'both' || mode === 'print') setTimeout(() => window.print(), 250);
+}
+let WEEK_PDF = '';
+function weekMenusPrint(){
+  const days = [...Array(7)].map((_, i) => addD(wsMon, i));
+  const menus = Object.values(S.menus || {}).filter(m => days.includes(m.date) && (typeof menuHasContent !== 'function' || menuHasContent(m)))
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : clkSec(clk(a.start)) - clkSec(clk(b.start)));
+  if(!menus.length && !confirm('この週にはメニューがまだありません。週間表だけをPDFにしますか。')) return;
+  printMenus(menus, md(days[0]) + '〜' + md(days[6]), true);
 }
 function printWS(){
   const w = window.open('', '_blank');
@@ -6746,7 +6903,8 @@ function bind(){
   g('wsTimes').addEventListener('click', () => { if(typeof openWeekSched === 'function') openWeekSched(); else say('曜日ごとの時刻はメニュー作成の画面で設定できます'); });
   g('wsImpBtn').addEventListener('click', openImp);
   g('wsPrint').addEventListener('click', printWS);
-  g('wsTbl').addEventListener('click', e => { const b = e.target.closest('[data-wsgo]'); if(b) goSlot(b.dataset.wsgo); });
+  g('wsTbl').addEventListener('click', e => { const b = e.target.closest('[data-wsgo]'); if(b) openSlot(b.dataset.wsgo); });
+  g('wsMenuPrint').addEventListener('click', weekMenusPrint);
   g('wsPat').addEventListener('change', e => {
     const s = e.target.closest('[data-wspat]'); if(!s) return;
     const a = athList().find(x => 'a:' + x.name === whoVal()); if(!a) return;
@@ -6792,6 +6950,7 @@ function hookShowView(){
     return orig.apply(this, arguments);
   };
   wrapped.__ws = true;
+  if(typeof pdfName === 'function' && !pdfName.__ws){ const pn = pdfName; const w3 = function(){ return printKind === 'week' && WEEK_PDF ? WEEK_PDF : pn.apply(this, arguments); }; w3.__ws = true; try{ pdfName = w3; }catch(_){ } }
   window.showView = wrapped;
   try{ showView = wrapped; }catch(_){}
   if(typeof saveWeekSched === 'function' && !saveWeekSched.__ws){
@@ -7167,7 +7326,17 @@ function parseRoster(text){
     if(/男子/.test(l) && l.length < 10) sex = '男'; if(/女子/.test(l) && l.length < 10) sex = '女';
     if(/(監督|コーチ|部長|顧問|トレーナー|マネージャー|スタッフ)/.test(l) && l.length < 14) return;
     const m = new RegExp('^(?:[1-4１-４]\\s*年\\s*)?(' + KANJI + '{1,4})[\\s\\u3000]+(' + NAMECH + '{1,6})(?:[\\s\\u3000]*[（(]([\\u3041-\\u3096\\u30A1-\\u30FA\\u30FC\\s\\u3000]+)[）)])?').exec(l);
-    if(!m) return;
+    if(!m){
+      // 「佐藤健太」のように空白がない名前：前か後ろの行がふりがなだけのときに限って読む（苗字と名前の区切りは推定）
+      const m2 = new RegExp('^(?:[1-4１-４]\\s*年\\s*)?(' + KANJI + '{3,5})$').exec(l);
+      const kn = lines[i + 1] && /^[ぁ-ゖァ-ヺー\s　]{3,}$/.test(lines[i + 1]) ? lines[i + 1] : '';
+      if(!m2 || !kn || NOT_NAME.test(m2[1])) return;
+      const kp = kn.replace(/　/g, ' ').trim().split(/\s+/);
+      const nm = m2[1], cut = nm.length >= 4 ? 2 : (nm.length === 3 ? (kp.length > 1 && kp[1].length >= 3 ? 1 : 2) : 2);
+      const k2 = nm; if(seen.has(k2)) return; seen.add(k2);
+      out.push({sei:nm.slice(0, cut), mei:nm.slice(cut), kana:kn.replace(/　/g, ' ').trim(), grade, sex, guess:true});
+      return;
+    }
     if(/^(自由形|背泳ぎ|平泳ぎ|バタフライ|個人メドレー|出身|専門|種目|学年|高校)$/.test(m[2])) return;
     let kana = m[3] || '';
     if(!kana && lines[i + 1] && /^[ぁ-ゖァ-ヺー\s　]+$/.test(lines[i + 1])) kana = lines[i + 1];
@@ -7175,6 +7344,23 @@ function parseRoster(text){
     out.push({sei:m[1], mei:m[2], kana:kana.replace(/　/g, ' ').trim(), grade, sex});
   });
   return out;
+}
+const NOT_NAME = /^(自由形|背泳ぎ|平泳ぎ|個人メドレー|部員紹介|中京大学|水泳部|出身校|監督|コーチ|主将|副主将|主務|学生コーチ|マネージャー)$/;
+const ROSTER_PAGE = 'http://chukyoswim.com/?page_id=35';
+let RPREV = [];
+function showRosterPrev(L, from){
+  RPREV = L;
+  if(!L.length){ g('trRosterMsg').textContent = from + 'から名前を読みとれませんでした。ページの形が変わったかもしれません。読めない形のときは、そのページの文字をClaudeに見せてください。'; g('trRosterPrev').innerHTML = ''; return; }
+  const n = L.filter(r => !roster().some(x => x.sei === r.sei && x.mei === r.mei)).length;
+  g('trRosterMsg').textContent = from + 'から' + L.length + '人を読みとりました。新しい人は' + n + '人です。確かめて「チェックした人を名簿に入れる」を押してください。';
+  g('trRosterPrev').innerHTML = '<label><input type="checkbox" id="trRpAll" checked> 全部にチェックを入れる・外す</label><div class="tWrap"><table class="tT"><thead><tr><th>入れる</th><th>学年</th><th>苗字</th><th>名前</th><th>ふりがな</th><th>状態</th></tr></thead><tbody>' +
+    L.map((r, i) => { const ex = roster().some(x => x.sei === r.sei && x.mei === r.mei);
+      return '<tr><td><input type="checkbox" data-rpc="' + i + '" checked aria-label="' + E(r.sei + ' ' + r.mei) + 'を名簿に入れる"></td>' +
+        '<td><input type="text" data-rpg="' + i + '" value="' + (r.grade || '') + '" style="width:44px" aria-label="学年"></td>' +
+        '<td><input type="text" data-rps="' + i + '" value="' + E(r.sei) + '" style="width:90px" aria-label="苗字"></td><td><input type="text" data-rpm="' + i + '" value="' + E(r.mei) + '" style="width:90px" aria-label="名前"></td>' +
+        '<td><input type="text" data-rpk="' + i + '" value="' + E(r.kana || '') + '" style="width:150px" aria-label="ふりがな"></td>' +
+        '<td>' + (ex ? '登録ずみ' : '<span class="ok">新しい人</span>') + (r.guess ? '<div class="mid">苗字と名前の区切りを確かめてください</div>' : '') + '</td></tr>'; }).join('') +
+    '</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn primary" id="trRpGo">チェックした人を名簿に入れる</button></div>';
 }
 /* 名前の候補：名簿＋ピリオダイゼーションの選手一覧 */
 function people(){
@@ -7218,18 +7404,32 @@ function parseDateIn(s, fallback){
   return {d:fallback || '', hit:''};
 }
 function grabTimes(s){ return s.split(/[\s,，、\/]+/).map(tsec).filter(x => x != null && x > 5 && x < 3600); }
+/* 泳ぎ方（キック・プル・ドリル）とスタート（飛びこみ・壁けり） */
+const MODS = [[/キック|kick/i, 'キック'], [/プル|pull/i, 'プル'], [/ドリル|drill/i, 'ドリル'], [/dive|ダイブ|飛び?込み?/i, 'Dive'], [/push|プッシュ|壁け?り|水中スタート/i, 'Push']];
+/* 記録の条件：種目（スイム・キック・プル・ドリル）、スタート（Dive・Push）、泳法、水着。古い記録の r.mod も読む */
+const TYPES = ['スイム', 'キック', 'プル', 'ドリル'], STARTS = ['Dive', 'Push'], STROKES = ['自由形', '背泳ぎ', '平泳ぎ', 'バタフライ', '個人メドレー'], SUITS = ['ノーマル', '高速'];
+const typeOf = r => r.type || (['キック', 'プル', 'ドリル'].includes(r.mod) ? r.mod : 'スイム');
+const startOf = r => r.start != null ? r.start : (['Dive', 'Push'].includes(r.mod) ? r.mod : '');
+const strokeOf = r => r.stroke || r.event || '';
+const suitOf = r => r.suit || '';
+const condTxt = r => [typeOf(r) !== 'スイム' ? typeOf(r) : '', startOf(r), strokeOf(r), suitOf(r) === '高速' ? '高速水着' : (suitOf(r) === 'ノーマル' ? 'ノーマル水着' : '')].filter(Boolean).join(' ');
+const isSwim = r => typeOf(r) === 'スイム';
+const SUIT_RE = [[/高速水着|高速|テクニカルスーツ|テクスーツ|レーサー/, '高速'], [/ノーマル水着|ノーマル|練習水着|練習用水着/, 'ノーマル']];
 function parseLine(line, ctx){
-  line = z2h(String(line)).replace(/　/g, ' ').replace(/[×xX＊*]/g, '×').trim();
+  line = z2h(String(line)).replace(/　/g, ' ').replace(/([\dmM])\s*[xX＊*]\s*(\d)/g, '$1×$2').trim();
   if(!line || line.length < 4) return null;
   const dt = parseDateIn(line, ctx.date); if(dt.d) ctx.date = dt.d;
   let body = dt.hit ? line.replace(dt.hit, ' ') : line;
+  let type = '', start = '', suit = '';
+  MODS.forEach(([re, nm]) => { const mm = re.exec(body); if(!mm) return; if(STARTS.includes(nm)){ if(!start) start = nm; } else if(!type) type = nm; body = body.replace(mm[0], ' '); });
+  SUIT_RE.forEach(([re, nm]) => { if(suit) return; const mm = re.exec(body); if(mm){ suit = nm; body = body.replace(mm[0], ' '); } });
   const mt = matchName(body);
   let nameTxt = '';
   if(mt.state !== 'none'){ const r = mt.cands[0]; const ks = [r.sei + ' ' + r.mei, r.sei + r.mei, r.mei, r.sei].concat(kanaParts(r).join('') ? [kanaParts(r).join('')] : []).filter(x => x && x.trim());
     nameTxt = ks.find(k => body.includes(k)) || ''; }
   if(!nameTxt){ const w = new RegExp('(' + NAMECH + '{2,8})').exec(body); nameTxt = w && !/全力|乳酸|心拍|レース|試合|大会|ベスト|本目|サイクル|自由形|背泳|平泳|バタフライ|個人メドレー/.test(w[1]) ? w[1] : ''; }
   if(nameTxt) body = body.replace(nameTxt, ' ');
-  const o = {date:ctx.date || '', nameTxt, raw:line, match:mt, unclear:/読めない数字/.test(line)};
+  const o = {date:ctx.date || '', nameTxt, raw:line, match:mt, unclear:/読めない数字/.test(line), type:type || 'スイム', start, suit};
   body = body.replace(/[（(]読めない数字あり[)）]/g, ' ').replace(/名前不明/g, ' ');
   let m;
   const hr = /(?:心拍|HR|ＨＲ)\s*[:：]?\s*(\d{2,3})/i.exec(body); if(hr){ o.hr = +hr[1]; body = body.replace(hr[0], ' '); }
@@ -7243,7 +7443,8 @@ function parseLine(line, ctx){
   } else if((m = /(\d{2,4})\s*m?\s*×\s*(\d{1,3})\s*(?:[（(]\s*([^)）]*)\s*[)）]|on\s*([\d:'"]+)|サイクル\s*([\d:'"]+))?/.exec(body))){
     o.kind = 'set'; o.dist = +m[1]; o.reps = +m[2]; o.cycle = (m[3] || m[4] || m[5] || '').trim();
     o.times = grabTimes(body.slice(body.indexOf(m[0]) + m[0].length));
-    o.text = o.dist + 'm×' + o.reps + (o.cycle ? '（' + o.cycle + '）' : '') + '　' + o.times.length + '本のタイム' + (o.hr ? '　心拍' + o.hr : '');
+    { const st = STROKE.find(x => x[0].test(body)); o.stroke = st ? st[1] : ''; }
+    o.text = setText(o);
     if(!o.times.length) o.needTimes = true;
   } else if((m = /(\d{2,4})\s*m(?![a-z])/i.exec(body))){
     o.dist = +m[1];
@@ -7255,7 +7456,8 @@ function parseLine(line, ctx){
       if(/レース|試合|大会|予選|決勝|タイム決勝|公式/.test(body)){ o.kind = 'race'; o.event = (st ? st[1] : '自由形') ; }
       else o.kind = 'max';
       o.stroke = st ? st[1] : '';
-      o.text = (o.kind === 'race' ? 'レース ' + o.dist + 'm' + o.event : o.dist + 'm' + (o.stroke && o.stroke !== '自由形' ? o.stroke : '') + ' 全力') + ' ' + fmt(o.t) + (o.hr ? '　心拍' + o.hr : '');
+      if(o.kind === 'race') o.stroke = o.event;
+      o.text = o.dist + 'm ' + (o.kind === 'race' ? 'レース' : '全力') + (condTxt(o) ? '（' + condTxt(o) + '）' : '') + ' ' + fmt(o.t) + (o.hr ? '　心拍' + o.hr : '');
     } else { o.kind = '?'; o.headerDist = o.dist; }
   } else o.kind = '?';
   if(o.kind === '?') o.text = '記録として読めませんでした';
@@ -7263,7 +7465,8 @@ function parseLine(line, ctx){
   if(mt.state === 'sure') ctx.who = o.who;
   return o;
 }
-function setText(o){ return (o.dist ? o.dist + 'm' : '距離？') + '×' + o.reps + (o.cycle ? '（' + o.cycle + '）' : '') + '　' + o.times.length + '本のタイム（' + o.times.map(fmt).join(' ') + '）' + (o.hr ? '　心拍' + o.hr : ''); }
+function setText(o){ return (o.dist ? o.dist + 'm' : '距離？') + '×' + o.reps + (o.cycle ? '（' + o.cycle + '）' : '') + (condTxt(o) ? '　' + condTxt(o) : '') + '　' + (o.times || []).length + '本のタイム' + (o.times && o.times.length ? '（' + o.times.map(fmt).join(' ') + '）' : '') + (o.hr ? '　心拍' + o.hr : ''); }
+function recText(r){ return r.kind === 'set' ? setText(r) : r.kind === 'lactate' ? '乳酸 ' + r.dist + 'm×' + r.steps.length + '　' + r.steps.map(s => fmt(s.t) + '(' + s.la + ')').join(' ') : r.dist + 'm ' + (r.kind === 'race' ? 'レース' : '全力') + (condTxt(r) ? '（' + condTxt(r) + '）' : '') + '　' + fmt(r.t) + (r.hr ? '　心拍' + r.hr : ''); }
 /* 「12　1'05"7」のように、本数とタイムだけが並ぶ行 */
 function blockLine(l){
   const s = z2h(String(l)).replace(/　/g, ' ').trim(); if(!s) return null;
@@ -7354,10 +7557,13 @@ function setStats(t){
   const k = Math.max(1, Math.floor(t.length / 3)), f = t.slice(0, k).reduce((a, b) => a + b) / k, l = t.slice(-k).reduce((a, b) => a + b) / k;
   return {best:so[0], worst:so[so.length - 1], mean, trim, sd, k, drop:l - f};
 }
-const setKey = r => r.dist + 'm×' + r.reps + (r.cycle ? '（' + r.cycle + '）' : '');
+const setKey = r => r.dist + 'm×' + r.reps + (r.cycle ? '（' + r.cycle + '）' : '') + (condTxt(r) ? ' ' + condTxt(r) : '');
+/* 練習の種類の名前（記録の一覧の検索に使う） */
+const recLabel = r => r.kind === 'set' ? setKey(r) : r.kind === 'lactate' ? '乳酸 ' + r.dist + 'm' : r.dist + 'm ' + (r.kind === 'race' ? 'レース' : '全力') + (condTxt(r) ? ' ' + condTxt(r) : '');
 /* ある日を中心に、前後14日以内の全力記録（200〜1500m）からCSを出す */
 function csAt(R, date){
-  const lo = R.filter(r => (r.kind === 'max' || (r.kind === 'race' && (r.event || '自由形') === '自由形')) && r.t && r.dist >= 200 && r.dist <= 1500 && Math.abs(dayN(r.date) - dayN(date)) <= 14 && r.date <= date);
+  let lo = R.filter(r => isSwim(r) && (r.kind === 'max' || r.kind === 'race') && (strokeOf(r) || '自由形') === '自由形' && r.t && r.dist >= 200 && r.dist <= 1500 && Math.abs(dayN(r.date) - dayN(date)) <= 14 && r.date <= date);
+  { const nrm = lo.filter(r => suitOf(r) !== '高速'); if(new Set(nrm.map(r => r.dist)).size >= 2) lo = nrm; else { const hs = lo.filter(r => suitOf(r) === '高速'); if(new Set(hs.map(r => r.dist)).size >= 2) lo = hs; } }
   const by = {}; lo.forEach(r => { if(!by[r.dist] || r.t < by[r.dist].t) by[r.dist] = r; });
   const ds = Object.keys(by).map(Number).sort((a, b) => a - b);
   if(ds.length < 2) return null;
@@ -7416,7 +7622,9 @@ function claudePrompt(){
     '日付は 10/30 のように書く。日付が書いていないときは、今日の日付にする。\n' +
     '選手の名前は、下の部員名簿の書き方にそろえる（苗字と名前の間は空白）。苗字だけ、名前だけ、ふりがなだけでも、名簿で一人に決まるならその人の名前にする。名簿にない名前は、読みとれたとおりに書く。\n' +
     "セットは「100m×10 (1'40) 1:05.2 1:04.8 …」のように、距離×本数、かっこの中にサイクル、そのあとに1本ずつのタイムを空白で区切って並べる。\n" +
-    '全力は「400m 全力 4:39.8」、レースは「200m自由形 レース 2:05.3」と書く。種目は 自由形・背泳ぎ・平泳ぎ・バタフライ・個人メドレー のどれかで書く。\n' +
+    '全力は「400m 全力 4:39.8」、レースは「200m自由形 レース 2:05.3」と書く。種目は 自由形・背泳ぎ・平泳ぎ・バタフライ・個人メドレー のどれかで書く。全力で種目が分かるときは「50m平泳ぎ 全力 29.06」と書く。\n' +
+    '水着が分かるときは、その行の最後に「高速水着」か「ノーマル水着」と書く。セットでも泳法が分かれば距離のあとに書く（例「100m×10 平泳ぎ (1\'40) …」）。\n' +
+    'キック・プル・ドリルのとき、また飛びこみ（Dive）か壁けり（Push）かが分かるときは、距離のすぐあとに書く。例「50mキック 全力 32.8」「50mDive平泳ぎ 全力 29.06」「50mPush平泳ぎ 全力 29.21」「100m×10キック (2\'00) 1:35.2 1:34.8 …」。元の記録に書いていなければ付けない。\n' +
     '乳酸は「乳酸 200m×5 2:42.0 1.6 / 2:36.5 2.2 / …」と、1本ごとにタイムと乳酸値を書き、/ で区切る。\n' +
     '心拍があれば、その行の最後に「心拍 184」と書く。\n' +
     "タイムは 1:05.7 の形にそろえる（1'05\"7 と書いてあれば 1:05.7 にする。60秒より短いものは 29.85 のように書く）。\n\n" +
@@ -7463,6 +7671,20 @@ const CSS = `
 #vTrain .trCl{background:#c96442;border-color:#c96442;color:#fff;font-size:17px;min-height:50px}
 #vTrain ol.trSteps{padding-left:22px;margin:0}#vTrain ol.trSteps li{margin:8px 0}
 #vTrain .trPre{white-space:pre-wrap;background:#f4f7fb;border:1px solid #c9d2dd;border-radius:8px;padding:10px;font-size:13px;max-height:260px;overflow:auto;font-family:inherit}
+#vTrain .trBulk{background:#f4f7fb;border:1px solid #c9d2dd;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+#vTrain .trLv{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+#vTrain .trCal{flex:0 0 360px;max-width:100%}
+#vTrain .trLvSide{flex:1 1 300px;min-width:0}
+#vTrain .trCalHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#vTrain .trCalHead b{font-size:19px}
+#vTrain .trCalGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#vTrain .trWd{text-align:center;font-size:13px;color:#4f5d6e;font-weight:700}
+#vTrain .trDay{min-height:48px;padding:2px;border:1px solid #c9d2dd;border-radius:6px;background:#fff;color:#16202e;font:inherit;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+#vTrain .trDay small{font-size:11px;font-weight:400}
+#vTrain .trDay.has{background:#dce8f8;border-color:#005bac}
+#vTrain .trDay.sel{background:#005bac;border-color:#005bac;color:#fff}
+#vTrain .trDay.off{visibility:hidden}
+#vTrain .trLvSt{font-size:18px;font-weight:700;margin:12px 0 6px}
 #vTrain .trWarn{background:#fff3cd;border-left:5px solid #e0a800;padding:6px 10px;border-radius:6px;margin-top:6px;font-weight:700}
 `;
 function install(){
@@ -7505,11 +7727,25 @@ function install(){
       '<div class="tWrap"><table class="tT"><thead><tr><th>見ているもの</th><th>判断</th><th>直近4週</th><th>その前8週</th><th>変化</th><th>意味のある変化の目安</th><th>確率</th></tr></thead><tbody id="trTrend"></tbody></table></div>' +
       '<div class="src">根拠：Hopkins（2004、Sportscience）。個人競技で意味のある最小の変化は、ふだんのぶれの0.3倍。変化が本物かは、測定のぶれを入れて確率で判断する。Pyne・Trewin・Hopkins（2004、Journal of Sports Sciences）。五輪選手のレースのタイムのぶれは大会間で0.8%、1年間の伸びは平均約0.9%。判断の線（75%以上で「伸び」「衰退」「停滞」）は、Hopkins の考え方の「たぶん」にあたる水準をあてはめたもの。</div></div>' +
     '<div class="tGrid" id="trCharts"></div>' +
-    '<h2>五、記録の一覧</h2><div class="tCard"><div class="tWrap" id="trList"></div></div>' +
+    '<h2>五、記録の一覧（カレンダーと検索）</h2><div class="tCard">' +
+      '<p class="muted" style="margin-top:0">ここは全員の記録から探します。色のついた日は記録がある日で、押すとその日の記録だけが出ます。もう一度押すと日付の絞りこみが外れます。名前と練習の種類でも絞りこめます。</p>' +
+      '<div class="trLv">' +
+        '<div class="trCal"><div class="trCalHead"><button class="btn" id="trCalPrev">前の月</button><b id="trCalTtl" aria-live="polite"></b><button class="btn" id="trCalNext">次の月</button></div><div class="trCalGrid" id="trCalGrid"></div></div>' +
+        '<div class="trLvSide"><div class="row"><label class="fld">名前<select id="trLvWho"></select></label><label class="fld">練習<select id="trLvKey"></select></label></div>' +
+          '<div class="row" style="margin-top:8px"><button class="btn ghost" id="trLvAll">絞りこみを全部外す</button></div></div>' +
+      '</div>' +
+      '<div class="trLvSt" id="trLvSt" role="status" aria-live="polite"></div>' +
+      '<div class="tWrap" id="trList"></div></div>' +
     '<h2>六、部員名簿</h2><div class="tCard">' +
-      '<p class="muted" style="margin-top:0">中京大学水泳部のホームページの部員紹介（chukyoswim.com の page_id=35）を開き、ページの文字を全部選んでコピーし、下に貼りつけて「名簿を読む」を押します。ピリオダイゼーションの画面で登録した選手も、名前の候補に入ります。</p>' +
+      '<h3>ホームページから取りこむ</h3>' +
+      '<p class="muted" style="margin-top:0">中京大学水泳部のホームページの部員紹介（http://chukyoswim.com/?page_id=35）から名前を拾います。「ホームページから名簿を取りこむ」を押すと、名簿取りこみ用のGASを通してページを読み、名前の一覧を出します。取りこむ人を確かめてから名簿に入れます。</p>' +
+      '<div class="row"><button class="btn primary" id="trRosterWeb">ホームページから名簿を取りこむ</button><button class="btn ghost" id="trRosterOpen">部員紹介のページを開く</button></div>' +
+      '<details style="margin-top:8px"><summary>名簿取りこみ用GASのURL（最初に一度だけ）</summary><div class="row" style="margin-top:6px"><label class="fld">GASのウェブアプリのURL<input type="text" id="trRosterGas" style="width:min(520px,80vw)" placeholder="https://script.google.com/macros/s/…/exec"></label><button class="btn primary" id="trRosterGasSave">保存</button></div></details>' +
+      '<details style="margin-top:8px"><summary>GASが使えないとき：ページの文字を貼りつける</summary><p class="muted">「部員紹介のページを開く」でページを開き、Command キーを押しながら A で全部選んで、Command キーを押しながら C でコピーし、下に貼りつけて「名簿を読む」を押します。</p>' +
       '<textarea id="trRosterTxt" placeholder="部員紹介のページの文字をここに貼りつけ"></textarea>' +
-      '<div class="row" style="margin-top:8px"><button class="btn primary" id="trRosterRead">名簿を読む</button><span class="muted" id="trRosterMsg" role="status" aria-live="polite"></span></div>' +
+      '<div class="row" style="margin-top:8px"><button class="btn primary" id="trRosterRead">名簿を読む</button></div></details>' +
+      '<p class="muted" id="trRosterMsg" role="status" aria-live="polite"></p>' +
+      '<div id="trRosterPrev"></div>' +
       '<h3 style="margin-top:12px">1人ずつ手で入れる</h3><div class="row"><label class="fld">苗字<input type="text" id="trRsSei" style="width:110px"></label><label class="fld">名前<input type="text" id="trRsMei" style="width:110px"></label><label class="fld">ふりがな（さとう けんた）<input type="text" id="trRsKana" style="width:170px"></label>' +
       '<label class="fld">学年<select id="trRsGrade"><option value="">なし</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label><button class="btn primary" id="trRosterAdd">名簿に追加</button></div>' +
       '<p class="muted">下の一覧の名前やふりがなは、その場で書き直せます。書き直すと自動で保存されます。</p>' +
@@ -7521,6 +7757,22 @@ function install(){
 }
 
 let PEND = [];
+/* 種目・スタート・泳法・水着を選ぶ欄（取りこむときと、あとから直すときの両方で使う） */
+function condSel(attr, id, r, label){
+  const o = (list, cur, none) => (none != null ? '<option value="">' + none + '</option>' : '') + list.map(x => '<option' + (x === cur ? ' selected' : '') + '>' + x + '</option>').join('');
+  return '<div class="row" style="gap:6px;margin-top:4px">' +
+    '<label class="fld">種目<select ' + attr + '="' + id + '" data-k="type" aria-label="' + label + 'の種目">' + o(TYPES, typeOf(r)) + '</select></label>' +
+    '<label class="fld">スタート<select ' + attr + '="' + id + '" data-k="start" aria-label="' + label + 'のスタート">' + o(STARTS, startOf(r), 'なし・不明') + '</select></label>' +
+    '<label class="fld">泳法<select ' + attr + '="' + id + '" data-k="stroke" aria-label="' + label + 'の泳法">' + o(STROKES, strokeOf(r), '不明') + '</select></label>' +
+    '<label class="fld">水着<select ' + attr + '="' + id + '" data-k="suit" aria-label="' + label + 'の水着">' + o(SUITS, suitOf(r), '不明') + '</select></label></div>';
+}
+function setCond(r, k, v){
+  if(r.mod){ r.type = typeOf(r); r.start = startOf(r); delete r.mod; }
+  if(k === 'type') r.type = v;
+  if(k === 'start') r.start = v;
+  if(k === 'stroke'){ r.stroke = v; if(r.kind === 'race') r.event = v || '自由形'; }
+  if(k === 'suit') r.suit = v;
+}
 function renderAssign(){
   const tb = g('trAssign');
   if(!PEND.length){ tb.innerHTML = '<tr><td colspan="5" class="muted">振り分けを待っている記録はありません</td></tr>'; return; }
@@ -7532,6 +7784,7 @@ function renderAssign(){
     return '<tr><td class="n"><input type="date" data-trd="' + i + '" value="' + E(o.date) + '" aria-label="日付"></td><td class="n">' + E(o.nameTxt || '（なし）') + '</td><td><select data-tri="' + i + '" aria-label="' + E((o.nameTxt || '名前なし') + 'の振り分け先') + '"><option value="">選んでください</option>' +
       opts.map(r => '<option' + (full(r) === o.who ? ' selected' : '') + '>' + E(full(r)) + '</option>').join('') + '</select></td><td>' + st + (o.dateGuess ? '<div class="mid">日付がないので今日にしています</div>' : '') + (o.unclear ? '<div class="ng">読めない数字があります。元の画像で確かめてください</div>' : '') + (!o.who && o.kind !== '?' ? '<div class="ng">選手を選んでください</div>' : '') + '</td><td>' + E(o.text) +
       (o.kind === 'set' ? '<div class="row" style="gap:6px;margin-top:4px"><label class="fld">距離（m）<input type="number" data-trdist="' + i + '" value="' + (o.dist || '') + '" style="width:80px" aria-label="このセットの1本の距離（m）"></label><label class="fld">サイクル<input type="text" data-trcyc="' + i + '" value="' + E(o.cycle || '') + '" style="width:80px" aria-label="このセットのサイクル"></label>' + (o.dist ? '' : '<span class="ng">距離を入れてください</span>') + '</div>' : '') +
+      (o.kind !== '?' ? condSel('data-trc', i, o, '読みこんだ記録') : '') +
       '<div class="muted">' + E(o.raw.slice(0, 100)) + '</div></td></tr>';
   }).join('');
 }
@@ -7546,8 +7799,9 @@ function savePending(){
   const ok = PEND.filter(o => o.who && o.kind !== '?' && o.date && !(o.kind === 'set' && !o.dist));
   ok.forEach(o => {
     const r = {id:uid(), date:o.date, who:o.who, kind:o.kind, dist:o.dist, raw:o.raw, src:o.src || 'メモ'};
+    r.type = o.type || 'スイム'; r.start = o.start || ''; r.suit = o.suit || ''; if(o.stroke) r.stroke = o.stroke;
     if(o.kind === 'set'){ r.reps = o.reps; r.cycle = o.cycle; r.times = o.times; }
-    if(o.kind === 'max' || o.kind === 'race'){ r.t = o.t; r.stroke = o.stroke || ''; if(o.event) r.event = o.event; }
+    if(o.kind === 'max' || o.kind === 'race'){ r.t = o.t; if(o.event) r.event = o.event; }
     if(o.kind === 'lactate') r.steps = o.steps;
     if(o.hr) r.hr = o.hr;
     const dup = recs().find(x => x.who === r.who && x.date === r.date && x.raw === r.raw);
@@ -7569,7 +7823,7 @@ function renderTrainBody(){
   sel.innerHTML = names.length ? names.map(n => '<option' + (n === cur ? ' selected' : '') + '>' + E(n) + '</option>').join('') : '<option value="">（まだ記録がありません）</option>';
   const R = recs().filter(r => r.who === cur).sort((a, b) => a.date < b.date ? -1 : 1);
   g('trCnt').textContent = cur ? '保存されている記録 ' + R.length + '件' : '';
-  renderAna(R); renderTrend(R, cur); renderList(R);
+  renderAna(R); renderTrend(R, cur); renderList();
 }
 const need = (ok, t) => '<div class="' + (ok ? 'ok' : 'ng') + '">' + (ok ? 'あり：' : '足りない：') + E(t) + '</div>';
 const tagEv = '<span class="tag t-ev">研究に根拠あり</span>', tagRec = '<span class="tag t-ev">記録そのまま</span>', tagGs = '<span class="tag t-gs">目安（根拠は弱い）</span>', tagNo = '<span class="tag t-no">データ不足</span>';
@@ -7588,8 +7842,8 @@ function renderAna(R){
       '<div class="need">' + need(s.times.length >= s.reps, '全' + s.reps + '本のタイム（' + s.times.length + '本入力）') + need(!!s.cycle, 'サイクル') + '</div>'; });
   h += '<div class="src">記録をそのまま数えたもの（平均、最高と最低を除いた平均、標準偏差、前半と後半の差）。</div></div>';
   // CS
-  const lastD = R[R.length - 1].date, cs = csAt(R, lastD) || (() => { const ds = [...new Set(R.filter(r => r.kind === 'max' && r.dist >= 200).map(r => r.date))].sort().reverse(); for(const d of ds){ const c = csAt(R, d); if(c) return Object.assign(c, {at:d}); } return null; })();
-  const maxs = R.filter(r => r.kind === 'max' && r.dist >= 200 && r.dist <= 1500);
+  const lastD = R[R.length - 1].date, cs = csAt(R, lastD) || (() => { const ds = [...new Set(R.filter(r => isSwim(r) && r.kind === 'max' && r.dist >= 200).map(r => r.date))].sort().reverse(); for(const d of ds){ const c = csAt(R, d); if(c) return Object.assign(c, {at:d}); } return null; })();
+  const maxs = R.filter(r => isSwim(r) && r.kind === 'max' && r.dist >= 200 && r.dist <= 1500);
   h += '<div class="tCard"><h3>クリティカルスピード（CS）' + (cs ? tagEv : tagNo) + '</h3>';
   if(cs){ h += '<div class="big">' + cs.cs.toFixed(3) + ' m/秒</div><p>100mに直すと <b>' + fmt(100 / cs.cs) + '</b>。距離と時間の直線の切片（無酸素で泳げる距離の目安）は ' + cs.adc.toFixed(1) + 'm。あてはまり R²=' + cs.r2.toFixed(4) + (cs.ds.length === 2 ? '（2距離だけなので必ず1になり、確かさは分かりません。3距離以上あると確かめられます）' : '') + '</p><p class="muted">使った記録：' + cs.ds.map(d => d + 'm ' + fmt(cs.by[d].t) + '（' + md(cs.by[d].date) + '）').join('、') + '</p>'; }
   else h += '<p>200m〜1500mの全力（自由形のレースも可）が、14日以内に2つ以上の距離でそろうと出せます。</p>';
@@ -7598,12 +7852,12 @@ function renderAna(R){
     '<div class="src">根拠：Wakayoshi ほか（1992、Int J Sports Med）。50〜400mの全力タイムで距離と時間の回帰直線を引き、その傾きをCSとした。プールで出したCSは400mの平均速度と非常に強く相関した（r=0.998）。</div></div>';
   // 予想ベスト
   h += '<div class="tCard"><h3>予想ベストタイム' + (cs ? tagEv : tagNo) + '</h3>';
-  if(cs){ const bestOf = d => { const l = R.filter(r => (r.kind === 'max' || r.kind === 'race') && r.dist === d && (!r.stroke || r.stroke === '自由形')).map(r => r.t); return l.length ? Math.min(...l) : null; };
+  if(cs){ const bestOf = d => { const l = R.filter(r => isSwim(r) && (r.kind === 'max' || r.kind === 'race') && r.dist === d && (strokeOf(r) || '自由形') === '自由形').map(r => r.t); return l.length ? Math.min(...l) : null; };
     h += '<table class="tT"><thead><tr><th>距離</th><th>予想タイム</th><th>今までのベスト（記録の中）</th></tr></thead><tbody>' + [200, 400, 800, 1500].map(d => '<tr><td>' + d + 'm</td><td><b>' + fmt((d - cs.adc) / cs.cs) + '</b></td><td>' + fmt(bestOf(d)) + '</td></tr>').join('') + '</tbody></table><p class="muted">CSの直線から逆算したもの（自由形）。直線を作った距離から遠いほど外れやすく、100m以下には使えません。</p>'; }
   else h += '<p>CSが出ると出せます。</p>';
   h += '<div class="need">' + need(!!cs, 'クリティカルスピード') + '</div><div class="src">根拠：上と同じ距離と時間の直線（Wakayoshi ほか 1992）。</div></div>';
   // 25m
-  const mx = R.filter(r => r.kind === 'max');
+  const mx = R.filter(r => r.kind === 'max' && isSwim(r));
   const best = d => mx.filter(r => r.dist === d).sort((a, b) => a.t - b.t)[0];
   const r25 = best(25), r50 = best(50), r400 = best(400);
   h += '<div class="tCard"><h3>25mタイムと最大スピード' + (r25 ? tagRec : tagNo) + '</h3>';
@@ -7622,6 +7876,7 @@ function renderAna(R){
   if(r400) h += '<p><b>最大有酸素スピードの目安</b>：400m全力の平均 ' + (400 / r400.t).toFixed(3) + ' m/秒' + tagGs + '</p>';
   h += '<div class="need">' + need(!!lt, 'ステップテストの記録（3本以上、タイムと乳酸）') + need(!!r400, '400mの全力タイム（最大有酸素スピードの目安）') + '</div>' +
     '<div class="src">根拠：Wakayoshi ほか（1992）は乳酸4mmolの速さ（V-OBLA）も測り、400mの速さとの関係はCSより弱かった。最大有酸素スピード（vVO2max）は、2012年の欧州スポーツ科学会の発表で、400mの全体の平均ではなく真ん中300mの平均の速さから推定できたとされる（学会の要旨で、論文ではない）。</div></div>';
+  { const cs2 = condSummary(R); if(cs2) h += '<div class="tCard" style="grid-column:1/-1">' + cs2.replace('（表示中の記録から）', '（この選手）') + '</div>'; }
   box.innerHTML = h;
 }
 /* 伸び・停滞・衰退に使う系列を作る */
@@ -7629,9 +7884,9 @@ function buildSeries(R){
   const S2 = [];
   const sets = {}; R.filter(r => r.kind === 'set' && r.times && r.times.length >= 3).forEach(r => (sets[setKey(r)] = sets[setKey(r)] || []).push({d:r.date, v:setStats(r.times).trim}));
   Object.keys(sets).forEach(k => S2.push({name:k + '　最高と最低を除いた平均', unit:'t', lower:true, cv:null, pts:sets[k]}));
-  const mx = {}; R.filter(r => r.kind === 'max').forEach(r => { const k = r.dist + 'm' + (r.stroke && r.stroke !== '自由形' ? r.stroke : '') + ' 全力'; (mx[k] = mx[k] || []).push({d:r.date, v:r.t}); });
+  const mx = {}; R.filter(r => r.kind === 'max').forEach(r => { const k = recLabel(r); (mx[k] = mx[k] || []).push({d:r.date, v:r.t}); });
   Object.keys(mx).forEach(k => S2.push({name:k, unit:'t', lower:true, cv:null, pts:mx[k]}));
-  const rc = {}; R.filter(r => r.kind === 'race').forEach(r => { const k = r.dist + 'm' + (r.event || '') + ' レース'; (rc[k] = rc[k] || []).push({d:r.date, v:r.t}); });
+  const rc = {}; R.filter(r => r.kind === 'race').forEach(r => { const k = recLabel(r); (rc[k] = rc[k] || []).push({d:r.date, v:r.t}); });
   Object.keys(rc).forEach(k => S2.push({name:k, unit:'t', lower:true, cv:0.8, pts:rc[k]}));
   const csp = []; [...new Set(R.filter(r => (r.kind === 'max' || r.kind === 'race') && r.dist >= 200).map(r => r.date))].sort().forEach(d => { const c = csAt(R, d); if(c && !csp.some(p => p.v === c.cs)) csp.push({d, v:c.cs}); });
   if(csp.length) S2.push({name:'クリティカルスピード', unit:'v', lower:false, cv:null, pts:csp});
@@ -7668,12 +7923,69 @@ function renderTrend(R, who){
   });
   g('trTrend').innerHTML = t; g('trCharts').innerHTML = c;
 }
-function renderList(R){
-  const box = g('trList');
-  if(!R.length){ box.innerHTML = '<p class="muted">記録はまだありません。</p>'; return; }
+/* 条件による差：同じ距離・同じ種目・同じ泳法で、水着やスタートだけが違う記録どうしを比べる（全力とレース） */
+function condSummary(R){
+  const T = R.filter(r => (r.kind === 'max' || r.kind === 'race') && r.t);
+  if(!T.length) return '';
+  const rows = [];
+  const cmp = (key, a, b, name) => {
+    const grp = {};
+    T.forEach(r => { const v = key === 'suit' ? suitOf(r) : startOf(r); if(v !== a && v !== b) return;
+      const base = r.dist + 'm ' + [typeOf(r) !== 'スイム' ? typeOf(r) : '', strokeOf(r) || '自由形', key === 'suit' ? startOf(r) : (suitOf(r) === '高速' ? '高速水着' : suitOf(r) === 'ノーマル' ? 'ノーマル水着' : '')].filter(Boolean).join(' ');
+      const gk = base; (grp[gk] = grp[gk] || {base, A:[], B:[]})[v === a ? 'A' : 'B'].push(r.t); });
+    Object.values(grp).forEach(x => { if(!x.A.length || !x.B.length) return;
+      const ma = x.A.reduce((p, q) => p + q, 0) / x.A.length, mb = x.B.reduce((p, q) => p + q, 0) / x.B.length;
+      const enough = x.A.length >= 3 && x.B.length >= 3;
+      rows.push('<tr><td>' + E(x.base) + '</td><td>' + E(name) + '</td><td class="n">' + a + ' ' + fmt(ma) + '（' + x.A.length + '回）</td><td class="n">' + b + ' ' + fmt(mb) + '（' + x.B.length + '回）</td><td class="n"><b>' + (mb - ma >= 0 ? b + 'が' + (mb - ma).toFixed(2) + '秒遅い' : b + 'が' + (ma - mb).toFixed(2) + '秒速い') + '</b></td><td>' + (enough ? '<span class="ok">目安になる回数</span>' : '<span class="mid">回数が少なく、まだ参考</span>') + '</td></tr>'); });
+  };
+  cmp('suit', '高速', 'ノーマル', '水着の差');
+  cmp('start', 'Dive', 'Push', 'スタートの差');
+  const n = {suit:T.filter(r => !suitOf(r)).length};
+  return '<h3 style="margin-top:14px">条件による差（表示中の記録から）</h3>' +
+    (rows.length ? '<div class="tWrap"><table class="tT"><thead><tr><th>同じ条件</th><th>比べるもの</th><th>平均</th><th>平均</th><th>差</th><th>確かさ</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' :
+      '<p class="muted">同じ距離・同じ泳法で、水着だけ（またはスタートだけ）が違う記録がそろうと、ここに差が出ます。</p>') +
+    '<p class="muted">記録をそのまま平均したものです。それぞれ3回以上たまると目安になり、回数が増えるほど確かになります。違う日の記録どうしなので、体調や練習の時期の差も入っています。' + (n.suit ? '水着が「不明」の記録が' + n.suit + '件あります。上の「直す」で入れると、比べられる記録が増えます。' : '') + '</p>';
+}
+/* 五、記録の一覧：カレンダーと検索（全員の記録が対象） */
+const LV = {edit:'', date:'', who:'', key:'', y:new Date().getFullYear(), m:new Date().getMonth()};
+const lvKey = r => recLabel(r).toLowerCase();
+function renderCal(){
+  const all = recs(), cnt = {};
+  all.forEach(r => { cnt[r.date] = (cnt[r.date] || 0) + 1; });
+  g('trCalTtl').textContent = LV.y + '年' + (LV.m + 1) + '月';
+  let h = '日月火水木金土'.split('').map(w => '<div class="trWd" aria-hidden="true">' + w + '</div>').join('');
+  const first = new Date(LV.y, LV.m, 1).getDay(), days = new Date(LV.y, LV.m + 1, 0).getDate();
+  for(let i = 0; i < first; i++) h += '<div class="trDay off" aria-hidden="true"></div>';
+  for(let d = 1; d <= days; d++){
+    const k = LV.y + '-' + pad(LV.m + 1) + '-' + pad(d), c = cnt[k] || 0, on = LV.date === k;
+    h += '<button type="button" class="trDay' + (c ? ' has' : '') + (on ? ' sel' : '') + '" data-trday="' + k + '" aria-pressed="' + on + '" aria-label="' + (LV.m + 1) + '月' + d + '日、' + (c ? '記録' + c + '件' : '記録なし') + '">' + d + (c ? '<small>' + c + '件</small>' : '') + '</button>';
+  }
+  g('trCalGrid').innerHTML = h;
+}
+function renderList(){
+  const box = g('trList'), all = recs();
+  const names = [...new Set(all.map(r => r.who))].sort((a, b) => a.localeCompare(b, 'ja'));
+  const keys = {}; all.forEach(r => { keys[lvKey(r)] = keys[lvKey(r)] || recLabel(r); });
+  if(LV.who && !names.includes(LV.who)) LV.who = '';
+  if(LV.key && !keys[LV.key]) LV.key = '';
+  g('trLvWho').innerHTML = '<option value="">全員</option>' + names.map(n => '<option' + (n === LV.who ? ' selected' : '') + '>' + E(n) + '</option>').join('');
+  g('trLvKey').innerHTML = '<option value="">全部の練習</option>' + Object.keys(keys).sort((a, b) => a.localeCompare(b, 'ja', {numeric:true})).map(k => '<option value="' + E(k) + '"' + (k === LV.key ? ' selected' : '') + '>' + E(keys[k]) + '</option>').join('');
+  renderCal();
+  const R = all.filter(r => (!LV.date || r.date === LV.date) && (!LV.who || r.who === LV.who) && (!LV.key || lvKey(r) === LV.key))
+    .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+  const parts = [];
+  if(LV.date) parts.push(md(LV.date));
+  if(LV.who) parts.push(LV.who);
+  if(LV.key) parts.push(keys[LV.key]);
+  g('trLvSt').textContent = (parts.length ? parts.join('、') + 'の記録　' : '全員のすべての記録　') + R.length + '件';
+  if(!R.length){ box.innerHTML = '<p class="muted">' + (all.length ? 'この条件の記録はありません。' : '記録はまだありません。') + '</p>'; return; }
   const kn = {set:'セット', max:'全力', race:'レース', lactate:'乳酸'};
-  box.innerHTML = '<table class="tT"><thead><tr><th>日付</th><th>種類</th><th>内容</th><th>取りこみ元</th><th>操作</th></tr></thead><tbody>' + R.slice().reverse().map(r =>
-    '<tr><td class="n">' + md(r.date) + '</td><td class="n">' + kn[r.kind] + '</td><td>' + E(r.kind === 'set' ? setKey(r) + '　' + r.times.map(fmt).join(' ') : r.kind === 'lactate' ? r.dist + 'm×' + r.steps.length + '　' + r.steps.map(s => fmt(s.t) + '(' + s.la + ')').join(' ') : r.dist + 'm' + (r.event || r.stroke || '') + '　' + fmt(r.t)) + (r.hr ? '　心拍' + r.hr : '') + '</td><td>' + E(r.src || '') + '</td><td><button class="btn small red" data-trdel="' + r.id + '" aria-label="' + md(r.date) + 'の記録を削除">削除</button></td></tr>').join('') + '</tbody></table>';
+  box.innerHTML = '<div class="trBulk"><b>チェックした記録をまとめて直す</b>' + condSel('data-bulk', 0, {type:'', start:'', stroke:'', suit:''}, 'まとめて直す').replace(/<option value="">[^<]*<\/option>/g, '').replace(/(<select[^>]*>)/g, '$1<option value="__">変えない</option><option value="">（空にする）</option>').replace(/ selected/g, '') +
+      '<div class="row" style="margin-top:6px"><button class="btn small" id="trChkAll">表示中を全部チェック</button><button class="btn small ghost" id="trChkNone">チェックを外す</button><button class="btn primary" id="trBulkGo">チェックした記録を直す</button></div></div>' +
+    '<table class="tT"><thead><tr><th>選ぶ</th><th>日付</th><th>名前</th><th>種類</th><th>内容</th><th>取りこみ元</th><th>操作</th></tr></thead><tbody>' + R.map(r =>
+    '<tr><td><input type="checkbox" data-trchk="' + r.id + '" aria-label="' + E(r.who) + 'の' + md(r.date) + 'の記録を選ぶ"></td><td class="n">' + md(r.date) + '</td><td class="n">' + E(r.who) + '</td><td class="n">' + kn[r.kind] + '</td><td>' + E(recText(r)) +
+      (LV.edit === r.id ? condSel('data-tre', r.id, r, E(r.who) + 'の' + md(r.date) + 'の記録') + '<div class="row" style="margin-top:4px"><button class="btn small primary" data-tredone="1">直し終わる</button></div>' : '') +
+      '</td><td>' + E(r.src || '') + '</td><td class="n"><button class="btn small" data-tredit="' + r.id + '" aria-label="' + E(r.who) + 'の' + md(r.date) + 'の記録の種目や水着を直す">直す</button> <button class="btn small red" data-trdel="' + r.id + '" aria-label="' + E(r.who) + 'の' + md(r.date) + 'の記録を削除">削除</button></td></tr>').join('') + '</tbody></table>' + condSummary(R);
 }
 function renderRoster(){
   setTimeout(renderClNote, 0);
@@ -7725,17 +8037,71 @@ function bind(){
     const s = e.target.closest('[data-tri]'); if(s){ PEND[+s.dataset.tri].who = s.value; return; }
     const d = e.target.closest('[data-trd]'); if(d){ PEND[+d.dataset.trd].date = d.value; PEND[+d.dataset.trd].dateGuess = false; return; }
     const ds = e.target.closest('[data-trdist]'); if(ds){ const o = PEND[+ds.dataset.trdist]; o.dist = +ds.value || null; o.needDist = !o.dist; o.text = setText(o); renderAssign(); return; }
-    const cy = e.target.closest('[data-trcyc]'); if(cy){ const o = PEND[+cy.dataset.trcyc]; o.cycle = cy.value.trim(); o.text = setText(o); renderAssign(); }
+    const cy = e.target.closest('[data-trcyc]'); if(cy){ const o = PEND[+cy.dataset.trcyc]; o.cycle = cy.value.trim(); o.text = setText(o); renderAssign(); return; }
+    const cs = e.target.closest('[data-trc]'); if(cs){ setCond(PEND[+cs.dataset.trc], cs.dataset.k, cs.value); }
   });
   g('trSave').addEventListener('click', savePending);
   g('trClear').addEventListener('click', () => { PEND = []; renderAssign(); g('trReadMsg').textContent = ''; g('trSaveMsg').textContent = '読みこんだものを消しました'; });
   g('trWho').addEventListener('change', () => { S.settings.trWho = g('trWho').value; save(); renderTrainBody(); });
+  g('trList').addEventListener('click', e => {
+    const ed = e.target.closest('[data-tredit]'); if(ed){ LV.edit = LV.edit === ed.dataset.tredit ? '' : ed.dataset.tredit; const id = ed.dataset.tredit; renderList(); const f = g('trList').querySelector('[data-tre="' + id + '"]'); if(f) f.focus(); return; }
+    if(e.target.closest('[data-tredone]')){ const id = LV.edit; LV.edit = ''; renderTrainBody(); const b = g('trList').querySelector('[data-tredit="' + id + '"]'); if(b) b.focus(); return; }
+    if(e.target.id === 'trChkAll'){ g('trList').querySelectorAll('[data-trchk]').forEach(c => c.checked = true); return; }
+    if(e.target.id === 'trChkNone'){ g('trList').querySelectorAll('[data-trchk]').forEach(c => c.checked = false); return; }
+    if(e.target.id === 'trBulkGo'){
+      const ids = [...g('trList').querySelectorAll('[data-trchk]:checked')].map(c => c.dataset.trchk);
+      if(!ids.length){ say('直す記録にチェックを入れてください'); return; }
+      const ch = [...g('trList').querySelectorAll('[data-bulk]')].filter(x => x.value !== '__');
+      if(!ch.length){ say('変える項目を選んでください（「変えない」以外）'); return; }
+      recs().filter(r => ids.includes(r.id)).forEach(r => ch.forEach(x => setCond(r, x.dataset.k, x.value)));
+      save(); renderTrainBody(); say(ids.length + '件の記録を直しました', 4000); return;
+    }
+  });
+  g('trList').addEventListener('change', e => { const x = e.target.closest('[data-tre]'); if(!x) return; const r = recs().find(q => q.id === x.dataset.tre); if(!r) return; setCond(r, x.dataset.k, x.value); save(); say('直しました'); });
   g('trList').addEventListener('click', e => { const b = e.target.closest('[data-trdel]'); if(!b) return; if(!confirm('この記録を削除します。よろしいですか。')) return; S.trainRec = recs().filter(r => r.id !== b.dataset.trdel); save(); renderTrainBody(); say('削除しました'); });
-  g('trRosterRead').addEventListener('click', () => {
-    const L = parseRoster(g('trRosterTxt').value);
-    if(!L.length){ g('trRosterMsg').textContent = '名前を読みとれませんでした。「佐藤 健太」のように苗字と名前の間に空白がある形で読みます。'; return; }
-    let add = 0; L.forEach(r => { const ex = roster().find(x => x.sei === r.sei && x.mei === r.mei); if(ex){ if(r.kana) ex.kana = r.kana; if(r.grade) ex.grade = r.grade; } else { roster().push(r); add++; } });
-    save(); renderRoster(); g('trRosterMsg').textContent = L.length + '人を読みとり、' + add + '人を新しく入れました。名前がまちがっていないか一覧で確かめてください。';
+  g('trCalPrev').addEventListener('click', () => { if(--LV.m < 0){ LV.m = 11; LV.y--; } renderCal(); });
+  g('trCalNext').addEventListener('click', () => { if(++LV.m > 11){ LV.m = 0; LV.y++; } renderCal(); });
+  g('trCalGrid').addEventListener('click', e => {
+    const b = e.target.closest('[data-trday]'); if(!b) return;
+    const k = b.dataset.trday; LV.date = LV.date === k ? '' : k; renderList();
+    const nb = g('trCalGrid').querySelector('[data-trday="' + k + '"]'); if(nb) nb.focus();
+  });
+  g('trLvWho').addEventListener('change', () => { LV.who = g('trLvWho').value; renderList(); });
+  g('trLvKey').addEventListener('change', () => { LV.key = g('trLvKey').value; renderList(); });
+  g('trLvAll').addEventListener('click', () => { LV.date = ''; LV.who = ''; LV.key = ''; renderList(); });
+  g('trRosterRead').addEventListener('click', () => showRosterPrev(parseRoster(g('trRosterTxt').value), 'ページの文字'));
+  g('trRosterOpen').addEventListener('click', () => window.open(ROSTER_PAGE, '_blank'));
+  g('trRosterGas').value = S.settings.trRosterGas || '';
+  g('trRosterGasSave').addEventListener('click', () => {
+    const v = g('trRosterGas').value.trim();
+    if(v && !/^https:\/\/script\.google\.com\//.test(v)){ say('https://script.google.com/ で始まるURLを貼ってください', 5000); return; }
+    S.settings.trRosterGas = v; save(); say(v ? '名簿取りこみ用のGASを登録しました' : '登録を消しました');
+  });
+  g('trRosterWeb').addEventListener('click', async () => {
+    const url = S.settings.trRosterGas;
+    if(!url){ g('trRosterMsg').textContent = '名簿取りこみ用のGASのURLがまだ登録されていません。下の「名簿取りこみ用GASのURL」に貼って保存してください。GASが使えないときは、ページの文字を貼りつける方法でも取りこめます。'; return; }
+    g('trRosterMsg').textContent = 'ホームページを読んでいます…';
+    try{
+      const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now());
+      const j = await res.json();
+      if(!j.ok) throw new Error(j.error || 'ページを読めませんでした');
+      showRosterPrev(parseRoster(j.text), 'ホームページ（' + String(j.at || '').slice(0, 10) + '）');
+    }catch(e){ g('trRosterMsg').textContent = 'ホームページを読めませんでした（' + (e && e.message || '') + '）。インターネットのつながりと、GASのURLを確かめてください。'; }
+  });
+  g('trRosterPrev').addEventListener('click', e => {
+    if(e.target.id === 'trRpAll'){ g('trRosterPrev').querySelectorAll('[data-rpc]').forEach(c => c.checked = e.target.checked); return; }
+    if(e.target.id !== 'trRpGo') return;
+    let add = 0, upd = 0;
+    RPREV.forEach((r, i) => {
+      if(!g('trRosterPrev').querySelector('[data-rpc="' + i + '"]').checked) return;
+      const q = k => g('trRosterPrev').querySelector('[data-rp' + k + '="' + i + '"]').value.trim();
+      const o = {sei:q('s'), mei:q('m'), kana:q('k'), grade:+q('g') || null};
+      if(!o.sei) return;
+      const ex = roster().find(x => x.sei === o.sei && x.mei === o.mei);
+      if(ex){ if(o.kana) ex.kana = o.kana; if(o.grade) ex.grade = o.grade; upd++; } else { roster().push(o); add++; }
+    });
+    RPREV = []; g('trRosterPrev').innerHTML = ''; save(); renderRoster();
+    g('trRosterMsg').textContent = add + '人を新しく名簿に入れ、' + upd + '人のふりがなや学年を更新しました。';
   });
   g('trRosterAdd').addEventListener('click', () => {
     let sei = g('trRsSei').value.trim(), mei = g('trRsMei').value.trim();

@@ -5301,7 +5301,7 @@ function yearBind(){
 /* =====================================================================
    テストとLTの計算（ここだけで計算する。どの画面もPDFも、この関数の答えを使う）
    ===================================================================== */
-const APP_VERSION = '2026.11.10 第1版';
+const APP_VERSION = '2026.11.10 第2版';
 const LT_METHOD = {lt1:'基準＋0.5 第1版', lt2:'2直線の交点 第1版'};
 const LT1_COLOR = '#1e88e5', LT2_COLOR = '#c98a00';
 
@@ -6411,6 +6411,18 @@ const clkSec = t => { const m = /(\d{1,2}):(\d{2})/.exec(t || ''); return m ? +m
 const isAM = t => { const s = clkSec(t); return s >= 0 && s < 12 * 3600; };
 const holName = d => (typeof holidayName === 'function' ? holidayName(d) : '');
 const PAT_OPTS = ['水中', 'WT', '水中＋WT', 'OFF'];
+/* 練習の目的：ヤン・オルブレヒト博士の分け方（能力＝キャパシティと、それを使う力＝パワー、有酸素と無酸素） */
+const PURPOSES = [
+  {k:'rec',  name:'回復',         color:'#8fa9bf', hard:0, desc:'とても低い強度で泳ぎ、疲れを抜く練習。'},
+  {k:'tech', name:'技術',         color:'#6b7a8a', hard:0, desc:'泳ぎの技術、スタート、ターン。'},
+  {k:'acap', name:'有酸素能力',   color:'#1f6fb2', hard:1, cap:1, aer:1, desc:'最大酸素摂取量（VO2max）を高める。ゆっくりの泳ぎを中心にして、短い速い区間を混ぜる。40分なら少なくとも5分の3はゆっくりにする。'},
+  {k:'apow', name:'有酸素パワー', color:'#2e9e6a', hard:1, pow:1, aer:1, desc:'有酸素能力のうち、レースで使える割合を高める。休息の短い、密な反復。'},
+  {k:'ncap', name:'無酸素能力',   color:'#e46f1a', hard:1, cap:1, ana:1, desc:'最大の解糖の速さ（VLaMax）を高める。速い反復に、長めの休息。'},
+  {k:'npow', name:'無酸素パワー', color:'#c8321f', hard:1, pow:1, ana:1, desc:'解糖の力を、レースの強い努力の中で使えるようにする。休息の短い、密な反復。'},
+  {k:'spr',  name:'スプリント',   color:'#7a1f7a', hard:1, ana:1, desc:'最大のスピード。短い全力。'},
+  {k:'race', name:'レース・試合', color:'#b81c22', hard:1, desc:'試合、またはレースの形の練習。'}
+];
+const PMAP = Object.fromEntries(PURPOSES.map(x => [x.k, x]));
 
 function wsPlan(){ if(!S.wsPlan || typeof S.wsPlan !== 'object') S.wsPlan = {}; return S.wsPlan; }
 function sched(){ return typeof weekSched === 'function' ? weekSched() : (S.settings.weekSched || [[],[],[],[],[],[],[]]); }
@@ -6447,6 +6459,8 @@ function slotInfo(date, ap){
 function slotShort(date, ap){
   const x = slotInfo(date, ap);
   if(x.p && x.p.off) return ap + ' OFF';
+  const pu = x.o && x.o.purpose && PMAP[x.o.purpose] ? '　目的 ' + PMAP[x.o.purpose].name : '';
+  if(pu && !(x.p && x.p.text)){ const t0 = x.times.length ? clk(x.times[0].start) : '時刻未設定'; const pool0 = x.p ? x.p.pool : poolShort(x.times[0] && x.times[0].pool); return ap + ' ' + t0 + (pool0 ? '(' + pool0 + ')' : '') + (x.p ? '　' + x.p.durS : '') + pu; }
   if(x.p && x.p.text) return ap + ' ' + x.p.text;
   if(!x.times.length && !x.p) return '';
   const t = x.times.length ? clk(x.times[0].start) : '時刻未設定';
@@ -6529,6 +6543,10 @@ table.wsT tbody th{width:64px;background:#f4f7fb;font-size:15px}
 #wsSlotOv .wsPan{border-top:1px solid #c9d2dd;padding-top:6px;margin-top:6px}
 #wsSlotOv .wsPan pre{white-space:pre-wrap;font-family:inherit;font-size:16px;margin:4px 0;line-height:1.6}
 #wsSlotOv fieldset{border:2px solid #c9d2dd;border-radius:10px;padding:8px 12px}
+.wsPur{display:inline-block;color:#fff;font-size:13px;font-weight:700;border-radius:6px;padding:1px 8px;margin:0 0 4px}
+.wsChk{background:#fff;border:2px solid #16202e;border-radius:10px;padding:10px 14px;margin-top:10px}
+.wsChk .w{background:#fff3cd;border-left:5px solid #e0a800;padding:6px 10px;border-radius:6px;margin:6px 0}
+.wsChk .src{font-size:13px;color:#4f5d6e}
 .wsWT{display:block;border:2px solid #7a1f7a;border-radius:8px;background:#f7ecf7;padding:6px 8px;font-weight:700;color:#5b145b;margin-bottom:4px}
 .wsMi{font-size:13px;margin-top:3px;padding:2px 6px;border-radius:4px;background:#eef5fd;color:#0b4a9a;font-weight:700}
 .wsMi.key{background:#fde7e7;color:#a01818}.wsMi.rec{background:#eef1f5;color:#4a5560}
@@ -6569,6 +6587,7 @@ function install(){
     '<div class="wsBar"><button class="btn" id="wsPrev">前の週</button><span class="wsTtl" id="wsTtl" aria-live="polite"></span><button class="btn" id="wsNext">次の週</button><button class="btn ghost" id="wsToday">今週</button>' +
     '<span style="flex:1"></span><button class="btn ghost" id="wsTimes">曜日ごとの時刻を設定</button><button class="btn ghost" id="wsImpBtn">スプレッドシートから取りこむ</button><button class="btn ghost" id="wsPrint">週間表を印刷</button><button class="btn red" id="wsMenuPrint">この週のメニューをPDF・印刷</button></div>' +
     '<div class="wsWrap"><table class="wsT" id="wsTbl"></table></div>' +
+    '<div id="wsChk"></div>' +
     '<div id="wsPat"></div>' +
     '<p class="wsNote">枠を押すと、その日のその時刻のメニュー作成の画面が開きます。緑の枠は、もうメニューが書いてある練習です。開始時刻は「曜日ごとの時刻」から、水路と練習の長さはスプレッドシートから取りこんだ予定から出しています。ピリオダイゼーションの計画がある週は、計画の1週間の配分（重点・回復・有酸素と距離）も出ます。</p>';
   const anchor = g('vMenu');
@@ -6591,6 +6610,7 @@ function install(){
   document.body.appendChild(so);
   so.addEventListener('mousedown', e => { if(e.target === so) closeSlot(); });
   so.addEventListener('click', slotClick);
+  so.addEventListener('change', e => { if(e.target.id === 'wsPPur'){ const x = PMAP[e.target.value]; g('wsPPurDesc').textContent = x ? x.desc : ''; } });
   ov.addEventListener('mousedown', e => { if(e.target === ov) closeImp(); });
   ov.querySelectorAll('[data-wsclose]').forEach(b => b.addEventListener('click', closeImp));
   // 吹き出し
@@ -6649,6 +6669,7 @@ function renderWS(){
     t += '<tr><th scope="row">' + (ap === 'AM' ? '午前' : '午後') + '</th>' + days.map((d, i) => '<td>' + cellHtml(slotInfo(d, ap), mm[d + ap], pat ? pat[i][ap === 'AM' ? 0 : 1] : null) + '</td>').join('') + '</tr>';
   });
   g('wsTbl').innerHTML = t + '</tbody>';
+  renderPurposeCheck(days, tPlan);
   renderPat(ath);
 }
 function cellHtml(x, mi, pat){
@@ -6673,6 +6694,7 @@ function cellHtml(x, mi, pat){
     if(pat.includes('WT')) h += '<span class="wsWT">WT ウエイト</span>';
   }
   const o = x.o || {};
+  if(o.purpose && PMAP[o.purpose]) h = '<span class="wsPur" style="background:' + PMAP[o.purpose].color + '">目的：' + E(PMAP[o.purpose].name) + '</span>' + h;
   if(o.note) h += '<div class="wsEv">コーチ：' + E(o.note) + '</div>';
   if(o.ev) h += '<div class="wsEv">' + E(o.ev) + '</div>';
   if(o.visit) h += '<div class="wsEv">来校：' + E(o.visit) + '</div>';
@@ -6720,6 +6742,44 @@ function goSlot(key, session){
   }
   say(mdJ(date) + ' ' + (ap === 'AM' ? '午前' : '午後') + 'のメニューを開きました' + (s ? '' : '。曜日ごとの時刻が入っていないので、開始時刻を確かめてください'), 4500);
 }
+/* ---------- 練習の目的の週のバランスと、オルブレヒト博士の考え方からの注意 ---------- */
+function renderPurposeCheck(days, plan){
+  const box = g('wsChk'); if(!box) return;
+  const list = [];
+  days.forEach(d => ['AM', 'PM'].forEach(ap => { const o = (wsPlan()[d] || {})[ap]; if(o && o.purpose && PMAP[o.purpose]) list.push({d, ap, p:PMAP[o.purpose]}); }));
+  if(!list.length){ box.innerHTML = '<div class="wsChk"><b>練習の目的</b><p class="wsNote">枠を押して「練習の目的」を選ぶと、ここに週のバランスと、オルブレヒト博士の考え方から見た注意が出ます。</p>' + purposeHelp() + '</div>'; return; }
+  const cnt = {}; list.forEach(x => cnt[x.p.k] = (cnt[x.p.k] || 0) + 1);
+  let h = '<div class="wsChk"><b>この週の練習の目的</b>　' + PURPOSES.filter(x => cnt[x.k]).map(x => '<span class="wsPur" style="background:' + x.color + '">' + x.name + ' ' + cnt[x.k] + '回</span>').join(' ');
+  const warn = [];
+  // 無酸素の強い練習の間隔
+  const ana = list.filter(x => x.p.ana && x.p.hard).sort((a, b) => (a.d + a.ap) < (b.d + b.ap) ? -1 : 1);
+  for(let i = 1; i < ana.length; i++){
+    const gap = (pYmd(ana[i].d) - pYmd(ana[i - 1].d)) / 864e5;
+    if(gap < 2) warn.push({t:mdJ(ana[i - 1].d) + 'の' + ana[i - 1].p.name + 'と、' + mdJ(ana[i].d) + 'の' + ana[i].p.name + 'の間が' + (gap ? '1日' : '同じ日') + 'しかありません。無酸素の強い練習のあとの回復には、150mほどのセットで2日、600mほどのセットで3〜4日かかるとされています。', s:'オルブレヒト『The Science of Winning』第1章'});
+  }
+  // キャパシティとパワーを同じ週に
+  const nc = list.filter(x => x.p.cap).length, np = list.filter(x => x.p.pow).length;
+  if(nc >= 2 && np >= 2) warn.push({t:'能力（キャパシティ）を伸ばす練習が' + nc + '回、それを使う力（パワー）の練習が' + np + '回あります。オルブレヒト博士は、両方を同時に伸ばすのは難しいので、どの時期にどちらを伸ばすかを前もって計画するとしています。キャパシティは練習のため、パワーはレースのための力とされています。', s:'Scientific Triathlon ポッドキャスト 第198回（2019年）'});
+  // 回復がない
+  const hard = list.filter(x => x.p.hard).length;
+  if(hard >= 4 && !cnt.rec) warn.push({t:'強い練習が' + hard + '回あり、回復の練習がありません。オルブレヒト博士は、負荷の時期と回復の時期をくり返すこと（波の原則）が伸び続けるために必要としています。', s:'オルブレヒト『The Science of Winning』第1章'});
+  // ピリオダイゼーションとの照らし合わせ（当てはめ）
+  if(plan && typeof planWeekIndex === 'function'){
+    const i = planWeekIndex(plan, days[0]); const w = i >= 0 ? plan.weeks[i] : null;
+    if(w){
+      const build = ['gen', 'spe', 'acc', 'wv', 'pg'].includes(w.phase), comp = ['pre', 'tap', 'race', 'rea', 'rs'].includes(w.phase);
+      if(build && np > nc && np >= 2) warn.push({t:'ピリオダイゼーションでは今は準備の時期（' + (PH[w.phase] ? PH[w.phase].name : w.phase) + '）ですが、パワーの練習がキャパシティの練習より多くなっています。キャパシティを伸ばす時期は長めにとる、パワーの練習が多すぎるとキャパシティを損なう、という考え方に照らすと見直す余地があります。', s:'Scientific Triathlon ポッドキャスト 第198回（2019年）。時期との照らし合わせはアプリでの当てはめ'});
+      if(comp && nc > np && nc >= 2) warn.push({t:'ピリオダイゼーションでは今は試合に近い時期（' + (PH[w.phase] ? PH[w.phase].name : w.phase) + '）ですが、キャパシティの練習がパワーの練習より多くなっています。パワーはレースのための力とされるので、試合前に使う力の練習が足りているか確かめてください。', s:'Scientific Triathlon ポッドキャスト 第198回（2019年）。時期との照らし合わせはアプリでの当てはめ'});
+    }
+  }
+  h += warn.length ? warn.map(w => '<div class="w">' + E(w.t) + '<div class="src">出どころ：' + E(w.s) + '</div></div>').join('') : '<p class="wsNote">オルブレヒト博士の考え方から見て、目立つ注意はありません。</p>';
+  box.innerHTML = h + purposeHelp() + '</div>';
+}
+function purposeHelp(){
+  return '<details style="margin-top:6px"><summary>目的の分け方と根拠</summary><div class="wsNote" style="font-size:14px;line-height:1.7">' +
+    PURPOSES.map(x => '<div><span class="wsPur" style="background:' + x.color + '">' + x.name + '</span>　' + E(x.desc) + '</div>').join('') +
+    '<p>能力（キャパシティ）は筋肉の中の「エンジンの大きさ」、パワーはそのエンジンをどれだけ使えるかで、キャパシティは練習のため、パワーはレースのための力とされます（Scientific Triathlon ポッドキャスト第198回、2019年）。有酸素能力はVO2maxを、無酸素能力はVLaMaxを高め、有酸素パワーと無酸素パワーはそれをレースで使える割合を高める、という分け方は Agile Periodization の解説記事によります。無酸素の練習のあとの回復日数は『The Science of Winning』第1章（lactate.com で公開）によります。技術とスプリントを別の分類にしたのは、オルブレヒト博士のモデルを紹介した講習資料（Southeast Swimming）に技術とスプリントが別に並んでいるためで、博士の本で確かめたものではありません。</p></div></details>';
+}
 /* ---------- 枠を押したとき：その日の予定とメニューを見る・予定を書く ---------- */
 let slotKey = '';
 function slotMenus(date, ap){
@@ -6743,6 +6803,7 @@ function openSlot(key){
   const durV = o.dur || (p.dur ? p.dur.replace(/ ×\d+$/, '') : '');
   const offNow = !!(p && p.off);
   let h = '<fieldset><legend style="font-weight:700">練習予定（ここで直接書きこめます）</legend>' +
+    '<div class="row" style="margin-bottom:6px"><label class="fld">練習の目的（オルブレヒト博士の分け方）<select id="wsPPur" style="font-size:16px;height:40px"><option value="">決めていない</option>' + PURPOSES.map(x => '<option value="' + x.k + '"' + (o.purpose === x.k ? ' selected' : '') + '>' + x.name + '</option>').join('') + '</select></label><span class="wsNote" id="wsPPurDesc" style="flex:1">' + E(o.purpose && PMAP[o.purpose] ? PMAP[o.purpose].desc : '') + '</span></div>' +
     '<div class="row"><label><input type="radio" name="wsPOn" value="on"' + (offNow ? '' : ' checked') + '> 練習あり</label><label><input type="radio" name="wsPOn" value="off"' + (offNow ? ' checked' : '') + '> OFF</label></div>' +
     '<div class="row" style="margin-top:6px"><label class="fld">開始時刻<input type="text" id="wsPStart" value="' + E(o.start || '') + '" placeholder="' + E(wdS ? clk(wdS.start) : '例 6:20') + '" style="width:90px" inputmode="numeric"></label>' +
     '<label class="fld">水路<select id="wsPPool"><option value="">' + (wdS ? (poolShort(wdS.pool) || '曜日の設定') + '（曜日の設定）' : '未定') + '</option>' + ['LC', 'SC', 'LCかSC'].map(v => '<option' + ((o.pool || (p.pool && o.manual ? p.pool : '')) === v ? ' selected' : '') + '>' + v + '</option>').join('') + '</select></label>' +
@@ -6780,7 +6841,9 @@ function saveSlot(){
   if(off) plan = 'OFF';
   else if(dur) plan = 'Swim' + dur + (poolEff ? '(' + poolEff.replace('LCかSC', 'LCorSC') + ')' : '(LC)') + (rep > 1 ? '*' + rep : '') + (extra ? '+' + extra : '');
   else plan = extra;
-  day[ap] = {plan, note:g('wsPNote').value.trim(), ev:g('wsPEv').value.trim(), visit:old.visit || '', start:off ? '' : start, pool:off ? '' : pool, dur, rep, extra, manual:true};
+  const purpose = off ? '' : g('wsPPur').value;
+  const keepPlan = !g('wsPDur').value.trim() && !g('wsPExtra').value.trim() && !off && old.plan && !old.manual;
+  day[ap] = {plan:keepPlan ? old.plan : plan, note:g('wsPNote').value.trim(), ev:g('wsPEv').value.trim(), visit:old.visit || '', start:off ? '' : start, pool:off ? '' : pool, dur, rep, extra, purpose, manual:!keepPlan};
   save(); renderWS(); openSlot(slotKey); say(mdJ(date) + (ap === 'AM' ? '午前' : '午後') + 'の予定を保存しました');
 }
 function clearSlot(){
@@ -8135,6 +8198,67 @@ function hook(){
 if(document.querySelector('.tabs')) install();
 document.addEventListener('DOMContentLoaded', () => { install(); setTimeout(hook, 0); });
 window.trainParse = {parseLine, parseText, parseRoster, matchName, judge, csAt, tsec};
+})();
+
+/* =====================================================================
+   保存の予備：ブラウザの通常の保存（localStorage）がいっぱい・使えないときでも
+   データを失わないように、別の保存場所（IndexedDB）にも毎回写しておく。
+   起動したとき、予備の方が新しければ、予備から読みもどす。
+   ===================================================================== */
+(function(){
+const DBN = 'cust_menu_studio_backup', ST = 'store', KEY = 'S';
+function db(){ return new Promise((ok, ng) => { try{ const r = indexedDB.open(DBN, 1); r.onupgradeneeded = () => r.result.createObjectStore(ST); r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error); }catch(e){ ng(e); } }); }
+async function put(txt){ const d = await db(); return new Promise((ok, ng) => { const t = d.transaction(ST, 'readwrite'); t.objectStore(ST).put(txt, KEY); t.oncomplete = () => ok(true); t.onerror = () => ng(t.error); }); }
+async function get(){ const d = await db(); return new Promise((ok, ng) => { const t = d.transaction(ST, 'readonly'); const r = t.objectStore(ST).get(KEY); r.onsuccess = () => ok(r.result || null); r.onerror = () => ng(r.error); }); }
+let lastErr = '', idbOk = null, pend = null, ready = false;
+function mirror(){
+  clearTimeout(pend);
+  pend = setTimeout(async () => {
+    try{ await put(JSON.stringify(S)); idbOk = true; }catch(e){ idbOk = false; }
+    showState();
+  }, 300);
+}
+function showState(){
+  const el = document.getElementById('saveState'); if(!el) return;
+  if(typeof storageOk !== 'undefined' && !storageOk){
+    if(idbOk){ el.textContent = '予備の保存場所に保存しました' + (lastErr === 'quota' ? '（通常の保存場所がいっぱいです）' : ''); el.classList.remove('warn'); }
+    else if(idbOk === false){ el.textContent = '自動保存できません。設定画面からバックアップを保存してください'; el.classList.add('warn'); }
+  }
+}
+if(typeof saveNow === 'function' && !saveNow.__st){
+  const orig = saveNow;
+  const w = function(){
+    if(!ready) return orig.apply(this, arguments);
+    try{ S._savedAt = Date.now(); }catch(_){}
+    let r;
+    try{ r = orig.apply(this, arguments); }catch(e){}
+    if(typeof storageOk !== 'undefined' && !storageOk){
+      try{ localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); lastErr = 'quota'; }catch(e){ lastErr = /quota/i.test(e && e.name || '') ? 'quota' : 'blocked'; }
+    }
+    mirror(); showState();
+    return r;
+  };
+  w.__st = true;
+  try{ saveNow = w; }catch(_){}
+}
+/* 起動時：予備の方が新しければ読みもどす */
+async function restore(){
+  let txt = null;
+  try{ txt = await get(); idbOk = true; }catch(e){ idbOk = false; }
+  ready = true;
+  if(!txt){ if(typeof saveNow === 'function') try{ saveNow(); }catch(_){} return; }
+  let o; try{ o = JSON.parse(txt); }catch(e){ return; }
+  const cur = S._savedAt || 0, bk = o._savedAt || 0;
+  const curEmpty = !S.menus || !Object.keys(S.menus).length;
+  if(bk > cur || (curEmpty && o.menus && Object.keys(o.menus).length)){
+    Object.keys(S).forEach(k => delete S[k]); Object.assign(S, o);
+    try{ const act = document.querySelector('.view.active'); if(typeof openDate === 'function') openDate(todayYmd()); if(act && typeof showView === 'function') showView(act.id); }catch(e){}
+    if(typeof toast === 'function') toast('予備の保存場所から、いちばん新しいデータを読みもどしました', 5000);
+  }
+  showState();
+}
+document.addEventListener('DOMContentLoaded', () => setTimeout(restore, 50));
+window.storeDiag = () => { let n = 0; try{ n = (localStorage.getItem(STORE_KEY) || '').length; }catch(e){} return {localStorageChars:n, dataChars:JSON.stringify(S).length, storageOk, idbOk, lastErr}; };
 })();
 
 /* =====================================================================

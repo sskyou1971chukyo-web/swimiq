@@ -423,6 +423,8 @@ table.zebra tr.isBig td{background:#fff1f1!important}
 .dleft.soon{background:#b81c22;color:#fff}
 .printTog{border-color:#8a97a6;color:#4f5d6e}
 .printTog.on{background:#1d7a46;border-color:#1d7a46;color:#fff}
+.memoTog{border-color:#8a97a6;color:#4f5d6e}
+.memoTog.on{background:#a86e12;border-color:#a86e12;color:#fff}
 .printCount{font-size:14px;font-weight:700;color:var(--navy);background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:3px 10px}
 .printCount.warn{background:#b81c22;color:#fff;border-color:#b81c22}
 .roleTag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:13px;font-weight:700;margin:1px 0}
@@ -853,6 +855,609 @@ body.desk .dLong{display:none}
     <div id="tTabs" class="tTabs" role="group" aria-label="テストの種類"></div>
   </div>
   <div id="tBody"></div>
+  <!-- ============ 解説（Olbrecht） ============ -->
+  <div class="card" id="kbCard" style="margin-top:12px">
+    <h2>📚 解説 ― 乳酸テストとV4（Olbrecht『The Science of Winning』）</h2>
+    <label class="fld" style="max-width:520px">知りたいテーマを選んでください
+      <select id="kbSelect">
+        <option value="kb-v4">V4とは？</option>
+        <option value="kb-test">テストの方法（1スピード／2スピード）</option>
+        <option value="kb-lt">V4とLT1・LT2の違い</option>
+        <option value="kb-dist">乳酸テストはどの距離の選手に適するか</option>
+        <option value="kb-curve">カーブの理解（カーブが動いても速くなるとは限らない）</option>
+      </select>
+    </label>
+
+    <style>
+      #kbCard .kbPanel{display:none;margin-top:10px}
+      #kbCard .kbPanel.kbOn{display:block}
+      #kbCard .kbFig{background:#f7f9fb;border:1px solid #dde5ec;border-radius:10px;padding:10px;margin:8px 0}
+      #kbCard .kbFig figcaption{font-size:12px;color:#5a6b7c;margin-top:4px}
+      #kbCard .kbFig svg{width:100%;max-width:520px;height:auto;display:block;margin:0 auto}
+      #kbCard .kbFig.kbWide svg{max-width:660px}
+      #kbCard table.kbT{border-collapse:collapse;width:100%;margin:8px 0;font-size:13.5px}
+      #kbCard table.kbT th,#kbCard table.kbT td{border:1px solid #d5dde5;padding:6px 8px;text-align:left;vertical-align:top}
+      #kbCard table.kbT th{background:#2b7bbb;color:#fff}
+      #kbCard .kbFlow{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;margin:8px 0}
+      #kbCard .kbStep{border-radius:8px;color:#fff;padding:7px 9px;font-size:12.5px;font-weight:700;text-align:center;line-height:1.45}
+      #kbCard .kbArrow{align-self:center;color:#5a6b7c;font-weight:700}
+      #kbCard .kbChip{display:inline-block;border-radius:999px;color:#fff;font-size:12px;font-weight:700;padding:2px 10px;white-space:nowrap}
+      #kbCard .kbBar{display:flex;height:16px;border-radius:5px;overflow:hidden;min-width:170px}
+      #kbCard .kbBar span{display:block;height:100%}
+      #kbCard .kbCards{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+      #kbCard .kbMini{flex:1;min-width:200px;background:#f7f9fb;border:1px solid #dde5ec;border-radius:10px;padding:9px 11px;font-size:13.5px}
+      #kbCard .kbMini b{font-size:16px}
+      #kbCard ul{margin:6px 0 6px 18px;padding:0}
+      #kbCard li{margin:3px 0}
+    </style>
+
+    <!-- V4とは -->
+    <div class="kbPanel kbOn" id="kb-v4">
+      <p><b>V4 ＝ 血中乳酸がちょうど 4 mmol/l になるときの泳速度</b>です。V は Velocity（速度）、4 は乳酸濃度 4 mmol/l を表します。</p>
+      <figure class="kbFig">
+        <svg viewBox="0 0 320 200" width="100%" role="img" aria-label="乳酸カーブとV4">
+          <line x1="40" y1="165" x2="308" y2="165" stroke="#8a94a6"/>
+          <line x1="40" y1="165" x2="40" y2="12" stroke="#8a94a6"/>
+          <path d="M45,152 C130,150 190,142 232,120 C262,104 288,58 302,22" fill="none" stroke="#2b7bbb" stroke-width="3"/>
+          <line x1="40" y1="117" x2="302" y2="117" stroke="#d9534f" stroke-dasharray="5 4"/>
+          <circle cx="238" cy="117" r="5.5" fill="#d9534f"/>
+          <line x1="238" y1="117" x2="238" y2="165" stroke="#d9534f" stroke-dasharray="4 4"/>
+          <text x="46" y="110" font-size="11" fill="#d9534f" font-weight="bold">4 mmol/l</text>
+          <text x="238" y="182" font-size="12" fill="#d9534f" text-anchor="middle" font-weight="bold">V4（例：1.54 m/s）</text>
+          <text x="176" y="196" font-size="11" fill="#5a6b7c" text-anchor="middle">泳速度</text>
+          <text x="14" y="90" font-size="11" fill="#5a6b7c" transform="rotate(-90 14 90)" text-anchor="middle">血中乳酸 (mmol/l)</text>
+        </svg>
+        <figcaption>乳酸カーブと 4 mmol/l の交点の速さが V4（模式図）。</figcaption>
+      </figure>
+      <ul>
+        <li><b>有酸素持久力の代表指標</b>：V4が速いほど、乳酸をためずに速く泳げる＝有酸素の土台が強い。テストのたびに測って伸びを追います</li>
+        <li><b>測る距離で名前が変わる</b>：400m自由形で測れば V4_400（本書では男子の指標）、200mなら V4_200（女子の指標）</li>
+        <li><b>使いみち</b>：有酸素練習の強度の基準、大会予測（例：400mで4分11秒を狙うなら、V4は4分35秒ペース＝1.457 m/s必要）</li>
+        <li><b>注意</b>：V4は「無酸素性作業閾値（AT）」と同一ではありません。4 mmol/l は代謝の切り替わる境界という主張ではなく、比べるための共通のものさしです</li>
+      </ul>
+    </div>
+
+    <!-- テストの方法 -->
+    <div class="kbPanel" id="kb-test">
+      <p><b>2スピードテスト（Mader 1980）</b>：同じ距離・同じ種目を、速さを変えて2回泳ぎます。同日・1セッションで行うのが本書のプロトコルです。</p>
+      <div class="kbFlow">
+        <span class="kbStep" style="background:#e8a33d">ウォームアップ</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#8a94a6">完全休息 5分</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#2b7bbb">1本目 サブマックス</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#3d9b5f">採血 1・3・(5)分</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#8a94a6">休息 15分以上（アクティブ）</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#8a94a6">完全休息 5分</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#d9534f">2本目 オールアウト</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#3d9b5f">採血 3・5・7・10・(12)分</span>
+      </div>
+      <ul>
+        <li>2点（サブマックスと全力）から乳酸カーブの傾きを使い、<b>VO2max（有酸素）とVLamax（無酸素）を推定</b>します。V4もこの過程で出ます</li>
+        <li>採血は、最大努力後ほどピークが遅れるため、<b>下がり始めるまで追う</b>のが作法です。採血部位と分析器は毎回同じにします</li>
+        <li>頻度：若い選手・低レベルでは年1回の簡易テストで十分、トップ選手でも最大で6週に1回まで</li>
+      </ul>
+      <p><b>1スピードテスト（簡易版）</b>：2スピードテストの変形です。カーブの傾きが選手・種目ごとにほぼ一定なため、測る点は1つで済みます。自由形のサブマックスと専門種目のオールアウトを組み合わせます。</p>
+      <table class="kbT">
+        <tr><th>選手</th><th>サブマックス（有酸素側）</th><th>オールアウト（無酸素側）</th></tr>
+        <tr><td>自由形・バタフライ</td><td>400m 自由形（ベスト＋約20秒）</td><td>100m 専門種目</td></tr>
+        <tr><td>背泳ぎ・平泳ぎ</td><td>400m 自由形（ベスト＋約20秒）</td><td>200m 専門種目</td></tr>
+        <tr><td>個人メドレー</td><td>400m 自由形</td><td>200m メドレー</td></tr>
+        <tr><td>上位レベル向け変形</td><td>間に専門種目の200mサブマックスを追加</td><td>オールアウトは100m</td></tr>
+      </table>
+      <p><b>1スピードテストの手順</b>（同日・この順番で行います）</p>
+      <div class="kbFlow">
+        <span class="kbStep" style="background:#e8a33d">ウォームアップ</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#8a94a6">完全休息 5分</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#2b7bbb">①サブマックス 400m自由形</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#3d9b5f">採血 1・3分</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#8a94a6">休息 15分以上（アクティブ）</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#d9534f">②オールアウト 専門種目</span><span class="kbArrow">→</span>
+        <span class="kbStep" style="background:#3d9b5f">採血 3・5・7・10分</span>
+      </div>
+      <ol>
+        <li><b>① サブマックス（有酸素側）</b>：400m自由形を一定ペースで泳ぎます。目安はベストタイム＋約20秒。速すぎても遅すぎても使えず、<b>泳ぎ終わった後の乳酸が 2.5 mmol/l を超えていること</b>が条件です。タイムを記録し、1分後と3分後に採血します</li>
+        <li><b>休む</b>：15分以上あけます（軽く泳ぐアクティブレスト）。<b>順番が大切</b>で、先にオールアウトをすると乳酸が残って①の値が壊れるため、必ずサブマックスが先です</li>
+        <li><b>② オールアウト（無酸素側）</b>：専門種目を全力で泳ぎます（自由形・バタフライは100m、背泳ぎ・平泳ぎは200m、個人メドレーは200m）。タイムを記録し、3・5・7・10分と、値が下がり始めるまで採血して<b>ピーク値</b>を取ります</li>
+        <li><b>読み取り</b>：①の1点（速さと乳酸）から、その種目の標準的なカーブの傾きで線を引き、V4（乳酸4.0のときの速さ）を読みます。これが有酸素側の評価です。②のタイムと最高乳酸が無酸素側の評価になります</li>
+      </ol>
+      <ul>
+        <li><b>なぜ1点で足りるのか</b>：同じ種目・距離では、乳酸カーブの傾きは選手が違ってもほぼ一定だと分かっているためです。1点が決まればカーブ全体が引けます</li>
+        <li><b>弱点</b>：1点勝負なので、ペース配分の失敗や泳ぎの乱れがそのまま誤差になります。節目の本格評価は2スピードテスト、普段の定期チェックに1スピードテスト、という使い分けが向いています</li>
+      </ul>
+      <ul>
+        <li>解釈は、測った乳酸値の <b>±4 mmol/l の範囲</b> まで。離れた値の推定は誤差が大きくなります</li>
+        <li>有酸素持久の指標は、男子は V4_400、女子は V4_200 を使います</li>
+      </ul>
+    </div>
+
+    <!-- V4とLTの違い -->
+    <div class="kbPanel" id="kb-lt">
+      <p>LT1・LT2とV4は、<b>同じ乳酸カーブに対する違う読み方</b>です。LTは「カーブの折れ点」、V4は「固定したものさし」で読みます。</p>
+      <figure class="kbFig">
+        <svg viewBox="0 0 320 200" width="100%" role="img" aria-label="LT1 LT2 V4">
+          <line x1="40" y1="165" x2="308" y2="165" stroke="#8a94a6"/>
+          <line x1="40" y1="165" x2="40" y2="12" stroke="#8a94a6"/>
+          <path d="M45,154 C120,152 170,146 205,132 C245,116 285,60 302,22" fill="none" stroke="#2b7bbb" stroke-width="3"/>
+          <line x1="40" y1="117" x2="302" y2="117" stroke="#d9534f" stroke-dasharray="5 4"/>
+          <circle cx="150" cy="147" r="5.5" fill="#3d9b5f"/>
+          <circle cx="208" cy="130" r="5.5" fill="#e88b2d"/>
+          <circle cx="230" cy="117" r="5.5" fill="#d9534f"/>
+          <text x="150" y="132" font-size="11.5" fill="#3d9b5f" text-anchor="middle" font-weight="bold">LT1</text>
+          <text x="199" y="112" font-size="11.5" fill="#e88b2d" text-anchor="end" font-weight="bold">LT2</text>
+          <text x="240" y="100" font-size="11.5" fill="#d9534f" font-weight="bold">V4</text>
+          <text x="46" y="110" font-size="11" fill="#d9534f">4.0 mmol/l（固定）</text>
+          <text x="176" y="196" font-size="11" fill="#5a6b7c" text-anchor="middle">泳速度</text>
+          <text x="14" y="90" font-size="11" fill="#5a6b7c" transform="rotate(-90 14 90)" text-anchor="middle">血中乳酸 (mmol/l)</text>
+        </svg>
+        <figcaption>LT1＝第1の折れ点、LT2＝第2の折れ点、V4＝4 mmol/l との交点（模式図）。</figcaption>
+      </figure>
+      <table class="kbT">
+        <tr><th></th><th>LT1</th><th>LT2</th><th>V4</th></tr>
+        <tr><td><b>定義</b></td><td>乳酸が上がり始める第1の折れ点</td><td>乳酸が急にたまり始める第2の折れ点</td><td>乳酸が 4.0 mmol/l になる速さ</td></tr>
+        <tr><td><b>決まり方</b></td><td>その選手のカーブの形</td><td>その選手のカーブの形</td><td>全員共通の濃度（4.0）で固定</td></tr>
+        <tr><td><b>その点の乳酸値</b></td><td>人によって違う（低め）</td><td>人によって違う（2.5〜6超）</td><td>全員 4.0 mmol/l</td></tr>
+        <tr><td><b>得意な使い方</b></td><td>軽めの練習の上限の目安</td><td>きつい練習の境界の目安</td><td>選手間・時期の比較、有酸素持久の追跡、大会予測</td></tr>
+      </table>
+      <ul>
+        <li>このアプリのステップテストが出す <b>「4mmol速度」が V4 に相当</b> します</li>
+        <li>多くの選手では LT2 と V4 が近い場所に来るため混同されやすいですが、意味は別物です（LT2＝その人の代謝の切り替わり、V4＝共通ものさしでの位置）</li>
+      </ul>
+    </div>
+
+    <!-- 距離適性 -->
+    <div class="kbPanel" id="kb-dist">
+      <p>判定の物差しは、①種目の決め手が両キャパシティか、②テスト距離で信頼できる値が取れるか、③結果を強度設定・大会予測に使えるか、の3つです。バーの色はエネルギー供給の内訳（金＝PCr系、赤＝乳酸性、青＝有酸素、模式的な目安）で、乳酸テストで測れるのは乳酸性と有酸素の範囲です。</p>
+      <table class="kbT">
+        <tr><th>距離</th><th>判定</th><th>内訳</th><th>ひと言</th></tr>
+        <tr><td><b>50m</b></td><td><span class="kbChip" style="background:#d9534f">主に適さない</span></td>
+          <td><div class="kbBar"><span style="width:55%;background:#e8b13c"></span><span style="width:35%;background:#d9534f"></span><span style="width:10%;background:#2b7bbb"></span></div></td>
+          <td>決め手はスタートとPCr系パワー。乳酸テストの範囲外</td></tr>
+        <tr><td><b>100m</b></td><td><span class="kbChip" style="background:#e88b2d">適する※</span></td>
+          <td><div class="kbBar"><span style="width:20%;background:#e8b13c"></span><span style="width:50%;background:#d9534f"></span><span style="width:30%;background:#2b7bbb"></span></div></td>
+          <td>無酸素の評価は本領（乳酸性が約50%）。※有酸素は400mサブマックスとのセットで。本書明記：100mだけでは有酸素持久は測れない</td></tr>
+        <tr><td><b>200m</b></td><td><span class="kbChip" style="background:#3d9b5f">とても適する</span></td>
+          <td><div class="kbBar"><span style="width:15%;background:#e8b13c"></span><span style="width:40%;background:#d9534f"></span><span style="width:45%;background:#2b7bbb"></span></div></td>
+          <td>混合種目。両キャパシティの比率がそのまま成績になる。背・平のオールアウトは200mが本書の指定</td></tr>
+        <tr><td><b>400m</b></td><td><span class="kbChip" style="background:#2b7bbb">最も適する</span></td>
+          <td><div class="kbBar"><span style="width:10%;background:#e8b13c"></span><span style="width:32%;background:#d9534f"></span><span style="width:58%;background:#2b7bbb"></span></div></td>
+          <td>テストの中核。V4_400と大会予測の基準距離</td></tr>
+        <tr><td><b>800m</b></td><td><span class="kbChip" style="background:#3d9b5f">適する</span></td>
+          <td><div class="kbBar"><span style="width:7%;background:#e8b13c"></span><span style="width:18%;background:#d9534f"></span><span style="width:75%;background:#2b7bbb"></span></div></td>
+          <td>V4が強度とペースの物差しになる。無酸素側の情報は脇役</td></tr>
+        <tr><td><b>1500m</b></td><td><span class="kbChip" style="background:#3d9b5f">適する</span></td>
+          <td><div class="kbBar"><span style="width:5%;background:#e8b13c"></span><span style="width:10%;background:#d9534f"></span><span style="width:85%;background:#2b7bbb"></span></div></td>
+          <td>有酸素評価は有効（テストは400mで実施）。ただし泳ぎの経済性・技術の比重が増える</td></tr>
+      </table>
+    </div>
+
+    <!-- カーブの理解 -->
+    <div class="kbPanel" id="kb-curve">
+      <p>血中乳酸は <b>「作る力（VLamax）」と「消す力（VO2max）」の綱引きの結果</b> です。カーブの位置は2つの力のバランスで決まるため、カーブが動いても、どちらの力が変わったのかは位置だけでは判別できません。</p>
+      <div class="kbCards">
+        <div class="kbMini" style="text-align:center"><b style="color:#d9534f">作る力（VLamax）</b><br>解糖系が乳酸を作る速さ</div>
+        <div class="kbMini" style="text-align:center"><b>血中乳酸 ＝ カーブの位置</b><br>2つの力のバランス</div>
+        <div class="kbMini" style="text-align:center"><b style="color:#2b7bbb">消す力（VO2max）</b><br>酸化・取り込みで消す速さ</div>
+      </div>
+      <figure class="kbFig kbWide">
+        <svg viewBox="0 0 320 168" width="100%" role="img" aria-label="例1と例2">
+          <text x="80" y="14" font-size="11.5" fill="#3d9b5f" text-anchor="middle" font-weight="bold">例1：本物の改善</text>
+          <line x1="28" y1="140" x2="152" y2="140" stroke="#8a94a6"/>
+          <line x1="28" y1="140" x2="28" y2="24" stroke="#8a94a6"/>
+          <path d="M32,132 C70,130 105,124 128,104 C140,93 148,66 152,44" fill="none" stroke="#8a94a6" stroke-width="2.4" stroke-dasharray="5 4"/>
+          <path d="M32,134 C80,133 116,129 136,112 C146,102 152,78 155,58" fill="none" stroke="#2b7bbb" stroke-width="2.8"/>
+          <text x="80" y="158" font-size="10.5" fill="#22303c" text-anchor="middle">VO2max ↑ ／ 400m 向上</text>
+          <text x="240" y="14" font-size="11.5" fill="#d9534f" text-anchor="middle" font-weight="bold">例2：見かけの改善</text>
+          <line x1="188" y1="140" x2="312" y2="140" stroke="#8a94a6"/>
+          <line x1="188" y1="140" x2="188" y2="24" stroke="#8a94a6"/>
+          <path d="M192,132 C230,130 265,124 288,104 C300,93 308,66 312,44" fill="none" stroke="#8a94a6" stroke-width="2.4" stroke-dasharray="5 4"/>
+          <path d="M192,134 C240,133 276,129 296,112 C306,102 312,78 315,58" fill="none" stroke="#2b7bbb" stroke-width="2.8"/>
+          <text x="240" y="158" font-size="10.5" fill="#22303c" text-anchor="middle">VLamax ↓ ／ 100m 悪化</text>
+        </svg>
+        <figcaption>同じ「右移動」でも中身は正反対。例2は乳酸を作る力そのものが落ちただけ（模式図）。</figcaption>
+      </figure>
+      <div class="kbCards">
+        <div class="kbMini"><b>約60%</b><br>古典的解釈（右移動＝有酸素改善）による評価が、代謝モデルの評価と一致した割合。テスト5件中2件は誤った助言につながる計算です</div>
+        <div class="kbMini"><b>50%</b><br>100mオールアウトの成績変化を「無酸素キャパシティの変化」で説明できた割合</div>
+        <div class="kbMini"><b>本書の実例（Fig.41）</b><br>VO2maxが73と72でほぼ同じ2人でも、VLamaxが0.59と0.31と違うとカーブの位置は大きく違って見えます</div>
+      </div>
+      <ul>
+        <li>逆も起こります：両キャパシティが落ちると<b>カーブは動かない</b>（維持に見えて悪化）、無酸素を鍛えると<b>左に動いても</b>スプリントは速くなります</li>
+        <li>合言葉：「カーブが動いた」ではなく<b>「どちらの力が、どう動いたか」</b>で見る。そのために2スピードテスト＋シミュレーションで両キャパシティを分けて測ります</li>
+      </ul>
+    </div>
+
+    <p style="font-size:12px;color:#5a6b7c;margin-top:10px">出典：Jan Olbrecht『The Science of Winning』第3・4章。図は内容を模式化したイラストで、数値例は説明用のモデルです。</p>
+    <script>
+      (function(){
+        var sel = document.getElementById('kbSelect');
+        if(!sel) return;
+        sel.addEventListener('change', function(){
+          var panels = document.querySelectorAll('#kbCard .kbPanel');
+          for(var i=0;i<panels.length;i++){ panels[i].classList.toggle('kbOn', panels[i].id === sel.value); }
+        });
+      })();
+    </script>
+  </div>
+  <div class="card" id="stCard">
+    <h3 style="margin-top:0">🧪 スピードテスト記録（1・2スピード）</h3>
+    <p class="muted" style="margin:4px 0 10px">テストを選ぶと雛形が出ます。タイムと乳酸を入れると、V4や最高乳酸を自動で計算します。結果は保存して蓄積でき、同じ選手の過去のテストと比較できます。</p>
+    <div class="stGrid">
+      <label class="fld">テスト<select id="stKind">
+        <option value="2sp">2スピードテスト</option>
+        <option value="1sp">1スピードテスト（簡易版）</option>
+      </select></label>
+      <label class="fld">選手<span id="stAthWrap"></span></label>
+      <label class="fld">日付<input type="date" id="stDate"></label>
+    </div>
+    <div id="stForm"></div>
+    <div id="stResult" aria-live="polite"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="stSave" type="button">この結果を保存</button>
+      <button class="btn" id="stPdf" type="button">PDF出力（結果と比較表）</button>
+    </div>
+    <h4 style="margin:16px 0 6px">記録と比較（<span id="stCmpName"></span>）</h4>
+    <div id="stChart"></div>
+    <div id="stList"></div>
+    <details style="margin-top:12px">
+      <summary style="cursor:pointer;font-weight:700">結果の読み方と注意</summary>
+      <ul>
+        <li><b>V4</b>は、血中乳酸が4.0 mmol/lのときの泳ぐ速さで、有酸素持久のものさしです。2スピードテストでは2点から引いたカーブで読み、1スピードテストでは「傾きk」を使って1点から推定します</li>
+        <li><b>最高乳酸</b>はオールアウト後に最も高くなった値で、無酸素側（乳酸を作る力）の目安です。必ずV4とセットで見てください。V4だけ見て「有酸素が伸びた」と判断するのは古典的な誤りで、無酸素が落ちただけでもカーブは右に寄ります</li>
+        <li>1スピードテストのV4は、サブマックスの乳酸が<b>2.5 mmol/lを超えている</b>ときだけ計算します。解釈できるのは、測った値の<b>±4 mmol/lの範囲</b>までです</li>
+        <li>傾きkは、その選手の直近の2スピードテストがあれば、その実測値が自動で入ります。ない場合は、本書の2×100m自由形の例（k≒3.4）を仮の値として使います</li>
+        <li>比べるときは、同じ種目・同じ距離・同じ条件どうしで比べてください。前回比は、同じテスト・同じ種目の直近の記録との差です</li>
+        <li>出典：Jan Olbrecht『The Science of Winning』第4章（2スピード／1スピードテスト）</li>
+      </ul>
+    </details>
+    <style>
+      #stCard .stGrid{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+      #stCard .stGrid .fld{margin:0}
+      #stCard table.stT{border-collapse:collapse;width:100%;margin:8px 0;font-size:13.5px}
+      #stCard table.stT th,#stCard table.stT td{border:1px solid #d4dde6;padding:6px 8px;text-align:left;vertical-align:middle}
+      #stCard table.stT th{background:#eef3f8;width:130px}
+      #stCard input[type=number],#stCard input[type=text]{width:72px;padding:5px 6px;border:1px solid #c3cedb;border-radius:6px;font-size:14px;margin:2px 0}
+      #stCard input.stTime{width:96px}
+      #stCard select{padding:5px 6px;border:1px solid #c3cedb;border-radius:6px;font-size:14px}
+      #stCard .stResultBox{background:#f0f6fb;border:1.5px solid #bcd3ea;border-radius:10px;padding:10px 12px;margin-top:10px}
+      #stCard .stWarn{color:#b3261e;font-weight:700;margin-top:6px}
+      #stCard .stBig{font-size:20px;font-weight:800}
+      #stCard table.stList{border-collapse:collapse;width:100%;font-size:13px;margin-top:6px}
+      #stCard table.stList th,#stCard table.stList td{border:1px solid #d4dde6;padding:4px 6px;text-align:right;white-space:nowrap}
+      #stCard table.stList th{background:#eef3f8;text-align:center}
+      #stCard table.stList td:first-child{text-align:left}
+      #stCard .stListWrap{overflow-x:auto}
+    </style>
+    <script>
+    (function(){
+      var STROKES = ['自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー'];
+      var $ = function(id){ return document.getElementById(id); };
+      var cur = null;
+      function store(){ if(!Array.isArray(S.speedTests)) S.speedTests = []; return S.speedTests; }
+      function todayStr(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+      function parseTime(s){
+        if(s == null) return null;
+        s = String(s).trim().replace(/['’′]/g, ':').replace(/["”″]/g, '');
+        if(!s) return null;
+        var parts = s.split(':'), v;
+        if(parts.length === 1) v = parseFloat(parts[0]);
+        else if(parts.length === 2) v = parseFloat(parts[0])*60 + parseFloat(parts[1]);
+        else return null;
+        return (isFinite(v) && v > 0) ? v : null;
+      }
+      function fmtTime(sec){
+        if(sec == null || !isFinite(sec)) return '—';
+        var m = Math.floor(sec/60), s = sec - m*60, ss = s.toFixed(1);
+        if(s < 10) ss = '0' + ss;
+        return m + ':' + ss;
+      }
+      function f2(x){ return x == null || !isFinite(x) ? '—' : (+x).toFixed(2); }
+      function f1s(x){ return x == null || !isFinite(x) ? '—' : (+x).toFixed(1); }
+      function num(id){ var el = $(id); if(!el) return null; var v = parseFloat(el.value); return isFinite(v) ? v : null; }
+      function athlete(){
+        var sel = $('stAthSel'), txt = $('stAthTxt');
+        if(sel) return sel.value || '';
+        return txt ? txt.value.trim() : '';
+      }
+      function buildAthlete(){
+        var wrap = $('stAthWrap'); if(!wrap) return;
+        var names = (typeof athletes === 'function' ? athletes() : []).map(function(a){ return a.name; });
+        var prev = athlete();
+        if(names.length){
+          if(!names.includes(prev)) prev = names[0];
+          wrap.innerHTML = '<select id="stAthSel">' + names.map(function(n){ return '<option' + (n === prev ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select>';
+          $('stAthSel').addEventListener('change', function(){ renderList(); if($('stKind').value === '1sp') autoK(); calc(); });
+        } else {
+          wrap.innerHTML = '<input type="text" id="stAthTxt" placeholder="選手名" style="width:130px">';
+          $('stAthTxt').addEventListener('input', function(){ renderList(); });
+        }
+      }
+      function refreshAthletes(){
+        if(document.activeElement && $('stAthWrap') && $('stAthWrap').contains(document.activeElement)) return;
+        var names = (typeof athletes === 'function' ? athletes() : []);
+        var hasSel = !!$('stAthSel');
+        if((names.length && !hasSel) || (!names.length && hasSel)) buildAthlete();
+        else if(hasSel && $('stAthSel').options.length !== names.length) buildAthlete();
+      }
+      function strokeOpts(sel){ return STROKES.map(function(s){ return '<option' + (s === sel ? ' selected' : '') + '>' + s + '</option>'; }).join(''); }
+      function laInputs(prefix, times){
+        return times.map(function(t){ return '<label style="margin-right:10px">' + t + '分 <input type="number" step="0.1" min="0" id="' + prefix + t + '"></label>'; }).join('');
+      }
+      function autoK(){
+        var kEl = $('stK'); if(!kEl) return;
+        var name = athlete(); if(!name) return;
+        var recs = store().filter(function(r){ return r.athlete === name && r.kind === '2sp' && r.res && r.res.k; });
+        if(recs.length){
+          recs.sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id; });
+          kEl.value = (+recs[0].res.k).toFixed(2);
+        }
+      }
+      function renderForm(){
+        var kind = $('stKind').value, h = '';
+        if(kind === '2sp'){
+          h = '<table class="stT">'
+            + '<tr><th>種目・距離</th><td><select id="stStroke">' + strokeOpts('自由形') + '</select> <select id="stDist"><option value="100">100m</option><option value="200">200m</option></select></td></tr>'
+            + '<tr><th>1本目<br>サブマックス</th><td>タイム <input type="text" class="stTime" id="stT1" placeholder="1:02.5"> <span class="muted">（秒だけでも可）</span><br>乳酸（mmol/l） ' + laInputs('stLa1_', [1,3,5]) + '</td></tr>'
+            + '<tr><th>2本目<br>オールアウト</th><td>タイム <input type="text" class="stTime" id="stT2" placeholder="0:54.5"><br>乳酸（mmol/l） ' + laInputs('stLa2_', [3,5,7,10,12]) + '</td></tr></table>'
+            + '<p class="muted" style="font-size:12.5px">同じ種目・距離を2本。1本目の乳酸は3分値を優先して使い、2本目は最も高い値をピーク（最高乳酸）とします。</p>';
+        } else {
+          h = '<table class="stT">'
+            + '<tr><th>①サブマックス<br>（有酸素側）</th><td>自由形 <select id="stSubDist"><option value="400">400m</option><option value="200">200m</option></select> タイム <input type="text" class="stTime" id="stSubT" placeholder="4:35.0"><br>乳酸（mmol/l） ' + laInputs('stSubLa', [1,3]) + '<span class="muted">（3分値を優先）</span></td></tr>'
+            + '<tr><th>②オールアウト<br>（無酸素側）</th><td>種目 <select id="stStroke">' + strokeOpts('自由形') + '</select> <select id="stMaxDist"><option value="100">100m</option><option value="200">200m</option></select> タイム <input type="text" class="stTime" id="stMaxT" placeholder="0:54.5"><br>乳酸（mmol/l） ' + laInputs('stLaM_', [3,5,7,10,12]) + '</td></tr>'
+            + '<tr><th>カーブの傾き k</th><td><input type="number" step="0.1" min="0.5" id="stK" value="3.4"> <span class="muted">V4を1点から推定するための値。その選手の2スピードテストがあれば自動で入ります</span></td></tr></table>';
+        }
+        $('stForm').innerHTML = h;
+        var inputs = $('stForm').querySelectorAll('input,select');
+        for(var i = 0; i < inputs.length; i++){ inputs[i].addEventListener('input', calc); inputs[i].addEventListener('change', calc); }
+        var sk = $('stStroke');
+        if(sk && kind === '1sp'){
+          sk.addEventListener('change', function(){
+            var md = $('stMaxDist');
+            if(md) md.value = (sk.value === '自由形' || sk.value === 'バタフライ') ? '100' : '200';
+            calc();
+          });
+        }
+        if(kind === '1sp') autoK();
+        calc();
+      }
+      function pickLa(pairs, prefer){
+        var present = pairs.filter(function(p){ return p[1] != null; });
+        if(!present.length) return {v:null, at:null};
+        for(var i = 0; i < present.length; i++) if(present[i][0] === prefer) return {v:present[i][1], at:prefer};
+        return maxLa(pairs);
+      }
+      function maxLa(pairs){
+        var present = pairs.filter(function(p){ return p[1] != null; });
+        if(!present.length) return {v:null, at:null};
+        var mx = present[0];
+        present.forEach(function(p){ if(p[1] > mx[1]) mx = p; });
+        return {v:mx[1], at:mx[0]};
+      }
+      function calc(){
+        refreshAthletes();
+        var kind = $('stKind').value, name = athlete(), date = $('stDate').value || todayStr();
+        var warn = [], res = null;
+        if(kind === '2sp'){
+          var dist = $('stDist') ? +$('stDist').value : 100;
+          var t1 = parseTime($('stT1') ? $('stT1').value : ''), t2 = parseTime($('stT2') ? $('stT2').value : '');
+          var la1 = pickLa([[1,num('stLa1_1')],[3,num('stLa1_3')],[5,num('stLa1_5')]], 3);
+          var la2 = maxLa([[3,num('stLa2_3')],[5,num('stLa2_5')],[7,num('stLa2_7')],[10,num('stLa2_10')],[12,num('stLa2_12')]]);
+          res = {kind:kind, athlete:name, date:date, stroke:$('stStroke') ? $('stStroke').value : '', dist:dist, subDist:null,
+            tSub:t1, laSub:la1.v, laSubAt:la1.at, tMax:t2, laMax:la2.v, laMaxAt:la2.at,
+            vSub:t1 ? dist/t1 : null, vMax:t2 ? dist/t2 : null, k:null, v4:null};
+          if(res.vSub && res.vMax && la1.v != null && la2.v != null){
+            if(la2.v > la1.v && res.vMax > res.vSub){
+              res.k = Math.log(la2.v/la1.v)/(res.vMax - res.vSub);
+              res.v4 = res.vSub + Math.log(4/la1.v)/res.k;
+              if(res.v4 < res.vSub || res.v4 > res.vMax) warn.push('V4が2本の測定範囲の外に出ています（外挿）。目安として見てください');
+            } else {
+              warn.push('2本目は、1本目より速く・乳酸も高いことが必要です。入力を確認してください');
+            }
+          }
+        } else {
+          var subDist = $('stSubDist') ? +$('stSubDist').value : 400;
+          var subT = parseTime($('stSubT') ? $('stSubT').value : '');
+          var subLa = pickLa([[1,num('stSubLa1')],[3,num('stSubLa3')]], 3);
+          var maxDist = $('stMaxDist') ? +$('stMaxDist').value : 100;
+          var maxT = parseTime($('stMaxT') ? $('stMaxT').value : '');
+          var laM = maxLa([[3,num('stLaM_3')],[5,num('stLaM_5')],[7,num('stLaM_7')],[10,num('stLaM_10')],[12,num('stLaM_12')]]);
+          var k = num('stK');
+          res = {kind:kind, athlete:name, date:date, stroke:$('stStroke') ? $('stStroke').value : '', dist:maxDist, subDist:subDist,
+            tSub:subT, laSub:subLa.v, laSubAt:subLa.at, tMax:maxT, laMax:laM.v, laMaxAt:laM.at,
+            vSub:subT ? subDist/subT : null, vMax:maxT ? maxDist/maxT : null, k:k, v4:null};
+          if(subLa.v != null && subLa.v < 2.5) warn.push('サブマックスの乳酸が2.5 mmol/l以下のため、V4は計算しません（本書の条件です）');
+          if(res.vSub && subLa.v != null && subLa.v >= 2.5 && k) res.v4 = res.vSub + Math.log(4/subLa.v)/k;
+        }
+        cur = res;
+        renderResult(res, warn);
+      }
+      function kindLabel(k){ return k === '2sp' ? '2スピード' : '1スピード'; }
+      function prevOf(athleteName, kind, stroke, beforeDate, beforeId){
+        var recs = store().filter(function(r){
+          return r.athlete === athleteName && r.kind === kind && r.stroke === stroke
+            && (r.date < beforeDate || (r.date === beforeDate && (beforeId == null || r.id < beforeId)));
+        });
+        recs.sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id; });
+        return recs.length ? recs[0] : null;
+      }
+      function deltaTxt(curRes, prevRes){
+        var out = [];
+        if(curRes.v4 != null && prevRes.v4 != null){
+          var dv = curRes.v4 - prevRes.v4;
+          var dp = 100/curRes.v4 - 100/prevRes.v4;
+          out.push('V4 ' + (dv >= 0 ? '+' : '−') + Math.abs(dv).toFixed(2) + ' m/s（100mあたり ' + (dp <= 0 ? '−' : '+') + Math.abs(dp).toFixed(1) + '秒）');
+        }
+        if(curRes.laMax != null && prevRes.laMax != null){
+          var dl = curRes.laMax - prevRes.laMax;
+          out.push('最高乳酸 ' + (dl >= 0 ? '+' : '−') + Math.abs(dl).toFixed(1));
+        }
+        return out.join('、');
+      }
+      function resultRows(R, distForV4, distLabel){
+        var h = '<table class="stT" style="margin:0">';
+        if(R.v4 != null){
+          h += '<tr><th>V4（推定）</th><td><span class="stBig">' + f2(R.v4) + ' m/s</span>　100mペース ' + fmtTime(100/R.v4) + '　' + distLabel + '換算 ' + fmtTime(distForV4/R.v4) + '</td></tr>';
+        }
+        h += '<tr><th>サブマックス</th><td>速さ ' + f2(R.vSub) + ' m/s（' + fmtTime(R.tSub) + '）　乳酸 ' + f1s(R.laSub) + ' mmol/l' + (R.laSubAt ? '（' + R.laSubAt + '分値）' : '') + '</td></tr>';
+        h += '<tr><th>オールアウト</th><td>速さ ' + f2(R.vMax) + ' m/s（' + fmtTime(R.tMax) + '）　最高乳酸 ' + f1s(R.laMax) + ' mmol/l' + (R.laMaxAt ? '（' + R.laMaxAt + '分でピーク）' : '') + '</td></tr>';
+        if(R.k != null) h += '<tr><th>傾き k</th><td>' + f2(R.k) + (R.kind === '2sp' ? '（2点からの実測）' : '（使用した仮定値）') + '</td></tr>';
+        return h + '</table>';
+      }
+      function renderResult(res, warn){
+        var box = $('stResult'); if(!box || !res) return;
+        var empty = res.vSub == null && res.vMax == null && res.laSub == null && res.laMax == null;
+        if(empty){ box.innerHTML = '<p class="muted" style="margin-top:8px">タイムと乳酸を入れると、ここに結果が出ます。</p>'; return; }
+        var distForV4 = res.kind === '2sp' ? res.dist : res.subDist;
+        var distLabel = res.kind === '2sp' ? res.dist + 'm' : res.subDist + 'm';
+        var h = '<div class="stResultBox"><div style="font-weight:700;margin-bottom:6px">結果（' + esc(res.athlete || '選手未選択') + '／' + kindLabel(res.kind) + '／' + esc(res.stroke) + '）</div>'
+          + resultRows(res, distForV4, distLabel);
+        var prev = res.athlete ? prevOf(res.athlete, res.kind, res.stroke, res.date, null) : null;
+        if(prev){
+          var d = deltaTxt(res, prev.res);
+          if(d) h += '<p style="margin:8px 0 0">前回（' + prev.date.replace(/-/g,'/') + '）との差：' + esc(d) + '</p>';
+        }
+        if(warn && warn.length) h += warn.map(function(w){ return '<p class="stWarn">' + esc(w) + '</p>'; }).join('');
+        box.innerHTML = h + '</div>';
+      }
+      function onSave(){
+        if(!cur || !cur.athlete){ toast('選手を選んでください'); return; }
+        if(cur.v4 == null && cur.laMax == null){ toast('タイムと乳酸を入れてから保存してください'); return; }
+        var rec = {id:Date.now(), date:cur.date, athlete:cur.athlete, kind:cur.kind, stroke:cur.stroke, dist:cur.dist, subDist:cur.subDist,
+          res:{v4:cur.v4, k:cur.k, vSub:cur.vSub, laSub:cur.laSub, laSubAt:cur.laSubAt, vMax:cur.vMax, laMax:cur.laMax, laMaxAt:cur.laMaxAt, tSub:cur.tSub, tMax:cur.tMax}};
+        store().push(rec);
+        saveNow();
+        toast('テスト結果を保存しました');
+        renderList();
+        calc();
+      }
+      function renderList(){
+        var name = athlete();
+        $('stCmpName').textContent = name || '選手を選んでください';
+        var listBox = $('stList'), chartBox = $('stChart');
+        if(!name){ listBox.innerHTML = ''; chartBox.innerHTML = ''; return; }
+        var recs = store().filter(function(r){ return r.athlete === name; })
+          .sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id; });
+        if(!recs.length){ listBox.innerHTML = '<p class="muted">まだ記録がありません。結果を保存すると、ここにたまっていきます。</p>'; chartBox.innerHTML = ''; return; }
+        var h = '<div class="stListWrap"><table class="stList"><thead><tr><th>日付</th><th>テスト</th><th>種目</th><th>V4 (m/s)</th><th>100mペース</th><th>最高乳酸</th><th>前回比</th><th></th></tr></thead><tbody>';
+        recs.forEach(function(r){
+          var prev = prevOf(name, r.kind, r.stroke, r.date, r.id);
+          var d = prev ? deltaTxt(r.res, prev.res) : '';
+          var ev = r.kind === '2sp' ? esc(r.stroke) + ' ' + r.dist + 'm' : '自由形' + r.subDist + 'm → ' + esc(r.stroke) + r.dist + 'm';
+          h += '<tr><td>' + r.date.replace(/-/g,'/') + '</td><td style="text-align:center">' + kindLabel(r.kind) + '</td><td style="text-align:left">' + ev + '</td>'
+            + '<td>' + f2(r.res.v4) + '</td><td>' + (r.res.v4 ? fmtTime(100/r.res.v4) : '—') + '</td><td>' + f1s(r.res.laMax) + '</td>'
+            + '<td style="text-align:left">' + esc(d || '—') + '</td>'
+            + '<td><button type="button" class="btn small red" data-stdel="' + r.id + '">削除</button></td></tr>';
+        });
+        listBox.innerHTML = h + '</tbody></table></div>';
+        listBox.querySelectorAll('[data-stdel]').forEach(function(b){
+          b.addEventListener('click', function(){
+            if(!confirm('この記録を削除します。よろしいですか。')) return;
+            S.speedTests = store().filter(function(r){ return r.id !== +b.dataset.stdel; });
+            saveNow(); renderList(); calc();
+            toast('記録を削除しました');
+          });
+        });
+        renderChart(recs);
+      }
+      function renderChart(recs){
+        var chartBox = $('stChart');
+        var kind = $('stKind').value;
+        var pts = recs.filter(function(r){ return r.kind === kind && r.res.v4 != null; })
+          .sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id; });
+        if(pts.length < 2){ chartBox.innerHTML = pts.length ? '<p class="muted" style="font-size:12.5px">V4の推移グラフは、同じテストの記録が2回分たまると出ます。</p>' : ''; return; }
+        var W = 300, H = 92, PL = 8, PR = 8, PT = 14, PB = 18;
+        var vs = pts.map(function(r){ return r.res.v4; });
+        var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs);
+        if(mx - mn < 0.04){ mn -= 0.02; mx += 0.02; }
+        var X = function(i){ return PL + (W - PL - PR) * (pts.length === 1 ? 0.5 : i/(pts.length - 1)); };
+        var Y = function(v){ return PT + (H - PT - PB) * (1 - (v - mn)/(mx - mn)); };
+        var line = pts.map(function(r, i){ return X(i).toFixed(1) + ',' + Y(r.res.v4).toFixed(1); }).join(' ');
+        var dots = pts.map(function(r, i){
+          return '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(r.res.v4).toFixed(1) + '" r="3.2" fill="#2b7bbb"/>'
+            + '<text x="' + X(i).toFixed(1) + '" y="' + (Y(r.res.v4) - 6).toFixed(1) + '" font-size="9.5" fill="#22303c" text-anchor="middle">' + r.res.v4.toFixed(2) + '</text>';
+        }).join('');
+        var first = pts[0], last = pts[pts.length - 1];
+        chartBox.innerHTML = '<p style="margin:4px 0 2px;font-weight:700;font-size:13px">V4の推移（' + kindLabel(kind) + '）</p>'
+          + '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:520px;display:block;margin:0 auto" role="img" aria-label="V4の推移">'
+          + '<polyline points="' + line + '" fill="none" stroke="#2b7bbb" stroke-width="2"/>'
+          + dots
+          + '<text x="' + PL + '" y="' + (H - 4) + '" font-size="9.5" fill="#5a6b7c">' + first.date.slice(5).replace('-','/') + '</text>'
+          + '<text x="' + (W - PR) + '" y="' + (H - 4) + '" font-size="9.5" fill="#5a6b7c" text-anchor="end">' + last.date.slice(5).replace('-','/') + '</text>'
+          + '</svg>';
+      }
+      function reportHtml(){
+        var name = athlete();
+        var recs = store().filter(function(r){ return r.athlete === name; })
+          .sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id; });
+        var h = '<div class="pp-head"><div class="hl t1">' + esc(S.settings.header || '') + 'スピードテスト結果</div>'
+          + '<div class="hl t2">' + esc(name) + ' さん　出力日 ' + todayStr().replace(/-/g,'/') + '</div></div>';
+        var tbl = 'style="border-collapse:collapse;width:100%;font-size:13px;margin:6px 0 14px"';
+        var td = 'style="border:1px solid #999;padding:5px 8px;text-align:left"';
+        var th = 'style="border:1px solid #999;padding:5px 8px;text-align:left;background:#eef3f8;width:130px"';
+        var R = null, meta = null;
+        if(cur && cur.athlete === name && (cur.v4 != null || cur.laMax != null)){ R = cur; meta = cur; }
+        else if(recs.length){ R = recs[0].res; meta = recs[0]; }
+        if(R){
+          h += '<h3 style="margin:10px 0 4px">' + (meta === cur ? '今回の結果' : '最新の結果') + '（' + meta.date.replace(/-/g,'/') + '／' + kindLabel(meta.kind) + '／' + esc(meta.stroke) + '）</h3>'
+            + '<table ' + tbl + '>'
+            + (R.v4 != null ? '<tr><th ' + th + '>V4（推定）</th><td ' + td + '>' + f2(R.v4) + ' m/s　100mペース ' + fmtTime(100/R.v4) + '</td></tr>' : '')
+            + '<tr><th ' + th + '>サブマックス</th><td ' + td + '>速さ ' + f2(R.vSub) + ' m/s　乳酸 ' + f1s(R.laSub) + ' mmol/l</td></tr>'
+            + '<tr><th ' + th + '>オールアウト</th><td ' + td + '>速さ ' + f2(R.vMax) + ' m/s　最高乳酸 ' + f1s(R.laMax) + ' mmol/l</td></tr>'
+            + (R.k != null ? '<tr><th ' + th + '>傾き k</th><td ' + td + '>' + f2(R.k) + '</td></tr>' : '')
+            + '</table>';
+        }
+        if(recs.length){
+          h += '<h3 style="margin:10px 0 4px">記録の比較</h3><table ' + tbl + '><tr>'
+            + '<th ' + th.replace('width:130px','') + '>日付</th><th ' + th.replace('width:130px','') + '>テスト</th><th ' + th.replace('width:130px','') + '>種目</th><th ' + th.replace('width:130px','') + '>V4 (m/s)</th><th ' + th.replace('width:130px','') + '>100mペース</th><th ' + th.replace('width:130px','') + '>最高乳酸</th><th ' + th.replace('width:130px','') + '>前回比</th></tr>';
+          recs.slice(0, 12).forEach(function(r){
+            var prev = prevOf(name, r.kind, r.stroke, r.date, r.id);
+            var d = prev ? deltaTxt(r.res, prev.res) : '';
+            var ev = r.kind === '2sp' ? esc(r.stroke) + ' ' + r.dist + 'm' : '自由形' + r.subDist + 'm → ' + esc(r.stroke) + r.dist + 'm';
+            h += '<tr><td ' + td + '>' + r.date.replace(/-/g,'/') + '</td><td ' + td + '>' + kindLabel(r.kind) + '</td><td ' + td + '>' + ev + '</td>'
+              + '<td ' + td + '>' + f2(r.res.v4) + '</td><td ' + td + '>' + (r.res.v4 ? fmtTime(100/r.res.v4) : '—') + '</td><td ' + td + '>' + f1s(r.res.laMax) + '</td><td ' + td + '>' + esc(d || '—') + '</td></tr>';
+          });
+          h += '</table>';
+          if(recs.length > 12) h += '<p style="font-size:12px">（比較表は新しい順に12回分までです）</p>';
+        }
+        h += '<p style="font-size:12px;color:#444">V4は乳酸4.0 mmol/lのときの速さ（有酸素持久の目安）、最高乳酸は無酸素側の目安です。1スピードのV4は傾きkを使った推定で、解釈は測った値の±4 mmol/lの範囲までです。出典：Olbrecht『The Science of Winning』第4章。</p>';
+        return h;
+      }
+      async function stPdf(){
+        var name = athlete();
+        if(!name){ toast('選手を選んでください'); return; }
+        if(!(window.html2canvas && window.jspdf)){ toast('PDFの部品が読み込めていません。通信環境を確認してください'); return; }
+        var stage = document.createElement('div');
+        stage.style.cssText = 'position:absolute;left:-9999px;top:0;width:733px';
+        stage.innerHTML = '<div class="pp-page" style="width:733px;font-size:14px;background:#fff"><div class="ppInner" style="padding:8px 6px">' + reportHtml() + '<div class="pp-foot">' + esc(S.settings.header || '') + ' MENU STUDIO で作成</div></div></div>';
+        document.body.appendChild(stage);
+        try{
+          var canvas = await window.html2canvas(stage.firstChild, {scale:2, backgroundColor:'#ffffff', logging:false});
+          var pdf = new window.jspdf.jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+          var imgH = 194 * canvas.height / canvas.width;
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, 194, Math.min(imgH, 281));
+          downloadBlob(pdf.output('blob'), 'speedtest_' + name + '_' + todayStr() + '.pdf');
+          toast('PDFを保存しました');
+        }catch(e){
+          toast('PDFを作れませんでした');
+        }
+        stage.remove();
+      }
+      function init(){
+        if(!$('stCard')) return;
+        if(typeof athletes !== 'function' || typeof saveNow !== 'function'){ setTimeout(init, 300); return; }
+        buildAthlete();
+        $('stDate').value = todayStr();
+        $('stDate').addEventListener('change', calc);
+        $('stKind').addEventListener('change', function(){ renderForm(); renderList(); });
+        $('stSave').addEventListener('click', onSave);
+        $('stPdf').addEventListener('click', stPdf);
+        renderForm();
+        renderList();
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+    </script>
+  </div>
+
 </section>
 
 <!-- ============ ピリオダイゼーション ============ -->
@@ -2468,6 +3073,7 @@ function renderPanels(){
       '<select data-stroke aria-label="' + (i+1) + '列目の種目">' + strokeSelectOptions(p.stroke) + '</select>' +
       '<button class="btn small plus" data-opt="stroke" aria-label="種目の項目を追加・削除">＋</button>' +
       '<button type="button" class="btn small printTog' + (p.print === false ? '' : ' on') + '" data-ptog aria-pressed="' + (p.print !== false) + '">' + (p.print === false ? '印刷しない' : '印刷する') + '</button>' +
+      '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
       (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') +
       (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</div>' +
       '<div class="editor"><div class="gutter" aria-hidden="true"><div class="gin"></div></div>' +
@@ -2496,6 +3102,7 @@ function renderPanels(){
     ssel.addEventListener('change', () => { p.stroke = ssel.value; ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
     el.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', () => { curPanel = i; openOpt(b.dataset.opt, i); }));
     el.querySelector('[data-ptog]').addEventListener('click', () => { p.print = p.print === false ? true : false; commitMenu(); renderPanels(); updatePrintCount(); toast(panelLabel(p) + '：' + (p.print === false ? '印刷しない' : '印刷する') + 'にしました'); });
+    el.querySelector('[data-mtog]').addEventListener('click', () => { p.memo = !p.memo; commitMenu(); renderPanels(); toast(panelLabel(p) + '：' + (p.memo ? 'メモ表示にしました。時間・距離・負荷は表示しません' : '通常の表示に戻しました')); });
     const cp = el.querySelector('[data-copy]');
     if(cp) cp.addEventListener('click', () => {
       if(p.text.trim() && !confirm(panelLabel(p) + 'の内容を、基本メニューの内容で置きかえます。よろしいですか。')) return;
@@ -2575,11 +3182,13 @@ function updatePanel(i){
         lab = ' title="まとめて ' + l.grp.n + 'セット　合計 ' + fmtNum(gd) + 'm" aria-label="' + d + 'm、まとめて' + l.grp.n + 'セット、合計' + fmtNum(gd) + 'm"'; } }
     return '<div class="' + cls + '"' + lab + '><span class="gd"' + (bc ? ' style="border-right-color:' + bc + '"' : '') + '>' + d + '</span></div>';
   }).join('');
-  el.querySelector('.gin').innerHTML = rows + '<div style="height:60px"></div>';
+  const dispRows = p.memo ? tot.lines.map(() => '<div class="grow"><span class="gd"></span></div>').join('') : rows;
+  el.querySelector('.gin').innerHTML = dispRows + '<div style="height:60px"></div>';
   drawBrackets(i);
+  if(p.memo){ const bx = el.querySelector('.brk'); if(bx) bx.innerHTML = ''; }
   if($('panelTabs')) renderPanelTabs();
   el.querySelector('.gutter').scrollTop = el.querySelector('textarea').scrollTop;
-  el.querySelector('.pfoot').innerHTML = tot.dist
+  el.querySelector('.pfoot').innerHTML = p.memo ? '<span class="muted">📝 メモとして表示しています（時間・距離・負荷は表示しません）。</span>' : tot.dist
     ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist)
     : '<span class="muted">ここに入力すると、距離と終了時刻が自動で出ます。</span>';
   if(typeof fitEditor === 'function' && i === 0) requestAnimationFrame(fitEditor);
@@ -2893,7 +3502,7 @@ function listClick(e){
 /* ---------- 時間比較（同じ時刻に各チームが何をしているか） ---------- */
 function compareData(){
   const tots = analyzeMenu(M);
-  const idx = M.panels.map((p, i) => i).filter(i => (M.panels[i].text || '').trim());
+  const idx = M.panels.map((p, i) => i).filter(i => (M.panels[i].text || '').trim() && !M.panels[i].memo);
   const keys = new Set();
   const ev = idx.map(i => tots[i].lines.filter(l => ['title','set','rest'].includes(l.type)).map(l => { const k = Math.ceil(l.start/60); keys.add(k); return Object.assign({k}, l); }));
   const sorted = [...keys].sort((a, b) => a - b);
@@ -2927,6 +3536,9 @@ function openCompare(){
 function planTableHtml(i, forPrint){
   const p = M.panels[i];
   const t = analyzeText(p.text, p.team, M.start, strokeKeyOf(p.stroke));
+  if(p.memo){
+    return '<h3 class="pvh">' + esc(panelLabel(p)) + '　メモ</h3><div class="pp-col">' + t.lines.filter(l => l.type !== 'blank').map(l => '<div class="pp-row memo"><div class="a"></div><div class="c">' + esc(displayLine(l)) + '</div></div>').join('') + '</div>';
+  }
   let h = '<h3 class="pvh">' + esc(panelLabel(p)) + '　合計 ' + fmtNum(t.dist) + 'm　' + fmtClock(M.start) + '〜' + secToHm(t.end) + '</h3>';
   h += '<table class="' + (forPrint ? 'pp-cmp pv' : 'list pv') + '"><thead><tr><th class="c1">時刻・距離</th><th>メニュー</th><th class="c2">強度</th><th class="c3">1本の予定タイム</th><th class="c4">予定RPE</th><th class="c5">予定心拍</th>' +
     (forPrint ? '<th class="c6">実際のタイム</th><th class="c7">実際のRPE</th>' : '') + '</tr></thead><tbody>';
@@ -2968,17 +3580,19 @@ function displayLine(l){
   s = s.replace(/\s*[#＃]\s*(EZ|A1|A2|AT|VO2|LT|LP|SP|EN1|EN2|EN3|SP1|SP2|SP3)(?![0-9a-z])/ig, '');
   return s.replace(/(\d)["“〃″]/g, '$1”');
 }
-function colHtml(t, label){
+function colHtml(t, label, memo){
   const lines = t.lines.slice();
   while(lines.length && lines[lines.length-1].type === 'blank') lines.pop();
-  let h = '<div class="pp-col"><div class="ch"><span>' + esc(label) + '</span><span>合計 ' + fmtNum(t.dist) + 'm　終了 ' + secToHm(t.end) + '</span></div>';
+  if(memo) lines.forEach(l => { l.grp = null; });
+  let h = '<div class="pp-col"><div class="ch"><span>' + esc(label) + '</span>' + (memo ? '<span>メモ</span>' : '<span>合計 ' + fmtNum(t.dist) + 'm　終了 ' + secToHm(t.end) + '</span>') + '</div>';
   lines.forEach(l => {
     if(l.type === 'blank'){ h += '<div class="pp-row" style="height:.45em"></div>'; return; }
     let a = '';
     let c = esc(displayLine(l));
-    if(l.type === 'title'){ a = secToHm(l.start); if(l.secDist) c += '<span class="sd">計 ' + fmtNum(l.secDist) + 'm</span>'; }
+    if(l.type === 'title'){ a = secToHm(l.start); if(l.secDist && !memo) c += '<span class="sd">計 ' + fmtNum(l.secDist) + 'm</span>'; }
     else if(l.type === 'set'){ a = fmtNum(l.dist); }
     else if(l.type === 'rest'){ a = secToHm(l.start); }
+    if(memo) a = '';
     if(l.type === 'memo') c = '　' + c;
     if(l.grp && l.grpPos === 'first') h += '<div class="pp-grp"><div class="gin2">';
     h += '<div class="pp-row ' + l.type + (l.grp ? ' grp grp-' + l.grpPos : '') + '"><div class="a">' + a + '</div><div class="c">' + c + '</div></div>';
@@ -3001,12 +3615,12 @@ function buildPrintPage(kind){
     const per = [1,2,3].includes(+S.settings.printPerSheet) ? +S.settings.printPerSheet : 2;
     if(idx.length === 1 && per > 1){
       // メニューが1つのときは、同じメニューを1枚に2つ・3つ並べる（切り取って配れるよう、それぞれに見出しを付ける）
-      const one = '<div class="pp-copy">' + pageHeadHtml('', M.panels[idx[0]].team) + colHtml(tots[idx[0]], panelLabel(M.panels[idx[0]])) + '</div>';
+      const one = '<div class="pp-copy">' + pageHeadHtml('', M.panels[idx[0]].team) + colHtml(tots[idx[0]], panelLabel(M.panels[idx[0]]), M.panels[idx[0]].memo) + '</div>';
       pages.push({html:'<div class="pp-cols cut">' + Array(per).fill(one).join('') + '</div>', n:per, copy:true});
     } else for(let k = 0; k < idx.length; k += per){
       const chunk = idx.slice(k, k + per);
       const sub = idx.length > per ? (k/per + 1) + '/' + Math.ceil(idx.length/per) : '';
-      pages.push({html:pageHeadHtml(sub, M.panels[chunk[0]].team) + '<div class="pp-cols">' + chunk.map(i => colHtml(tots[i], panelLabel(M.panels[i]))).join('') + '</div>', n:chunk.length});
+      pages.push({html:pageHeadHtml(sub, M.panels[chunk[0]].team) + '<div class="pp-cols">' + chunk.map(i => colHtml(tots[i], panelLabel(M.panels[i]), M.panels[i].memo)).join('') + '</div>', n:chunk.length});
     }
   }
   const landscape = kind === 'plan' || kind === 'compare' || pages.some(p => p.n > 1);

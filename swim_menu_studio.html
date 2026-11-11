@@ -301,6 +301,9 @@ table.list td.num,table.list th.num{text-align:right}
 .pp-row .c{flex:1;padding:1px 6px;white-space:pre-wrap;word-break:break-all}
 .pp-row.title{background:#f3f3f3}
 .pp-row.title .c,.pp-row.title .a{font-weight:700}
+.pp-col.memoCol .pp-row.title{background:transparent}
+.pp-col.memoCol .pp-row.title .c,.pp-col.memoCol .pp-row.title .a{font-weight:400}
+#symRow button#btnBold.on{background:#16202e;color:#fff;border-color:#16202e}
 .pp-row.memo .c{font-size:.85em;color:#333}
 .pp-grp{display:flex;align-items:stretch;border-bottom:1px solid #ccc}
 .pp-grp .gin2{flex:0 1 auto;min-width:0}
@@ -772,6 +775,7 @@ body.desk .dLong{display:none}
       <button data-ins="+" data-tip="+ ＝ 内容をつなぐ。例：100m*4(1'40)+50m*8(50”)">+</button>
       <button id="btnSet" data-tip="セット ＝ 行の先頭から [ ] で囲む。set の前にセット数の数字を入れると計算される">セット [ ]*set</button>
       <button data-ins="※" data-tip="※ ＝ 説明文の前に置くと、計算されないメモになる">※</button>
+      <button id="btnBold" data-tip="太文字 ＝ カーソルのある行を太文字にする。もう一度押すともとに戻る" aria-pressed="false">太文字</button>
     </div>
   </div>
   <div id="dock" class="dock hidden" role="toolbar" aria-label="記号の帯">
@@ -1793,6 +1797,7 @@ body.desk .dLong{display:none}
       <h3>見出しとメモ</h3>
       <p>W-up、KICK、PULL、MAIN のように、行の先頭から数字以外で書いた短い行は見出しになり、開始時刻が出ます。</p>
       <p>行の先頭を空白にするか ※ を付けると、メモの行になります。</p>
+      <p>記号の帯の「太文字」ボタンを押すと、カーソルのある行が太文字になります（行の先頭に【太】が付きます）。もう一度押すともとに戻ります。メモの列では、短い行でも自動では太文字にならず、太文字ボタンで付けた行だけが太文字で印刷されます。</p>
       <h3>種目と強度</h3>
       <p>Fr Ba Br Fly IM などを書くと種目として数えます。強度は #AT のように書くと確定します。書かなければ、距離と休息から推定します。使えるのは EZ A1 A2 AT VO2 LT LP SP（EN1 EN2 EN3 SP1 SP2 SP3 も可）です。</p>
       <h3>保存</h3>
@@ -2710,8 +2715,10 @@ function analyzeText(text, team, startHm, panelStroke){
   const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, hypoxic:false};
   ZK.forEach(k => tot.zones[k] = 0);
   lines.forEach((raw, i) => {
-    const n = normalize(raw), tr = n.trim(), indent = /^[ \t]/.test(raw);
+    const n = normalize(raw), indent = /^[ \t]/.test(raw);
+    let tr = n.trim();
     const info = {i, raw, type:'blank', start:null, dist:0, sec:0};
+    if(tr.startsWith('【太】')){ info.bold = true; tr = tr.slice(3).trim(); }
     if(!tr){ if(hadContent) pendingBlank = true; out.push(info); firstInSection = true; sectionHasTitle = false; return; }
     if(pendingBlank){ elapsed += blankSec; pendingBlank = false; }
     hadContent = true;
@@ -3405,6 +3412,39 @@ function wrapSet(){
   toast('set の前にセット数を数字で入れてください');
 }
 
+/* ---------- 太文字ボタン（カーソルのある行の先頭に【太】を付け外しする） ---------- */
+function toggleBold(){
+  const ta = panelTA(curPanel) || panelTA(0); if(!ta) return;
+  const v = ta.value, ss = ta.selectionStart;
+  const ls = v.lastIndexOf('\n', ss - 1) + 1;
+  let le = v.indexOf('\n', ss); if(le < 0) le = v.length;
+  const line = v.slice(ls, le);
+  const indent = /^[ \t]*/.exec(line)[0];
+  const body = line.slice(indent.length);
+  let nl, on;
+  if(body.startsWith('【太】')){ nl = indent + body.slice(3); on = false; }
+  else { nl = indent + '【太】' + body; on = true; }
+  ta.value = v.slice(0, ls) + nl + v.slice(le);
+  const pos = Math.max(ls, Math.min(ss + (on ? 3 : -3), ls + nl.length));
+  ta.focus(); ta.setSelectionRange(pos, pos);
+  ta.dispatchEvent(new Event('input'));
+  syncBoldBtn();
+  toast(on ? 'この行を太文字にしました' : '太文字をやめました');
+}
+function syncBoldBtn(){
+  const b = $('btnBold'); if(!b) return;
+  const ta = panelTA(curPanel) || panelTA(0);
+  let on = false;
+  if(ta){
+    const v = ta.value, ss = ta.selectionStart;
+    const ls = v.lastIndexOf('\n', ss - 1) + 1;
+    let le = v.indexOf('\n', ss); if(le < 0) le = v.length;
+    on = /^[ \t]*【太】/.test(v.slice(ls, le));
+  }
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-pressed', String(on));
+}
+
 /* ---------- 計算ボタン ---------- */
 let calcItems = [];
 function calcCurrentItem(){
@@ -3537,7 +3577,7 @@ function planTableHtml(i, forPrint){
   const p = M.panels[i];
   const t = analyzeText(p.text, p.team, M.start, strokeKeyOf(p.stroke));
   if(p.memo){
-    return '<h3 class="pvh">' + esc(panelLabel(p)) + '　メモ</h3><div class="pp-col">' + t.lines.filter(l => l.type !== 'blank').map(l => '<div class="pp-row memo"><div class="a"></div><div class="c">' + esc(displayLine(l)) + '</div></div>').join('') + '</div>';
+    return '<h3 class="pvh">' + esc(panelLabel(p)) + '　メモ</h3><div class="pp-col memoCol">' + t.lines.filter(l => l.type !== 'blank').map(l => '<div class="pp-row memo"><div class="a"></div><div class="c">' + (l.bold ? '<b>' + esc(displayLine(l)) + '</b>' : esc(displayLine(l))) + '</div></div>').join('') + '</div>';
   }
   let h = '<h3 class="pvh">' + esc(panelLabel(p)) + '　合計 ' + fmtNum(t.dist) + 'm　' + fmtClock(M.start) + '〜' + secToHm(t.end) + '</h3>';
   h += '<table class="' + (forPrint ? 'pp-cmp pv' : 'list pv') + '"><thead><tr><th class="c1">時刻・距離</th><th>メニュー</th><th class="c2">強度</th><th class="c3">1本の予定タイム</th><th class="c4">予定RPE</th><th class="c5">予定心拍</th>' +
@@ -3577,6 +3617,7 @@ function displayLine(l){
   else if(l.grp){ let r = l.raw; if(l.i === l.grp.last) r = r.slice(0, l.grp.closeCol) + r.slice(l.grp.closeEnd); if(l.i === l.grp.first) r = r.slice(0, l.grp.openCol) + r.slice(l.grp.openCol + 1); s = r.trim(); }
   else if(l.type === 'set') s = l.expr + (l.comment ? '　' + l.comment : '');
   else s = l.raw.replace(/\s+$/, '').replace(/^\s+/, '');
+  s = s.replace(/^\s*【太】/, '');
   s = s.replace(/\s*[#＃]\s*(EZ|A1|A2|AT|VO2|LT|LP|SP|EN1|EN2|EN3|SP1|SP2|SP3)(?![0-9a-z])/ig, '');
   return s.replace(/(\d)["“〃″]/g, '$1”');
 }
@@ -3584,11 +3625,12 @@ function colHtml(t, label, memo){
   const lines = t.lines.slice();
   while(lines.length && lines[lines.length-1].type === 'blank') lines.pop();
   if(memo) lines.forEach(l => { l.grp = null; });
-  let h = '<div class="pp-col"><div class="ch"><span>' + esc(label) + '</span>' + (memo ? '<span>メモ</span>' : '<span>合計 ' + fmtNum(t.dist) + 'm　終了 ' + secToHm(t.end) + '</span>') + '</div>';
+  let h = '<div class="pp-col' + (memo ? ' memoCol' : '') + '"><div class="ch"><span>' + esc(label) + '</span>' + (memo ? '<span>メモ</span>' : '<span>合計 ' + fmtNum(t.dist) + 'm　終了 ' + secToHm(t.end) + '</span>') + '</div>';
   lines.forEach(l => {
     if(l.type === 'blank'){ h += '<div class="pp-row" style="height:.45em"></div>'; return; }
     let a = '';
     let c = esc(displayLine(l));
+    if(l.bold) c = '<b>' + c + '</b>';
     if(l.type === 'title'){ a = secToHm(l.start); if(l.secDist && !memo) c += '<span class="sd">計 ' + fmtNum(l.secDist) + 'm</span>'; }
     else if(l.type === 'set'){ a = fmtNum(l.dist); }
     else if(l.type === 'rest'){ a = secToHm(l.start); }
@@ -8948,6 +8990,9 @@ function init(){
   $('optList').addEventListener('click', e => { const b = e.target.closest('[data-x]'); if(b) optDel(+b.dataset.x); });
   $('btnSet').addEventListener('mousedown', e => e.preventDefault());
   $('btnSet').addEventListener('click', wrapSet);
+  $('btnBold').addEventListener('click', toggleBold);
+  document.addEventListener('keyup', () => syncBoldBtn());
+  document.addEventListener('mouseup', () => syncBoldBtn());
   $('btnToday').addEventListener('click', () => openDate(todayYmd()));
   $('btnCompare').addEventListener('click', openCompare);
   $('cmpPrint').addEventListener('click', () => { closeOv('cmpOv'); doPrint(null, 'compare'); });

@@ -1322,7 +1322,7 @@ body.desk .dLong{display:none}
       <label class="fld">条件<select id="lrBKind"><option value="lastRepFast">最後の本だけFast（デセンド型：1~4なら4本目）</option></select></label>
       <button class="btn" type="button" id="lrBAdd">登録する</button>
     </div>
-    <p class="muted" style="margin-top:8px">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
+    <p class="muted" style="margin-top:8px">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
     <style>
       #lrCard .lrRow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px}
       #lrCard .lrRow .fld{margin:0}
@@ -3336,6 +3336,7 @@ function analyzeText(text, team, startHm, panelStroke){
     let m;
     if(/^(※|・|\/\/|>|＞)/.test(tr)){
       info.type = 'memo';
+      info.memoText = tr;
       if(lastSet){
         if(!lastSet._memos) lastSet._memos = [];
         lastSet._memos.push(tr);
@@ -3398,6 +3399,7 @@ function analyzeText(text, team, startHm, panelStroke){
     info.type = 'memo'; out.push(info);
   });
   const noteUnknown = w => { if(w && !tot.unknown.includes(w)) tot.unknown.push(w); };
+  const addAtomFast = (info, ai, meters) => { if(ai < 0 || !info.atoms || !info.atoms[ai]) return; if(!info._fa) info._fa = {}; const cap = info.atoms[ai].d * info.atoms[ai].n; info._fa[ai] = Math.min(cap, Math.max(info._fa[ai] || 0, meters)); };
   out.forEach(info => {
     if(info.type !== 'set') return;
     if(info._fullFast && !info.fastFull) info.fastFull = info.dist;
@@ -3410,27 +3412,29 @@ function analyzeText(text, team, startHm, panelStroke){
       if(od && ev) f = od.dash * Math.ceil(reps / 2) + ev.dash * Math.floor(reps / 2);
       else if(od) f = od.dash * reps;
       else if(ev) f = ev.dash * Math.floor(reps / 2);
-      if(f > 0) info.fastDash = f;
+      if(f > 0) addAtomFast(info, 0, f);
     }
     [info.comment || ''].concat(info._memos || []).forEach(tx => {
       const m = /(\d+(?:\.\d+)?)\s*m\s*=\s*(.+)$/.exec(tx || '');
       if(!m) return;
       const D = parseFloat(m[1]), val = m[2].trim();
-      const atom = (info.atoms || []).find(a => Math.abs(a.d - D) <= 0.01);
+      if(val.indexOf(',') >= 0 || val.indexOf('、') >= 0) return;
+      const ai = (info.atoms || []).findIndex(a => Math.abs(a.d - D) <= 0.01);
+      const atom = ai >= 0 ? info.atoms[ai] : null;
       if(!atom) return;
       const desm = /^(\d+)\s*[~\u301c-]\s*(\d+)\s*([A-Za-z]+)?$/.exec(val.replace(/\s+/g, ''));
       if(desm && blockRuleKind(desm[3] || 'DES') === 'lastRepFast'){
         const g = parseInt(desm[2], 10);
-        if(g > 0) info.fastDash = (info.fastDash || 0) + Math.floor(atom.n / g) * atom.d;
+        if(g > 0) addAtomFast(info, ai, Math.floor(atom.n / g) * atom.d);
         return;
       }
-      if(/^[A-Za-z]+$/.test(val) && blockRuleKind(val) === 'lastRepFast'){ info.fastDash = (info.fastDash || 0) + atom.d; return; }
+      if(/^[A-Za-z]+$/.test(val) && blockRuleKind(val) === 'lastRepFast'){ addAtomFast(info, ai, atom.d); return; }
       const tail = /([A-Za-z]+)$/.exec(val);
       if(tail && !isFastLabel(tail[1]) && !isSlowLabel(tail[1]) && !blockRuleKind(tail[1])) noteUnknown(tail[1]);
       const pair = /^([A-Za-z]+)\s*\/\s*([A-Za-z]+)$/.exec(val);
       if(pair){
         [pair[1], pair[2]].forEach(w => { if(!isFastLabel(w) && !isSlowLabel(w)) noteUnknown(w); });
-        if(isFastLabel(pair[1])) info.fastDash = (info.fastDash || 0) + Math.ceil(atom.n / 2) * atom.d;
+        if(isFastLabel(pair[1])) addAtomFast(info, ai, Math.ceil(atom.n / 2) * atom.d);
         return;
       }
       const segs = [];
@@ -3441,17 +3445,28 @@ function analyzeText(text, team, startHm, panelStroke){
         segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); });
         const fd = segs.reduce((a, sg) => a + (isFastLabel(sg.label) ? sg.d : 0), 0);
         const sum = segs.reduce((a, sg) => a + sg.d, 0);
-        if(fd > 0 && sum <= D + 1) info.fastDash = (info.fastDash || 0) + fd * atom.n;
+        if(fd > 0 && sum <= D + 1) addAtomFast(info, ai, fd * atom.n);
         return;
       }
       if(/^[A-Za-z]+$/.test(val)){
-        if(isFastLabel(val)) info.fastDash = (info.fastDash || 0) + atom.n * atom.d;
+        if(isFastLabel(val)) addAtomFast(info, ai, atom.n * atom.d);
         else if(!isSlowLabel(val)) noteUnknown(val);
       }
     });
-    tot.fastDash += info.fastDash || 0;
     tot.fastFull += info.fastFull || 0;
   });
+  // 宣言型（○mFast）：その区切り（タイトル行の範囲）全体で、その距離のブロックを全部 Fast とする
+  {
+    const sections = []; let cur = {sets: [], decls: []}; sections.push(cur);
+    const collectDecl = tx => { const re = /(\d+(?:\.\d+)?)\s*mFast(?![A-Za-z])/gi; let dm; while((dm = re.exec(tx || '')) !== null){ const before = dm.index > 0 ? tx[dm.index - 1] : ''; if(before === '=' || before === '+') continue; cur.decls.push(parseFloat(dm[1])); } };
+    out.forEach(info => {
+      if(info.type === 'title'){ cur = {sets: [], decls: []}; sections.push(cur); return; }
+      if(info.type === 'set'){ cur.sets.push(info); collectDecl(info.comment); }
+      else if(info.type === 'memo'){ collectDecl(info.memoText); }
+    });
+    sections.forEach(sec => { sec.decls.forEach(D => { sec.sets.forEach(info => { (info.atoms || []).forEach((a, ai) => { if(Math.abs(a.d - D) <= 0.01) addAtomFast(info, ai, a.d * a.n); }); }); }); });
+  }
+  out.forEach(info => { if(info.type !== 'set') return; info.fastDash = Object.values(info._fa || {}).reduce((a, v) => a + v, 0); tot.fastDash += info.fastDash; });
   tot.fastTotal = tot.fastDash + tot.fastFull;
   tot.elapsed = elapsed; tot.end = start + elapsed; tot.start = start;
   tot.lines = out;

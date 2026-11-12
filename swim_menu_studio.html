@@ -227,12 +227,12 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #symRow button[data-tip]:hover::after,#symRow button[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;left:0;top:calc(100% + 8px);z-index:50;background:#16202e;color:#fff;font-size:18px;font-weight:700;line-height:1.5;padding:10px 14px;border-radius:10px;white-space:normal;width:max-content;max-width:420px;text-align:left;box-shadow:0 6px 18px rgba(0,0,0,.3)}
 #symRow button[data-tip]:hover::before,#symRow button[data-tip]:focus-visible::before{content:"";position:absolute;left:18px;top:calc(100% + 1px);border:7px solid transparent;border-bottom-color:#16202e;z-index:51}
 #menuWrap{display:flex;gap:14px;align-items:flex-start}
-#panels{flex:1;display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;min-width:0}
+#panels{flex:1;display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;min-width:0;align-items:flex-start}
 .panel{flex:1 1 0;min-width:340px;background:#fff;border:2px solid var(--line);border-radius:12px;display:flex;flex-direction:column}
 .panel.cur{border-color:var(--blue)}
 .phead{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:#f5f8fb;border-radius:10px 10px 0 0;flex-wrap:wrap}
 .phead select{font-size:17px;font-weight:700;border:2px solid var(--line);border-radius:8px;padding:3px 8px}
-.editor{display:flex;position:relative;height:62vh;min-height:380px}
+.editor{display:flex;position:relative}
 .gutter{width:84px;flex-shrink:0;overflow:hidden;background:#fafbfc;border-right:1px solid var(--line);font-size:calc(var(--edfont) * .8);padding-top:10px}
 .grow{height:var(--edlh);line-height:var(--edlh);display:flex;white-space:nowrap}
 .grow .gt{width:54px;text-align:right;padding-right:6px;color:#8a97a6}
@@ -663,15 +663,15 @@ body.desk .dLong{display:none}
   .pfoot .zlegend{display:none}
   .pfoot .zbar{height:6px;margin-top:3px}
   #planStrip{margin:0 0 8px;padding:5px 10px;font-size:14px}
-  #menuWrap{gap:10px;flex-direction:row!important;align-items:flex-start}
+  #menuWrap{gap:10px;flex-direction:row!important;align-items:flex-start;padding-bottom:100px}
   #menuWrap #advice{position:static;width:300px;flex-shrink:0;height:var(--advh,auto);overflow-y:auto;border-radius:12px}
   #menuWrap.many #advice{width:260px}
   #menuWrap #advice .card{padding:12px}
   #menuWrap #advice h2{font-size:17px;margin-bottom:6px}
-  #panels .panel{height:var(--panh,auto)}
+  #panels .panel{height:auto}
   #panels .panel .phead,#panels .panel .pfoot{flex-shrink:0}
-  #panels .panel .editor{flex:1 1 auto;height:auto;min-height:200px}
-  .editor textarea{padding-bottom:90px}
+  #panels .panel .editor{flex:1 1 auto;height:auto}
+  .editor textarea{padding-bottom:10px}
   .gin{padding-bottom:90px}
   #advText{height:calc(var(--advh,60vh) - 330px);min-height:160px}
   .dock{position:fixed;z-index:45;display:flex;align-items:center;gap:6px;background:var(--navy);padding:8px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
@@ -835,8 +835,8 @@ body.desk .dLong{display:none}
     <div class="cjNeed" style="margin-top:12px">
       <h3 style="margin:0 0 6px;font-size:14.5px">足りない情報を足す（任意）― 足すと判定が正確になります</h3>
       <div class="cjRow" style="margin-top:6px">
-        <label class="fld">実泳タイム（1本の平均・100m換算）<input type="text" id="cjSwim" placeholder="例：1'10" style="width:110px"></label>
         <label class="fld">セット間レスト（秒）<input type="text" id="cjSetRest" placeholder="例：120" style="width:90px"></label>
+        <span class="muted">実泳タイムは、判定結果に出る各ブロックの説明の下の欄に入れます（ブロックごとに違ってかまいません）。</span>
       </div>
     </div>
     <div id="cjNeedOut"></div>
@@ -882,6 +882,7 @@ body.desk .dLong{display:none}
       var TAG2CLS = {EZ:'AEC', A1:'AEC', A2:'AEC', AT:'AEP', VO2:'AEP', LT:'乳酸耐性', LP:'ANC', SP:'ANP'};
       var STROKE_JP = {Fr:'自由形', Ba:'背泳ぎ', Br:'平泳ぎ', Fly:'バタフライ', IM:'個人メドレー', fr:'自由形', free:'自由形'};
       var selPanel = 0, selLine = 0;
+      var blockSwim = {};
       function parseCycle(str){
         if(str == null) return null;
         str = String(str).trim();
@@ -1011,9 +1012,11 @@ body.desk .dLong{display:none}
         var L = ls[selLine];
         if(!L){ out.innerHTML = ''; needOut.innerHTML = ''; return; }
         var ref = refNow();
-        var swim100 = parseCycle($('cjSwim').value);
         var setRest = parseInt($('cjSetRest').value, 10);
-        var judged = L.blocks.map(function(b){ return judgeBlock(b, ref, swim100); });
+        var swimSecs = L.blocks.map(function(b, bi){ var raw = blockSwim[selPanel + ':' + selLine + ':' + bi]; return raw ? parseCycle(raw) : null; });
+        var anySwim = swimSecs.some(function(s){ return s != null; });
+        var allSwim = swimSecs.length > 0 && swimSecs.every(function(s){ return s != null; });
+        var judged = L.blocks.map(function(b, bi){ var sw = swimSecs[bi]; var j = judgeBlock(b, ref, sw != null ? sw / b.dist * 100 : null); j.hasSwim = sw != null; return j; });
         var totalDist = L.blocks.reduce(function(a,b){ return a + b.dist*b.reps; }, 0) * L.setMult;
         var cycleTime = L.blocks.reduce(function(a,b){ return a + (b.cycle||0)*b.reps; }, 0) * L.setMult;
         var setRestTotal = (L.setMult > 1 && isFinite(setRest)) ? setRest*(L.setMult - 1) : 0;
@@ -1037,13 +1040,19 @@ body.desk .dLong{display:none}
         html += '<div class="grid">'
           + '<div class="cell"><div class="k">総距離</div><div class="v">' + totalDist.toLocaleString() + 'm</div></div>'
           + '<div class="cell"><div class="k">総時間（サークル＋セット間）</div><div class="v">' + (cycleTime ? fmtT(totalTime) : '―') + '</div></div>'
-          + '<div class="cell"><div class="k">泳ぐ時間（' + (swim100 != null ? '実泳' : '推定') + '）</div><div class="v">' + (cycleTime ? fmtT(swimTotal) : '―') + '</div></div>'
-          + '<div class="cell"><div class="k">休憩の合計（' + (swim100 != null ? '実泳から計算' : '推定') + '）</div><div class="v">' + (cycleTime ? fmtT(restTotal) : '―') + '</div></div>'
+          + '<div class="cell"><div class="k">泳ぐ時間（' + (allSwim ? '実泳' : anySwim ? '一部実泳' : '推定') + '）</div><div class="v">' + (cycleTime ? fmtT(swimTotal) : '―') + '</div></div>'
+          + '<div class="cell"><div class="k">休憩の合計（' + (allSwim ? '実泳から計算' : anySwim ? '一部実泳から計算' : '推定') + '）</div><div class="v">' + (cycleTime ? fmtT(restTotal) : '―') + '</div></div>'
           + '<div class="cell"><div class="k">基準</div><div class="v">' + esc($('cjAth').value || '基準') + '<small>　ベスト ' + fmtT(ref.best) + '／V4 ' + fmtT(ref.v4) + '（100m）</small></div></div>'
           + '</div>';
         html += '<p class="why">' + judged.map(function(j){ return '<b>' + j.dist + 'm×' + j.reps + '</b>：' + j.why; }).join('<br>') + '</p>';
+        var swimRows = judged.map(function(j, bi){
+          if(j.cycle == null) return '';
+          var val = blockSwim[selPanel + ':' + selLine + ':' + bi] || '';
+          return '<div style="margin:5px 0"><b>' + j.dist + 'm×' + j.reps + '</b> の実泳タイム（1本）<input type="text" data-cjswim="' + bi + '" value="' + esc(val) + '" placeholder="例：' + fmtT(Math.round(ref.best * j.dist / 100)) + '" style="width:100px;margin-left:8px;border:1.5px solid #b9c7d6;border-radius:8px;padding:5px 8px;font-size:14.5px"> <span class="muted">このブロックを実際に何秒で泳いだか（その距離のタイムのまま）</span></div>';
+        }).join('');
+        if(swimRows) html += '<div style="margin-top:8px">' + swimRows + '</div>';
         if(mainCls === 'AEC' && totalDist < 600) html += '<p class="why warn">⚠️ AECの判定ですが、総距離が' + totalDist + 'mと少ないため、土台づくりの刺激としては弱い量です。</p>';
-        if(swim100 != null && judged.some(function(j){ return j.cycle != null && j.swim1 > j.cycle; })) html += '<p class="why warn">⚠️ 実泳タイムがサークルを超えている本があります（サークルに入っていません）。</p>';
+        if(judged.some(function(j){ return j.hasSwim && j.cycle != null && j.swim1 > j.cycle; })) html += '<p class="why warn">⚠️ 実泳タイムがサークルを超えている本があります（サークルに入っていません）。</p>';
         out.innerHTML = html;
         var hasCycle = L.blocks.every(function(b){ return b.cycle != null; });
         var needs = [
@@ -1051,7 +1060,7 @@ body.desk .dLong{display:none}
           {ok:ref.ok, name:'基準の選手（ベスト／V4ペース）', how:'上の欄にベストとV4ペースを入れてください。今は仮の値（ベスト60秒／V4 1\'10）で判定しています'},
           {ok:hasCycle, name:'サークル', how:'サークルがない練習は、速さも休憩も読めず判定できません'},
           {ok:!!p.stroke, name:'種目', how:'列の種目が未設定です。同じ表記でも種目で強さの意味が変わります'},
-          {ok:swim100 != null, name:'実泳タイム', how:'サークルは「上限」です。実際に何秒で泳いだかが分からないと、休憩と本当の強さは推定止まりで、ANC／ANPは確定できません'},
+          {ok:allSwim, name:'実泳タイム', how:'判定結果の各ブロックの下にある「実泳タイム（1本）」に、そのブロックのタイムを入れてください。サークルは「上限」です。実際に何秒で泳いだかが分からないと、休憩と本当の強さは推定止まりで、ANC／ANPは確定できません'},
           {ok:L.setMult <= 1 || isFinite(setRest), name:'セット間レスト', how:'[ ]*set の「間」の休みは表記に含まれません。回復の量が変わります'}
         ];
         var got = needs.filter(function(n){ return n.ok; }).length;
@@ -1075,7 +1084,16 @@ body.desk .dLong{display:none}
         $('cjPanel').addEventListener('change', function(){ selPanel = +$('cjPanel').value; selLine = 0; renderList(); });
         $('cjAth').addEventListener('change', function(){ loadRef(); renderJudge(); });
         ['cjBest','cjV4'].forEach(function(id){ $(id).addEventListener('input', function(){ saveRef(); renderJudge(); }); });
-        ['cjSwim','cjSetRest'].forEach(function(id){ $(id).addEventListener('input', renderJudge); });
+        $('cjSetRest').addEventListener('input', renderJudge);
+        $('cjOut').addEventListener('input', function(e){
+          var t = e.target;
+          if(!t || !t.getAttribute || t.getAttribute('data-cjswim') == null) return;
+          var bi = t.getAttribute('data-cjswim');
+          blockSwim[selPanel + ':' + selLine + ':' + bi] = t.value;
+          renderJudge();
+          var again = $('cjOut').querySelector('[data-cjswim="' + bi + '"]');
+          if(again){ again.focus(); try{ again.setSelectionRange(again.value.length, again.value.length); }catch(err){} }
+        });
         var panelsEl = document.getElementById('panels');
         if(panelsEl){ var t = null; panelsEl.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(renderList, 600); }); }
         window.__cjRefresh = refreshAll;
@@ -3793,6 +3811,7 @@ function renderPanels(){
     box.appendChild(el);
     const ta = el.querySelector('textarea'), sel = el.querySelector('[data-team]'), ssel = el.querySelector('[data-stroke]'), gut = el.querySelector('.gutter');
     ta.value = p.text || '';
+    fitTAEl(ta);
     ta.addEventListener('input', () => {
       if(/\d"/.test(ta.value)){ const ss = ta.selectionStart, se = ta.selectionEnd; ta.value = ta.value.replace(/(\d)"/g, '$1”'); ta.setSelectionRange(ss, se); }
       p.text = ta.value; updatePrintCount(); updatePanel(i); commitMenu(); updateCursor(i, true); });
@@ -3877,8 +3896,11 @@ function updatePrintCount(){
 }
 function panelEl(i){ return $('panels').children[i]; }
 function panelTA(i){ const el = panelEl(i); return el ? el.querySelector('textarea') : null; }
+function fitTAEl(ta){ if(!ta || !ta.scrollHeight) return; ta.style.height = 'auto'; ta.style.height = Math.max(ta.scrollHeight + 2, 124) + 'px'; }
+function fitPanelTA(i){ fitTAEl(panelTA(i)); }
 function updatePanel(i){
   const p = M.panels[i], el = panelEl(i); if(!el) return;
+  fitPanelTA(i);
   const tot = analyzeText(p.text, p.team, M.start, strokeKeyOf(p.stroke));
   panelTots[i] = tot;
   const rows = tot.lines.map(l => {
@@ -7328,7 +7350,7 @@ function fitEditor(){
   if(!deskOn || !$('vMenu').classList.contains('active')) return;
   const p = document.querySelector('#panels .panel'); if(!p) return;
   const top = p.getBoundingClientRect().top;
-  const h = Math.max(380, Math.floor(window.innerHeight - top - 10));
+  const h = Math.max(380, Math.min(window.innerHeight, Math.floor(window.innerHeight - top - 10)));
   document.documentElement.style.setProperty('--panh', h + 'px');
   const ed = p.querySelector('.editor'); if(ed) document.documentElement.style.setProperty('--edh', ed.offsetHeight + 'px');
   document.documentElement.style.setProperty('--advh', h + 'px');
@@ -9670,7 +9692,7 @@ function showView(id){
   if(id === 'vLib') renderLib();
   if(id === 'vYear') renderYear();
   if(id === 'vTests') renderTests();
-  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); if(window.__lrRefresh) window.__lrRefresh(); renderPlanStrip(); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
+  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); if(window.__lrRefresh) window.__lrRefresh(); renderPlanStrip(); requestAnimationFrame(function(){ if(typeof fitPanelTA === 'function' && typeof M !== 'undefined' && M && M.panels) M.panels.forEach(function(_, k){ fitPanelTA(k); }); }); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
 }
 function init(){
   applyFont();

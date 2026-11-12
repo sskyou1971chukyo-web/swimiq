@@ -944,9 +944,17 @@ body.desk .dLong{display:none}
       function strokeLabel(s){ return STROKE_JP[s] || s || ''; }
       function panelLines(p){
         if(p.memo) return [];
-        return p.text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){
+        var rawLines = p.text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){
           return s && !/^[※\/＞>]/.test(s) && !/^\*\*/.test(s);
-        }).map(function(raw){ var pm = parseMenu(raw); return pm.blocks.length ? {raw:raw, blocks:pm.blocks, setMult:pm.setMult} : null; }).filter(Boolean);
+        });
+        var entries = [], buf = null;
+        rawLines.forEach(function(s){
+          if(buf){ buf.push(s); if(s.indexOf(']') >= 0){ entries.push(buf.join('+')); buf = null; } return; }
+          if(s.indexOf('[') >= 0 && s.indexOf(']') < 0){ buf = [s]; return; }
+          entries.push(s);
+        });
+        if(buf) entries.push(buf.join('+'));
+        return entries.map(function(raw){ var pm = parseMenu(raw); return pm.blocks.length ? {raw:raw, blocks:pm.blocks, setMult:pm.setMult} : null; }).filter(Boolean);
       }
       function refNow(){
         var best = parseCycle($('cjBest').value), v4 = parseCycle($('cjV4').value);

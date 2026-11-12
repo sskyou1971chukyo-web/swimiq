@@ -664,7 +664,7 @@ body.desk .dLong{display:none}
   .pfoot .zbar{height:6px;margin-top:3px}
   #planStrip{margin:0 0 8px;padding:5px 10px;font-size:14px}
   #menuWrap{gap:10px;flex-direction:row!important;align-items:flex-start;padding-bottom:100px}
-  #menuWrap #advice{position:static;width:300px;flex-shrink:0;height:var(--advh,auto);overflow-y:auto;border-radius:12px}
+  #menuWrap #advice{position:static;width:300px;flex-shrink:0;height:auto;border-radius:12px}
   #menuWrap.many #advice{width:260px}
   #menuWrap #advice .card{padding:12px}
   #menuWrap #advice h2{font-size:17px;margin-bottom:6px}
@@ -673,7 +673,7 @@ body.desk .dLong{display:none}
   #panels .panel .editor{flex:1 1 auto;height:auto}
   .editor textarea{padding-bottom:10px}
   .gin{padding-bottom:90px}
-  #advText{height:calc(var(--advh,60vh) - 330px);min-height:160px}
+  #advText{height:auto;min-height:120px}
   .dock{position:fixed;z-index:45;display:flex;align-items:center;gap:6px;background:var(--navy);padding:8px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
   .dock.hidden{display:none}
   .dockBody{display:flex;align-items:center;gap:6px}
@@ -883,6 +883,7 @@ body.desk .dLong{display:none}
       var STROKE_JP = {Fr:'自由形', Ba:'背泳ぎ', Br:'平泳ぎ', Fly:'バタフライ', IM:'個人メドレー', fr:'自由形', free:'自由形'};
       var selPanel = 0, selLine = 0;
       var blockSwim = {};
+      var focusLine = false;
       function parseCycle(str){
         if(str == null) return null;
         str = String(str).trim();
@@ -990,7 +991,10 @@ body.desk .dLong{display:none}
         if(p.memo){ box.innerHTML = '<p class="muted">この列はメモ表示のため、判定の対象にしません。</p>'; $('cjOut').innerHTML = ''; $('cjNeedOut').innerHTML = ''; return; }
         var ls = panelLines(p);
         if(selLine >= ls.length) selLine = 0;
-        box.innerHTML = ls.length ? ls.map(function(L, i){
+        if(focusLine && !ls[selLine]) focusLine = false;
+        var showIdx = ls.map(function(_, i){ return i; }).filter(function(i){ return !focusLine || i === selLine; });
+        box.innerHTML = ls.length ? (focusLine ? '<p class="muted" style="margin:0 0 6px">選択中の行だけを表示しています。もう一度クリックすると全部の行を表示します。</p>' : '') + showIdx.map(function(i){
+          var L = ls[i];
           var total = L.blocks.reduce(function(a,b){ return a + b.dist*b.reps; }, 0) * L.setMult;
           var tsec = L.blocks.reduce(function(a,b){ return a + (b.cycle||0)*b.reps; }, 0) * L.setMult;
           var hasCycle = L.blocks.every(function(b){ return b.cycle != null; });
@@ -1000,7 +1004,12 @@ body.desk .dLong{display:none}
             + (L.setMult > 1 ? '<span class="chip">' + L.setMult + 'セット</span>' : '')
             + '</button>';
         }).join('') : '<p class="muted">この列には、読み取れる練習（例：100m*10(1\'30)）がまだありません。</p>';
-        box.querySelectorAll('[data-cjl]').forEach(function(b){ b.addEventListener('click', function(){ selLine = +b.dataset.cjl; renderList(); }); });
+        box.querySelectorAll('[data-cjl]').forEach(function(b){ b.addEventListener('click', function(){
+          var idx = +b.dataset.cjl;
+          if(focusLine && idx === selLine){ focusLine = false; }
+          else { selLine = idx; focusLine = true; }
+          renderList();
+        }); });
         renderJudge();
       }
       function renderJudge(){
@@ -1081,7 +1090,7 @@ body.desk .dLong{display:none}
         loadRef();
         renderPanels();
         $('cjRefresh').addEventListener('click', refreshAll);
-        $('cjPanel').addEventListener('change', function(){ selPanel = +$('cjPanel').value; selLine = 0; renderList(); });
+        $('cjPanel').addEventListener('change', function(){ selPanel = +$('cjPanel').value; selLine = 0; focusLine = false; renderList(); });
         $('cjAth').addEventListener('change', function(){ loadRef(); renderJudge(); });
         ['cjBest','cjV4'].forEach(function(id){ $(id).addEventListener('input', function(){ saveRef(); renderJudge(); }); });
         $('cjSetRest').addEventListener('input', renderJudge);
@@ -4017,6 +4026,8 @@ function renderAdvice(reset){
     $('advHead').textContent = a.head;
     $('advText').value = a.full;
   }
+  const advTa = $('advText');
+  if(advTa && advTa.scrollHeight){ advTa.style.height = 'auto'; advTa.style.height = advTa.scrollHeight + 'px'; }
   const tag = info && info.type === 'set' ? info.zone : null;
   zb.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.z === tag));
   $('advOk').disabled = !a.short;

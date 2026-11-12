@@ -817,6 +817,391 @@ body.desk .dLong{display:none}
       </div>
     </aside>
   </div>
+  <div class="card" id="cjCard" style="margin-top:12px">
+    <h2 style="margin-top:0">クリック判定（AEC／AEP／ANC／ANP）</h2>
+    <p class="muted" style="margin:4px 0 10px">今開いているメニューの列から、練習をクリックすると、休憩・総距離・総時間・強度からカテゴリーを判定します。判定は推定です（根拠は Olbrecht『The Science of Winning』第2章の4クラス）。</p>
+    <div class="cjRow">
+      <label class="fld">列（パネル）<select id="cjPanel"></select></label>
+      <button class="btn" type="button" id="cjRefresh">最新の内容で判定し直す</button>
+    </div>
+    <div class="cjRow">
+      <label class="fld">基準にする選手<select id="cjAth"></select></label>
+      <label class="fld">100mベスト（秒または 1'02）<input type="text" id="cjBest" style="width:100px"></label>
+      <label class="fld">V4ペース・100m（秒または 1'10）<input type="text" id="cjV4" style="width:100px"></label>
+    </div>
+    <p class="muted" style="margin:2px 0 8px">強さは「その選手にとって速いか」で決まります。基準を変えると、同じ練習でも判定が変わります。基準の値は選手ごとに保存されます。</p>
+    <div id="cjList"></div>
+    <div id="cjOut" style="margin-top:10px"></div>
+    <div class="cjNeed" style="margin-top:12px">
+      <h3 style="margin:0 0 6px;font-size:14.5px">足りない情報を足す（任意）― 足すと判定が正確になります</h3>
+      <div class="cjRow" style="margin-top:6px">
+        <label class="fld">実泳タイム（1本の平均・100m換算）<input type="text" id="cjSwim" placeholder="例：1'10" style="width:110px"></label>
+        <label class="fld">セット間レスト（秒）<input type="text" id="cjSetRest" placeholder="例：120" style="width:90px"></label>
+      </div>
+    </div>
+    <div id="cjNeedOut"></div>
+    <style>
+      #cjCard .cjRow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:8px}
+      #cjCard .cjRow .fld{margin:0}
+      #cjCard select,#cjCard input[type=text]{border:1.5px solid #b9c7d6;border-radius:8px;padding:6px 8px;font-size:14.5px}
+      #cjCard .cjPrac{display:block;width:100%;text-align:left;background:#fff;border:2px solid #d4dde6;border-radius:10px;padding:9px 12px;margin-bottom:8px;cursor:pointer;font-family:inherit}
+      #cjCard .cjPrac:hover{border-color:#2b7bbb}
+      #cjCard .cjPrac.on{border-color:#2b7bbb;background:#eef5fc}
+      #cjCard .cjPrac .txt{font-size:16px;font-weight:700;word-break:break-all}
+      #cjCard .chip{display:inline-block;background:#eef3f8;border:1px solid #d4dde6;border-radius:20px;padding:1px 10px;font-size:12.5px;margin:4px 4px 0 0}
+      #cjCard .badge{display:inline-block;color:#fff;font-weight:800;font-size:18px;border-radius:10px;padding:7px 15px}
+      #cjCard .badge .en{font-size:22px;margin-right:8px}
+      #cjCard .plain{font-size:14px;color:#5a6b7c;margin-top:6px}
+      #cjCard .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px}
+      #cjCard .cell{background:#f7f9fb;border:1px solid #d4dde6;border-radius:10px;padding:8px 10px}
+      #cjCard .cell .k{font-size:12px;color:#5a6b7c}
+      #cjCard .cell .v{font-size:17px;font-weight:700;margin-top:2px}
+      #cjCard .cell .v small{font-size:12px;color:#5a6b7c;font-weight:400}
+      #cjCard .why{font-size:15px;line-height:1.65;margin-top:12px}
+      #cjCard .cjNeed{background:#fdf6e9;border:1.5px solid #eed9ae;border-radius:10px;padding:10px 12px}
+      #cjCard .needBox{background:#fdf6e9;border:1.5px solid #eed9ae;border-radius:10px;padding:10px 12px;margin-top:12px}
+      #cjCard .needBox div{padding:4px 0;border-bottom:1px solid #f0e3c0;font-size:14px}
+      #cjCard .needBox div:last-child{border-bottom:none}
+      #cjCard .conf{font-size:14px;margin-top:10px}
+      #cjCard .dots{color:#2b7bbb;letter-spacing:2px}
+      #cjCard .blkChip{display:inline-block;border-radius:8px;color:#fff;font-weight:700;font-size:13px;padding:3px 10px;margin:2px 4px 2px 0}
+      #cjCard .warn{color:#b3261e;font-weight:700}
+    </style>
+    <script>
+    (function(){
+      var $ = function(id){ return document.getElementById(id); };
+      var CLS = {
+        'AEC':{color:'#2b7bbb', plain:'有酸素キャパシティ ― スタミナの土台づくり'},
+        'AEP':{color:'#2e9e6a', plain:'有酸素パワー ― 酸素を速く届ける力'},
+        'ANC':{color:'#e88b2d', plain:'無酸素キャパシティ ― 乳酸を作る力'},
+        'ANP':{color:'#d9534f', plain:'無酸素パワー ― 瞬発・最高速度'},
+        '乳酸耐性':{color:'#8e44ad', plain:'乳酸耐性 ― きつさに耐えて泳ぎ切る'},
+        '混在':{color:'#607080', plain:'ブロックごとに種類が分かれます'},
+        '判定保留':{color:'#98a4b3', plain:'材料が足りず、まだ判定できません'}
+      };
+      var TAG2CLS = {EZ:'AEC', A1:'AEC', A2:'AEC', AT:'AEP', VO2:'AEP', LT:'乳酸耐性', LP:'ANC', SP:'ANP'};
+      var STROKE_JP = {Fr:'自由形', Ba:'背泳ぎ', Br:'平泳ぎ', Fly:'バタフライ', IM:'個人メドレー', fr:'自由形', free:'自由形'};
+      var selPanel = 0, selLine = 0;
+      function parseCycle(str){
+        if(str == null) return null;
+        str = String(str).trim();
+        if(!str) return null;
+        var q = str.match(/^(\d+)”$/); if(q) return +q[1];
+        str = str.replace(/”/g, '');
+        var m = str.match(/^(\d+)'(\d+)$/); if(m) return +m[1]*60 + +m[2];
+        m = str.match(/^(\d+)'$/); if(m) return +m[1]*60;
+        m = str.match(/^(\d+):(\d+)$/); if(m) return +m[1]*60 + +m[2];
+        m = str.match(/^(\d+(?:\.\d+)?)$/); if(m) return +m[1];
+        return null;
+      }
+      function fmtT(sec){
+        if(sec == null || !isFinite(sec)) return '―';
+        sec = Math.round(sec);
+        var m = Math.floor(sec/60), s = sec%60;
+        return m > 0 ? m + "'" + String(s).padStart(2,'0') : s + '秒';
+      }
+      function parseMenu(text){
+        var setMult = 1;
+        var sm = text.match(/\]\s*\*\s*(\d+)\s*set/i) || text.match(/\]\s*(\d+)\s*set/i);
+        if(sm) setMult = +sm[1];
+        var inner = text.replace(/[\[\]]/g, '').replace(/\*\s*\d+\s*set/i, '').replace(/\d+\s*set/i, '');
+        var blocks = [];
+        inner.split('+').forEach(function(part){
+          var m = part.trim().match(/(\d+(?:\.\d+)?)\s*m\s*[*×xX]\s*(\d+)\s*t?\s*(?:\(([^)]+)\))?/i);
+          if(m) blocks.push({dist:+m[1], reps:+m[2], cycle:parseCycle(m[3])});
+        });
+        return {blocks:blocks, setMult:setMult};
+      }
+      function judgeBlock(b, ref, swim100){
+        var out = {dist:b.dist, reps:b.reps, cycle:b.cycle, blockDist:b.dist*b.reps};
+        if(b.cycle == null){ out.cls = '判定保留'; out.why = 'サークル（周期）がないため、速さも休憩も読めません。'; return out; }
+        var pace100 = b.cycle/b.dist*100;
+        var swimPace100 = swim100 != null ? swim100 : Math.min(pace100, ref.v4);
+        out.swim1 = swimPace100*(b.dist/100);
+        out.rest1 = Math.max(0, b.cycle - out.swim1);
+        out.restRatio = out.swim1 > 0 ? out.rest1/out.swim1 : 0;
+        var judgedBy = swim100 != null ? swim100 : pace100;
+        if(b.dist <= 50){
+          if(b.dist <= 25 && out.restRatio >= 1.5 && judgedBy <= ref.v4 + 10){ out.cls = 'ANP'; out.why = '25m以下の短さで、休憩が泳ぐ時間の' + out.restRatio.toFixed(1) + '倍あります。最高速度を繰り返す瞬発の練習です。'; return out; }
+          if(out.restRatio >= 0.4){ out.cls = 'ANC'; out.why = '短い距離にゆとりのあるサークルです。全力に近く泳げば、乳酸を作る力（無酸素キャパシティ）の練習になります。' + (swim100 == null ? ' 実際に速く泳いだかは実泳タイムがないと確定しません。' : ''); return out; }
+          if(pace100 >= ref.v4 + 6){ out.cls = 'AEC'; out.why = '短い距離を楽なペースで積む形です。土台づくりとして扱います。'; return out; }
+          out.cls = 'AEP'; out.why = '短い距離をV4ペース付近で回す形です。'; return out;
+        }
+        if(judgedBy >= ref.v4 + 6){ out.cls = 'AEC'; out.why = 'ペース（100m換算 ' + fmtT(judgedBy) + '）がV4ペース（' + fmtT(ref.v4) + '）よりゆっくりで、楽に長く泳ぐ領域です。'; return out; }
+        if(judgedBy >= ref.v4 - 3){ out.cls = 'AEP'; out.why = 'ペース（100m換算 ' + fmtT(judgedBy) + '）がV4ペース（' + fmtT(ref.v4) + '）付近で、有酸素パワーの領域です。'; return out; }
+        if(judgedBy >= ref.best + 4){ out.cls = '乳酸耐性'; out.why = 'V4より速く、ベストペースよりは遅い領域です。きつい状態で泳ぎ切る乳酸耐性の練習になります。'; return out; }
+        if(out.restRatio >= 1){ out.cls = 'ANC'; out.why = 'ベストペースに近い速さで、休憩もしっかりあります。乳酸を作る力の練習です。'; return out; }
+        out.cls = '乳酸耐性'; out.why = 'ベストペースに近い速さを、短い休憩でつなぐ形です。乳酸耐性の練習になります。'; return out;
+      }
+      function panelsNow(){
+        if(typeof M === 'undefined' || !M || !Array.isArray(M.panels)) return [];
+        return M.panels.map(function(p, i){
+          var text = p.text || '';
+          try{ var ta = (typeof panelTA === 'function') ? panelTA(i) : null; if(ta) text = ta.value; }catch(e){}
+          return {text:text, team:p.team || '', stroke:p.stroke || '', memo:!!p.memo};
+        });
+      }
+      function strokeLabel(s){ return STROKE_JP[s] || s || ''; }
+      function panelLines(p){
+        if(p.memo) return [];
+        return p.text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){
+          return s && !/^[※\/＞>]/.test(s) && !/^\*\*/.test(s);
+        }).map(function(raw){ var pm = parseMenu(raw); return pm.blocks.length ? {raw:raw, blocks:pm.blocks, setMult:pm.setMult} : null; }).filter(Boolean);
+      }
+      function refNow(){
+        var best = parseCycle($('cjBest').value), v4 = parseCycle($('cjV4').value);
+        return {best: best || 60, v4: v4 || 70, ok: best != null && v4 != null};
+      }
+      function saveRef(){
+        var name = $('cjAth').value || '基準';
+        if(!S.cjRef) S.cjRef = {};
+        S.cjRef[name] = {best:$('cjBest').value, v4:$('cjV4').value};
+        if(typeof saveNow === 'function') saveNow();
+      }
+      function loadRef(){
+        var name = $('cjAth').value || '基準';
+        var r = (S.cjRef && S.cjRef[name]) || {best:'60', v4:"1'10"};
+        $('cjBest').value = r.best; $('cjV4').value = r.v4;
+      }
+      function renderPanels(){
+        var ps = panelsNow();
+        var sel = $('cjPanel');
+        if(selPanel >= ps.length) selPanel = 0;
+        sel.innerHTML = ps.map(function(p, i){
+          var lbl = '列' + (i+1) + (p.team ? '（' + p.team : '') + (p.stroke ? (p.team ? '・' : '（') + strokeLabel(p.stroke) : '') + ((p.team || p.stroke) ? '）' : '') + (p.memo ? '・メモ' : '');
+          return '<option value="' + i + '"' + (i === selPanel ? ' selected' : '') + '>' + esc(lbl) + '</option>';
+        }).join('') || '<option value="0">（列がありません）</option>';
+        renderList();
+      }
+      function renderList(){
+        var ps = panelsNow();
+        var p = ps[selPanel];
+        var box = $('cjList');
+        if(!p){ box.innerHTML = '<p class="muted">列がありません。</p>'; $('cjOut').innerHTML = ''; $('cjNeedOut').innerHTML = ''; return; }
+        if(p.memo){ box.innerHTML = '<p class="muted">この列はメモ表示のため、判定の対象にしません。</p>'; $('cjOut').innerHTML = ''; $('cjNeedOut').innerHTML = ''; return; }
+        var ls = panelLines(p);
+        if(selLine >= ls.length) selLine = 0;
+        box.innerHTML = ls.length ? ls.map(function(L, i){
+          var total = L.blocks.reduce(function(a,b){ return a + b.dist*b.reps; }, 0) * L.setMult;
+          var tsec = L.blocks.reduce(function(a,b){ return a + (b.cycle||0)*b.reps; }, 0) * L.setMult;
+          var hasCycle = L.blocks.every(function(b){ return b.cycle != null; });
+          return '<button type="button" class="cjPrac' + (i === selLine ? ' on' : '') + '" data-cjl="' + i + '"><span class="txt">' + esc(L.raw) + '</span><br>'
+            + '<span class="chip">総距離 ' + total.toLocaleString() + 'm</span>'
+            + (hasCycle ? '<span class="chip">合計時間 約' + fmtT(tsec) + '</span>' : '<span class="chip">サークルなし</span>')
+            + (L.setMult > 1 ? '<span class="chip">' + L.setMult + 'セット</span>' : '')
+            + '</button>';
+        }).join('') : '<p class="muted">この列には、読み取れる練習（例：100m*10(1\'30)）がまだありません。</p>';
+        box.querySelectorAll('[data-cjl]').forEach(function(b){ b.addEventListener('click', function(){ selLine = +b.dataset.cjl; renderList(); }); });
+        renderJudge();
+      }
+      function renderJudge(){
+        var ps = panelsNow();
+        var p = ps[selPanel];
+        var out = $('cjOut'), needOut = $('cjNeedOut');
+        if(!p || p.memo){ out.innerHTML = ''; needOut.innerHTML = ''; return; }
+        var ls = panelLines(p);
+        var L = ls[selLine];
+        if(!L){ out.innerHTML = ''; needOut.innerHTML = ''; return; }
+        var ref = refNow();
+        var swim100 = parseCycle($('cjSwim').value);
+        var setRest = parseInt($('cjSetRest').value, 10);
+        var judged = L.blocks.map(function(b){ return judgeBlock(b, ref, swim100); });
+        var totalDist = L.blocks.reduce(function(a,b){ return a + b.dist*b.reps; }, 0) * L.setMult;
+        var cycleTime = L.blocks.reduce(function(a,b){ return a + (b.cycle||0)*b.reps; }, 0) * L.setMult;
+        var setRestTotal = (L.setMult > 1 && isFinite(setRest)) ? setRest*(L.setMult - 1) : 0;
+        var totalTime = cycleTime + setRestTotal;
+        var swimTotal = judged.reduce(function(a,j){ return a + (j.swim1||0)*j.reps; }, 0) * L.setMult;
+        var restTotal = Math.max(0, cycleTime - swimTotal) + setRestTotal;
+        var byCls = {};
+        judged.forEach(function(j){ byCls[j.cls] = (byCls[j.cls]||0) + j.blockDist; });
+        var mainCls = Object.keys(byCls).sort(function(a,b){ return byCls[b]-byCls[a]; })[0];
+        var multi = L.blocks.length > 1 && Object.keys(byCls).length > 1;
+        var dispCls = multi ? '混在' : mainCls;
+        var html = '<span class="badge" style="background:' + CLS[dispCls].color + '"><span class="en">' + dispCls + '</span></span>'
+          + '<div class="plain">' + (multi ? '全体では ' + mainCls + ' が中心です ― ' : '') + CLS[mainCls].plain + '</div>';
+        if(L.blocks.length > 1) html += '<div style="margin-top:8px">' + judged.map(function(j){ return '<span class="blkChip" style="background:' + CLS[j.cls].color + '">' + j.dist + 'm×' + j.reps + ' → ' + j.cls + '</span>'; }).join('') + '</div>';
+        var tm = L.raw.match(/#\s*(EZ|A1|A2|AT|VO2|LT|LP|SP)\b/);
+        if(tm){
+          var intent = TAG2CLS[tm[1]];
+          var hit = intent === mainCls;
+          html += '<p class="why">' + (hit ? '⭕ 行につけた強度指定 #' + tm[1] + '（' + intent + '）と判定は合っています。' : '⚠️ 行につけた強度指定 #' + tm[1] + '（' + intent + '）と判定（' + mainCls + '）がズレています。サークルか距離の見直し候補です。') + '</p>';
+        }
+        html += '<div class="grid">'
+          + '<div class="cell"><div class="k">総距離</div><div class="v">' + totalDist.toLocaleString() + 'm</div></div>'
+          + '<div class="cell"><div class="k">総時間（サークル＋セット間）</div><div class="v">' + (cycleTime ? fmtT(totalTime) : '―') + '</div></div>'
+          + '<div class="cell"><div class="k">泳ぐ時間（' + (swim100 != null ? '実泳' : '推定') + '）</div><div class="v">' + (cycleTime ? fmtT(swimTotal) : '―') + '</div></div>'
+          + '<div class="cell"><div class="k">休憩の合計（' + (swim100 != null ? '実泳から計算' : '推定') + '）</div><div class="v">' + (cycleTime ? fmtT(restTotal) : '―') + '</div></div>'
+          + '<div class="cell"><div class="k">基準</div><div class="v">' + esc($('cjAth').value || '基準') + '<small>　ベスト ' + fmtT(ref.best) + '／V4 ' + fmtT(ref.v4) + '（100m）</small></div></div>'
+          + '</div>';
+        html += '<p class="why">' + judged.map(function(j){ return '<b>' + j.dist + 'm×' + j.reps + '</b>：' + j.why; }).join('<br>') + '</p>';
+        if(mainCls === 'AEC' && totalDist < 600) html += '<p class="why warn">⚠️ AECの判定ですが、総距離が' + totalDist + 'mと少ないため、土台づくりの刺激としては弱い量です。</p>';
+        if(swim100 != null && judged.some(function(j){ return j.cycle != null && j.swim1 > j.cycle; })) html += '<p class="why warn">⚠️ 実泳タイムがサークルを超えている本があります（サークルに入っていません）。</p>';
+        out.innerHTML = html;
+        var hasCycle = L.blocks.every(function(b){ return b.cycle != null; });
+        var needs = [
+          {ok:true, name:'表記（距離・本数・サークル・セット構成）', how:'列の内容から自動で読み取りました'},
+          {ok:ref.ok, name:'基準の選手（ベスト／V4ペース）', how:'上の欄にベストとV4ペースを入れてください。今は仮の値（ベスト60秒／V4 1\'10）で判定しています'},
+          {ok:hasCycle, name:'サークル', how:'サークルがない練習は、速さも休憩も読めず判定できません'},
+          {ok:!!p.stroke, name:'種目', how:'列の種目が未設定です。同じ表記でも種目で強さの意味が変わります'},
+          {ok:swim100 != null, name:'実泳タイム', how:'サークルは「上限」です。実際に何秒で泳いだかが分からないと、休憩と本当の強さは推定止まりで、ANC／ANPは確定できません'},
+          {ok:L.setMult <= 1 || isFinite(setRest), name:'セット間レスト', how:'[ ]*set の「間」の休みは表記に含まれません。回復の量が変わります'}
+        ];
+        var got = needs.filter(function(n){ return n.ok; }).length;
+        var conf = got >= 6 ? ['高',3] : got >= 4 ? ['中',2] : ['低',1];
+        needOut.innerHTML = '<div class="conf">判定の確度：<b>' + conf[0] + '</b> <span class="dots">' + '●'.repeat(conf[1]) + '○'.repeat(3 - conf[1]) + '</span>（材料 ' + got + '/6）</div>'
+          + '<div class="needBox"><div style="border-bottom:none;padding-bottom:2px"><b>不足している情報</b></div>'
+          + (needs.every(function(n){ return n.ok; }) ? '<div>✅ 材料はそろっています</div>' : needs.filter(function(n){ return !n.ok; }).map(function(n){ return '<div>⚠️ <b>' + n.name + '</b> ― ' + n.how + '</div>'; }).join(''))
+          + '</div>';
+      }
+      function refreshAll(){ renderPanels(); }
+      function init(){
+        if(!$('cjCard')) return;
+        if(typeof saveNow !== 'function' || typeof athletes !== 'function' || typeof M === 'undefined'){ setTimeout(init, 300); return; }
+        var names = [];
+        athletes().forEach(function(a){ if(a.name) names.push(a.name); });
+        if(!names.length) names = ['基準'];
+        $('cjAth').innerHTML = names.map(function(n){ return '<option>' + esc(n) + '</option>'; }).join('');
+        loadRef();
+        renderPanels();
+        $('cjRefresh').addEventListener('click', refreshAll);
+        $('cjPanel').addEventListener('change', function(){ selPanel = +$('cjPanel').value; selLine = 0; renderList(); });
+        $('cjAth').addEventListener('change', function(){ loadRef(); renderJudge(); });
+        ['cjBest','cjV4'].forEach(function(id){ $(id).addEventListener('input', function(){ saveRef(); renderJudge(); }); });
+        ['cjSwim','cjSetRest'].forEach(function(id){ $(id).addEventListener('input', renderJudge); });
+        var panelsEl = document.getElementById('panels');
+        if(panelsEl){ var t = null; panelsEl.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(renderList, 600); }); }
+        window.__cjRefresh = refreshAll;
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+    </script>
+  </div>
+  <div class="card" id="refCard" style="margin-top:12px">
+    <h2 style="margin-top:0">作成時の指針（プルダウンでいつでも参照）</h2>
+    <p class="muted" style="margin:4px 0 10px">メニューを作るときに道を踏み外さないための確認用です。根拠は Olbrecht『The Science of Winning』（第2・3・8・9章）。</p>
+    <label class="fld">見たい指針
+      <select id="refSelect">
+        <option value="aims">やりたいこと（目的と進め方）</option>
+        <option value="classzone">クラスとゾーンの違い</option>
+        <option value="aec">AECの強さの決め方と「錨」</option>
+        <option value="mix" selected>クラスの混ぜ方（1回の中・1週間の中）</option>
+      </select>
+    </label>
+    <div class="refPanel" data-ref="aims">
+      <h3>目的</h3>
+      <p><b>「どの刺激で、誰の、どの泳ぎが改善したか」</b>を明らかにすること。それが次の練習計画の精度を上げます。練習量の消化を管理するだけでは不十分です。</p>
+      <ul>
+        <li>メニューからは総距離ではなく<b>刺激の内訳</b>を読む（速い部分は何mか、クラス別の絶対量）</li>
+        <li>割合は最後に見る。先に総量と、各クラスが最低量を超えているかを確認する</li>
+        <li>判定はアプリ内で一本化し、根拠は本で確認した定義に置く。材料が足りなければ不足情報を指摘する</li>
+        <li>改善の判断は、テスト・現場のセット・レース結果の3方向で下す</li>
+      </ul>
+      <p class="refFlow"><span>打ち込む</span>→<span>練習をクリック</span>→<span>判定が出る</span>　複雑な記録の仕組みは作らない</p>
+    </div>
+    <div class="refPanel" data-ref="classzone">
+      <h3>ゾーン＝今日のきつさ（ものさし）／クラス＝数週間で育つ力</h3>
+      <svg viewBox="0 0 300 44" width="100%" style="max-width:520px;display:block;margin:4px auto" role="img" aria-label="ゾーンの帯">
+        <g font-size="10" text-anchor="middle" fill="#fff" font-weight="700">
+          <rect x="0" y="6" width="37.5" height="20" fill="#8fa9bf"/><text x="18.75" y="20" fill="#16202e">EZ</text>
+          <rect x="37.5" y="6" width="37.5" height="20" fill="#5aa7dd"/><text x="56.25" y="20">A1</text>
+          <rect x="75" y="6" width="37.5" height="20" fill="#1f6fb2"/><text x="93.75" y="20">A2</text>
+          <rect x="112.5" y="6" width="37.5" height="20" fill="#2e9e6a"/><text x="131.25" y="20">AT</text>
+          <rect x="150" y="6" width="37.5" height="20" fill="#d9a000"/><text x="168.75" y="20">VO2</text>
+          <rect x="187.5" y="6" width="37.5" height="20" fill="#e46f1a"/><text x="206.25" y="20">LT</text>
+          <rect x="225" y="6" width="37.5" height="20" fill="#c8321f"/><text x="243.75" y="20">LP</text>
+          <rect x="262.5" y="6" width="37.5" height="20" fill="#7a1f7a"/><text x="281.25" y="20">SP</text>
+        </g>
+        <text x="150" y="40" font-size="10" text-anchor="middle" fill="#54687c">ゾーン：セットごとに付く「強さの帯」</text>
+      </svg>
+      <svg viewBox="0 0 300 118" width="100%" style="max-width:520px;display:block;margin:4px auto" role="img" aria-label="クラスのピラミッド">
+        <polygon points="64,10 116,10 124,28 56,28" fill="#d9534f"/>
+        <polygon points="56,30 124,30 132,50 48,50" fill="#e88b2d"/>
+        <polygon points="48,52 132,52 140,74 40,74" fill="#2e9e6a"/>
+        <polygon points="40,76 140,76 150,100 30,100" fill="#2b7bbb"/>
+        <g font-size="10.5" fill="#16202e">
+          <text x="160" y="23">ANP　瞬発の力</text>
+          <text x="160" y="44">ANC　乳酸を作る力</text>
+          <text x="160" y="67">AEP　有酸素の出力</text>
+          <text x="160" y="92">AEC　土台（量と持続）</text>
+          <text x="90" y="114" text-anchor="middle" fill="#54687c">クラス：下から積み上がる「育つ力」（乳酸耐性は参考区分）</text>
+        </g>
+      </svg>
+      <p>対応（1対1ではない）：EZ・A1・A2→AEC ／ AT・VO2→AEP ／ LT→乳酸耐性 ／ LP→ANC ／ SP→ANP<br>
+      <b>行はゾーンで書き、週はクラスで見る。</b></p>
+    </div>
+    <div class="refPanel" data-ref="aec">
+      <h3>AECの定義は「構造」、速度は個人のカーブから</h3>
+      <ul>
+        <li>Table 2の定義：量は Long〜Very High、レストは短い、強度は extensive（ゆっくり）に強い短い刺激（スパイス）を混ぜる</li>
+        <li>乳酸の帯（キャパシティ 1〜2.5 mmol/l）は「期待値」で、選手タイプで意味が変わる。extensive な部分は LA1（乳酸 約1 mmol、「とても遅いペース」）でよい ― 遅筋は速く泳がなくても働く</li>
+        <li>本の警告は「速すぎる」こと（超回復を壊す）</li>
+        <li>セットの速度は、個人の乳酸–速度の関係（400mテスト）から、狙う乳酸範囲に合うタイムを決める</li>
+        <li><b>錨</b>（低乳酸で保てる速度）は向上を測る物差し。「常に帯の上限速度で泳ぐ」という処方ではない</li>
+      </ul>
+      <svg viewBox="0 0 300 138" width="100%" style="max-width:460px;display:block;margin:4px auto" role="img" aria-label="乳酸カーブの右シフト">
+        <rect x="30" y="52" width="255" height="34" fill="#2b7bbb" opacity="0.12"/>
+        <text x="34" y="47" font-size="10" fill="#2b7bbb" font-weight="700">乳酸 1〜2.5 の帯</text>
+        <path d="M30,124 C90,120 128,100 168,34" stroke="#8a97a5" stroke-width="2.5" stroke-dasharray="5 4" fill="none"/>
+        <path d="M30,126 C105,122 152,104 198,40" stroke="#2b7bbb" stroke-width="3" fill="none"/>
+        <line x1="30" y1="126" x2="285" y2="126" stroke="#54687c"/>
+        <line x1="30" y1="126" x2="30" y2="14" stroke="#54687c"/>
+        <text x="282" y="136" font-size="10" fill="#54687c" text-anchor="end">速度 →</text>
+        <text x="8" y="20" font-size="10" fill="#54687c">乳酸</text>
+        <path d="M176,58 L196,58" stroke="#c96a12" stroke-width="2.5" marker-end="url(#refArrow)"/>
+        <defs><marker id="refArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#c96a12"/></marker></defs>
+        <text x="150" y="30" font-size="10.5" fill="#c96a12" font-weight="700">右シフト＝同じ乳酸でもっと速い＝向上</text>
+      </svg>
+      <p>測り方（二段構え）：2スピードテストでカーブを引く（最大6週に1回）＋ 100m×10（Rest 10秒）型のセットで現場確認する。</p>
+    </div>
+    <div class="refPanel refOn" data-ref="mix">
+      <h3>混ぜてよい ― 本の前提（1回の中でも、週の中でも）</h3>
+      <svg viewBox="0 0 300 96" width="100%" style="max-width:520px;display:block;margin:4px auto" role="img" aria-label="混ぜ方の割合">
+        <text x="0" y="10" font-size="10" fill="#54687c" font-weight="700">1回の練習（タイプI：最初にスパイス、その後にゆっくり）</text>
+        <rect x="0" y="15" width="45" height="17" fill="#e88b2d"/>
+        <rect x="45" y="15" width="255" height="17" fill="#2b7bbb"/>
+        <text x="22" y="27" font-size="9" text-anchor="middle" fill="#fff" font-weight="700">スパイス</text>
+        <text x="172" y="27" font-size="9.5" text-anchor="middle" fill="#fff" font-weight="700">extensive（ゆっくり）＝全体の 2/3〜5/6</text>
+        <text x="0" y="58" font-size="10" fill="#54687c" font-weight="700">1週間の実例（第8章・土台づくりの時期）</text>
+        <rect x="0" y="63" width="267" height="16" fill="#7fb3d9"/>
+        <rect x="267" y="63" width="33" height="16" fill="#e88b2d"/>
+        <text x="133" y="74.5" font-size="9.5" text-anchor="middle" fill="#16202e" font-weight="700">乳酸 1.5 以下　約89%</text>
+        <text x="283" y="74.5" font-size="9" text-anchor="middle" fill="#fff" font-weight="700">11%</text>
+        <text x="283" y="92" font-size="9" text-anchor="middle" fill="#54687c">1.5超</text>
+      </svg>
+      <ul>
+        <li>順番：速いものは疲れていない<b>前半</b>に。ANC は無酸素パワーの練習より前に置く</li>
+        <li>量の性質：ANC は少量でも効き、ANP は1回 <b>600m以下</b>でも十分。m数より「週に何ブロック入ったか」で数える</li>
+        <li>第8章の実例：量の時期でも 25mスプリント 週2〜3回・3本で無酸素キャパシティを標準に保つ</li>
+        <li>その日の目的は1つに絞る。AECを育てる日に ANC はスパイス（維持量）まで。育てたいクラスは、フレッシュな状態で正規の量を組む</li>
+        <li>各クラスが最低量に届かなければ「維持」にはなっても「育つ」にはならない。割合が合っていても絶対量が先</li>
+      </ul>
+    </div>
+    <style>
+      #refCard .refPanel{display:none;margin-top:10px}
+      #refCard .refPanel.refOn{display:block}
+      #refCard .refPanel h3{margin:0 0 6px;font-size:15.5px}
+      #refCard .refPanel ul{margin:6px 0;padding-left:20px}
+      #refCard .refPanel li{margin:3px 0}
+      #refCard .refFlow span{display:inline-block;background:#eef3f8;border:1px solid #c9d4e0;border-radius:6px;padding:2px 8px;margin:0 2px;font-weight:700}
+    </style>
+    <script>
+    (function(){
+      function init(){
+        var sel = document.getElementById('refSelect');
+        if(!sel) return;
+        function show(){
+          var v = sel.value;
+          document.querySelectorAll('#refCard .refPanel').forEach(function(p){ p.classList.toggle('refOn', p.getAttribute('data-ref') === v); });
+        }
+        sel.addEventListener('change', show);
+        show();
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+    </script>
+  </div>
 </section>
 
 <!-- ============ 週間分析 ============ -->
@@ -2705,6 +3090,18 @@ function findMultiSets(lines){
   }
   return map;
 }
+/* メモ行の od=/ev= パターン（1本の中の内訳）を読む。{segs, sum, dash} を返す */
+function memoSegPattern(tr, key){
+  const re = new RegExp(key + '\\s*=\\s*((?:\\d+(?:\\.\\d+)?\\s*m\\s*[A-Za-z]+\\s*\\+?\\s*)+)', 'i');
+  const m = re.exec(tr || '');
+  if(!m) return null;
+  const segs = [];
+  const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+)/g;
+  let sm;
+  while((sm = sre.exec(m[1])) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
+  if(!segs.length) return null;
+  return {segs, sum:segs.reduce((a, x) => a + x.d, 0), dash:segs.reduce((a, x) => a + (/dash|fast/i.test(x.label) ? x.d : 0), 0)};
+}
 function analyzeText(text, team, startHm, panelStroke){
   const set = S.settings;
   const noCirclePace = +set.noCirclePace || 0;
@@ -2716,19 +3113,29 @@ function analyzeText(text, team, startHm, panelStroke){
   let elapsed = 0, pendingBlank = false, hadContent = false;
   let ctx = {cat:null, stroke:null, tag:null, title:''};
   let lastTitle = -1, sectionHasTitle = false, firstInSection = true;
-  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, hypoxic:false};
+  let lastSet = null;
+  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0};
   ZK.forEach(k => tot.zones[k] = 0);
   lines.forEach((raw, i) => {
     const n = normalize(raw), indent = /^[ \t]/.test(raw);
     let tr = n.trim();
     const info = {i, raw, type:'blank', start:null, dist:0, sec:0};
     if(tr.startsWith('【太】')){ info.bold = true; tr = tr.slice(3).trim(); }
-    if(!tr){ if(hadContent) pendingBlank = true; out.push(info); firstInSection = true; sectionHasTitle = false; return; }
+    if(!tr){ if(hadContent) pendingBlank = true; out.push(info); firstInSection = true; sectionHasTitle = false; lastSet = null; return; }
     if(pendingBlank){ elapsed += blankSec; pendingBlank = false; }
     hadContent = true;
     info.start = start + elapsed;
     let m;
-    if(/^(※|・|\/\/|>|＞)/.test(tr)){ info.type = 'memo'; out.push(info); return; }
+    if(/^(※|・|\/\/|>|＞)/.test(tr)){
+      info.type = 'memo';
+      if(lastSet){
+        const od = memoSegPattern(tr, 'od'), ev = memoSegPattern(tr, 'ev');
+        if(od) lastSet._od = od;
+        if(ev) lastSet._ev = ev;
+        if(!od && !ev && /fastest/i.test(tr)) lastSet._fullFast = true;
+      }
+      out.push(info); return;
+    }
     if((m = /^(休憩|休み|休|レスト|rest)\s*:?\s*(\S+)/i.exec(tr)) && parseTime(m[2]) != null && tr.length < 20){
       info.type = 'rest'; info.sec = parseTime(m[2]); elapsed += info.sec; out.push(info); return;
     }
@@ -2767,17 +3174,36 @@ function analyzeText(text, team, startHm, panelStroke){
           tot.cats[info.cat] = (tot.cats[info.cat] || 0) + info.dist;
           if(info.hypoxic) tot.hypoxic = true;
           if(lastTitle >= 0) out[lastTitle].secDist += info.dist;
+          if(/fastest/i.test(info.comment || '')) info.fastFull = info.dist;
+          lastSet = info;
           out.push(info); return;
         }
       }
     }
     if(!indent && tr.length <= 30){
-      info.type = 'title'; info.secDist = 0; lastTitle = i; sectionHasTitle = true; firstInSection = true;
+      info.type = 'title'; info.secDist = 0; lastTitle = i; lastSet = null; sectionHasTitle = true; firstInSection = true;
       ctx = {cat:detectCat(tr), stroke:detectStroke(tr), tag:detectTag(tr), title:tr};
       out.push(info); return;
     }
     info.type = 'memo'; out.push(info);
   });
+  out.forEach(info => {
+    if(info.type !== 'set') return;
+    if(info._fullFast && !info.fastFull) info.fastFull = info.dist;
+    if((info._od || info._ev) && info.atoms && info.atoms.length === 1){
+      const per = info.atoms[0].d, reps = info.atoms[0].n;
+      const okPat = p => p && Math.abs(p.sum - per) <= 1;
+      const od = okPat(info._od) ? info._od : null, ev = okPat(info._ev) ? info._ev : null;
+      let f = 0;
+      if(od && ev) f = od.dash * Math.ceil(reps / 2) + ev.dash * Math.floor(reps / 2);
+      else if(od) f = od.dash * reps;
+      else if(ev) f = ev.dash * Math.floor(reps / 2);
+      if(f > 0) info.fastDash = f;
+    }
+    tot.fastDash += info.fastDash || 0;
+    tot.fastFull += info.fastFull || 0;
+  });
+  tot.fastTotal = tot.fastDash + tot.fastFull;
   tot.elapsed = elapsed; tot.end = start + elapsed; tot.start = start;
   tot.lines = out;
   const sp = sessionPlan(tot); tot.pRPE = sp.rpe; tot.pLoad = sp.load;
@@ -3200,7 +3626,7 @@ function updatePanel(i){
   if($('panelTabs')) renderPanelTabs();
   el.querySelector('.gutter').scrollTop = el.querySelector('textarea').scrollTop;
   el.querySelector('.pfoot').innerHTML = p.memo ? '<span class="muted">📝 メモとして表示しています（時間・距離・負荷は表示しません）。</span>' : tot.dist
-    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist)
+    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '')
     : '<span class="muted">ここに入力すると、距離と終了時刻が自動で出ます。</span>';
   if(typeof fitEditor === 'function' && i === 0) requestAnimationFrame(fitEditor);
 }
@@ -6912,7 +7338,18 @@ function renderAnalysis(){
   const teamLabel = team === '__all' ? '全チームの合算' : team;
   let h = '<h2>' + mon.replace(/-/g,'/') + '（月）〜 ' + addDays(mon, 6).slice(5).replace('-','/') + '（日）の週　' + esc(teamLabel) + '</h2>';
   if(!W.sessions){
-    h += '<div class="card"><p>この週の' + esc(teamLabel) + 'のメニューはまだありません。メニュー作成の画面で入力すると、自動でここに集計されます。</p></div>';
+    const endYmd = addDays(mon, 6);
+    const anyMenu = Object.values(S.menus).some(m => m.date >= mon && m.date <= endYmd);
+    const teamsWith = Object.keys(pre.teams);
+    let why;
+    if(team !== '__all' && teamsWith.length && !pre.teams[team]){
+      why = 'この週の' + esc(teamLabel) + 'のメニューは集計されていません。この週に距離のデータがあるのは ' + teamsWith.map(t => esc(t)).join('、') + ' です。メニューの列のチーム名が「' + esc(teamLabel) + '」と完全に一致しているか確認してください。';
+    } else if(!anyMenu){
+      why = 'この週の日付で保存されたメニューがありません。メニュー作成の画面で、この週の日付（' + mon.replace(/-/g,'/') + '〜' + endYmd.replace(/-/g,'/') + '）を開いて入力すると、自動でここに集計されます。なお、ダウンロードした別のコピーのファイルで作ったメニューは、このファイルには表示されません（保存先がファイルごとに別です）。';
+    } else {
+      why = 'この週のメニューはありますが、距離が計算される列がありません。メモの列は距離が0のため、週間分析には入りません。';
+    }
+    h += '<div class="card"><p>' + why + '</p></div>';
   }
   h += '<div class="kpis">' +
     kpi('総距離', (Math.round(W.dist/100)/10) + '<small>km</small>') +
@@ -6958,6 +7395,30 @@ function renderAnalysis(){
     if(aerCap >= 15 && anCap >= 15) cm.push({w:1, t:'有酸素能力の刺激（AT・VO2：' + Math.round(aerCap) + '%）と無酸素の刺激（LT・LP・SP：' + Math.round(anCap) + '%）がどちらも多い週です。オルブレヒト博士の考え方では、両者は互いに影響しあうため、選手のタイプに合わせてどちらを優先するかを決めることが大切とされます。'});
   }
   if(cm.length) h += '<div class="card" style="margin-top:14px"><h3>この週のふりかえり</h3>' + cm.map(c => '<div class="comment' + (c.w ? ' warn' : '') + '">' + esc(c.t) + '</div>').join('') + '</div>';
+  // クラス別の配分（ゾーンからの換算）と直近4週の流れ
+  {
+    const CLS = [
+      {k:'AEC', name:'AEC（有酸素キャパシティ）', color:'#2b7bbb', zones:['EZ','A1','A2']},
+      {k:'AEP', name:'AEP（有酸素パワー）', color:'#2e9e6a', zones:['AT','VO2']},
+      {k:'LTc', name:'乳酸耐性', color:'#8e44ad', zones:['LT']},
+      {k:'ANC', name:'ANC（無酸素キャパシティ）', color:'#e88b2d', zones:['LP']},
+      {k:'ANP', name:'ANP（無酸素パワー）', color:'#d9534f', zones:['SP']}
+    ];
+    const classOf = zs => CLS.map(c => ({k:c.k, name:c.name, color:c.color, v:c.zones.reduce((a, z) => a + (zs[z] || 0), 0)}));
+    const stackBar = rs => { const t = rs.reduce((a, r) => a + r.v, 0); if(!t) return '<p class="muted">データがありません</p>'; return '<div style="display:flex;height:18px;border-radius:4px;overflow:hidden;margin:6px 0">' + rs.map(r => r.v ? '<span style="width:' + (r.v / t * 100) + '%;background:' + r.color + '"></span>' : '').join('') + '</div>'; };
+    const weekRows = [];
+    for(let k = 3; k >= 0; k--){ const m0 = addDays(mon, -7 * k); const wd = weekData(m0, team); weekRows.push({m0, wd, rs:classOf(wd.zones)}); }
+    if(W.dist || weekRows.some(w => w.wd.dist)){
+      const rows = classOf(W.zones);
+      let ch = '<div class="card" style="margin-top:14px"><h3>クラス別の配分（ゾーンからの換算）</h3>';
+      ch += stackBar(rows);
+      ch += '<table class="list"><thead><tr><th>クラス</th><th class="num">距離</th><th class="num">割合</th></tr></thead><tbody>' + rows.map(r => '<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + r.color + ';margin-right:6px"></i>' + r.name + '</td><td class="num">' + fmtNum(r.v) + 'm</td><td class="num">' + (W.dist ? Math.round(r.v / W.dist * 100) : 0) + '%</td></tr>').join('') + '</tbody></table>';
+      ch += '<h3 style="margin-top:12px">直近4週の流れ（メゾサイクルの確認）</h3>';
+      weekRows.forEach(w => { ch += '<div style="margin-top:6px"><span class="muted">' + w.m0.replace(/-/g, '/') + 'の週　合計 ' + fmtNum(w.wd.dist) + 'm</span>' + stackBar(w.rs) + '</div>'; });
+      ch += '<p class="muted">クラスはゾーンからの換算です（EZ・A1・A2→AEC、AT・VO2→AEP、LT→乳酸耐性、LP→ANC、SP→ANP）。割合を見る前に、総量と各クラスの絶対量（最低量を超えているか）を確認してください。計画とのズレは「強度の配分」「8週間の推移」とあわせて見ます。</p></div>';
+      h += ch;
+    }
+  }
   $('aBody').innerHTML = h;
 }
 function kpi(l, v){ return '<div class="kpi"><div class="l">' + l + '</div><div class="v">' + v + '</div></div>'; }
@@ -8935,7 +9396,7 @@ function showView(id){
   if(id === 'vLib') renderLib();
   if(id === 'vYear') renderYear();
   if(id === 'vTests') renderTests();
-  if(id === 'vMenu'){ renderPlanStrip(); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
+  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); renderPlanStrip(); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
 }
 function init(){
   applyFont();

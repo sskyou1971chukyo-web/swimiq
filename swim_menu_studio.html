@@ -230,6 +230,8 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #panels{flex:1;display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;min-width:0;align-items:flex-start}
 .panel{flex:1 1 0;min-width:340px;background:#fff;border:2px solid var(--line);border-radius:12px;display:flex;flex-direction:column}
 .panel.cur{border-color:var(--blue)}
+.phead .pMore{display:inline-block}
+.phead .pMore summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--navy);padding:2px 4px}
 .phead{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:#f5f8fb;border-radius:10px 10px 0 0;flex-wrap:wrap}
 .phead select{font-size:17px;font-weight:700;border:2px solid var(--line);border-radius:8px;padding:3px 8px}
 .editor{display:flex;position:relative}
@@ -257,8 +259,17 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #advZoneBtns{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
 #advZoneBtns button{font-size:13px;padding:3px 8px;border-radius:6px;border:2px solid var(--line);background:#fff;font-weight:700}
 #advZoneBtns button.on{border-color:#16202e;background:#16202e;color:#fff}
-#advText{width:100%;height:44vh;min-height:260px;border:2px solid var(--line);border-radius:8px;padding:10px;font-size:16px;line-height:1.75;resize:vertical;background:#fcfdff}
+#advText{width:100%;height:300px;min-height:300px;border:2px solid var(--line);border-radius:8px;padding:10px;font-size:16px;line-height:1.75;resize:vertical;background:#fcfdff}
+.explD{border:1.5px solid var(--line);border-radius:8px;margin:6px 0 10px;background:#fff}
+.explD summary{cursor:pointer;padding:7px 10px;font-weight:700;font-size:14.5px}
+.explD .explB{padding:0 10px 8px}
+#advEv details{border:1.5px solid var(--line);border-radius:8px;margin-top:6px;background:#fff}
+#advEv summary{cursor:pointer;padding:7px 10px;font-weight:700;font-size:14.5px}
+#advEv .evBody{padding:2px 10px 9px;font-size:14.5px;line-height:1.7;color:#33475c}
 #advBtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.advMore{margin-top:10px;border-top:1.5px solid var(--line);padding-top:8px}
+.advMore summary{cursor:pointer;font-weight:700;font-size:14.5px;color:var(--navy)}
+.advMore #advZoneBtns{margin-top:8px}
 #advice.closed .card{display:none}
 .coachRow{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:14px;margin-top:6px}
 
@@ -344,7 +355,7 @@ table.cmp tbody th{white-space:nowrap;color:var(--red);font-weight:700}
 #menuWrap.many{flex-direction:column;align-items:stretch}
 #menuWrap.many #panels{width:100%}
 #menuWrap.many #advice{width:100%;position:static}
-#menuWrap.many #advText{height:30vh}
+#menuWrap.many #advText{height:300px}
 #panels.many .editor textarea{font-size:calc(var(--edfont) * .85);padding:10px 6px}
 #panels.many .gutter{width:72px}
 #panels.many .grow .gt{width:44px}
@@ -550,7 +561,7 @@ details.more[open]>summary{background:#e3eefa}
   .gutter,#panels.many .gutter{width:62px}
   .editor textarea,#panels.many .editor textarea{font-size:17px;padding:10px 6px}
   #advice{width:100%}
-  #advText{height:40vh}
+  #advText{height:300px}
   .dlg{padding:14px}
 }
 
@@ -673,7 +684,7 @@ body.desk .dLong{display:none}
   #panels .panel .editor{flex:1 1 auto;height:auto}
   .editor textarea{padding-bottom:10px}
   .gin{padding-bottom:90px}
-  #advText{height:auto;min-height:120px}
+  #advText{height:300px;min-height:300px}
   .dock{position:fixed;z-index:45;display:flex;align-items:center;gap:6px;background:var(--navy);padding:8px;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
   .dock.hidden{display:none}
   .dockBody{display:flex;align-items:center;gap:6px}
@@ -795,31 +806,41 @@ body.desk .dLong{display:none}
       <div class="card">
         <h2>アドバイスメモ</h2>
         <div id="advHead" aria-live="polite">メニューの行にカーソルを置くと、ここに解説が出ます。</div>
-        <div class="muted">強度を指定（行に #タグ を付けます）</div>
-        <div id="advZoneBtns"></div>
         <label class="sr" for="advText">アドバイスの本文</label>
         <textarea id="advText" readonly></textarea>
+        <div id="advEv"></div>
         <div id="advBtns">
           <button class="btn primary" id="advOk">決定（要点をメニューに載せる）</button>
-          <button class="btn" id="advPasteSel">選んだ部分をメニューに貼る</button>
-          <button class="btn" id="advAll">全文を載せる</button>
-          <button class="btn ghost" id="advCopy">コピー</button>
         </div>
-        <div id="advBtns2" class="row" style="margin-top:6px">
-          <button class="btn" id="advEvidence">根拠をくわしく見る</button>
-        </div>
-        <div class="coachRow" aria-label="表示するコーチの考え方">
-          <label><input type="checkbox" id="cOlb" checked> オルブレヒト博士</label>
-          <label><input type="checkbox" id="cBow" checked> ボウマンコーチ</label>
-          <label><input type="checkbox" id="cDes" checked> デソルボコーチ</label>
-        </div>
-        <p class="muted" style="margin-top:6px">決定はCtrlキーとEnterキーでも押せます。</p>
+        <details class="advMore">
+          <summary>強度を指定する（行に #タグ）</summary>
+          <div id="advZoneBtns"></div>
+        </details>
+        <details class="advMore">
+          <summary>ほかの操作・コーチの考え方</summary>
+          <div id="advBtns2" class="row" style="margin-top:6px">
+            <button class="btn" id="advPasteSel">選んだ部分をメニューに貼る</button>
+            <button class="btn" id="advAll">全文を載せる</button>
+            <button class="btn ghost" id="advCopy">コピー</button>
+            <button class="btn" id="advEvidence">根拠をくわしく見る</button>
+          </div>
+          <div class="coachRow" aria-label="表示するコーチの考え方">
+            <label><input type="checkbox" id="cOlb" checked> オルブレヒト博士</label>
+            <label><input type="checkbox" id="cBow" checked> ボウマンコーチ</label>
+            <label><input type="checkbox" id="cDes" checked> デソルボコーチ</label>
+          </div>
+          <p class="muted" style="margin-top:6px">決定はCtrlキーとEnterキーでも押せます。</p>
+        </details>
       </div>
     </aside>
   </div>
   <div class="card" id="cjCard" style="margin-top:12px">
     <h2 style="margin-top:0">クリック判定（AEC／AEP／ANC／ANP）</h2>
-    <p class="muted" style="margin:4px 0 10px">今開いているメニューの列から、練習をクリックすると、休憩・総距離・総時間・強度からカテゴリーを判定します。判定は推定です（根拠は Olbrecht『The Science of Winning』第2章の4クラス）。</p>
+    <details class="explD"><summary>説明を見る</summary><div class="explB">
+      <p class="muted" style="margin:4px 0 6px">今開いているメニューの列から、練習をクリックすると、休憩・総距離・総時間・強度からカテゴリーを判定します。判定は推定です（根拠は Olbrecht『The Science of Winning』第2章の4クラス）。</p>
+      <p class="muted" style="margin:0 0 6px">強さは「その選手にとって速いか」で決まります。基準を変えると、同じ練習でも判定が変わります。基準の値は選手ごとに保存されます。</p>
+      <p class="muted" style="margin:0">実泳タイムは、判定結果に出る各ブロックの説明の下の欄に入れます（ブロックごとに違ってかまいません）。</p>
+    </div></details>
     <div class="cjRow">
       <label class="fld">列（パネル）<select id="cjPanel"></select></label>
       <button class="btn" type="button" id="cjRefresh">最新の内容で判定し直す</button>
@@ -829,14 +850,12 @@ body.desk .dLong{display:none}
       <label class="fld">100mベスト（秒または 1'02）<input type="text" id="cjBest" style="width:100px"></label>
       <label class="fld">V4ペース・100m（秒または 1'10）<input type="text" id="cjV4" style="width:100px"></label>
     </div>
-    <p class="muted" style="margin:2px 0 8px">強さは「その選手にとって速いか」で決まります。基準を変えると、同じ練習でも判定が変わります。基準の値は選手ごとに保存されます。</p>
     <div id="cjList"></div>
     <div id="cjOut" style="margin-top:10px"></div>
     <div class="cjNeed" style="margin-top:12px">
       <h3 style="margin:0 0 6px;font-size:14.5px">足りない情報を足す（任意）― 足すと判定が正確になります</h3>
       <div class="cjRow" style="margin-top:6px">
         <label class="fld">セット間レスト（秒）<input type="text" id="cjSetRest" placeholder="例：120" style="width:90px"></label>
-        <span class="muted">実泳タイムは、判定結果に出る各ブロックの説明の下の欄に入れます（ブロックごとに違ってかまいません）。</span>
       </div>
     </div>
     <div id="cjNeedOut"></div>
@@ -884,6 +903,27 @@ body.desk .dLong{display:none}
       var selPanel = 0, selLine = 0;
       var blockSwim = {};
       var focusLine = false;
+      function swimStoreKey(L, bi){ return (L ? L.raw : '') + '|' + bi; }
+      function loadBlockSwim(L){
+        if(!L || typeof S === 'undefined' || !S.swimTimes) return;
+        L.blocks.forEach(function(b, bi){
+          var rec = S.swimTimes[swimStoreKey(L, bi)];
+          if(!rec || !Array.isArray(rec.times)) return;
+          rec.times.forEach(function(v, r){ var k = selPanel + ':' + selLine + ':' + bi + ':' + r; if(blockSwim[k] == null && v) blockSwim[k] = v; });
+        });
+      }
+      function saveBlockSwim(L, bi){
+        if(!L || typeof S === 'undefined' || !L.blocks[bi]) return;
+        if(!S.swimTimes) S.swimTimes = {};
+        var times = [];
+        for(var r = 0; r < L.blocks[bi].reps; r++) times.push(blockSwim[selPanel + ':' + selLine + ':' + bi + ':' + r] || '');
+        if(times.some(function(v){ return v; })){
+          S.swimTimes[swimStoreKey(L, bi)] = {times:times, dist:L.blocks[bi].dist, date:(typeof M !== 'undefined' && M && M.date) || '', updated:Date.now()};
+        } else {
+          delete S.swimTimes[swimStoreKey(L, bi)];
+        }
+        if(typeof saveNow === 'function') saveNow();
+      }
       function parseCycle(str){
         if(str == null) return null;
         str = String(str).trim();
@@ -895,6 +935,25 @@ body.desk .dLong{display:none}
         m = str.match(/^(\d+):(\d+)$/); if(m) return +m[1]*60 + +m[2];
         m = str.match(/^(\d+(?:\.\d+)?)$/); if(m) return +m[1];
         return null;
+      }
+      function parseSwimInput(v){
+        v = String(v == null ? '' : v).trim();
+        if(!v) return null;
+        if(/[^0-9]/.test(v)) return parseCycle(v);
+        var m = 0, s = 0, f = 0;
+        if(v.length <= 2){ s = +v; }
+        else if(v.length === 3){ s = +v; }
+        else if(v.length === 4){ m = +v[0]; s = +v.slice(1, 3); f = +v[3] / 10; if(s >= 60) return null; }
+        else if(v.length === 5){ m = +v.slice(0, 2); s = +v.slice(2, 4); f = +v[4] / 10; if(s >= 60) return null; }
+        else { m = +v.slice(0, 2); s = +v.slice(2, 4); f = +v.slice(4, 6) / 100; if(s >= 60) return null; }
+        var t = m * 60 + s + f;
+        return t > 0 ? t : null;
+      }
+      function fmtTenth(sec){
+        if(sec == null || !isFinite(sec)) return '―';
+        var m = Math.floor(sec / 60), s = sec - m * 60;
+        var ss = s.toFixed(1); if(s < 10) ss = '0' + ss;
+        return m > 0 ? m + "'" + ss : ss + '秒';
       }
       function fmtT(sec){
         if(sec == null || !isFinite(sec)) return '―';
@@ -959,7 +1018,7 @@ body.desk .dLong{display:none}
         return entries.map(function(raw){ var pm = parseMenu(raw); return pm.blocks.length ? {raw:raw, blocks:pm.blocks, setMult:pm.setMult} : null; }).filter(Boolean);
       }
       function refNow(){
-        var best = parseCycle($('cjBest').value), v4 = parseCycle($('cjV4').value);
+        var best = parseSwimInput($('cjBest').value), v4 = parseSwimInput($('cjV4').value);
         return {best: best || 60, v4: v4 || 70, ok: best != null && v4 != null};
       }
       function saveRef(){
@@ -1020,17 +1079,27 @@ body.desk .dLong{display:none}
         var ls = panelLines(p);
         var L = ls[selLine];
         if(!L){ out.innerHTML = ''; needOut.innerHTML = ''; return; }
+        loadBlockSwim(L);
         var ref = refNow();
         var setRest = parseInt($('cjSetRest').value, 10);
-        var swimSecs = L.blocks.map(function(b, bi){ var raw = blockSwim[selPanel + ':' + selLine + ':' + bi]; return raw ? parseCycle(raw) : null; });
-        var anySwim = swimSecs.some(function(s){ return s != null; });
-        var allSwim = swimSecs.length > 0 && swimSecs.every(function(s){ return s != null; });
-        var judged = L.blocks.map(function(b, bi){ var sw = swimSecs[bi]; var j = judgeBlock(b, ref, sw != null ? sw / b.dist * 100 : null); j.hasSwim = sw != null; return j; });
+        var swimReps = L.blocks.map(function(b, bi){
+          var arr = [];
+          for(var r = 0; r < b.reps; r++){ var raw = blockSwim[selPanel + ':' + selLine + ':' + bi + ':' + r]; arr.push(raw ? parseSwimInput(raw) : null); }
+          return arr;
+        });
+        var blockAvg = swimReps.map(function(arr){ var es = arr.filter(function(s){ return s != null; }); return es.length ? es.reduce(function(a, s){ return a + s; }, 0) / es.length : null; });
+        var anySwim = blockAvg.some(function(s){ return s != null; });
+        var allSwim = blockAvg.length > 0 && blockAvg.every(function(s){ return s != null; });
+        var judged = L.blocks.map(function(b, bi){ var sw = blockAvg[bi]; var j = judgeBlock(b, ref, sw != null ? sw / b.dist * 100 : null); j.hasSwim = sw != null; return j; });
         var totalDist = L.blocks.reduce(function(a,b){ return a + b.dist*b.reps; }, 0) * L.setMult;
         var cycleTime = L.blocks.reduce(function(a,b){ return a + (b.cycle||0)*b.reps; }, 0) * L.setMult;
         var setRestTotal = (L.setMult > 1 && isFinite(setRest)) ? setRest*(L.setMult - 1) : 0;
         var totalTime = cycleTime + setRestTotal;
-        var swimTotal = judged.reduce(function(a,j){ return a + (j.swim1||0)*j.reps; }, 0) * L.setMult;
+        var swimTotal = L.blocks.reduce(function(a, b, bi){
+          var arr = swimReps[bi], avg = blockAvg[bi], per = 0;
+          for(var r = 0; r < b.reps; r++) per += arr[r] != null ? arr[r] : (avg != null ? avg : (judged[bi].swim1 || 0));
+          return a + per;
+        }, 0) * L.setMult;
         var restTotal = Math.max(0, cycleTime - swimTotal) + setRestTotal;
         var byCls = {};
         judged.forEach(function(j){ byCls[j.cls] = (byCls[j.cls]||0) + j.blockDist; });
@@ -1056,12 +1125,18 @@ body.desk .dLong{display:none}
         html += '<p class="why">' + judged.map(function(j){ return '<b>' + j.dist + 'm×' + j.reps + '</b>：' + j.why; }).join('<br>') + '</p>';
         var swimRows = judged.map(function(j, bi){
           if(j.cycle == null) return '';
-          var val = blockSwim[selPanel + ':' + selLine + ':' + bi] || '';
-          return '<div style="margin:5px 0"><b>' + j.dist + 'm×' + j.reps + '</b> の実泳タイム（1本）<input type="text" data-cjswim="' + bi + '" value="' + esc(val) + '" placeholder="例：' + fmtT(Math.round(ref.best * j.dist / 100)) + '" style="width:100px;margin-left:8px;border:1.5px solid #b9c7d6;border-radius:8px;padding:5px 8px;font-size:14.5px"> <span class="muted">このブロックを実際に何秒で泳いだか（その距離のタイムのまま）</span></div>';
+          var inputs = '';
+          for(var r = 0; r < j.reps; r++){
+            var rv = blockSwim[selPanel + ':' + selLine + ':' + bi + ':' + r] || '';
+            inputs += '<input type="text" data-cjswim="' + bi + '" data-cjrep="' + r + '" value="' + esc(rv) + '" placeholder="' + (r + 1) + '本目" style="width:70px;margin:2px 4px 2px 0;border:1.5px solid #b9c7d6;border-radius:8px;padding:5px 6px;font-size:14.5px">';
+          }
+          var avg = blockAvg[bi];
+          return '<div style="margin:6px 0"><b>' + j.dist + 'm×' + j.reps + '</b> の実泳タイム（1本ずつ）<br>' + inputs
+            + (avg != null ? '<span class="muted">平均 ' + fmtTenth(avg) + '</span>' : '<span class="muted">数字だけで入力できます（30＝30秒、1254＝1分25秒4）</span>') + '</div>';
         }).join('');
         if(swimRows) html += '<div style="margin-top:8px">' + swimRows + '</div>';
         if(mainCls === 'AEC' && totalDist < 600) html += '<p class="why warn">⚠️ AECの判定ですが、総距離が' + totalDist + 'mと少ないため、土台づくりの刺激としては弱い量です。</p>';
-        if(judged.some(function(j){ return j.hasSwim && j.cycle != null && j.swim1 > j.cycle; })) html += '<p class="why warn">⚠️ 実泳タイムがサークルを超えている本があります（サークルに入っていません）。</p>';
+        if(L.blocks.some(function(b, bi){ return b.cycle != null && swimReps[bi].some(function(s){ return s != null && s > b.cycle; }); })) html += '<p class="why warn">⚠️ 実泳タイムがサークルを超えている本があります（サークルに入っていません）。</p>';
         out.innerHTML = html;
         var hasCycle = L.blocks.every(function(b){ return b.cycle != null; });
         var needs = [
@@ -1069,15 +1144,14 @@ body.desk .dLong{display:none}
           {ok:ref.ok, name:'基準の選手（ベスト／V4ペース）', how:'上の欄にベストとV4ペースを入れてください。今は仮の値（ベスト60秒／V4 1\'10）で判定しています'},
           {ok:hasCycle, name:'サークル', how:'サークルがない練習は、速さも休憩も読めず判定できません'},
           {ok:!!p.stroke, name:'種目', how:'列の種目が未設定です。同じ表記でも種目で強さの意味が変わります'},
-          {ok:allSwim, name:'実泳タイム', how:'判定結果の各ブロックの下にある「実泳タイム（1本）」に、そのブロックのタイムを入れてください。サークルは「上限」です。実際に何秒で泳いだかが分からないと、休憩と本当の強さは推定止まりで、ANC／ANPは確定できません'},
+          {ok:allSwim, name:'実泳タイム', how:'判定結果の各ブロックの下にある「実泳タイム（1本ずつ）」に、そのブロックのタイムを入れてください。サークルは「上限」です。実際に何秒で泳いだかが分からないと、休憩と本当の強さは推定止まりで、ANC／ANPは確定できません'},
           {ok:L.setMult <= 1 || isFinite(setRest), name:'セット間レスト', how:'[ ]*set の「間」の休みは表記に含まれません。回復の量が変わります'}
         ];
         var got = needs.filter(function(n){ return n.ok; }).length;
         var conf = got >= 6 ? ['高',3] : got >= 4 ? ['中',2] : ['低',1];
-        needOut.innerHTML = '<div class="conf">判定の確度：<b>' + conf[0] + '</b> <span class="dots">' + '●'.repeat(conf[1]) + '○'.repeat(3 - conf[1]) + '</span>（材料 ' + got + '/6）</div>'
-          + '<div class="needBox"><div style="border-bottom:none;padding-bottom:2px"><b>不足している情報</b></div>'
-          + (needs.every(function(n){ return n.ok; }) ? '<div>✅ 材料はそろっています</div>' : needs.filter(function(n){ return !n.ok; }).map(function(n){ return '<div>⚠️ <b>' + n.name + '</b> ― ' + n.how + '</div>'; }).join(''))
-          + '</div>';
+        var missNames = needs.filter(function(n){ return !n.ok; }).map(function(n){ return esc(n.name); });
+        needOut.innerHTML = '<div class="conf">判定の確度：<b>' + conf[0] + '</b> <span class="dots">' + '●'.repeat(conf[1]) + '○'.repeat(3 - conf[1]) + '</span>（材料 ' + got + '/6）'
+          + (missNames.length ? '　不足：' + missNames.join('、') : '') + '</div>';
       }
       function refreshAll(){ renderPanels(); }
       function init(){
@@ -1097,10 +1171,12 @@ body.desk .dLong{display:none}
         $('cjOut').addEventListener('input', function(e){
           var t = e.target;
           if(!t || !t.getAttribute || t.getAttribute('data-cjswim') == null) return;
-          var bi = t.getAttribute('data-cjswim');
-          blockSwim[selPanel + ':' + selLine + ':' + bi] = t.value;
+          var bi = t.getAttribute('data-cjswim'), ri = t.getAttribute('data-cjrep');
+          blockSwim[selPanel + ':' + selLine + ':' + bi + ':' + ri] = t.value;
+          var ps2 = panelsNow(), L2 = ps2[selPanel] ? panelLines(ps2[selPanel])[selLine] : null;
+          if(L2) saveBlockSwim(L2, +bi);
           renderJudge();
-          var again = $('cjOut').querySelector('[data-cjswim="' + bi + '"]');
+          var again = $('cjOut').querySelector('[data-cjswim="' + bi + '"][data-cjrep="' + ri + '"]');
           if(again){ again.focus(); try{ again.setSelectionRange(again.value.length, again.value.length); }catch(err){} }
         });
         var panelsEl = document.getElementById('panels');
@@ -1340,7 +1416,11 @@ body.desk .dLong{display:none}
   </div>
   <div class="card" id="lrCard" style="margin-top:12px">
     <h2 style="margin-top:0">読み方の学習（Fast／EZ のルール）</h2>
-    <p class="muted" style="margin:4px 0 10px">メモの言葉の扱いを一度登録すると、次から自動で集計に使われます。登録はこの端末に保存されます。</p>
+    <details class="explD"><summary>説明・組み込みの型を見る</summary><div class="explB">
+      <p class="muted" style="margin:4px 0 6px">メモの言葉の扱いを一度登録すると、次から自動で集計に使われます。登録はこの端末に保存されます。</p>
+      <p class="muted" style="margin:0 0 6px">条件つきパターン：「1~4DES」の DES のような、本数で Fast の場所が決まる言葉を登録します。</p>
+      <p class="muted" style="margin:0">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
+    </div></details>
     <div id="lrUnknown"></div>
     <h3 style="margin:12px 0 6px;font-size:15px">登録済みの言葉</h3>
     <div id="lrList"></div>
@@ -1350,14 +1430,12 @@ body.desk .dLong{display:none}
       <button class="btn" type="button" id="lrAdd">登録する</button>
     </div>
     <h3 style="margin:14px 0 6px;font-size:15px">条件つきパターンの登録</h3>
-    <p class="muted" style="margin:0 0 6px">「1~4DES」の DES のような、本数で Fast の場所が決まる言葉を登録します。</p>
     <div id="lrBList"></div>
     <div class="lrRow">
       <label class="fld">パターンの言葉<input type="text" id="lrBWord" placeholder="例：DES" style="width:130px"></label>
       <label class="fld">条件<select id="lrBKind"><option value="lastRepFast">最後の本だけFast（デセンド型：1~4なら4本目）</option></select></label>
       <button class="btn" type="button" id="lrBAdd">登録する</button>
     </div>
-    <p class="muted" style="margin-top:8px">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
     <style>
       #lrCard .lrRow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px}
       #lrCard .lrRow .fld{margin:0}
@@ -1489,6 +1567,7 @@ body.desk .dLong{display:none}
   <!-- ============ 解説（Olbrecht） ============ -->
   <div class="card" id="kbCard" style="margin-top:12px">
     <h2>📚 解説 ― 乳酸テストとV4（Olbrecht『The Science of Winning』）</h2>
+    <details class="explD"><summary>解説を開く</summary><div class="explB">
     <label class="fld" style="max-width:520px">知りたいテーマを選んでください
       <select id="kbSelect">
         <option value="kb-v4">V4とは？</option>
@@ -1707,10 +1786,11 @@ body.desk .dLong{display:none}
         });
       })();
     </script>
+    </div></details>
   </div>
   <div class="card" id="stCard">
     <h3 style="margin-top:0">🧪 スピードテスト記録（1・2スピード）</h3>
-    <p class="muted" style="margin:4px 0 10px">テストを選ぶと雛形が出ます。タイムと乳酸を入れると、V4や最高乳酸を自動で計算します。結果は保存して蓄積でき、同じ選手の過去のテストと比較できます。</p>
+    <details class="explD"><summary>使い方</summary><div class="explB"><p class="muted" style="margin:4px 0 6px">テストを選ぶと雛形が出ます。タイムと乳酸を入れると、V4や最高乳酸を自動で計算します。結果は保存して蓄積でき、同じ選手の過去のテストと比較できます。</p></div></details>
     <div class="stGrid">
       <label class="fld">テスト<select id="stKind">
         <option value="2sp">2スピードテスト</option>
@@ -3812,8 +3892,7 @@ function renderPanels(){
       '<button class="btn small plus" data-opt="stroke" aria-label="種目の項目を追加・削除">＋</button>' +
       '<button type="button" class="btn small printTog' + (p.print === false ? '' : ' on') + '" data-ptog aria-pressed="' + (p.print !== false) + '">' + (p.print === false ? '印刷しない' : '印刷する') + '</button>' +
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
-      (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') +
-      (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</div>' +
+      ((i > 0 || M.panels.length > 1) ? '<details class="pMore"><summary>その他 ▾</summary>' + (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') + (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</details>' : '') + '</div>' +
       '<div class="editor"><div class="gutter" aria-hidden="true"><div class="gin"></div></div>' +
       '<div class="tawrap"><textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea><div class="brk" aria-hidden="true"></div></div></div>' +
       '<div class="pfoot" aria-live="polite"></div>';
@@ -4025,9 +4104,21 @@ function renderAdvice(reset){
   if(changed || reset){
     $('advHead').textContent = a.head;
     $('advText').value = a.full;
+    const evBox = $('advEv');
+    if(evBox){
+      const j = a.judge;
+      const shortT = t => /olbrecht/i.test(t) ? 'オルブレヒト' : t;
+      if(j && (j.top.length || j.conflicts.length)){
+        evBox.innerHTML = j.top.map((x, i) =>
+          '<details><summary>根拠' + (i + 1) + '『' + esc(shortT(x.p.doc.title)) + '』' + esc(x.p.label) + '（信頼度' + TRUST[x.p.doc.trust].short + (x.v > 0 ? '・コーチ確認ずみ' : '') + (x.hits.length ? '・' + x.hits.join('と') + 'にもふれている' : '') + '）</summary><div class="evBody">「' + esc(excerpt(x.p.t, x.pos)) + '」</div></details>'
+        ).join('') + j.conflicts.map((x, i) =>
+          '<details><summary>食い違いの可能性『' + esc(shortT(x.p.doc.title)) + '』' + esc(x.p.label) + ' ― ' + j.d + 'mを「' + esc(x.zones.map(k => ZMAP[k].name).join('・')) + '」として説明</summary><div class="evBody">「' + esc(excerpt(x.p.t, x.pos, 140)) + '」</div></details>'
+        ).join('');
+      } else evBox.innerHTML = '';
+    }
   }
   const advTa = $('advText');
-  if(advTa && advTa.scrollHeight){ advTa.style.height = 'auto'; advTa.style.height = advTa.scrollHeight + 'px'; }
+  if(advTa){ advTa.style.height = ''; if(changed || reset) advTa.scrollTop = 0; }
   const tag = info && info.type === 'set' ? info.zone : null;
   zb.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.z === tag));
   $('advOk').disabled = !a.short;
@@ -6125,15 +6216,10 @@ function judgeText(j){
   } else if(!j.top.length){
     L.push('この強度の説明を含む資料を登録すると、根拠が出るようになります。');
   } else {
-    j.top.slice(0, 3).forEach((x, i) => {
-      L.push('根拠' + (i + 1) + '　『' + x.p.doc.title + '』' + x.p.label + '（信頼度' + TRUST[x.p.doc.trust].short + (x.v > 0 ? '・コーチ確認ずみ' : '') + (x.hits.length ? '・' + x.hits.join('と') + 'にもふれている' : '') + '）');
-      L.push('　「' + excerpt(x.p.t, x.pos) + '」');
-    });
-    if(j.top.length > 3) L.push('ほかに' + (j.top.length - 3) + 'か所あります。「根拠をくわしく見る」で全部見られます。');
+    L.push('根拠' + j.top.length + '件は、下のプルダウン（根拠1〜' + j.top.length + '）から見られます。見たい根拠をクリックしてください。');
   }
   j.conflicts.forEach(x => {
-    L.push('食い違いの可能性　『' + x.p.doc.title + '』' + x.p.label + 'では、' + j.d + 'mの練習を「' + x.zones.map(k => ZMAP[k].name).join('・') + '」として説明しています。');
-    L.push('　「' + excerpt(x.p.t, x.pos, 140) + '」');
+    L.push('食い違いの可能性　『' + x.p.doc.title + '』' + x.p.label + 'では、' + j.d + 'mの練習を「' + x.zones.map(k => ZMAP[k].name).join('・') + '」として説明しています（引用は下のプルダウンで見られます）。');
   });
   return L.join('\n');
 }
@@ -7719,10 +7805,10 @@ function renderAnalysis(){
       const rows = classOf(W.zones);
       let ch = '<div class="card" style="margin-top:14px"><h3>クラス別の配分（ゾーンからの換算）</h3>';
       ch += stackBar(rows);
-      ch += '<table class="list"><thead><tr><th>クラス</th><th class="num">距離</th><th class="num">割合</th></tr></thead><tbody>' + rows.map(r => '<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + r.color + ';margin-right:6px"></i>' + r.name + '</td><td class="num">' + fmtNum(r.v) + 'm</td><td class="num">' + (W.dist ? Math.round(r.v / W.dist * 100) : 0) + '%</td></tr>').join('') + '</tbody></table>';
-      ch += '<h3 style="margin-top:12px">直近4週の流れ（メゾサイクルの確認）</h3>';
+      ch += '<details class="explD"><summary>クラス別の数値（距離・割合）</summary><table class="list"><thead><tr><th>クラス</th><th class="num">距離</th><th class="num">割合</th></tr></thead><tbody>' + rows.map(r => '<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + r.color + ';margin-right:6px"></i>' + r.name + '</td><td class="num">' + fmtNum(r.v) + 'm</td><td class="num">' + (W.dist ? Math.round(r.v / W.dist * 100) : 0) + '%</td></tr>').join('') + '</tbody></table></details>';
+      ch += '<details class="explD"><summary>直近4週の流れ（メゾサイクルの確認）</summary>';
       weekRows.forEach(w => { ch += '<div style="margin-top:6px"><span class="muted">' + w.m0.replace(/-/g, '/') + 'の週　合計 ' + fmtNum(w.wd.dist) + 'm</span>' + stackBar(w.rs) + '</div>'; });
-      ch += '<p class="muted">クラスはゾーンからの換算です（EZ・A1・A2→AEC、AT・VO2→AEP、LT→乳酸耐性、LP→ANC、SP→ANP）。割合を見る前に、総量と各クラスの絶対量（最低量を超えているか）を確認してください。計画とのズレは「強度の配分」「8週間の推移」とあわせて見ます。</p></div>';
+      ch += '<p class="muted">クラスはゾーンからの換算です（EZ・A1・A2→AEC、AT・VO2→AEP、LT→乳酸耐性、LP→ANC、SP→ANP）。割合を見る前に、総量と各クラスの絶対量（最低量を超えているか）を確認してください。計画とのズレは「強度の配分」「8週間の推移」とあわせて見ます。</p></details></div>';
       h += ch;
     }
   }

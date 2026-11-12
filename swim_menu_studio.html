@@ -907,8 +907,8 @@ body.desk .dLong{display:none}
         var inner = text.replace(/[\[\]]/g, '').replace(/\*\s*\d+\s*set/i, '').replace(/\d+\s*set/i, '');
         var blocks = [];
         inner.split('+').forEach(function(part){
-          var m = part.trim().match(/(\d+(?:\.\d+)?)\s*m\s*[*×xX]\s*(\d+)\s*t?\s*(?:\(([^)]+)\))?/i);
-          if(m) blocks.push({dist:+m[1], reps:+m[2], cycle:parseCycle(m[3])});
+          var m = part.trim().match(/(\d+(?:\.\d+)?)\s*m\s*(?:[*×xX]\s*(\d+)\s*t?)?\s*(?:\(([^)]+)\))?/i);
+          if(m) blocks.push({dist:+m[1], reps:m[2] ? +m[2] : 1, cycle:parseCycle(m[3])});
         });
         return {blocks:blocks, setMult:setMult};
       }

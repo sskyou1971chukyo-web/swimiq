@@ -1322,7 +1322,7 @@ body.desk .dLong{display:none}
       <label class="fld">条件<select id="lrBKind"><option value="lastRepFast">最後の本だけFast（デセンド型：1~4なら4本目）</option></select></label>
       <button class="btn" type="button" id="lrBAdd">登録する</button>
     </div>
-    <p class="muted" style="margin-top:8px">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
+    <p class="muted" style="margin-top:8px">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
     <style>
       #lrCard .lrRow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px}
       #lrCard .lrRow .fld{margin:0}
@@ -3386,6 +3386,7 @@ function analyzeText(text, team, startHm, panelStroke){
           if(info.hypoxic) tot.hypoxic = true;
           if(lastTitle >= 0) out[lastTitle].secDist += info.dist;
           if(/fastest/i.test(info.comment || '')) info.fastFull = info.dist;
+          if(!info.fastFull && info.comment){ const toks = String(info.comment).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|dash)$/i.test(t)))) info.fastFull = info.dist; }
           lastSet = info;
           out.push(info); return;
         }
@@ -3403,6 +3404,7 @@ function analyzeText(text, team, startHm, panelStroke){
   out.forEach(info => {
     if(info.type !== 'set') return;
     if(info._fullFast && !info.fastFull) info.fastFull = info.dist;
+    (info._memos || []).forEach(mt => { const toks = String(mt).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|dash)$/i.test(t)))) info.fastFull = info.dist; });
     if((info._od || info._ev) && info.atoms && info.atoms.length === 1){
       [info._od, info._ev].forEach(p => { if(p) p.segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); }); });
       const per = info.atoms[0].d, reps = info.atoms[0].n;
@@ -3466,7 +3468,7 @@ function analyzeText(text, team, startHm, panelStroke){
     });
     sections.forEach(sec => { sec.decls.forEach(D => { sec.sets.forEach(info => { (info.atoms || []).forEach((a, ai) => { if(Math.abs(a.d - D) <= 0.01) addAtomFast(info, ai, a.d * a.n); }); }); }); });
   }
-  out.forEach(info => { if(info.type !== 'set') return; info.fastDash = Object.values(info._fa || {}).reduce((a, v) => a + v, 0); tot.fastDash += info.fastDash; });
+  out.forEach(info => { if(info.type !== 'set') return; info.fastDash = Object.values(info._fa || {}).reduce((a, v) => a + v, 0); if(!info.fastFull) tot.fastDash += info.fastDash; });
   tot.fastTotal = tot.fastDash + tot.fastFull;
   tot.elapsed = elapsed; tot.end = start + elapsed; tot.start = start;
   tot.lines = out;

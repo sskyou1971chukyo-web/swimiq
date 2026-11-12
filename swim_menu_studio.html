@@ -1303,6 +1303,84 @@ body.desk .dLong{display:none}
     })();
     </script>
   </div>
+  <div class="card" id="lrCard" style="margin-top:12px">
+    <h2 style="margin-top:0">読み方の学習（Fast／EZ のルール）</h2>
+    <p class="muted" style="margin:4px 0 10px">メモの言葉の扱いを一度登録すると、次から自動で集計に使われます。登録はこの端末に保存されます。</p>
+    <div id="lrUnknown"></div>
+    <h3 style="margin:12px 0 6px;font-size:15px">登録済みの言葉</h3>
+    <div id="lrList"></div>
+    <div class="lrRow">
+      <label class="fld">言葉<input type="text" id="lrWord" placeholder="例：Hard" style="width:130px"></label>
+      <label class="fld">扱い<select id="lrKind"><option value="fast">速い（Fastに数える）</option><option value="slow">速くない（数えない）</option></select></label>
+      <button class="btn" type="button" id="lrAdd">登録する</button>
+    </div>
+    <p class="muted" style="margin-top:8px">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝Fastに数えない）、Fastest（そのセット全部が速い）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
+    <style>
+      #lrCard .lrRow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-top:10px}
+      #lrCard .lrRow .fld{margin:0}
+      #lrCard .lrChip{display:inline-block;background:#eef3f8;border:1px solid #c9d4e0;border-radius:999px;padding:2px 6px 2px 10px;margin:0 6px 6px 0;font-size:13.5px}
+      #lrCard .lrChip button{margin-left:6px}
+      #lrCard .lrUnk{background:#fdf3e3;border:1px solid #e8cf9a;border-radius:8px;padding:8px 10px;margin-top:6px}
+    </style>
+    <script>
+    (function(){
+      function ready(){ return typeof S !== 'undefined' && typeof fastRules === 'function' && typeof saveNow === 'function'; }
+      function scanUnknown(){
+        var words = {};
+        if(typeof M === 'undefined' || !M || !M.panels) return [];
+        M.panels.forEach(function(p){
+          String(p.text || '').split('\n').forEach(function(line){
+            var i = line.indexOf('※');
+            if(i < 0) return;
+            var m = /=\s*(.+)$/.exec(line.slice(i + 1));
+            if(!m) return;
+            var sre = /[A-Za-z]+/g, t;
+            while((t = sre.exec(m[1])) !== null){
+              var w = t[0];
+              if(/^(od|ev|des|m)$/i.test(w)) continue;
+              if(!isFastLabel(w) && !isSlowLabel(w)) words[w] = true;
+            }
+          });
+        });
+        return Object.keys(words);
+      }
+      function render(){
+        if(!ready()) return;
+        var labels = fastRules().labels;
+        var keys = Object.keys(labels);
+        document.getElementById('lrList').innerHTML = keys.length ? keys.map(function(k){
+          return '<span class="lrChip">' + k + '（' + (labels[k] === 'fast' ? '速い' : '速くない') + '）<button class="btn small red" type="button" data-lrdel="' + k + '">削除</button></span>';
+        }).join('') : '<p class="muted">まだ登録はありません。</p>';
+        document.querySelectorAll('[data-lrdel]').forEach(function(b){
+          b.addEventListener('click', function(){ delete fastRules().labels[b.getAttribute('data-lrdel')]; saveNow(); render(); if(typeof renderPanels === 'function') renderPanels(); });
+        });
+        var unk = scanUnknown();
+        document.getElementById('lrUnknown').innerHTML = unk.length ? '<div class="lrUnk"><b>未学習の表記が見つかりました：</b>' + unk.map(function(w){
+          return '<span class="lrChip">' + w + '<button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="fast">速いとして登録</button><button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="slow">速くないとして登録</button></span>';
+        }).join('') + '</div>' : '';
+        document.querySelectorAll('[data-lrlearn]').forEach(function(b){
+          b.addEventListener('click', function(){ fastRules().labels[b.getAttribute('data-lrlearn').toLowerCase()] = b.getAttribute('data-kind'); saveNow(); render(); if(typeof renderPanels === 'function') renderPanels(); });
+        });
+      }
+      function init(){
+        if(!document.getElementById('lrCard')) return;
+        if(!ready()){ setTimeout(init, 300); return; }
+        document.getElementById('lrAdd').addEventListener('click', function(){
+          var w = document.getElementById('lrWord').value.trim().toLowerCase();
+          if(!w) return;
+          fastRules().labels[w] = document.getElementById('lrKind').value;
+          document.getElementById('lrWord').value = '';
+          saveNow(); render();
+          if(typeof renderPanels === 'function') renderPanels();
+        });
+        window.__lrRefresh = render;
+        render();
+      }
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+    </script>
+  </div>
 </section>
 
 <!-- ============ 週間分析 ============ -->
@@ -3191,6 +3269,10 @@ function findMultiSets(lines){
   }
   return map;
 }
+/* 学習ルール（言葉の辞書）：S.fastRules.labels に {言葉: 'fast'|'slow'} を保存する */
+function fastRules(){ if(!S.fastRules || typeof S.fastRules !== 'object') S.fastRules = {labels:{}}; if(!S.fastRules.labels) S.fastRules.labels = {}; return S.fastRules; }
+function isFastLabel(label){ const w = String(label || '').toLowerCase(); const d = fastRules().labels; if(w in d) return d[w] === 'fast'; return /dash|fast/.test(w); }
+function isSlowLabel(label){ const w = String(label || '').toLowerCase(); const d = fastRules().labels; if(w in d) return d[w] === 'slow'; return /smt|smooth|easy|^ez$/.test(w); }
 /* メモ行の od=/ev= パターン（1本の中の内訳）を読む。{segs, sum, dash} を返す */
 function memoSegPattern(tr, key){
   const re = new RegExp(key + '\\s*=\\s*((?:\\d+(?:\\.\\d+)?\\s*m\\s*[A-Za-z]+\\s*\\+?\\s*)+)', 'i');
@@ -3201,7 +3283,7 @@ function memoSegPattern(tr, key){
   let sm;
   while((sm = sre.exec(m[1])) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
   if(!segs.length) return null;
-  return {segs, sum:segs.reduce((a, x) => a + x.d, 0), dash:segs.reduce((a, x) => a + (/dash|fast/i.test(x.label) ? x.d : 0), 0)};
+  return {segs, sum:segs.reduce((a, x) => a + x.d, 0), dash:segs.reduce((a, x) => a + (isFastLabel(x.label) ? x.d : 0), 0)};
 }
 function analyzeText(text, team, startHm, panelStroke){
   const set = S.settings;
@@ -3215,7 +3297,7 @@ function analyzeText(text, team, startHm, panelStroke){
   let ctx = {cat:null, stroke:null, tag:null, title:''};
   let lastTitle = -1, sectionHasTitle = false, firstInSection = true;
   let lastSet = null;
-  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0};
+  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0, unknown:[]};
   ZK.forEach(k => tot.zones[k] = 0);
   lines.forEach((raw, i) => {
     const n = normalize(raw), indent = /^[ \t]/.test(raw);
@@ -3230,6 +3312,8 @@ function analyzeText(text, team, startHm, panelStroke){
     if(/^(※|・|\/\/|>|＞)/.test(tr)){
       info.type = 'memo';
       if(lastSet){
+        if(!lastSet._memos) lastSet._memos = [];
+        lastSet._memos.push(tr);
         const od = memoSegPattern(tr, 'od'), ev = memoSegPattern(tr, 'ev');
         if(od) lastSet._od = od;
         if(ev) lastSet._ev = ev;
@@ -3288,10 +3372,12 @@ function analyzeText(text, team, startHm, panelStroke){
     }
     info.type = 'memo'; out.push(info);
   });
+  const noteUnknown = w => { if(w && !tot.unknown.includes(w)) tot.unknown.push(w); };
   out.forEach(info => {
     if(info.type !== 'set') return;
     if(info._fullFast && !info.fastFull) info.fastFull = info.dist;
     if((info._od || info._ev) && info.atoms && info.atoms.length === 1){
+      [info._od, info._ev].forEach(p => { if(p) p.segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); }); });
       const per = info.atoms[0].d, reps = info.atoms[0].n;
       const okPat = p => p && Math.abs(p.sum - per) <= 1;
       const od = okPat(info._od) ? info._od : null, ev = okPat(info._ev) ? info._ev : null;
@@ -3301,6 +3387,35 @@ function analyzeText(text, team, startHm, panelStroke){
       else if(ev) f = ev.dash * Math.floor(reps / 2);
       if(f > 0) info.fastDash = f;
     }
+    [info.comment || ''].concat(info._memos || []).forEach(tx => {
+      const m = /(\d+(?:\.\d+)?)\s*m\s*=\s*(.+)$/.exec(tx || '');
+      if(!m) return;
+      const D = parseFloat(m[1]), val = m[2].trim();
+      const atom = (info.atoms || []).find(a => Math.abs(a.d - D) <= 0.01);
+      if(!atom) return;
+      if(/des/i.test(val) && !/\d+\s*m/i.test(val)) return;
+      const pair = /^([A-Za-z]+)\s*\/\s*([A-Za-z]+)$/.exec(val);
+      if(pair){
+        [pair[1], pair[2]].forEach(w => { if(!isFastLabel(w) && !isSlowLabel(w)) noteUnknown(w); });
+        if(isFastLabel(pair[1])) info.fastDash = (info.fastDash || 0) + Math.ceil(atom.n / 2) * atom.d;
+        return;
+      }
+      const segs = [];
+      const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+)/g;
+      let sm;
+      while((sm = sre.exec(val)) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
+      if(segs.length){
+        segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); });
+        const fd = segs.reduce((a, sg) => a + (isFastLabel(sg.label) ? sg.d : 0), 0);
+        const sum = segs.reduce((a, sg) => a + sg.d, 0);
+        if(fd > 0 && sum <= D + 1) info.fastDash = (info.fastDash || 0) + fd * atom.n;
+        return;
+      }
+      if(/^[A-Za-z]+$/.test(val)){
+        if(isFastLabel(val)) info.fastDash = (info.fastDash || 0) + atom.n * atom.d;
+        else if(!isSlowLabel(val)) noteUnknown(val);
+      }
+    });
     tot.fastDash += info.fastDash || 0;
     tot.fastFull += info.fastFull || 0;
   });
@@ -3727,7 +3842,7 @@ function updatePanel(i){
   if($('panelTabs')) renderPanelTabs();
   el.querySelector('.gutter').scrollTop = el.querySelector('textarea').scrollTop;
   el.querySelector('.pfoot').innerHTML = p.memo ? '<span class="muted">📝 メモとして表示しています（時間・距離・負荷は表示しません）。</span>' : tot.dist
-    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '')
+    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '') + (tot.unknown && tot.unknown.length ? '<br><span class="plannedLine">⚠ 未学習の表記：' + tot.unknown.map(esc).join('、') + '（下の「読み方の学習」で登録できます）</span>' : '')
     : '<span class="muted">ここに入力すると、距離と終了時刻が自動で出ます。</span>';
   if(typeof fitEditor === 'function' && i === 0) requestAnimationFrame(fitEditor);
 }
@@ -9497,7 +9612,7 @@ function showView(id){
   if(id === 'vLib') renderLib();
   if(id === 'vYear') renderYear();
   if(id === 'vTests') renderTests();
-  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); renderPlanStrip(); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
+  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); if(window.__lrRefresh) window.__lrRefresh(); renderPlanStrip(); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
 }
 function init(){
   applyFont();

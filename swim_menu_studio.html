@@ -3964,11 +3964,8 @@ function renderPanels(){
     el.innerHTML =
       '<div class="phead"><span class="pno">' + (i === 0 ? '基本' : 'アレンジ' + i) + '</span>' +
       '<select data-cls aria-label="' + (i+1) + '列目の所属">' + clsSelectOptions(p.cls) + '</select>' +
-      '<button class="btn small plus" data-opt="cls" aria-label="所属の項目を追加・削除">＋</button>' +
-      '<select data-team aria-label="' + (i+1) + '列目のチーム">' + names.map(n => '<option' + (n === p.team ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>' +
-      '<button class="btn small plus" data-opt="team" aria-label="チームの項目を追加・削除">＋</button>' +
+      '<select data-team aria-label="' + (i+1) + '列目のチーム">' + names.map(n => '<option' + (n === p.team ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__add__">＋ 項目を追加・削除</option></select>' +
       '<select data-stroke aria-label="' + (i+1) + '列目の種目">' + strokeSelectOptions(p.stroke) + '</select>' +
-      '<button class="btn small plus" data-opt="stroke" aria-label="種目の項目を追加・削除">＋</button>' +
       '<button type="button" class="btn small" data-persons title="この列を泳ぐ人（週間分析の個人別集計に使います）">' + personsBtnLabel(p) + '</button>' +
       '<button type="button" class="btn small printTog' + (p.print === false ? '' : ' on') + '" data-ptog aria-pressed="' + (p.print !== false) + '">' + (p.print === false ? '印刷しない' : '印刷する') + '</button>' +
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
@@ -3996,10 +3993,10 @@ function renderPanels(){
     ta.addEventListener('keydown', e => {
       if(isRealEnter(e) && (e.ctrlKey || e.metaKey)){ e.preventDefault(); updateCursor(i); advOk(); }
     });
-    sel.addEventListener('change', () => { p.team = sel.value; renderPlanStrip(); ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
-    ssel.addEventListener('change', () => { p.stroke = ssel.value; ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
+    sel.addEventListener('change', () => { if(sel.value === '__add__'){ sel.value = p.team; curPanel = i; openOpt('team', i); return; } p.team = sel.value; renderPlanStrip(); ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
+    ssel.addEventListener('change', () => { if(ssel.value === '__add__'){ ssel.value = p.stroke || ''; curPanel = i; openOpt('stroke', i); return; } p.stroke = ssel.value; ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
     const csel = el.querySelector('[data-cls]');
-    csel.addEventListener('change', () => { p.cls = csel.value; commitMenu(); });
+    csel.addEventListener('change', () => { if(csel.value === '__add__'){ csel.value = p.cls || ''; curPanel = i; openOpt('cls', i); return; } p.cls = csel.value; commitMenu(); });
     el.querySelector('[data-persons]').addEventListener('click', () => { curPanel = i; openPersons(i); });
     el.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', () => { curPanel = i; openOpt(b.dataset.opt, i); }));
     el.querySelector('[data-ptog]').addEventListener('click', () => { p.print = p.print === false ? true : false; commitMenu(); renderPanels(); updatePrintCount(); toast(panelLabel(p) + '：' + (p.print === false ? '印刷しない' : '印刷する') + 'にしました'); });
@@ -4025,7 +4022,7 @@ function renderPanels(){
 function clsSelectOptions(cur){
   const list = clsList().slice();
   if(cur && !list.includes(cur)) list.push(cur);
-  return '<option value="">所属なし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  return '<option value="">所属なし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__add__">＋ 項目を追加・削除</option>';
 }
 function personsBtnLabel(p){
   const eff = effPersons(p);
@@ -4035,7 +4032,7 @@ function strokeSelectOptions(cur){
   const list = S.settings.strokeOpts.slice();
   const curName = strokeName(cur);
   if(curName && !list.includes(curName)) list.push(curName);
-  return '<option value="">種目なし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === curName ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  return '<option value="">種目なし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === curName ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__add__">＋ 項目を追加・削除</option>';
 }
 /* ---------- ＋ボタン：チーム・種目の項目の追加と削除 ---------- */
 let optKind = 'team', optPanel = 0;

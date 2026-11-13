@@ -3903,6 +3903,11 @@ function openMenu(date, session){
   if(saveTimer) saveNow();
   const id = menuId(date, session);
   M = S.menus[id] ? S.menus[id] : newMenuObj(date, session, M && M.panels);
+  /* 既定は2列（左：大学生、右：社会人）。保存済みが1列だけのときもそろえる */
+  if(M.panels && M.panels.length === 1){
+    if(M.panels[0].cls === '社会人') M.panels.unshift({team:'全員', stroke:'', cls:'大学生', text:''});
+    else if(M.panels[0].cls === '大学生') M.panels.push({team:'全員', stroke:'', cls:'社会人', text:''});
+  }
   curPanel = 0; curLine = -1;
   renderMenuView();
 }
@@ -3934,7 +3939,7 @@ function selectPanel(i){
   renderPanelTabs(); renderAdvice(true);
 }
 const MAX_PANELS = 6;
-function panelLabel(p){ return p.team + (p.stroke ? ' ' + strokeName(p.stroke) : ''); }
+function panelLabel(p){ return (p.cls ? p.cls + ' ' : '') + p.team + (p.stroke ? ' ' + strokeName(p.stroke) : ''); }
 let scrollSyncing = false;
 function renderPanels(){
   const box = $('panels'); box.innerHTML = '';

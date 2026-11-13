@@ -354,11 +354,15 @@ table.cmp tbody th{white-space:nowrap;color:var(--red);font-weight:700}
 #panels.many .phead select{font-size:14px}
 /* 列の見出しを小さくして1行に収める */
 #panels .phead, #panels.many .phead{flex-wrap:nowrap;min-height:0;gap:5px;padding:5px 7px}
-#panels .phead select, #panels.many .phead select{font-size:13px;font-weight:600;border-width:1.5px;border-radius:7px;padding:2px 3px;min-width:0;flex:0 1 auto}
-#panels .phead .btn{font-size:12px;padding:3px 8px;border-width:1.5px;border-radius:7px;white-space:nowrap;flex:0 0 auto}
+#panels .phead select, #panels.many .phead select{font-size:12px;font-weight:600;border-width:1.5px;border-radius:7px;padding:1px 2px;min-width:0;flex:0 1 auto}
+#panels .phead .btn{font-size:11px;padding:2px 6px;border-width:1.5px;border-radius:7px;white-space:nowrap;flex:0 0 auto}
 #panels .phead .plus{font-size:15px;padding:1px 7px;line-height:1.4}
-#panels .phead .pno{font-size:12px;padding:3px 7px;flex:0 0 auto;white-space:nowrap}
-#panels .phead .pMore summary{font-size:12px;padding:3px 4px}
+#panels .phead .pno{font-size:11px;padding:2px 6px;flex:0 0 auto;white-space:nowrap}
+#panels .phead .pMore summary{font-size:11px;padding:2px 3px}
+/* 列は常に2列。増えた列は下の段へ流れ、横には伸ばさない */
+#panels{display:grid;grid-template-columns:1fr 1fr;overflow:visible;align-items:start}
+#panels .panel, #panels.many .panel{min-width:0}
+@media (max-width:700px){#panels{grid-template-columns:1fr}}
 #menuWrap.many{flex-direction:column;align-items:stretch}
 #menuWrap.many #panels{width:100%}
 #menuWrap.many #advice{width:100%;position:static}
@@ -3884,7 +3888,12 @@ function effPersons(p){ if(!p) return []; if(p.personsExplicit) return Array.isA
   Object.values(S.menus || {}).forEach(m => (m.panels || []).forEach(p => { if(Array.isArray(p.persons)) p.persons = fix(p.persons); }));
   const base = ['大学生','社会人','全員'];
   const cur = Array.isArray(S.settings.classes) ? S.settings.classes : [];
-  S.settings.classes = base.concat(cur.filter(c => !base.includes(c)));
+  S.settings.classes = base.concat(cur.filter(c => !base.includes(c) && c !== 'インターナショナル'));
+  /* 名前一覧の掃除（ユーザーの指示）：「山口」「インターナショナル」を名簿・基本メンバー・列の個人から外す */
+  const BAD = ['山口','インターナショナル'];
+  if(Array.isArray(S.athletes)) S.athletes = S.athletes.filter(a => !BAD.includes(a.name));
+  ['clsMembers','teamMembers'].forEach(k => { const o = S.settings[k]; if(o && typeof o === 'object') Object.keys(o).forEach(key => { if(Array.isArray(o[key])) o[key] = o[key].filter(n => !BAD.includes(n)); }); });
+  Object.values(S.menus || {}).forEach(m => (m.panels || []).forEach(p => { if(p.cls === 'インターナショナル') p.cls = ''; if(Array.isArray(p.persons)) p.persons = p.persons.filter(n => !BAD.includes(n)); }));
   if(!S.settings.clsMembers || typeof S.settings.clsMembers !== 'object'){
     S.settings.clsMembers = {'大学生':['市田力哉','津地佑輔','芹澤麗生','野田怜穏','中野由基','大濱成聖','岸本真樹','伊藤大貴','根岸海輝','杉浦征典','宍戸梨穂','木所美音楽'], '社会人':['小島夢貴','谷口卓','根本大雅','山口秀哉','内藤大翔','渡邉翔太','伊須新太']};
   }

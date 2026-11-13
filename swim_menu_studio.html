@@ -352,6 +352,13 @@ table.cmp tbody th{white-space:nowrap;color:var(--red);font-weight:700}
 #panels .phead{min-height:54px;align-content:flex-start}
 #panels.many .phead{min-height:124px;gap:6px}
 #panels.many .phead select{font-size:14px}
+/* 列の見出しを小さくして1行に収める */
+#panels .phead, #panels.many .phead{flex-wrap:nowrap;min-height:0;gap:5px;padding:5px 7px}
+#panels .phead select, #panels.many .phead select{font-size:13px;font-weight:600;border-width:1.5px;border-radius:7px;padding:2px 3px;min-width:0;flex:0 1 auto}
+#panels .phead .btn{font-size:12px;padding:3px 8px;border-width:1.5px;border-radius:7px;white-space:nowrap;flex:0 0 auto}
+#panels .phead .plus{font-size:15px;padding:1px 7px;line-height:1.4}
+#panels .phead .pno{font-size:12px;padding:3px 7px;flex:0 0 auto;white-space:nowrap}
+#panels .phead .pMore summary{font-size:12px;padding:3px 4px}
 #menuWrap.many{flex-direction:column;align-items:stretch}
 #menuWrap.many #panels{width:100%}
 #menuWrap.many #advice{width:100%;position:static}
@@ -1526,7 +1533,10 @@ body.desk .dLong{display:none}
     <button class="btn" id="aPrev">前の週</button>
     <label class="fld">週（この日を含む月曜〜日曜）<input type="date" id="aDate"></label>
     <button class="btn" id="aNext">次の週</button>
+    <label class="fld">所属<select id="aCls"></select></label>
     <label class="fld">チーム<select id="aTeam"></select></label>
+    <label class="fld">種目<select id="aStroke"></select></label>
+    <label class="fld">個人<select id="aPerson"></select></label>
     <button class="btn ghost" id="aCsv">この週をCSVで保存</button>
   </div>
   <div id="aBody"></div>
@@ -7737,7 +7747,7 @@ function hidePer50(i){ const el = panelEl(i); const tip = el && el.querySelector
 /* =====================================================================
    週間分析
    ===================================================================== */
-function weekData(mon, team){
+function weekData(mon, team, filt){
   const end = addDays(mon, 6);
   const W = {dist:0, sec:0, sessions:0, load:0, zones:{}, strokes:{}, cats:{}, days:[], teams:{}, rows:[], persons:{}, classes:{}, unassigned:0};
   ZK.forEach(k => W.zones[k] = 0);
@@ -7751,6 +7761,12 @@ function weekData(mon, team){
       tm.dist += t.dist; tm.sessions++; ZK.forEach(k => tm.zones[k] += t.zones[k]);
       W.rows.push({m, t});
       if(team !== '__all' && t.team !== team) return;
+      if(filt){
+        const pp0 = m.panels[pi] || {};
+        if(filt.cls && (pp0.cls || '') !== filt.cls) return;
+        if(filt.stroke && strokeName(pp0.stroke || '') !== filt.stroke) return;
+        if(filt.person && !effPersons(pp0).includes(filt.person)) return;
+      }
       W.dist += t.dist; W.sec += t.elapsed; W.sessions++; W.load += t.pLoad || 0;
       ZK.forEach(k => { W.zones[k] += t.zones[k]; W.days[di].zones[k] += t.zones[k]; });
       W.days[di].dist += t.dist;
@@ -7810,7 +7826,19 @@ function renderAnalysis(){
   sel.innerHTML = '<option value="__all">全チームの合算</option>' + teams.map(t => '<option' + (t === def ? ' selected' : '') + '>' + esc(t) + '</option>').join('');
   if(def === '__all') sel.value = '__all';
   const team = sel.value;
-  const W = weekData(mon, team);
+  const fCls = $('aCls'), fStroke = $('aStroke'), fPerson = $('aPerson');
+  const pvCls = fCls.value, pvStroke = fStroke.value, pvPerson = fPerson.value;
+  fCls.innerHTML = '<option value="">所属はすべて</option>' + clsList().map(c => '<option' + (c === pvCls ? ' selected' : '') + '>' + esc(c) + '</option>').join('');
+  const sopts = Array.isArray(S.settings.strokeOpts) ? S.settings.strokeOpts : [];
+  fStroke.innerHTML = '<option value="">種目はすべて</option>' + sopts.map(s => '<option' + (s === pvStroke ? ' selected' : '') + '>' + esc(s) + '</option>').join('');
+  const ppl = new Set();
+  athletes().forEach(a => { if(a.name) ppl.add(a.name); });
+  Object.values(S.settings.clsMembers || {}).forEach(a => (a || []).forEach(n => ppl.add(n)));
+  Object.values(S.settings.teamMembers || {}).forEach(a => (a || []).forEach(n => ppl.add(n)));
+  fPerson.innerHTML = '<option value="">個人はすべて</option>' + [...ppl].sort().map(n => '<option' + (n === pvPerson ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  const filt = {cls:fCls.value, stroke:fStroke.value, person:fPerson.value};
+  const hasFilt = !!(filt.cls || filt.stroke || filt.person);
+  const W = weekData(mon, team, hasFilt ? filt : null);
   const plan = activePlan(team);
   const pi = plan ? planWeekIndex(plan, mon) : -1;
   const pw = pi >= 0 ? plan.weeks[pi] : null;
@@ -7818,13 +7846,16 @@ function renderAnalysis(){
   const hi = ['VO2','LT','LP','SP'].reduce((a, k) => a + W.zones[k], 0);
   const aero = ['EZ','A1','A2'].reduce((a, k) => a + W.zones[k], 0);
   const teamLabel = team === '__all' ? '全チームの合算' : team;
-  let h = '<h2>' + mon.replace(/-/g,'/') + '（月）〜 ' + addDays(mon, 6).slice(5).replace('-','/') + '（日）の週　' + esc(teamLabel) + '</h2>';
+  const filtLabel = [filt.cls ? '所属：' + filt.cls : '', filt.stroke ? '種目：' + filt.stroke : '', filt.person ? '個人：' + filt.person : ''].filter(Boolean).join('　');
+  let h = '<h2>' + mon.replace(/-/g,'/') + '（月）〜 ' + addDays(mon, 6).slice(5).replace('-','/') + '（日）の週　' + esc(teamLabel) + (filtLabel ? '　（' + esc(filtLabel) + '）' : '') + '</h2>';
   if(!W.sessions){
     const endYmd = addDays(mon, 6);
     const anyMenu = Object.values(S.menus).some(m => m.date >= mon && m.date <= endYmd);
     const teamsWith = Object.keys(pre.teams);
     let why;
-    if(team !== '__all' && teamsWith.length && !pre.teams[team]){
+    if(hasFilt && (anyMenu || teamsWith.length)){
+      why = '絞り込みの条件（' + esc(filtLabel) + '）に合う列が、この週にはありません。条件をゆるめるか、別の週でお試しください。';
+    } else if(team !== '__all' && teamsWith.length && !pre.teams[team]){
       why = 'この週の' + esc(teamLabel) + 'のメニューは集計されていません。この週に距離のデータがあるのは ' + teamsWith.map(t => esc(t)).join('、') + ' です。メニューの列のチーム名が「' + esc(teamLabel) + '」と完全に一致しているか確認してください。';
     } else if(!anyMenu){
       why = 'この週の日付で保存されたメニューがありません。メニュー作成の画面で、この週の日付（' + mon.replace(/-/g,'/') + '〜' + endYmd.replace(/-/g,'/') + '）を開いて入力すると、自動でここに集計されます。なお、ダウンロードした別のコピーのファイルで作ったメニューは、このファイルには表示されません（保存先がファイルごとに別です）。';
@@ -7896,7 +7927,7 @@ function renderAnalysis(){
     const classOf = zs => CLS.map(c => ({k:c.k, name:c.name, color:c.color, v:c.zones.reduce((a, z) => a + (zs[z] || 0), 0)}));
     const stackBar = rs => { const t = rs.reduce((a, r) => a + r.v, 0); if(!t) return '<p class="muted">データがありません</p>'; return '<div style="display:flex;height:18px;border-radius:4px;overflow:hidden;margin:6px 0">' + rs.map(r => r.v ? '<span style="width:' + (r.v / t * 100) + '%;background:' + r.color + '"></span>' : '').join('') + '</div>'; };
     const weekRows = [];
-    for(let k = 3; k >= 0; k--){ const m0 = addDays(mon, -7 * k); const wd = weekData(m0, team); weekRows.push({m0, wd, rs:classOf(wd.zones)}); }
+    for(let k = 3; k >= 0; k--){ const m0 = addDays(mon, -7 * k); const wd = weekData(m0, team, hasFilt ? filt : null); weekRows.push({m0, wd, rs:classOf(wd.zones)}); }
     if(W.dist || weekRows.some(w => w.wd.dist)){
       const rows = classOf(W.zones);
       let ch = '<div class="card" style="margin-top:14px"><h3>クラス別の配分（ゾーンからの換算）</h3>';
@@ -9992,6 +10023,9 @@ function init(){
   // 分析
   $('aDate').addEventListener('change', renderAnalysis);
   $('aTeam').addEventListener('change', renderAnalysis);
+  $('aCls').addEventListener('change', renderAnalysis);
+  $('aStroke').addEventListener('change', renderAnalysis);
+  $('aPerson').addEventListener('change', renderAnalysis);
   $('aPrev').addEventListener('click', () => { $('aDate').value = addDays($('aDate').value || todayYmd(), -7); renderAnalysis(); });
   $('aNext').addEventListener('click', () => { $('aDate').value = addDays($('aDate').value || todayYmd(), 7); renderAnalysis(); });
   $('aCsv').addEventListener('click', exportCsv);

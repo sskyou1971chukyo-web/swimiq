@@ -1419,7 +1419,7 @@ body.desk .dLong{display:none}
     <details class="explD"><summary>説明・組み込みの型を見る</summary><div class="explB">
       <p class="muted" style="margin:4px 0 6px">メモの言葉の扱いを一度登録すると、次から自動で集計に使われます。登録はこの端末に保存されます。</p>
       <p class="muted" style="margin:0 0 6px">条件つきパターン：「1~4DES」の DES のような、本数で Fast の場所が決まる言葉を登録します。</p>
-      <p class="muted" style="margin:0">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
+      <p class="muted" style="margin:0">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、100m=Fast（その距離の部分は全部速い）、400m+300m+200m=Smooth,100m=Fast（＋で複数の距離をまとめ、カンマで複数の指定を並べる）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
     </div></details>
     <div id="lrUnknown"></div>
     <h3 style="margin:12px 0 6px;font-size:15px">登録済みの言葉</h3>
@@ -2400,6 +2400,21 @@ body.desk .dLong{display:none}
   </div>
 </div>
 
+<!-- 個人を選ぶ -->
+<div class="ov hidden" id="perOv" role="dialog" aria-modal="true" aria-labelledby="perTitle">
+  <div class="dlg" style="width:min(560px,100%)">
+    <h2 id="perTitle">個人を選ぶ <button class="btn ghost small" data-close="perOv">閉じる</button></h2>
+    <p class="muted" id="perNote"></p>
+    <div id="perList" class="optList"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="perBase">基本メンバーを入れる</button>
+      <button class="btn" id="perClear">全員はずす</button>
+      <button class="btn" id="perSaveBase">このメンバーを基本に保存</button>
+    </div>
+    <p class="muted" style="margin-top:10px">選んだ人は、週間分析の「個人別の泳ぎ量」に数えられます。個人をまだ選んでいない列は、チームの基本メンバーで数えます。名簿（選手一覧）にない人は、先に名簿へ登録してください。</p>
+  </div>
+</div>
+
 <!-- 予定の値 -->
 <div class="ov hidden" id="pvOv" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
   <div class="dlg" style="width:min(1100px,100%)">
@@ -3041,7 +3056,9 @@ function defaultSettings(){
     teams:[{name:'全員',pace:75},{name:'50m',pace:80},{name:'100m',pace:77},{name:'200m',pace:74},{name:'400m',pace:72},{name:'Distance',pace:72},{name:'Middle',pace:74},{name:'Sprint',pace:78},{name:'IM',pace:76},{name:'社会人',pace:85}],
     noCirclePace:100, blankMin:1, defaultStroke:'Fr', printMode:'both', fontSize:'l',
     header:'中京大学水泳部', showAdvice:true, coaches:{olb:true,bow:true,des:true},
-    lastStart:'6:00', lastPool:'長水路', syncScroll:true, teamsV2:true, strokeOpts:['自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー']
+    lastStart:'6:00', lastPool:'長水路', syncScroll:true, teamsV2:true, strokeOpts:['自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー'],
+    classes:['社会人','大学生'],
+    teamMembers:{'インターナショナル':['小島夢貴','谷口卓','根本大雅','山口秀哉','内藤大翔','渡邉翔太','伊須新太']}
   };
 }
 function defaultStore(){ return {v:1, menus:{}, plans:[], activePlanId:null, races:[], activePlans:null, settings:defaultSettings(), lastBackup:null}; }
@@ -3532,43 +3549,49 @@ function analyzeText(text, team, startHm, panelStroke){
       if(f > 0) addAtomFast(info, 0, f);
     }
     [info.comment || ''].concat(info._memos || []).forEach(tx => {
-      const m = /(\d+(?:\.\d+)?)\s*m\s*=\s*(.+)$/.exec(tx || '');
-      if(!m) return;
-      const D = parseFloat(m[1]), val = m[2].trim();
-      if(val.indexOf(',') >= 0 || val.indexOf('、') >= 0) return;
-      const ai = (info.atoms || []).findIndex(a => Math.abs(a.d - D) <= 0.01);
-      const atom = ai >= 0 ? info.atoms[ai] : null;
-      if(!atom) return;
-      const desm = /^(\d+)\s*[~\u301c-]\s*(\d+)\s*([A-Za-z]+)?$/.exec(val.replace(/\s+/g, ''));
-      if(desm && blockRuleKind(desm[3] || 'DES') === 'lastRepFast'){
-        const g = parseInt(desm[2], 10);
-        if(g > 0) addAtomFast(info, ai, Math.floor(atom.n / g) * atom.d);
-        return;
-      }
-      if(/^[A-Za-z]+$/.test(val) && blockRuleKind(val) === 'lastRepFast'){ addAtomFast(info, ai, atom.d); return; }
-      const tail = /([A-Za-z]+)$/.exec(val);
-      if(tail && !isFastLabel(tail[1]) && !isSlowLabel(tail[1]) && !blockRuleKind(tail[1])) noteUnknown(tail[1]);
-      const pair = /^([A-Za-z]+)\s*\/\s*([A-Za-z]+)$/.exec(val);
-      if(pair){
-        [pair[1], pair[2]].forEach(w => { if(!isFastLabel(w) && !isSlowLabel(w)) noteUnknown(w); });
-        if(isFastLabel(pair[1])) addAtomFast(info, ai, Math.ceil(atom.n / 2) * atom.d);
-        return;
-      }
-      const segs = [];
-      const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+)/g;
-      let sm;
-      while((sm = sre.exec(val)) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
-      if(segs.length){
-        segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); });
-        const fd = segs.reduce((a, sg) => a + (isFastLabel(sg.label) ? sg.d : 0), 0);
-        const sum = segs.reduce((a, sg) => a + sg.d, 0);
-        if(fd > 0 && sum <= D + 1) addAtomFast(info, ai, fd * atom.n);
-        return;
-      }
-      if(/^[A-Za-z]+$/.test(val)){
-        if(isFastLabel(val)) addAtomFast(info, ai, atom.n * atom.d);
-        else if(!isSlowLabel(val)) noteUnknown(val);
-      }
+      String(tx || '').split(/[,、]/).forEach(part0 => {
+        const part = part0.trim().replace(/^※+/, '').trim();
+        const m = /^((?:\d+(?:\.\d+)?\s*m\s*\+?\s*)+)=\s*(.+)$/.exec(part);
+        if(!m) return;
+        const Ds = []; const dre = /(\d+(?:\.\d+)?)\s*m/g; let dmm;
+        while((dmm = dre.exec(m[1])) !== null) Ds.push(parseFloat(dmm[1]));
+        const val = m[2].trim();
+        Ds.forEach(D => {
+          (info.atoms || []).forEach((atom, ai) => {
+            if(Math.abs(atom.d - D) > 0.01) return;
+            const desm = /^(\d+)\s*[~\u301c-]\s*(\d+)\s*([A-Za-z]+)?$/.exec(val.replace(/\s+/g, ''));
+            if(desm && blockRuleKind(desm[3] || 'DES') === 'lastRepFast'){
+              const g = parseInt(desm[2], 10);
+              if(g > 0) addAtomFast(info, ai, Math.floor(atom.n / g) * atom.d);
+              return;
+            }
+            if(/^[A-Za-z]+$/.test(val) && blockRuleKind(val) === 'lastRepFast'){ addAtomFast(info, ai, atom.d); return; }
+            const tail = /([A-Za-z]+)$/.exec(val);
+            if(tail && !isFastLabel(tail[1]) && !isSlowLabel(tail[1]) && !blockRuleKind(tail[1])) noteUnknown(tail[1]);
+            const pair = /^([A-Za-z]+)\s*\/\s*([A-Za-z]+)$/.exec(val);
+            if(pair){
+              [pair[1], pair[2]].forEach(w => { if(!isFastLabel(w) && !isSlowLabel(w)) noteUnknown(w); });
+              if(isFastLabel(pair[1])) addAtomFast(info, ai, Math.ceil(atom.n / 2) * atom.d);
+              return;
+            }
+            const segs = [];
+            const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+)/g;
+            let sm;
+            while((sm = sre.exec(val)) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
+            if(segs.length){
+              segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); });
+              const fd = segs.reduce((a, sg) => a + (isFastLabel(sg.label) ? sg.d : 0), 0);
+              const sum = segs.reduce((a, sg) => a + sg.d, 0);
+              if(fd > 0 && sum <= D + 1) addAtomFast(info, ai, fd * atom.n);
+              return;
+            }
+            if(/^[A-Za-z]+$/.test(val)){
+              if(isFastLabel(val)) addAtomFast(info, ai, atom.n * atom.d);
+              else if(!isSlowLabel(val)) noteUnknown(val);
+            }
+          });
+        });
+      });
     });
     tot.fastFull += info.fastFull || 0;
   });
@@ -3829,6 +3852,15 @@ function toast(msg, ms=3200){
   clearTimeout(toast._t); toast._t = setTimeout(() => { box.innerHTML = ''; }, ms);
 }
 function teamNames(){ return S.settings.teams.map(t => t.name); }
+function clsList(){ if(!Array.isArray(S.settings.classes) || !S.settings.classes.length) S.settings.classes = ['社会人','大学生']; return S.settings.classes; }
+function teamMembersOf(team){ const tm = (S.settings.teamMembers && typeof S.settings.teamMembers === 'object') ? S.settings.teamMembers : {}; return Array.isArray(tm[team]) ? tm[team] : []; }
+function effPersons(p){ if(!p) return []; if(p.personsExplicit) return Array.isArray(p.persons) ? p.persons : []; return teamMembersOf(p.team); }
+/* 氏名の訂正（山口修也→山口秀哉）を、保存済みの基本メンバーと列の個人にも反映する */
+(function(){
+  const fix = a => Array.isArray(a) ? a.map(n => n === '山口修也' ? '山口秀哉' : n) : a;
+  if(S.settings.teamMembers) Object.keys(S.settings.teamMembers).forEach(k => { S.settings.teamMembers[k] = fix(S.settings.teamMembers[k]); });
+  Object.values(S.menus || {}).forEach(m => (m.panels || []).forEach(p => { if(Array.isArray(p.persons)) p.persons = fix(p.persons); }));
+})();
 function menuId(date, session){ return date + '_' + session; }
 function newMenuObj(date, session, fromPanels){
   return {id:menuId(date, session), date, session, start:fmtClock(S.settings.lastStart || '6:00'), pool:S.settings.lastPool || '長水路', title:'',
@@ -3890,6 +3922,9 @@ function renderPanels(){
       '<button class="btn small plus" data-opt="team" aria-label="チームの項目を追加・削除">＋</button>' +
       '<select data-stroke aria-label="' + (i+1) + '列目の種目">' + strokeSelectOptions(p.stroke) + '</select>' +
       '<button class="btn small plus" data-opt="stroke" aria-label="種目の項目を追加・削除">＋</button>' +
+      '<select data-cls aria-label="' + (i+1) + '列目のクラス">' + clsSelectOptions(p.cls) + '</select>' +
+      '<button class="btn small plus" data-opt="cls" aria-label="クラスの項目を追加・削除">＋</button>' +
+      '<button type="button" class="btn small" data-persons title="この列を泳ぐ人（週間分析の個人別集計に使います）">' + personsBtnLabel(p) + '</button>' +
       '<button type="button" class="btn small printTog' + (p.print === false ? '' : ' on') + '" data-ptog aria-pressed="' + (p.print !== false) + '">' + (p.print === false ? '印刷しない' : '印刷する') + '</button>' +
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
       ((i > 0 || M.panels.length > 1) ? '<details class="pMore"><summary>その他 ▾</summary>' + (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') + (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</details>' : '') + '</div>' +
@@ -3918,6 +3953,9 @@ function renderPanels(){
     });
     sel.addEventListener('change', () => { p.team = sel.value; renderPlanStrip(); ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
     ssel.addEventListener('change', () => { p.stroke = ssel.value; ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
+    const csel = el.querySelector('[data-cls]');
+    csel.addEventListener('change', () => { p.cls = csel.value; commitMenu(); });
+    el.querySelector('[data-persons]').addEventListener('click', () => { curPanel = i; openPersons(i); });
     el.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', () => { curPanel = i; openOpt(b.dataset.opt, i); }));
     el.querySelector('[data-ptog]').addEventListener('click', () => { p.print = p.print === false ? true : false; commitMenu(); renderPanels(); updatePrintCount(); toast(panelLabel(p) + '：' + (p.print === false ? '印刷しない' : '印刷する') + 'にしました'); });
     el.querySelector('[data-mtog]').addEventListener('click', () => { p.memo = !p.memo; commitMenu(); renderPanels(); toast(panelLabel(p) + '：' + (p.memo ? 'メモ表示にしました。時間・距離・負荷は表示しません' : '通常の表示に戻しました')); });
@@ -3939,6 +3977,15 @@ function renderPanels(){
   $('btnAddPanel').innerHTML = '<span class="dLong">アレンジの列を追加（' + M.panels.length + '/' + MAX_PANELS + '）</span><span class="dShort">＋列（' + M.panels.length + '/' + MAX_PANELS + '）</span>';
   $('btnAddPanel').setAttribute('aria-label', 'アレンジの列を追加。今' + M.panels.length + '列、' + MAX_PANELS + '列まで');
 }
+function clsSelectOptions(cur){
+  const list = clsList().slice();
+  if(cur && !list.includes(cur)) list.push(cur);
+  return '<option value="">クラスなし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+}
+function personsBtnLabel(p){
+  const eff = effPersons(p);
+  return '個人' + (eff.length ? '（' + eff.length + '名）' : '');
+}
 function strokeSelectOptions(cur){
   const list = S.settings.strokeOpts.slice();
   const curName = strokeName(cur);
@@ -3949,11 +3996,11 @@ function strokeSelectOptions(cur){
 let optKind = 'team', optPanel = 0;
 function openOpt(kind, i){
   optKind = kind; optPanel = i;
-  $('optTitle').firstChild.textContent = (kind === 'team' ? 'チーム' : '種目') + 'の項目を追加・削除 ';
-  $('optInput').value = ''; $('optInput').placeholder = kind === 'team' ? '例：100m Fr、合宿組' : '例：キック中心、S1';
+  $('optTitle').firstChild.textContent = (kind === 'team' ? 'チーム' : kind === 'cls' ? 'クラス' : '種目') + 'の項目を追加・削除 ';
+  $('optInput').value = ''; $('optInput').placeholder = kind === 'team' ? '例：100m Fr、合宿組' : kind === 'cls' ? '例：社会人、大学生' : '例：キック中心、S1';
   renderOptList(); showOv('optOv'); setTimeout(() => $('optInput').focus(), 40);
 }
-function optItems(){ return optKind === 'team' ? teamNames() : S.settings.strokeOpts; }
+function optItems(){ return optKind === 'team' ? teamNames() : optKind === 'cls' ? clsList() : S.settings.strokeOpts; }
 function renderOptList(){
   const items = optItems();
   $('optList').innerHTML = items.map((n, k) => '<span class="chip">' + esc(n) + '<button data-x="' + k + '" aria-label="' + esc(n) + 'を削除">×</button></span>').join('') || '<span class="muted">項目がありません</span>';
@@ -3962,9 +4009,9 @@ function optAdd(){
   const v = $('optInput').value.trim();
   if(!v){ toast('名前を入れてください'); return; }
   if(optItems().includes(v)){ toast('「' + v + '」はすでにあります'); return; }
-  if(optKind === 'team') S.settings.teams.push({name:v, pace:75}); else S.settings.strokeOpts.push(v);
+  if(optKind === 'team') S.settings.teams.push({name:v, pace:75}); else if(optKind === 'cls'){ if(!Array.isArray(S.settings.classes)) S.settings.classes = []; S.settings.classes.push(v); } else S.settings.strokeOpts.push(v);
   const p = M.panels[optPanel];
-  if(p){ if(optKind === 'team') p.team = v; else p.stroke = v; commitMenu(); }
+  if(p){ if(optKind === 'team') p.team = v; else if(optKind === 'cls') p.cls = v; else p.stroke = v; commitMenu(); }
   saveNow(); $('optInput').value = ''; renderOptList(); renderPanels(); renderAdvice(true);
   toast('「' + v + '」を追加して、この列に設定しました');
 }
@@ -3972,7 +4019,7 @@ function optDel(k){
   const items = optItems(); const n = items[k];
   if(optKind === 'team' && S.settings.teams.length <= 1){ toast('チームは1つ以上必要です'); return; }
   if(!confirm('「' + n + '」を項目から削除します。よろしいですか（保存済みのメニューは消えません）。')) return;
-  if(optKind === 'team') S.settings.teams.splice(k, 1); else S.settings.strokeOpts.splice(k, 1);
+  if(optKind === 'team') S.settings.teams.splice(k, 1); else if(optKind === 'cls') S.settings.classes.splice(k, 1); else S.settings.strokeOpts.splice(k, 1);
   saveNow(); renderOptList(); renderPanels(); renderAdvice(true);
   toast('「' + n + '」を削除しました');
 }
@@ -7657,13 +7704,13 @@ function hidePer50(i){ const el = panelEl(i); const tip = el && el.querySelector
    ===================================================================== */
 function weekData(mon, team){
   const end = addDays(mon, 6);
-  const W = {dist:0, sec:0, sessions:0, load:0, zones:{}, strokes:{}, cats:{}, days:[], teams:{}, rows:[]};
+  const W = {dist:0, sec:0, sessions:0, load:0, zones:{}, strokes:{}, cats:{}, days:[], teams:{}, rows:[], persons:{}, classes:{}, unassigned:0};
   ZK.forEach(k => W.zones[k] = 0);
   for(let i = 0; i < 7; i++){ const z = {}; ZK.forEach(k => z[k] = 0); W.days.push({date:addDays(mon, i), dist:0, zones:z}); }
   sortedMenus().slice().reverse().forEach(m => {
     if(m.date < mon || m.date > end) return;
     const di = daysBetween(mon, m.date);
-    analyzeMenu(m).forEach(t => {
+    analyzeMenu(m).forEach((t, pi) => {
       if(!t.dist) return;
       const tm = W.teams[t.team] || (W.teams[t.team] = {dist:0, sessions:0, zones:Object.fromEntries(ZK.map(k => [k,0]))});
       tm.dist += t.dist; tm.sessions++; ZK.forEach(k => tm.zones[k] += t.zones[k]);
@@ -7672,6 +7719,13 @@ function weekData(mon, team){
       W.dist += t.dist; W.sec += t.elapsed; W.sessions++; W.load += t.pLoad || 0;
       ZK.forEach(k => { W.zones[k] += t.zones[k]; W.days[di].zones[k] += t.zones[k]; });
       W.days[di].dist += t.dist;
+      const pp = m.panels[pi] || {};
+      const clsk = pp.cls || 'クラス未設定';
+      const ck = W.classes[clsk] || (W.classes[clsk] = {dist:0, sessions:0});
+      ck.dist += t.dist; ck.sessions++;
+      const eff = effPersons(pp);
+      if(eff.length) eff.forEach(nm => { const pk = W.persons[nm] || (W.persons[nm] = {dist:0, sessions:0}); pk.dist += t.dist; pk.sessions++; });
+      else W.unassigned += t.dist;
       Object.keys(t.strokes).forEach(k => W.strokes[k] = (W.strokes[k] || 0) + t.strokes[k]);
       Object.keys(t.cats).forEach(k => W.cats[k] = (W.cats[k] || 0) + t.cats[k]);
     });
@@ -7763,6 +7817,13 @@ function renderAnalysis(){
   const tnames = Object.keys(pre.teams);
   h += '<div class="card"><h3>チーム別の比較</h3>' + (tnames.length ? '<table class="list"><thead><tr><th>チーム</th><th class="num">距離</th><th class="num">回数</th><th>強度の配分</th></tr></thead><tbody>' +
     tnames.map(t => { const x = pre.teams[t]; return '<tr><td>' + esc(t) + '</td><td class="num">' + (Math.round(x.dist/100)/10) + 'km</td><td class="num">' + x.sessions + '</td><td style="min-width:160px">' + zoneBarHtml(x.zones, x.dist).replace('<div class="zlegend">', '<div class="zlegend" style="display:none">') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">データがありません</p>') + '</div>';
+  const pnames = Object.keys(W.persons).sort((a, b) => W.persons[b].dist - W.persons[a].dist);
+  const cnames = Object.keys(W.classes).sort((a, b) => W.classes[b].dist - W.classes[a].dist);
+  h += '<div class="card"><h3>個人別の泳ぎ量（' + esc(teamLabel) + '）</h3>' +
+    ((cnames.length > 1 || (cnames.length === 1 && cnames[0] !== 'クラス未設定')) ? '<h4 style="margin:2px 0 6px">対象クラス別</h4>' + hbars(cnames.map(c => ({k:c, label:c, v:W.classes[c].dist, color:'#8e44ad'})), cnames.reduce((a, c) => a + W.classes[c].dist, 0)) : '') +
+    (pnames.length ? '<table class="list"><thead><tr><th>名前</th><th class="num">距離</th><th class="num">回数</th><th class="num">1回あたり</th></tr></thead><tbody>' +
+      pnames.map(n => { const x = W.persons[n]; return '<tr><td>' + esc(n) + '</td><td class="num">' + (Math.round(x.dist/100)/10) + 'km</td><td class="num">' + x.sessions + '</td><td class="num">' + fmtNum(Math.round(x.dist / x.sessions)) + 'm</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">この範囲では、個人の付いた列がありません。メニュー作成で列の「個人」から泳ぐ人を選ぶと、ここに集計されます。</p>') +
+    (W.unassigned ? '<p class="muted">個人が付いていない列の距離 ' + fmtNum(W.unassigned) + 'm は数えていません。</p>' : '') + '</div>';
   // 8週間の推移
   const trend = [];
   for(let k = 7; k >= 0; k--){ const m0 = addDays(mon, -7*k); const d = weekActual(m0, team); const pI = plan ? planWeekIndex(plan, m0) : -1; trend.push({date:m0, dist:d, zones:weekData(m0, team).zones, target:pI >= 0 ? plan.weeks[pI].km*1000 : null}); }
@@ -9975,6 +10036,61 @@ function applyAdviceToggle(){
 }
 document.addEventListener('DOMContentLoaded', init);
 
+</script>
+<script>
+(function(){
+  let perPanel = 0;
+  function $(id){ return document.getElementById(id); }
+  function perNames(p){
+    const s = new Set();
+    if(typeof athletes === 'function') athletes().forEach(a => { if(a.name) s.add(a.name); });
+    teamMembersOf(p.team).forEach(n => s.add(n));
+    effPersons(p).forEach(n => s.add(n));
+    return [...s];
+  }
+  function renderPerList(){
+    const p = (typeof M !== 'undefined' && M) ? M.panels[perPanel] : null;
+    if(!p) return;
+    const eff = effPersons(p);
+    $('perNote').textContent = '列：' + panelLabel(p) + '／このチームの基本メンバーは ' + teamMembersOf(p.team).length + '名です';
+    const names = perNames(p);
+    $('perList').innerHTML = names.length ? names.map(n => '<label class="chip" style="cursor:pointer"><input type="checkbox" data-per="' + esc(n) + '"' + (eff.includes(n) ? ' checked' : '') + ' style="margin-right:5px">' + esc(n) + '</label>').join('') : '<span class="muted">名簿に選手がいません</span>';
+    $('perBase').style.display = teamMembersOf(p.team).length ? '' : 'none';
+  }
+  function perBtnRefresh(p){
+    const els = document.querySelectorAll('#panels .panel');
+    const el = els[perPanel];
+    if(el){ const b = el.querySelector('[data-persons]'); if(b) b.textContent = personsBtnLabel(p); }
+  }
+  function perApply(){
+    const p = M.panels[perPanel]; if(!p) return;
+    const checked = [...document.querySelectorAll('#perList input[data-per]:checked')].map(x => x.getAttribute('data-per'));
+    p.persons = checked; p.personsExplicit = true; commitMenu(); perBtnRefresh(p);
+  }
+  window.openPersons = function(i){
+    perPanel = i;
+    renderPerList();
+    showOv('perOv');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    const list = $('perList'); if(!list) return;
+    list.addEventListener('change', perApply);
+    $('perBase').addEventListener('click', function(){
+      const p = M.panels[perPanel]; if(!p) return;
+      p.persons = teamMembersOf(p.team).slice(); p.personsExplicit = true; commitMenu(); renderPerList(); perBtnRefresh(p);
+    });
+    $('perClear').addEventListener('click', function(){
+      const p = M.panels[perPanel]; if(!p) return;
+      p.persons = []; p.personsExplicit = true; commitMenu(); renderPerList(); perBtnRefresh(p);
+    });
+    $('perSaveBase').addEventListener('click', function(){
+      const p = M.panels[perPanel]; if(!p) return;
+      if(!S.settings.teamMembers || typeof S.settings.teamMembers !== 'object') S.settings.teamMembers = {};
+      S.settings.teamMembers[p.team] = effPersons(p).slice(); saveNow(); renderPerList();
+      toast('「' + p.team + '」の基本メンバーとして保存しました');
+    });
+  });
+})();
 </script>
 </body>
 </html>

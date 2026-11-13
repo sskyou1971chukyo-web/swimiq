@@ -2411,7 +2411,7 @@ body.desk .dLong{display:none}
       <button class="btn" id="perClear">全員はずす</button>
       <button class="btn" id="perSaveBase">このメンバーを基本に保存</button>
     </div>
-    <p class="muted" style="margin-top:10px">選んだ人は、週間分析の「個人別の泳ぎ量」に数えられます。個人をまだ選んでいない列は、チームの基本メンバーで数えます。名簿（選手一覧）にない人は、先に名簿へ登録してください。</p>
+    <p class="muted" style="margin-top:10px">選んだ人は、週間分析の「個人別の泳ぎ量」に数えられます。個人をまだ選んでいない列は、所属（なければチーム）の基本メンバーで数えます。名簿（選手一覧）にない人は、先に名簿へ登録してください。</p>
   </div>
 </div>
 
@@ -3053,11 +3053,12 @@ const CMAP = Object.fromEntries(CATS.map(c => [c.k, c.name]));
 /* ---------- 保存データ ---------- */
 function defaultSettings(){
   return {
-    teams:[{name:'全員',pace:75},{name:'50m',pace:80},{name:'100m',pace:77},{name:'200m',pace:74},{name:'400m',pace:72},{name:'Distance',pace:72},{name:'Middle',pace:74},{name:'Sprint',pace:78},{name:'IM',pace:76},{name:'社会人',pace:85}],
+    teams:[{name:'全員',pace:75},{name:'50m',pace:80},{name:'100m',pace:77},{name:'200m',pace:74},{name:'400m',pace:72},{name:'Distance',pace:72},{name:'Middle',pace:74},{name:'Short',pace:77},{name:'Sprint',pace:78},{name:'IM',pace:76},{name:'社会人',pace:85}],
     noCirclePace:100, blankMin:1, defaultStroke:'Fr', printMode:'both', fontSize:'l',
     header:'中京大学水泳部', showAdvice:true, coaches:{olb:true,bow:true,des:true},
     lastStart:'6:00', lastPool:'長水路', syncScroll:true, teamsV2:true, strokeOpts:['自由形','背泳ぎ','平泳ぎ','バタフライ','個人メドレー'],
-    classes:['社会人','大学生'],
+    classes:['大学生','社会人','全員'],
+    clsMembers:{'大学生':['市田力哉','津地佑輔','芹澤麗生','野田怜穏','中野由基','大濱成聖','岸本真樹','伊藤大貴','根岸海輝','杉浦征典','宍戸梨穂','木所美音楽'], '社会人':['小島夢貴','谷口卓','根本大雅','山口秀哉','内藤大翔','渡邉翔太','伊須新太']},
     teamMembers:{'インターナショナル':['小島夢貴','谷口卓','根本大雅','山口秀哉','内藤大翔','渡邉翔太','伊須新太']}
   };
 }
@@ -3852,19 +3853,46 @@ function toast(msg, ms=3200){
   clearTimeout(toast._t); toast._t = setTimeout(() => { box.innerHTML = ''; }, ms);
 }
 function teamNames(){ return S.settings.teams.map(t => t.name); }
-function clsList(){ if(!Array.isArray(S.settings.classes) || !S.settings.classes.length) S.settings.classes = ['社会人','大学生']; return S.settings.classes; }
+function clsList(){ if(!Array.isArray(S.settings.classes) || !S.settings.classes.length) S.settings.classes = ['大学生','社会人','全員']; return S.settings.classes; }
 function teamMembersOf(team){ const tm = (S.settings.teamMembers && typeof S.settings.teamMembers === 'object') ? S.settings.teamMembers : {}; return Array.isArray(tm[team]) ? tm[team] : []; }
-function effPersons(p){ if(!p) return []; if(p.personsExplicit) return Array.isArray(p.persons) ? p.persons : []; return teamMembersOf(p.team); }
+function clsMembersOf(cls){ const cm = (S.settings.clsMembers && typeof S.settings.clsMembers === 'object') ? S.settings.clsMembers : {}; return Array.isArray(cm[cls]) ? cm[cls] : []; }
+function defaultMembersFor(p){
+  if(!p) return {list:[], source:''};
+  const byCls = clsMembersOf(p.cls);
+  if(byCls.length) return {list:byCls, source:'所属「' + p.cls + '」の基本メンバー'};
+  const byTeam = teamMembersOf(p.team);
+  if(byTeam.length) return {list:byTeam, source:'チーム「' + p.team + '」の基本メンバー'};
+  return {list:[], source:''};
+}
+function effPersons(p){ if(!p) return []; if(p.personsExplicit) return Array.isArray(p.persons) ? p.persons : []; return defaultMembersFor(p).list; }
 /* 氏名の訂正（山口修也→山口秀哉）を、保存済みの基本メンバーと列の個人にも反映する */
+/* あわせて、所属の項目・所属別の基本メンバー・チームShort・種目「全員」を既存データにも用意する */
 (function(){
   const fix = a => Array.isArray(a) ? a.map(n => n === '山口修也' ? '山口秀哉' : n) : a;
   if(S.settings.teamMembers) Object.keys(S.settings.teamMembers).forEach(k => { S.settings.teamMembers[k] = fix(S.settings.teamMembers[k]); });
+  if(S.settings.clsMembers) Object.keys(S.settings.clsMembers).forEach(k => { S.settings.clsMembers[k] = fix(S.settings.clsMembers[k]); });
   Object.values(S.menus || {}).forEach(m => (m.panels || []).forEach(p => { if(Array.isArray(p.persons)) p.persons = fix(p.persons); }));
+  const base = ['大学生','社会人','全員'];
+  const cur = Array.isArray(S.settings.classes) ? S.settings.classes : [];
+  S.settings.classes = base.concat(cur.filter(c => !base.includes(c)));
+  if(!S.settings.clsMembers || typeof S.settings.clsMembers !== 'object'){
+    S.settings.clsMembers = {'大学生':['市田力哉','津地佑輔','芹澤麗生','野田怜穏','中野由基','大濱成聖','岸本真樹','伊藤大貴','根岸海輝','杉浦征典','宍戸梨穂','木所美音楽'], '社会人':['小島夢貴','谷口卓','根本大雅','山口秀哉','内藤大翔','渡邉翔太','伊須新太']};
+  }
+  if(Array.isArray(S.settings.teams) && !S.settings.teams.some(t => t.name === 'Short')) S.settings.teams.push({name:'Short', pace:77});
+  if(Array.isArray(S.settings.strokeOpts) && !S.settings.strokeOpts.includes('全員')) S.settings.strokeOpts.push('全員');
 })();
 function menuId(date, session){ return date + '_' + session; }
 function newMenuObj(date, session, fromPanels){
-  return {id:menuId(date, session), date, session, start:fmtClock(S.settings.lastStart || '6:00'), pool:S.settings.lastPool || '長水路', title:'',
-    panels:(fromPanels && fromPanels.length ? fromPanels.map(p => ({team:p.team, stroke:p.stroke || '', text:''})) : [{team:teamNames()[0] || '全員', text:''}]), updated:0};
+  let panels;
+  if(fromPanels && fromPanels.length){
+    panels = fromPanels.map(p => ({team:p.team, stroke:p.stroke || '', cls:p.cls || '', text:''}));
+    if(!panels[0].cls) panels[0].cls = '大学生';
+    if(panels.length === 1) panels.push({team:'全員', stroke:'', cls:'社会人', text:''});
+    else if(!panels[1].cls) panels[1].cls = '社会人';
+  } else {
+    panels = [{team:'全員', stroke:'', cls:'大学生', text:''}, {team:'全員', stroke:'', cls:'社会人', text:''}];
+  }
+  return {id:menuId(date, session), date, session, start:fmtClock(S.settings.lastStart || '6:00'), pool:S.settings.lastPool || '長水路', title:'', panels, updated:0};
 }
 /* その日のメニューを開く（1日に複数あるときは最後に書いたもの） */
 function openDate(date){
@@ -3913,17 +3941,19 @@ function renderPanels(){
   box.classList.toggle('many', M.panels.length > 3);
   $('menuWrap').classList.toggle('many', M.panels.length > 3);
   M.panels.forEach((p, i) => {
-    const names = teamNames(); if(!names.includes(p.team)) names.push(p.team);
+    const CORE_TEAMS = ['全員','Distance','Middle','Short','Sprint'];
+    let names = teamNames(); if(!names.includes(p.team)) names.push(p.team);
+    names = CORE_TEAMS.filter(n => names.includes(n)).concat(names.filter(n => !CORE_TEAMS.includes(n)));
     const el = document.createElement('div');
     el.className = 'panel' + (i === curPanel ? ' cur' : '');
     el.innerHTML =
       '<div class="phead"><span class="pno">' + (i === 0 ? '基本' : 'アレンジ' + i) + '</span>' +
+      '<select data-cls aria-label="' + (i+1) + '列目の所属">' + clsSelectOptions(p.cls) + '</select>' +
+      '<button class="btn small plus" data-opt="cls" aria-label="所属の項目を追加・削除">＋</button>' +
       '<select data-team aria-label="' + (i+1) + '列目のチーム">' + names.map(n => '<option' + (n === p.team ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>' +
       '<button class="btn small plus" data-opt="team" aria-label="チームの項目を追加・削除">＋</button>' +
       '<select data-stroke aria-label="' + (i+1) + '列目の種目">' + strokeSelectOptions(p.stroke) + '</select>' +
       '<button class="btn small plus" data-opt="stroke" aria-label="種目の項目を追加・削除">＋</button>' +
-      '<select data-cls aria-label="' + (i+1) + '列目のクラス">' + clsSelectOptions(p.cls) + '</select>' +
-      '<button class="btn small plus" data-opt="cls" aria-label="クラスの項目を追加・削除">＋</button>' +
       '<button type="button" class="btn small" data-persons title="この列を泳ぐ人（週間分析の個人別集計に使います）">' + personsBtnLabel(p) + '</button>' +
       '<button type="button" class="btn small printTog' + (p.print === false ? '' : ' on') + '" data-ptog aria-pressed="' + (p.print !== false) + '">' + (p.print === false ? '印刷しない' : '印刷する') + '</button>' +
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
@@ -3980,7 +4010,7 @@ function renderPanels(){
 function clsSelectOptions(cur){
   const list = clsList().slice();
   if(cur && !list.includes(cur)) list.push(cur);
-  return '<option value="">クラスなし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
+  return '<option value="">所属なし</option>' + list.map(n => '<option value="' + esc(n) + '"' + (n === cur ? ' selected' : '') + '>' + esc(n) + '</option>').join('');
 }
 function personsBtnLabel(p){
   const eff = effPersons(p);
@@ -3996,7 +4026,7 @@ function strokeSelectOptions(cur){
 let optKind = 'team', optPanel = 0;
 function openOpt(kind, i){
   optKind = kind; optPanel = i;
-  $('optTitle').firstChild.textContent = (kind === 'team' ? 'チーム' : kind === 'cls' ? 'クラス' : '種目') + 'の項目を追加・削除 ';
+  $('optTitle').firstChild.textContent = (kind === 'team' ? 'チーム' : kind === 'cls' ? '所属' : '種目') + 'の項目を追加・削除 ';
   $('optInput').value = ''; $('optInput').placeholder = kind === 'team' ? '例：100m Fr、合宿組' : kind === 'cls' ? '例：社会人、大学生' : '例：キック中心、S1';
   renderOptList(); showOv('optOv'); setTimeout(() => $('optInput').focus(), 40);
 }
@@ -7720,7 +7750,7 @@ function weekData(mon, team){
       ZK.forEach(k => { W.zones[k] += t.zones[k]; W.days[di].zones[k] += t.zones[k]; });
       W.days[di].dist += t.dist;
       const pp = m.panels[pi] || {};
-      const clsk = pp.cls || 'クラス未設定';
+      const clsk = pp.cls || '所属未設定';
       const ck = W.classes[clsk] || (W.classes[clsk] = {dist:0, sessions:0});
       ck.dist += t.dist; ck.sessions++;
       const eff = effPersons(pp);
@@ -7820,7 +7850,7 @@ function renderAnalysis(){
   const pnames = Object.keys(W.persons).sort((a, b) => W.persons[b].dist - W.persons[a].dist);
   const cnames = Object.keys(W.classes).sort((a, b) => W.classes[b].dist - W.classes[a].dist);
   h += '<div class="card"><h3>個人別の泳ぎ量（' + esc(teamLabel) + '）</h3>' +
-    ((cnames.length > 1 || (cnames.length === 1 && cnames[0] !== 'クラス未設定')) ? '<h4 style="margin:2px 0 6px">対象クラス別</h4>' + hbars(cnames.map(c => ({k:c, label:c, v:W.classes[c].dist, color:'#8e44ad'})), cnames.reduce((a, c) => a + W.classes[c].dist, 0)) : '') +
+    ((cnames.length > 1 || (cnames.length === 1 && cnames[0] !== '所属未設定')) ? '<h4 style="margin:2px 0 6px">所属別</h4>' + hbars(cnames.map(c => ({k:c, label:c, v:W.classes[c].dist, color:'#8e44ad'})), cnames.reduce((a, c) => a + W.classes[c].dist, 0)) : '') +
     (pnames.length ? '<table class="list"><thead><tr><th>名前</th><th class="num">距離</th><th class="num">回数</th><th class="num">1回あたり</th></tr></thead><tbody>' +
       pnames.map(n => { const x = W.persons[n]; return '<tr><td>' + esc(n) + '</td><td class="num">' + (Math.round(x.dist/100)/10) + 'km</td><td class="num">' + x.sessions + '</td><td class="num">' + fmtNum(Math.round(x.dist / x.sessions)) + 'm</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">この範囲では、個人の付いた列がありません。メニュー作成で列の「個人」から泳ぐ人を選ぶと、ここに集計されます。</p>') +
     (W.unassigned ? '<p class="muted">個人が付いていない列の距離 ' + fmtNum(W.unassigned) + 'm は数えていません。</p>' : '') + '</div>';
@@ -10044,7 +10074,7 @@ document.addEventListener('DOMContentLoaded', init);
   function perNames(p){
     const s = new Set();
     if(typeof athletes === 'function') athletes().forEach(a => { if(a.name) s.add(a.name); });
-    teamMembersOf(p.team).forEach(n => s.add(n));
+    defaultMembersFor(p).list.forEach(n => s.add(n));
     effPersons(p).forEach(n => s.add(n));
     return [...s];
   }
@@ -10052,10 +10082,11 @@ document.addEventListener('DOMContentLoaded', init);
     const p = (typeof M !== 'undefined' && M) ? M.panels[perPanel] : null;
     if(!p) return;
     const eff = effPersons(p);
-    $('perNote').textContent = '列：' + panelLabel(p) + '／このチームの基本メンバーは ' + teamMembersOf(p.team).length + '名です';
+    const dm = defaultMembersFor(p);
+    $('perNote').textContent = '列：' + panelLabel(p) + '／' + (dm.source ? dm.source + 'は ' + dm.list.length + '名です' : '基本メンバーは未登録です');
     const names = perNames(p);
     $('perList').innerHTML = names.length ? names.map(n => '<label class="chip" style="cursor:pointer"><input type="checkbox" data-per="' + esc(n) + '"' + (eff.includes(n) ? ' checked' : '') + ' style="margin-right:5px">' + esc(n) + '</label>').join('') : '<span class="muted">名簿に選手がいません</span>';
-    $('perBase').style.display = teamMembersOf(p.team).length ? '' : 'none';
+    $('perBase').style.display = dm.list.length ? '' : 'none';
   }
   function perBtnRefresh(p){
     const els = document.querySelectorAll('#panels .panel');
@@ -10077,7 +10108,7 @@ document.addEventListener('DOMContentLoaded', init);
     list.addEventListener('change', perApply);
     $('perBase').addEventListener('click', function(){
       const p = M.panels[perPanel]; if(!p) return;
-      p.persons = teamMembersOf(p.team).slice(); p.personsExplicit = true; commitMenu(); renderPerList(); perBtnRefresh(p);
+      p.persons = defaultMembersFor(p).list.slice(); p.personsExplicit = true; commitMenu(); renderPerList(); perBtnRefresh(p);
     });
     $('perClear').addEventListener('click', function(){
       const p = M.panels[perPanel]; if(!p) return;
@@ -10085,9 +10116,15 @@ document.addEventListener('DOMContentLoaded', init);
     });
     $('perSaveBase').addEventListener('click', function(){
       const p = M.panels[perPanel]; if(!p) return;
-      if(!S.settings.teamMembers || typeof S.settings.teamMembers !== 'object') S.settings.teamMembers = {};
-      S.settings.teamMembers[p.team] = effPersons(p).slice(); saveNow(); renderPerList();
-      toast('「' + p.team + '」の基本メンバーとして保存しました');
+      if(p.cls){
+        if(!S.settings.clsMembers || typeof S.settings.clsMembers !== 'object') S.settings.clsMembers = {};
+        S.settings.clsMembers[p.cls] = effPersons(p).slice(); saveNow(); renderPerList();
+        toast('所属「' + p.cls + '」の基本メンバーとして保存しました');
+      } else {
+        if(!S.settings.teamMembers || typeof S.settings.teamMembers !== 'object') S.settings.teamMembers = {};
+        S.settings.teamMembers[p.team] = effPersons(p).slice(); saveNow(); renderPerList();
+        toast('「' + p.team + '」の基本メンバーとして保存しました');
+      }
     });
   });
 })();

@@ -10411,5 +10411,21 @@ document.addEventListener('DOMContentLoaded', init);
   });
 })();
 </script>
+<script>
+/* 目印：開いた場所で「ネット版／ファイル版」を名乗る */
+(function(){try{
+  var isNet=/^https?:$/.test(location.protocol);
+  var label=isNet?'ネット版':'ファイル版';
+  document.title+='（'+label+'）';
+  function addBadge(){
+    if(document.getElementById('verBadge'))return;
+    var h=document.querySelector('#appHeader h1'); if(!h)return;
+    var s=document.createElement('span'); s.id='verBadge'; s.textContent=label;
+    s.style.cssText='display:inline-block;margin-left:8px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;vertical-align:middle;background:'+(isNet?'#1f9d55':'#6b7a8d');
+    h.appendChild(s);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBadge);else addBadge();
+}catch(e){}})();
+</script>
 </body>
 </html>

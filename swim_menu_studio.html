@@ -815,6 +815,65 @@ body.desk .dLong{display:none}
   </div>
   <div id="p50Live" class="sr" role="status" aria-live="polite"></div>
   <div id="panelTabs" class="phoneOnly" role="tablist" aria-label="表示するメニューの列"></div>
+  <div id="unkBar" hidden></div>
+  <style>
+    #unkBar{position:sticky;top:0;z-index:60;background:#fdf3e3;border:1px solid #e8cf9a;border-radius:8px;padding:7px 10px;margin:0 0 10px;font-size:14px}
+    #unkBar .unkHead{font-weight:700;margin-right:6px}
+    #unkBar .unkChip{display:inline-block;background:#fff;border:1px solid #e0cf9f;border-radius:999px;padding:2px 4px 2px 10px;margin:2px 6px 2px 0}
+    #unkBar .unkChip .btn{margin-left:4px}
+  </style>
+  <script>
+  (function(){
+    function ready(){ return typeof S !== 'undefined' && typeof fastRules === 'function' && typeof saveNow === 'function' && typeof analyzeText === 'function'; }
+    function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function collect(){
+      var words = {}, seen = {};
+      if(typeof M === 'undefined' || !M || !M.panels) return [];
+      M.panels.forEach(function(p, i){
+        if(p.memo) return;
+        var text = p.text || '';
+        try{ if(typeof panelTA === 'function'){ var ta = panelTA(i); if(ta) text = ta.value; } }catch(e){}
+        var t = analyzeText(text, p.team, M.start, (typeof strokeKeyOf === 'function' ? strokeKeyOf(p.stroke) : ''));
+        (t.unknown || []).forEach(function(w){ var k = String(w).toLowerCase(); if(!seen[k]){ seen[k] = true; words[w] = true; } });
+      });
+      return Object.keys(words);
+    }
+    function render(){
+      var bar = document.getElementById('unkBar');
+      if(!bar || !ready()) return;
+      var words = collect();
+      if(!words.length){ bar.hidden = true; bar.innerHTML = ''; return; }
+      bar.hidden = false;
+      bar.innerHTML = '<span class="unkHead">知らない言葉があります：</span>' + words.map(function(w){
+        return '<span class="unkChip">\u300c' + esc(w) + '\u300d登録しますか？' +
+          '<button type="button" class="btn small" data-unk="' + esc(w) + '" data-kind="fast">速い</button>' +
+          '<button type="button" class="btn small" data-unk="' + esc(w) + '" data-kind="slow">速くない</button>' +
+          '<button type="button" class="btn small" data-unk="' + esc(w) + '" data-kind="none">対象外</button></span>';
+      }).join('');
+      bar.querySelectorAll('[data-unk]').forEach(function(b){
+        b.addEventListener('click', function(){
+          fastRules().labels[b.getAttribute('data-unk').toLowerCase()] = b.getAttribute('data-kind');
+          saveNow(); render();
+          if(typeof renderPanels === 'function') renderPanels();
+          if(window.__lrRefresh) window.__lrRefresh();
+          if(window.__cjRefresh) window.__cjRefresh();
+        });
+      });
+    }
+    var tm = null;
+    function init(){
+      if(!document.getElementById('unkBar')) return;
+      if(!ready()){ setTimeout(init, 300); return; }
+      window.__unkRefresh = render;
+      document.addEventListener('input', function(e){
+        if(e.target && e.target.closest && e.target.closest('#panels')){ clearTimeout(tm); tm = setTimeout(render, 600); }
+      });
+      render();
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+  </script>
   <div id="menuWrap">
     <div id="panels"></div>
     <aside id="advice" aria-label="アドバイスメモ">
@@ -4155,7 +4214,7 @@ function updatePanel(i){
   if($('panelTabs')) renderPanelTabs();
   el.querySelector('.gutter').scrollTop = el.querySelector('textarea').scrollTop;
   el.querySelector('.pfoot').innerHTML = p.memo ? '<span class="muted">📝 メモとして表示しています（時間・距離・負荷は表示しません）。</span>' : tot.dist
-    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '') + (tot.unknown && tot.unknown.length ? '<br><span class="plannedLine">⚠ 未学習の表記：' + tot.unknown.map(esc).join('、') + '（下の「読み方の学習」で登録できます）</span>' : '')
+    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '') + (tot.unknown && tot.unknown.length ? '<br><span class="plannedLine">⚠ 未学習の表記：' + tot.unknown.map(esc).join('、') + '（画面上の帯で登録できます）</span>' : '')
     : '<span class="muted">ここに入力すると、距離と終了時刻が自動で出ます。</span>';
   if(typeof fitEditor === 'function' && i === 0) requestAnimationFrame(fitEditor);
 }
@@ -10010,7 +10069,7 @@ function showView(id){
   if(id === 'vLib') renderLib();
   if(id === 'vYear') renderYear();
   if(id === 'vTests') renderTests();
-  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); if(window.__lrRefresh) window.__lrRefresh(); renderPlanStrip(); requestAnimationFrame(function(){ if(typeof fitPanelTA === 'function' && typeof M !== 'undefined' && M && M.panels) M.panels.forEach(function(_, k){ fitPanelTA(k); }); }); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
+  if(id === 'vMenu'){ if(window.__cjRefresh) window.__cjRefresh(); if(window.__lrRefresh) window.__lrRefresh(); if(window.__unkRefresh) window.__unkRefresh(); renderPlanStrip(); requestAnimationFrame(function(){ if(typeof fitPanelTA === 'function' && typeof M !== 'undefined' && M && M.panels) M.panels.forEach(function(_, k){ fitPanelTA(k); }); }); if(typeof dockApply === 'function' && deskOn) requestAnimationFrame(() => { fitEditor(); dockApply(); }); } else if(typeof dockApply === 'function') dockApply();
 }
 function init(){
   applyFont();

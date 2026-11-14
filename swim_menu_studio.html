@@ -2584,6 +2584,7 @@ body.desk .dLong{display:none}
       <p>打ち始めると、型の続きがグレーで出ます。Tabキーを押すと、そのまま取り込めます（数字は前の行の本数・サークルを引き継ぎます）。</p>
       <p>道具は種類まで書くと、その種類として数え、速さの推定にも反映します。対応しているのは、パドル・フィン・シュノーケル・プルブイです。見出しに書けば、そのセクション全体が対象になります。</p>
       <p>Smooth（なめらかに楽に泳ぐ）と LR（乳酸の除去＝回復の泳ぎ）は、回復の強さとして読みます。faster100m1stLap のような複合語も、「速く」の指示として読みます（速い部分に数え、強度の判定にも使います）。</p>
+      <p>セットの次の行に「*」で始まる行を書くと、そのセットへの補足説明（やり方）になります。見出しにはならず、区切りは切り替わりません。書き方は自由ですが、A/B by2t（2本ごとの交互）、odd=Pads,ev=Hands（奇数本と偶数本）、IMOby4t（個人メドレーの回し方）、1~4DES（だんだん速く）は、数字にも分かれて集計されます。</p>
       <h3>記号のきまり</h3>
       <p>距離は m（大文字の M でも可）。回数は * か ×。本数は t（T でも可、省略も可）。サークルは ( ) で囲みます。セットは [ ] で囲んで *2set のように書きます。</p>
       <p>例：25m*10t(30") は、25mを10本、30秒サークルで250m、5分。</p>
@@ -3551,7 +3552,7 @@ function analyzeText(text, team, startHm, panelStroke){
   let ctx = {cat:null, stroke:null, tag:null, title:'', gear:[]};
   let lastTitle = -1, sectionHasTitle = false, firstInSection = true;
   let lastSet = null;
-  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, gear:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0, unknown:[]};
+  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, gear:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0, warns:[], unknown:[]};
   ZK.forEach(k => tot.zones[k] = 0);
   lines.forEach((raw, i) => {
     const n = normalize(raw), indent = /^[ \t]/.test(raw);
@@ -3624,6 +3625,11 @@ function analyzeText(text, team, startHm, panelStroke){
         }
       }
     }
+    if(tr.startsWith('*')){
+      info.type = 'manner';
+      if(lastSet){ (lastSet.manner = lastSet.manner || []).push(tr); }
+      out.push(info); return;
+    }
     if(!indent && tr.length <= 30){
       info.type = 'title'; info.secDist = 0; lastTitle = i; lastSet = null; sectionHasTitle = true; firstInSection = true;
       ctx = {cat:detectCat(tr), stroke:detectStroke(tr), tag:detectTag(tr), title:tr, gear:detectGear(tr)};
@@ -3632,6 +3638,7 @@ function analyzeText(text, team, startHm, panelStroke){
     info.type = 'memo'; out.push(info);
   });
   const noteUnknown = w => { if(w && !tot.unknown.includes(w)) tot.unknown.push(w); };
+  const pushWarn = (msg) => { if(msg && !tot.warns.includes(msg)) tot.warns.push(msg); };
   const KNOWN_WORDS = new Set(['easy','hard','max','sprint','race','pace','rp','descend','steady','aerobic','tempo','css','threshold','goal','broken','dive','loose','recovery','lr','lactate','removal','hypoxic','breath','imo','im','fr','ba','br','fly','free','freestyle','back','backstroke','breast','breaststroke','butterfly','up','down','kick','pull','drill','swim','main','choice','scull','paddle','paddles','fin','fins','snorkel','buoy','nb','des','lap']);
   const scanWords = (txt) => {
     String(txt || '').split(/[\s,、()（）・:：+\/]+/).forEach(tok0 => {
@@ -3654,6 +3661,7 @@ function analyzeText(text, team, startHm, panelStroke){
       [info._od, info._ev].forEach(p => { if(p) p.segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); }); });
       const per = info.atoms[0].d, reps = info.atoms[0].n;
       const okPat = p => p && Math.abs(p.sum - per) <= 1;
+      [info._od, info._ev].forEach(p => { if(p && !okPat(p)) pushWarn('内訳（od=/ev=）の合計' + fmtNum(p.sum) + 'mが1本の距離' + fmtNum(per) + 'mと合いません'); });
       const od = okPat(info._od) ? info._od : null, ev = okPat(info._ev) ? info._ev : null;
       let f = 0;
       if(od && ev) f = od.dash * Math.ceil(reps / 2) + ev.dash * Math.floor(reps / 2);
@@ -3675,7 +3683,7 @@ function analyzeText(text, team, startHm, panelStroke){
             const desm = /^(\d+)\s*[~\u301c-]\s*(\d+)\s*([A-Za-z]+)?$/.exec(val.replace(/\s+/g, ''));
             if(desm && blockRuleKind(desm[3] || 'DES') === 'lastRepFast'){
               const g = parseInt(desm[2], 10);
-              if(g > 0) addAtomFast(info, ai, Math.floor(atom.n / g) * atom.d);
+              if(g > 0){ addAtomFast(info, ai, Math.floor(atom.n / g) * atom.d); if(atom.n % g !== 0) pushWarn('「' + val + '」：' + atom.n + '本は' + g + '本で割り切れません'); }
               return;
             }
             if(/^[A-Za-z]+$/.test(val) && blockRuleKind(val) === 'lastRepFast'){ addAtomFast(info, ai, atom.d); return; }
@@ -3695,7 +3703,8 @@ function analyzeText(text, team, startHm, panelStroke){
               segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); });
               const fd = segs.reduce((a, sg) => a + (isFastLabel(sg.label) ? sg.d : 0), 0);
               const sum = segs.reduce((a, sg) => a + sg.d, 0);
-              if(fd > 0 && sum <= D + 1) addAtomFast(info, ai, fd * atom.n);
+              if(sum > D + 1) pushWarn('内訳「' + val + '」の合計' + fmtNum(sum) + 'mが1本の距離' + fmtNum(D) + 'mを超えています');
+              else if(fd > 0) addAtomFast(info, ai, fd * atom.n);
               return;
             }
             if(/^[A-Za-z]+$/.test(val)){
@@ -3706,6 +3715,51 @@ function analyzeText(text, team, startHm, panelStroke){
         });
       });
     });
+    // やり方（*行）の中身を数字に分ける：交互（A/B byNt・odd/ev）、IMO回し、DES
+    if(info.manner && info.manner.length && info.atoms && info.atoms.length === 1){
+      const atom = info.atoms[0];
+      const repsSide = (nt) => { let a = 0, b = 0; for(let ri = 0; ri < atom.n; ri++){ if(Math.floor(ri / nt) % 2 === 0) a++; else b++; } return [a, b]; };
+      const gearOfLabel = (w) => { const s = String(w).toLowerCase(); if(/^no/.test(s) || s === 'hands' || s === 'hand') return ''; if(s.includes('fin')) return 'fin'; if(s.includes('pad')) return 'paddle'; if(s.includes('snorkel')) return 'snorkel'; if(s.includes('buoy')) return 'buoy'; return null; };
+      let zoneDone = false, gearDone = false, strokeDone = false;
+      info.manner.forEach(ml => {
+        const line = String(ml).replace(/^\*+/, '');
+        const im = /IM[O0]\s*by\s*(\d+)\s*t/i.exec(line);
+        if(im && !strokeDone){
+          strokeDone = true;
+          const nt = parseInt(im[1], 10), seq = ['Fly','Ba','Br','Fr'], per = {};
+          for(let ri = 0; ri < atom.n; ri++){ const sk = seq[Math.floor(ri / nt) % 4]; per[sk] = (per[sk] || 0) + atom.d; }
+          tot.strokes[info.stroke] = (tot.strokes[info.stroke] || 0) - info.dist;
+          Object.keys(per).forEach(k => tot.strokes[k] = (tot.strokes[k] || 0) + per[k]);
+          if(atom.n % (4 * nt) !== 0){ const perStr = seq.filter(k => per[k]).map(k => k + ' ' + fmtNum(per[k]) + 'm').join('・'); pushWarn('IMOby' + nt + 't：' + atom.n + '本は4種目×' + nt + '本で割り切れません（' + perStr + '）'); }
+        }
+        let alt = null;
+        const pm = /(?:odd|od)\s*=\s*([A-Za-z]+)\s*,\s*(?:ev|even)\s*=\s*([A-Za-z]+)/i.exec(line);
+        if(pm) alt = {a: pm[1], b: pm[2], counts: repsSide(1)};
+        else { const am = /([A-Za-z]+)\s*\/\s*([A-Za-z]+)\s+by\s*(\d+)\s*t/i.exec(line); if(am){ const nt2 = parseInt(am[3], 10), cc = repsSide(nt2); alt = {a: am[1], b: am[2], counts: cc}; if(atom.n % (2 * nt2) !== 0) pushWarn(am[1] + '/' + am[2] + ' by' + nt2 + 't：' + atom.n + '本は交互がそろいません（' + am[1] + ' ' + fmtNum(cc[0] * atom.d) + 'm・' + am[2] + ' ' + fmtNum(cc[1] * atom.d) + 'm）'); } }
+        if(alt){
+          const ga = gearOfLabel(alt.a), gb = gearOfLabel(alt.b);
+          if(!gearDone && ga !== null && gb !== null){
+            gearDone = true;
+            if(ga) tot.gear[ga] = (tot.gear[ga] || 0) + alt.counts[0] * atom.d;
+            if(gb) tot.gear[gb] = (tot.gear[gb] || 0) + alt.counts[1] * atom.d;
+          }
+          if(!zoneDone && ga === null && gb === null && !detectTag(info.comment)){
+            const labelText = w => ({h:'Hard'})[String(w).toLowerCase()] || w;
+            const sub = (w, reps) => classify(Object.assign({}, info, {comment: labelText(w), ctxTag: null, atoms: [{d: atom.d, n: reps, c: atom.c}], dist: atom.d * reps}), team);
+            const za = sub(alt.a, alt.counts[0]), zb = sub(alt.b, alt.counts[1]);
+            if(za.src === 'kw' && zb.src === 'kw'){
+              zoneDone = true;
+              tot.zones[info.zone] -= info.dist;
+              tot.zones[za.zone] = (tot.zones[za.zone] || 0) + alt.counts[0] * atom.d;
+              tot.zones[zb.zone] = (tot.zones[zb.zone] || 0) + alt.counts[1] * atom.d;
+            }
+          }
+        }
+        const dm = /(\d+)\s*~\s*(\d+)\s*des/i.exec(line);
+        if(dm){ const g2 = parseInt(dm[2], 10); addAtomFast(info, 0, Math.floor(atom.n / g2) * atom.d); if(atom.n % g2 !== 0) pushWarn(dm[1] + '~' + dm[2] + 'DES：' + atom.n + '本は' + g2 + '本で割り切れません'); }
+        else if(/\bdes\b|descend/i.test(line)) addAtomFast(info, 0, atom.d);
+      });
+    }
     tot.fastFull += info.fastFull || 0;
   });
   // 宣言型（○mFast）：その区切り（タイトル行の範囲）全体で、その距離のブロックを全部 Fast とする
@@ -4214,7 +4268,7 @@ function updatePanel(i){
   if($('panelTabs')) renderPanelTabs();
   el.querySelector('.gutter').scrollTop = el.querySelector('textarea').scrollTop;
   el.querySelector('.pfoot').innerHTML = p.memo ? '<span class="muted">📝 メモとして表示しています（時間・距離・負荷は表示しません）。</span>' : tot.dist
-    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '') + (tot.unknown && tot.unknown.length ? '<br><span class="plannedLine">⚠ 未学習の表記：' + tot.unknown.map(esc).join('、') + '（画面上の帯で登録できます）</span>' : '')
+    ? '合計 <b>' + fmtNum(tot.dist) + 'm</b>　所要 ' + durText(tot.elapsed) + '　終了 <b>' + secToHm(tot.end) + '</b>' + (tot.est ? '<span class="muted">（サークルのない行は推定）</span>' : '') + '<br><span class="plannedLine">予定RPE <b>' + tot.pRPE + '</b>　予定負荷 <b>' + tot.pLoad + '</b>（RPE×分）</span>' + zoneBarHtml(tot.zones, tot.dist) + (tot.fastTotal ? '<br><span class="plannedLine">速い部分（Dash・Fastest） <b>' + fmtNum(tot.fastTotal) + 'm</b>（全体の' + Math.round(tot.fastTotal / tot.dist * 100) + '%）　Dash ' + fmtNum(tot.fastDash) + 'm ／ Fastest ' + fmtNum(tot.fastFull) + 'm</span>' : '') + (tot.unknown && tot.unknown.length ? '<br><span class="plannedLine">⚠ 未学習の表記：' + tot.unknown.map(esc).join('、') + '（画面上の帯で登録できます）</span>' : '') + (tot.warns && tot.warns.length ? '<br><span class="plannedLine">⚠ ' + tot.warns.map(esc).join('<br>⚠ ') + '</span>' : '')
     : '<span class="muted">ここに入力すると、距離と終了時刻が自動で出ます。</span>';
   if(typeof fitEditor === 'function' && i === 0) requestAnimationFrame(fitEditor);
 }

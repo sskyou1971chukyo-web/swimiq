@@ -71,6 +71,9 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #symRow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .tawrap{flex:1;display:flex;position:relative;min-width:0}
 .brk{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.ghost{position:absolute;inset:0;overflow:hidden;pointer-events:none;padding:10px 12px;font-size:var(--edfont);line-height:var(--edlh);white-space:pre;tab-size:2;font-family:"Consolas","Menlo","Hiragino Sans","Noto Sans JP","Yu Gothic",Meiryo,monospace}
+.ghost .gtx{color:#9fb0c0}
+#panels.many .ghost{font-size:calc(var(--edfont) * .85);padding:10px 6px}
 .brk i,.brk span{position:absolute;display:block}
 .bopen,.bclose{width:7px;border:2.5px solid;border-radius:2px}
 .bopen{border-right:none}
@@ -1429,16 +1432,16 @@ body.desk .dLong{display:none}
   <div class="card" id="lrCard" style="margin-top:12px">
     <h2 style="margin-top:0">読み方の学習（Fast／EZ のルール）</h2>
     <details class="explD"><summary>説明・組み込みの型を見る</summary><div class="explB">
-      <p class="muted" style="margin:4px 0 6px">メモの言葉の扱いを一度登録すると、次から自動で集計に使われます。登録はこの端末に保存されます。</p>
+      <p class="muted" style="margin:4px 0 6px">メモの言葉の扱いを一度登録すると、次から自動で集計と強度の判定に使われます。登録はこの端末に保存されます。メニューを書いている途中で知らない言葉があると、列の下とこのカードに「未学習の表記」として出ます。ドリルの名前など分析に使わない言葉は「対象外」にできます。</p>
       <p class="muted" style="margin:0 0 6px">条件つきパターン：「1~4DES」の DES のような、本数で Fast の場所が決まる言葉を登録します。</p>
-      <p class="muted" style="margin:0">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、100m=Fast（その距離の部分は全部速い）、400m+300m+200m=Smooth,100m=Fast（＋で複数の距離をまとめ、カンマで複数の指定を並べる）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast＝速い、Smt・Smooth・EZ＝速くない。</p>
+      <p class="muted" style="margin:0">組み込みの型：od=／ev=（奇数・偶数本の内訳）、50m=25mFast（その距離の1本ごとの内訳）、100m=Fast（その距離の部分は全部速い）、400m+300m+200m=Smooth,100m=Fast（＋で複数の距離をまとめ、カンマで複数の指定を並べる）、Fast/EZ（奇数本がFastの交互）、1~4DES（デセンド＝最後の本、つまり4本目だけFast）、Fastest（そのセット全部が速い）、50mFast（その区切り全体で、その距離のブロック全部が Fast という宣言）、コメント末尾の「,Fast」（そのセット全体が Fast）。組み込みの言葉：Dash・Fast・Faster＝速い、Smt・Smooth・EZ・LR（乳酸の除去）＝速くない（回復の泳ぎ）。</p>
     </div></details>
     <div id="lrUnknown"></div>
     <h3 style="margin:12px 0 6px;font-size:15px">登録済みの言葉</h3>
     <div id="lrList"></div>
     <div class="lrRow">
       <label class="fld">言葉<input type="text" id="lrWord" placeholder="例：Hard" style="width:130px"></label>
-      <label class="fld">扱い<select id="lrKind"><option value="fast">速い（Fastに数える）</option><option value="slow">速くない（数えない）</option></select></label>
+      <label class="fld">扱い<select id="lrKind"><option value="fast">速い（Fastに数える）</option><option value="slow">速くない（数えない）</option><option value="none">どちらでもない（以後聞かない）</option></select></label>
       <button class="btn" type="button" id="lrAdd">登録する</button>
     </div>
     <h3 style="margin:14px 0 6px;font-size:15px">条件つきパターンの登録</h3>
@@ -1459,21 +1462,12 @@ body.desk .dLong{display:none}
     (function(){
       function ready(){ return typeof S !== 'undefined' && typeof fastRules === 'function' && typeof saveNow === 'function'; }
       function scanUnknown(){
-        var words = {};
-        if(typeof M === 'undefined' || !M || !M.panels) return [];
+        var words = {}, seen = {};
+        if(typeof M === 'undefined' || !M || !M.panels || typeof analyzeText !== 'function') return [];
         M.panels.forEach(function(p){
-          String(p.text || '').split('\n').forEach(function(line){
-            var i = line.indexOf('※');
-            if(i < 0) return;
-            var m = /=\s*(.+)$/.exec(line.slice(i + 1));
-            if(!m) return;
-            var sre = /[A-Za-z]+/g, t;
-            while((t = sre.exec(m[1])) !== null){
-              var w = t[0];
-              if(/^(od|ev|des|m)$/i.test(w)) continue;
-              if(!isFastLabel(w) && !isSlowLabel(w)) words[w] = true;
-            }
-          });
+          if(p.memo) return;
+          var t = analyzeText(p.text || '', p.team, M.start, (typeof strokeKeyOf === 'function' ? strokeKeyOf(p.stroke) : ''));
+          (t.unknown || []).forEach(function(w){ var k = String(w).toLowerCase(); if(!seen[k]){ seen[k] = true; words[w] = true; } });
         });
         return Object.keys(words);
       }
@@ -1482,7 +1476,7 @@ body.desk .dLong{display:none}
         var labels = fastRules().labels;
         var keys = Object.keys(labels);
         document.getElementById('lrList').innerHTML = keys.length ? keys.map(function(k){
-          return '<span class="lrChip">' + k + '（' + (labels[k] === 'fast' ? '速い' : '速くない') + '）<button class="btn small red" type="button" data-lrdel="' + k + '">削除</button></span>';
+          return '<span class="lrChip">' + k + '（' + (labels[k] === 'fast' ? '速い' : labels[k] === 'none' ? '対象外' : '速くない') + '）<button class="btn small red" type="button" data-lrdel="' + k + '">削除</button></span>';
         }).join('') : '<p class="muted">まだ登録はありません。</p>';
         document.querySelectorAll('[data-lrdel]').forEach(function(b){
           b.addEventListener('click', function(){ delete fastRules().labels[b.getAttribute('data-lrdel')]; saveNow(); render(); if(typeof renderPanels === 'function') renderPanels(); });
@@ -1497,7 +1491,7 @@ body.desk .dLong{display:none}
         });
         var unk = scanUnknown();
         document.getElementById('lrUnknown').innerHTML = unk.length ? '<div class="lrUnk"><b>未学習の表記が見つかりました：</b>' + unk.map(function(w){
-          return '<span class="lrChip">' + w + '<button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="fast">速いとして登録</button><button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="slow">速くないとして登録</button></span>';
+          return '<span class="lrChip">' + w + '<button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="fast">速いとして登録</button><button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="slow">速くないとして登録</button><button class="btn small" type="button" data-lrlearn="' + w + '" data-kind="none">対象外にする</button></span>';
         }).join('') + '</div>' : '';
         document.querySelectorAll('[data-lrlearn]').forEach(function(b){
           b.addEventListener('click', function(){ fastRules().labels[b.getAttribute('data-lrlearn').toLowerCase()] = b.getAttribute('data-kind'); saveNow(); render(); if(typeof renderPanels === 'function') renderPanels(); });
@@ -2521,6 +2515,16 @@ body.desk .dLong{display:none}
     <h2 id="helpTitle">メニューの書き方 <button class="btn ghost small" data-close="helpOv">閉じる</button></h2>
     <div style="font-size:16px;line-height:1.9">
       <p>紙に書くのと同じように、1行に1つずつ書きます。距離と時間は左側に自動で出ます。</p>
+      <h3>記入ルール（基本の形）</h3>
+      <p>基本は「距離m × 本数（サークル）」です。例：100m×10(1'30) は 100mを10本、1分30秒サークルで、合計1,000m です。</p>
+      <p>セットにするときは、行全体を [ ] で囲んで *セット数set と書きます。例：[100m×10(1'30)]*2set。行の最後に [2] とだけ書いてもセットにはなりません。</p>
+      <p>[ ] で囲まなくても、行の最後に *2set(3') と書けば、その行全体のセットになります。（3'）はセット間の休みとして、時間の計算に入ります。</p>
+      <p>いくつかをつなぐときは ＋ を使います。例：[25m(1')+50m*4(1')]*4set。' は分、” は秒で、1:30 の書き方もできます。</p>
+      <p>見出し（W-up、KICK、MAIN など）は数字以外で始めます。休憩だけの行は「休憩 3'」と書きます。</p>
+      <p>「計算ボタンで入力」を使うと、距離・本数・サークル・セット数を入れるだけで、同じ形の行が自動で作れます。</p>
+      <p>打ち始めると、型の続きがグレーで出ます。Tabキーを押すと、そのまま取り込めます（数字は前の行の本数・サークルを引き継ぎます）。</p>
+      <p>道具は種類まで書くと、その種類として数え、速さの推定にも反映します。対応しているのは、パドル・フィン・シュノーケル・プルブイです。見出しに書けば、そのセクション全体が対象になります。</p>
+      <p>Smooth（なめらかに楽に泳ぐ）と LR（乳酸の除去＝回復の泳ぎ）は、回復の強さとして読みます。faster100m1stLap のような複合語も、「速く」の指示として読みます（速い部分に数え、強度の判定にも使います）。</p>
       <h3>記号のきまり</h3>
       <p>距離は m（大文字の M でも可）。回数は * か ×。本数は t（T でも可、省略も可）。サークルは ( ) で囲みます。セットは [ ] で囲んで *2set のように書きます。</p>
       <p>例：25m*10t(30") は、25mを10本、30秒サークルで250m、5分。</p>
@@ -3162,6 +3166,7 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
    ===================================================================== */
 function normalize(s){
   return String(s)
+    .replace(/\uFE0F/g, '')
     .replace(/[０-９Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
     .replace(/[×✕✖＊﹡]/g, '*').replace(/（/g,'(').replace(/）/g,')')
     .replace(/［/g,'[').replace(/］/g,']').replace(/＋/g,'+')
@@ -3249,6 +3254,12 @@ function parseSetExpr(src){
   }
   const items = expr();
   if(!items) return null;
+  /* 括弧なしで「*2set(3')」と書かれた場合も、行全体のセットとして扱う（( ) はセット間の休み） */
+  const tailSet = /^\s*\*\s*(\d+)\s*(?:sets?|セット)\s*(?:\(([^)]+)\))?/i.exec(s.slice(pos));
+  if(tailSet && !(items.length === 1 && items[0].g)){
+    const restIn = tailSet[2] != null ? parseCircleInner(tailSet[2]) : null;
+    return {items:[{g:true, items, n:Math.round(parseFloat(tailSet[1])), rest:restIn || 0}], end:pos + tailSet[0].length, src:s};
+  }
   return {items, end:pos, src:s};
 }
 function evalItems(items, noCirclePace){
@@ -3305,6 +3316,15 @@ function detectTag(t){
   const k = m[1].toUpperCase(); return TAG_ALIAS[k] || k;
 }
 const HYPOXIC_RE = /(no\s*breath|ノーブレ|呼吸制限|hypoxic|潜水|息止め|無呼吸|\bNB\b)/i;
+/* 道具は種類まで分けて読む。f は速さの推定への補正（フィンは速くなる等） */
+const GEAR_DEFS = [
+  {k:'paddle', name:'パドル', re:/(パドル|paddles?)/i, f:0.97},
+  {k:'fin', name:'フィン', re:/(フィン|\bfins?\b)/i, f:0.92},
+  {k:'snorkel', name:'シュノーケル', re:/(シュノーケル|snorkel)/i, f:1.0},
+  {k:'buoy', name:'プルブイ', re:/(プルブイ|pull\s?buoy)/i, f:0.98}
+];
+function detectGear(text){ return GEAR_DEFS.filter(g => g.re.test(text || '')).map(g => g.k); }
+function gearFactor(gear){ if(!gear || !gear.length) return 1; return gear.reduce((a, k) => { const g = GEAR_DEFS.find(x => x.k === k); return a * (g ? g.f : 1); }, 1); }
 function teamPace(team){
   const t = S.settings.teams.find(x => x.name === team);
   return t && t.pace > 0 ? +t.pace : 75;
@@ -3320,14 +3340,16 @@ function classify(info, team){
   const text = (info.comment || '') + ' ' + (info.ctxTitle || '');
   const dom = info.atoms.slice().sort((a,b) => b.d*b.n - a.d*a.n)[0] || {d:info.dist, n:1, c:null};
   const d = dom.d;
-  const pace = teamPace(team) * paceFactor(info.cat, info.stroke);
+  const pace = teamPace(team) * paceFactor(info.cat, info.stroke) * gearFactor(info.gear);
   let swim = d / 100 * pace, rest = null, rr = null;
   if(dom.c != null){ rest = dom.c - swim; rr = rest / swim; }
   const out = (zone, src) => ({zone, src, swim, rest, rr, d, n:dom.n, c:dom.c});
   const tag = detectTag(info.comment) || info.ctxTag;
   if(tag) return out(tag, 'tag');
-  if(/(\bez\b|easy|イージー|ゆっくり|楽に|リカバ|recovery|\bdown\b|ダウン|loose)/i.test(text) || info.cat === 'DOWN') return out('EZ', 'kw');
-  const fast = /(sprint|スプリント|ダッシュ|\bmax\b|全力|all\s*out|オールアウト|\bfast\b|速く|dive|ダイブ|飛び込み)/i.test(info.comment || '') || /(sprint|スプリント|dive|ダイブ|飛び込み)/i.test(info.ctxTitle || '');
+  const userToks = text.toLowerCase().split(/[\s,、()（）]+/).map(t => t.replace(/^※+/, '')).filter(Boolean);
+  if(userToks.some(t => ((fastRules().labels || {})[t] || '') === 'slow')) return out('EZ', 'kw');
+  if(/(\bez\b|easy|イージー|ゆっくり|楽に|リカバ|recovery|\bdown\b|ダウン|loose|smooth|\bsmt\b|\blr\b|乳酸除去|lactate\s*removal)/i.test(text) || info.cat === 'DOWN') return out('EZ', 'kw');
+  const fast = userToks.some(t => ((fastRules().labels || {})[t] || '') === 'fast') || /(sprint|スプリント|ダッシュ|\bmax\b|全力|all\s*out|オールアウト|\bfaster|\bfast|速く|dive|ダイブ|飛び込み)/i.test(info.comment || '') || /(sprint|スプリント|dive|ダイブ|飛び込み)/i.test(info.ctxTitle || '');
   if(fast){
     if(d <= 25) return out(rr == null || rr >= 3 ? 'SP' : (rr >= 1 ? 'LP' : 'LT'), 'kw');
     if(d <= 50) return out(rr == null || rr > 3 ? 'LP' : 'LT', 'kw');
@@ -3467,10 +3489,10 @@ function analyzeText(text, team, startHm, panelStroke){
   const multi = findMultiSets(lines);
   const out = [];
   let elapsed = 0, pendingBlank = false, hadContent = false;
-  let ctx = {cat:null, stroke:null, tag:null, title:''};
+  let ctx = {cat:null, stroke:null, tag:null, title:'', gear:[]};
   let lastTitle = -1, sectionHasTitle = false, firstInSection = true;
   let lastSet = null;
-  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0, unknown:[]};
+  const tot = {dist:0, sec:0, est:false, zones:{}, strokes:{}, cats:{}, gear:{}, hypoxic:false, fastDash:0, fastFull:0, fastTotal:0, unknown:[]};
   ZK.forEach(k => tot.zones[k] = 0);
   lines.forEach((raw, i) => {
     const n = normalize(raw), indent = /^[ \t]/.test(raw);
@@ -3501,10 +3523,11 @@ function analyzeText(text, team, startHm, panelStroke){
     const mg = multi[i];
     if(mg){ info.grp = mg.g; info.grpPos = i === mg.g.first ? 'first' : i === mg.g.last ? 'last' : 'mid'; }
     if(mg && mg.empty){
+      if(i === mg.g.last && mg.g.rest){ elapsed += mg.g.rest * (mg.g.n - 1); tot.sec += mg.g.rest * (mg.g.n - 1); }
       info.type = 'memo'; info.expr = (i === mg.g.first ? '[' : '') + (i === mg.g.last ? ']' + mg.g.closing : ''); out.push(info); return;
     }
     if(mg && mg.memo){
-      if(i === mg.g.last && mg.g.rest) elapsed += mg.g.rest * (mg.g.n - 1);
+      if(i === mg.g.last && mg.g.rest){ elapsed += mg.g.rest * (mg.g.n - 1); tot.sec += mg.g.rest * (mg.g.n - 1); }
       info.type = 'memo'; out.push(info); return;
     }
     if(mg || /^[\d\[]/.test(tr)){
@@ -3522,6 +3545,7 @@ function analyzeText(text, team, startHm, panelStroke){
           info.stroke = detectStroke(info.comment) || ctx.stroke || panelStroke || set.defaultStroke || 'Fr';
           info.ctxTag = ctx.tag; info.ctxTitle = ctx.title;
           info.hypoxic = HYPOXIC_RE.test(info.comment + ' ' + ctx.title);
+          info.gear = [...new Set([...detectGear(info.comment), ...(ctx.gear || [])])];
           const c = classify(info, team);
           info.zone = c.zone; info.cls = c;
           info.showTime = firstInSection && !sectionHasTitle;
@@ -3530,11 +3554,12 @@ function analyzeText(text, team, startHm, panelStroke){
           tot.dist += info.dist; tot.sec += info.sec; tot.est = tot.est || info.est;
           tot.zones[info.zone] += info.dist;
           tot.strokes[info.stroke] = (tot.strokes[info.stroke] || 0) + info.dist;
+          info.gear.forEach(k => tot.gear[k] = (tot.gear[k] || 0) + info.dist);
           tot.cats[info.cat] = (tot.cats[info.cat] || 0) + info.dist;
           if(info.hypoxic) tot.hypoxic = true;
           if(lastTitle >= 0) out[lastTitle].secDist += info.dist;
           if(/fastest/i.test(info.comment || '')) info.fastFull = info.dist;
-          if(!info.fastFull && info.comment){ const toks = String(info.comment).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|dash)$/i.test(t)))) info.fastFull = info.dist; }
+          if(!info.fastFull && info.comment){ const toks = String(info.comment).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|faster|dash)/i.test(t)))) info.fastFull = info.dist; }
           lastSet = info;
           out.push(info); return;
         }
@@ -3542,17 +3567,30 @@ function analyzeText(text, team, startHm, panelStroke){
     }
     if(!indent && tr.length <= 30){
       info.type = 'title'; info.secDist = 0; lastTitle = i; lastSet = null; sectionHasTitle = true; firstInSection = true;
-      ctx = {cat:detectCat(tr), stroke:detectStroke(tr), tag:detectTag(tr), title:tr};
+      ctx = {cat:detectCat(tr), stroke:detectStroke(tr), tag:detectTag(tr), title:tr, gear:detectGear(tr)};
       out.push(info); return;
     }
     info.type = 'memo'; out.push(info);
   });
   const noteUnknown = w => { if(w && !tot.unknown.includes(w)) tot.unknown.push(w); };
+  const KNOWN_WORDS = new Set(['easy','hard','max','sprint','race','pace','rp','descend','steady','aerobic','tempo','css','threshold','goal','broken','dive','loose','recovery','lr','lactate','removal','hypoxic','breath','imo','im','fr','ba','br','fly','free','freestyle','back','backstroke','breast','breaststroke','butterfly','up','down','kick','pull','drill','swim','main','choice','scull','paddle','paddles','fin','fins','snorkel','buoy','nb','des','lap']);
+  const scanWords = (txt) => {
+    String(txt || '').split(/[\s,、()（）・:：+\/]+/).forEach(tok0 => {
+      const tok = tok0.replace(/^※+/, '');
+      if(tok.length < 2 || /^\d/.test(tok) || !/[A-Za-z]/.test(tok) || tok.includes('=')) return;
+      const tl = tok.toLowerCase();
+      if((fastRules().labels || {})[tl]) return;
+      if(/^(fast|faster|fastest|dash|smooth|smt|ez|imo)/i.test(tok)) return;
+      if(KNOWN_WORDS.has(tl)) return;
+      noteUnknown(tok);
+    });
+  };
   const addAtomFast = (info, ai, meters) => { if(ai < 0 || !info.atoms || !info.atoms[ai]) return; if(!info._fa) info._fa = {}; const cap = info.atoms[ai].d * info.atoms[ai].n; info._fa[ai] = Math.min(cap, Math.max(info._fa[ai] || 0, meters)); };
   out.forEach(info => {
     if(info.type !== 'set') return;
+    scanWords(info.comment); (info._memos || []).forEach(scanWords);
     if(info._fullFast && !info.fastFull) info.fastFull = info.dist;
-    (info._memos || []).forEach(mt => { const toks = String(mt).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|dash)$/i.test(t)))) info.fastFull = info.dist; });
+    (info._memos || []).forEach(mt => { const toks = String(mt).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|faster|dash)/i.test(t)))) info.fastFull = info.dist; });
     if((info._od || info._ev) && info.atoms && info.atoms.length === 1){
       [info._od, info._ev].forEach(p => { if(p) p.segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); }); });
       const per = info.atoms[0].d, reps = info.atoms[0].n;
@@ -3746,7 +3784,7 @@ function buildLineAdvice(info, team){
   const setName = exprText(info.items);
   L.push('【セット】' + info.expr + (info.comment ? '　' + info.comment : ''));
   L.push('　' + setName + '。合計' + fmtNum(info.dist) + 'm、所要' + durText(info.sec) + (info.est ? '（サークルのない部分は推定）' : '') + '。');
-  const pace = teamPace(team) * paceFactor(info.cat, info.stroke);
+  const pace = teamPace(team) * paceFactor(info.cat, info.stroke) * gearFactor(info.gear);
   if(c.c != null){
     const restTxt = c.rest >= 0 ? '休息は約' + Math.round(c.rest) + '秒' : '基準ペースより速く泳がないとサークルに入らない設定';
     L.push('【休息の推定】' + team + 'の基準ペース' + paceText(teamPace(team)) + '/100m（' + (CMAP[info.cat]||'') + '・' + (SMAP[info.stroke]||'') + 'として' + paceText(pace) + '/100m）で計算すると、' + c.d + 'mは約' + circleText(Math.round(c.swim)) + '、' + restTxt + '。' + (c.rest > 0 ? '運動と休息の比はおよそ' + ratioText(c.swim, c.rest) + '。' : ''));
@@ -3981,7 +4019,7 @@ function renderPanels(){
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
       ((i > 0 || M.panels.length > 1) ? '<details class="pMore"><summary>その他 ▾</summary>' + (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') + (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</details>' : '') + '</div>' +
       '<div class="editor"><div class="gutter" aria-hidden="true"><div class="gin"></div></div>' +
-      '<div class="tawrap"><textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea><div class="brk" aria-hidden="true"></div></div></div>' +
+      '<div class="tawrap"><textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea><div class="brk" aria-hidden="true"></div><div class="ghost" aria-hidden="true"></div></div></div>' +
       '<div class="pfoot" aria-live="polite"></div>';
     box.appendChild(el);
     const ta = el.querySelector('textarea'), sel = el.querySelector('[data-team]'), ssel = el.querySelector('[data-stroke]'), gut = el.querySelector('.gutter');
@@ -3992,7 +4030,7 @@ function renderPanels(){
       p.text = ta.value; updatePrintCount(); updatePanel(i); commitMenu(); updateCursor(i, true); });
     ta.addEventListener('blur', () => { if(typeof hidePer50 === 'function') hidePer50(i); });
     ta.addEventListener('scroll', () => {
-      gut.scrollTop = ta.scrollTop; drawBrackets(i); if(typeof showPer50 === 'function' && document.activeElement === ta) showPer50(i);
+      gut.scrollTop = ta.scrollTop; drawBrackets(i); renderGhost(i); if(typeof showPer50 === 'function' && document.activeElement === ta) showPer50(i);
       if(S.settings.syncScroll && !scrollSyncing){
         scrollSyncing = true;
         M.panels.forEach((q, k) => { if(k !== i){ const t2 = panelTA(k); if(t2){ t2.scrollTop = ta.scrollTop; panelEl(k).querySelector('.gutter').scrollTop = t2.scrollTop; } } });
@@ -4001,6 +4039,14 @@ function renderPanels(){
     });
     ['click','keyup','focus','select'].forEach(ev => ta.addEventListener(ev, () => updateCursor(i)));
     ta.addEventListener('keydown', e => {
+      if(e.key === 'Tab' && ghostNow.panel === i && ghostNow.text){
+        e.preventDefault();
+        const s0 = ta.selectionStart;
+        ta.value = ta.value.slice(0, s0) + ghostNow.text + ta.value.slice(ta.selectionEnd);
+        ta.selectionStart = ta.selectionEnd = s0 + ghostNow.text.length;
+        p.text = ta.value; updatePanel(i); commitMenu(); updateCursor(i, true);
+        return;
+      }
       if(isRealEnter(e) && (e.ctrlKey || e.metaKey)){ e.preventDefault(); updateCursor(i); advOk(); }
     });
     sel.addEventListener('change', () => { if(sel.value === '__add__'){ sel.value = p.team; curPanel = i; openOpt('team', i); return; } p.team = sel.value; renderPlanStrip(); ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
@@ -4171,11 +4217,49 @@ function zoneBarHtml(zones, total){
   return '<div class="zbar" aria-hidden="true">' + segs + '</div><div class="zlegend">' + leg + '</div>';
 }
 function lineIndexOf(ta){ return ta.value.slice(0, ta.selectionStart).split('\n').length - 1; }
+/* 書式の続き（型）をグレーで予測表示する。Tabで取り込む */
+let ghostNow = {panel:-1, text:''};
+function prevSetVals(lines, upto){
+  for(let k = upto - 1; k >= 0; k--){
+    const p = parseSetExpr(normalize(lines[k].trim()));
+    if(!p || !p.items || !p.items.length) continue;
+    const it = p.items[0];
+    if(it.g){ const inner = (it.items && it.items[0]) || {}; return {reps:inner.n || 10, cyc:inner.c != null ? inner.c : 90, sets:it.n || 2, rest:it.rest || 0}; }
+    if(it.d != null) return {reps:it.n || 10, cyc:it.c != null ? it.c : 90, sets:2, rest:0};
+  }
+  return {reps:10, cyc:90, sets:2, rest:0};
+}
+function ghostSuggest(ta){
+  if(!ta || ta.selectionStart !== ta.selectionEnd) return '';
+  const v = ta.value, pos = ta.selectionStart;
+  const le = v.indexOf('\n', pos); const lineEnd = le < 0 ? v.length : le;
+  if(v.slice(pos, lineEnd).trim()) return '';
+  const ls = v.lastIndexOf('\n', pos - 1) + 1;
+  const t = v.slice(ls, pos).trim();
+  if(!t) return '';
+  const pv = prevSetVals(v.split('\n'), lineIndexOf(ta));
+  if(/^\d+(?:\.\d+)?m$/.test(t)) return '*' + pv.reps + '(' + circleText(pv.cyc) + ')';
+  if(/^\d+(?:\.\d+)?m\*\d+t?$/.test(t)) return '(' + circleText(pv.cyc) + ')';
+  if(/\]$/.test(t) && t.includes('[') && !/set|セット/i.test(t)) return '*' + pv.sets + 'set';
+  if(/\*\d+\s*(set|セット)$/i.test(t)) return '(' + circleText(pv.rest || 60) + ')';
+  return '';
+}
+function renderGhost(i){
+  const ta = panelTA(i); if(!ta) return;
+  const el = ta.parentElement ? ta.parentElement.querySelector('.ghost') : null;
+  const g = i === curPanel ? ghostSuggest(ta) : '';
+  ghostNow = {panel:i, text:g};
+  if(!el) return;
+  if(!g){ if(el.innerHTML) el.innerHTML = ''; return; }
+  el.innerHTML = '<span style="color:transparent">' + esc(ta.value.slice(0, ta.selectionStart)) + '</span><span class="gtx">' + esc(g) + '</span>';
+  el.style.transform = 'translate(' + (-ta.scrollLeft) + 'px,' + (-ta.scrollTop) + 'px)';
+}
 function updateCursor(i, force){
   const ta = panelTA(i); if(!ta) return;
   const li = lineIndexOf(ta);
   if(i !== curPanel){ curPanel = i; [...$('panels').children].forEach((el, k) => el.classList.toggle('cur', k === i)); renderPanelTabs(); force = true; }
   drawBrackets(i);
+  renderGhost(i);
   if(typeof showPer50 === 'function') showPer50(i);
   if(li !== curLine || force){
     curLine = li;
@@ -7756,7 +7840,7 @@ function hidePer50(i){ const el = panelEl(i); const tip = el && el.querySelector
    ===================================================================== */
 function weekData(mon, team, filt){
   const end = addDays(mon, 6);
-  const W = {dist:0, sec:0, sessions:0, load:0, zones:{}, strokes:{}, cats:{}, days:[], teams:{}, rows:[], persons:{}, classes:{}, unassigned:0};
+  const W = {dist:0, sec:0, sessions:0, load:0, zones:{}, strokes:{}, cats:{}, gear:{}, days:[], teams:{}, rows:[], persons:{}, classes:{}, unassigned:0};
   ZK.forEach(k => W.zones[k] = 0);
   for(let i = 0; i < 7; i++){ const z = {}; ZK.forEach(k => z[k] = 0); W.days.push({date:addDays(mon, i), dist:0, zones:z}); }
   sortedMenus().slice().reverse().forEach(m => {
@@ -7786,6 +7870,7 @@ function weekData(mon, team, filt){
       else W.unassigned += t.dist;
       Object.keys(t.strokes).forEach(k => W.strokes[k] = (W.strokes[k] || 0) + t.strokes[k]);
       Object.keys(t.cats).forEach(k => W.cats[k] = (W.cats[k] || 0) + t.cats[k]);
+      Object.keys(t.gear || {}).forEach(k => W.gear[k] = (W.gear[k] || 0) + t.gear[k]);
     });
   });
   return W;
@@ -7885,8 +7970,10 @@ function renderAnalysis(){
   h += '<div class="card"><h3>日ごとの距離（色は強度）</h3>' + svgStack(W.days, 640, 280, 0) + zoneLegendHtml() + '</div>';
   h += '<div class="card"><h3>強度の配分</h3>' + hbars(ZONES.map(z => ({k:z.k, label:z.name + '（' + z.k + '）', v:W.zones[z.k], color:z.color})), W.dist, pz) + (pz ? '<p class="muted">黒い縦線は計画の目安です。</p>' : '') + '</div>';
   const strokeRows = STROKES.filter(s => W.strokes[s.k]).map(s => ({k:s.k, label:s.name, v:W.strokes[s.k], color:'#1f6fb2'}));
+  const gearRows = GEAR_DEFS.filter(g => W.gear && W.gear[g.k]).map(g => ({k:g.k, label:g.name, v:W.gear[g.k], color:'#e88b2d'}));
   h += '<div class="card"><h3>種目の内訳</h3>' + (strokeRows.length ? hbars(strokeRows, W.dist) : '<p class="muted">データがありません</p>') +
-    '<h3>練習の種類</h3>' + hbars(CATS.filter(c => W.cats[c.k]).map(c => ({k:c.k, label:c.name, v:W.cats[c.k], color:'#2e9e6a'})), W.dist) + '</div>';
+    '<h3>練習の種類</h3>' + hbars(CATS.filter(c => W.cats[c.k]).map(c => ({k:c.k, label:c.name, v:W.cats[c.k], color:'#2e9e6a'})), W.dist) +
+    (gearRows.length ? '<h3>道具の内訳</h3>' + hbars(gearRows, W.dist) : '') + '</div>';
   const tnames = Object.keys(pre.teams);
   h += '<div class="card"><h3>チーム別の比較</h3>' + (tnames.length ? '<table class="list"><thead><tr><th>チーム</th><th class="num">距離</th><th class="num">回数</th><th>強度の配分</th></tr></thead><tbody>' +
     tnames.map(t => { const x = pre.teams[t]; return '<tr><td>' + esc(t) + '</td><td class="num">' + (Math.round(x.dist/100)/10) + 'km</td><td class="num">' + x.sessions + '</td><td style="min-width:160px">' + zoneBarHtml(x.zones, x.dist).replace('<div class="zlegend">', '<div class="zlegend" style="display:none">') + '</td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted">データがありません</p>') + '</div>';

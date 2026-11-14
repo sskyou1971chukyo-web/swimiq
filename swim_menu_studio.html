@@ -7807,6 +7807,39 @@ function layoutBind(){
    ===================================================================== */
 const SETLIB_MAX = 200;
 function setLib(){ if(!S.setLib || typeof S.setLib !== 'object') S.setLib = {cats:{}}; if(!S.setLib.cats) S.setLib.cats = {}; return S.setLib; }
+/* 大きな項目は7個（W-UP・SWIM・KICK・PULL・POWER・AGILITY・DRILL）。それ以外は見出しのまま項目にする */
+const BIG_CATS = [
+  ['W-UP', /(w-?up|warm|アップ)/i],
+  ['POWER', /(power|パワー)/i],
+  ['AGILITY', /(agility|アジリティ)/i],
+  ['KICK', /(kick|キック)/i],
+  ['PULL', /(pull|プル)/i],
+  ['DRILL', /(drill|ドリル)/i],
+  ['SWIM', /(swim|スイム|dive|ダイブ|飛び込み|sprint|スプリント|main|メイン|pace|ペース)/i]
+];
+function libCatOf(title){
+  const t = (title || '').trim();
+  if(!t) return {k:'（見出しなし）', name:'（見出しなし）'};
+  for(const pair of BIG_CATS){ if(pair[1].test(t)) return {k:'big:' + pair[0], name: pair[0]}; }
+  return {k: catKey(title), name: t};
+}
+function setLibFold(){
+  const L = setLib(); if(L.folded === 2) return; L.folded = 2;
+  const old = L.cats, next = {};
+  Object.keys(old).forEach(k => {
+    const c = old[k]; if(!c || !Array.isArray(c.items)) return;
+    const lc = (c.name === '（見出しなし）') ? {k:'（見出しなし）', name:'（見出しなし）'} : libCatOf(c.name);
+    const nc = next[lc.k] || (next[lc.k] = {name: lc.name, items: []});
+    c.items.forEach(it => {
+      const key = normalize(it.t).replace(/\s+/g, ' ').trim();
+      const ex = nc.items.find(x => normalize(x.t).replace(/\s+/g, ' ').trim() === key);
+      if(ex){ if(it.last && (!ex.last || it.last > ex.last)) ex.last = it.last; }
+      else nc.items.push(it);
+    });
+  });
+  Object.values(next).forEach(c => { if(c.items.length > SETLIB_MAX){ c.items.sort((a, b) => (b.last || '').localeCompare(a.last || '')); c.items.length = SETLIB_MAX; } });
+  L.cats = next;
+}
 function catKey(title){ return normalize(title || '').trim().replace(/\s+/g, ' ').toLowerCase(); }
 /* メニューの文章から（見出し、行）の組を取り出す。[ ] で何行かをまとめたセットは、まとめて1つにする */
 function setEntries(text){
@@ -7822,8 +7855,8 @@ function setEntries(text){
 }
 function setLibAdd(title, t, when){
   if(!t) return;
-  const L = setLib(), k = catKey(title) || '（見出しなし）';
-  const c = L.cats[k] || (L.cats[k] = {name:(title || '').trim() || '（見出しなし）', items:[]});
+  const L = setLib(), lc = libCatOf(title), k = lc.k;
+  const c = L.cats[k] || (L.cats[k] = {name: lc.name, items:[]});
   const key = normalize(t).replace(/\s+/g, ' ').trim();
   let it = c.items.find(x => normalize(x.t).replace(/\s+/g, ' ').trim() === key);
   if(it){ if(when && (!it.last || when > it.last)) it.last = when; }
@@ -7838,21 +7871,24 @@ function setLibFromMenu(){
   M.panels.forEach((p, pi) => {
     setEntries(p.text).forEach(e => {
       if(pi === curPanel && curLine >= e.i && curLine <= e.last) return;
-      const before = JSON.stringify(setLib().cats[catKey(e.title) || '（見出しなし）'] || null);
+      const bk = libCatOf(e.title).k;
+      const before = JSON.stringify(setLib().cats[bk] || null);
       setLibAdd(e.title, e.t, M.date);
-      if(JSON.stringify(setLib().cats[catKey(e.title) || '（見出しなし）']) !== before) changed = true;
+      if(JSON.stringify(setLib().cats[bk]) !== before) changed = true;
     });
   });
   if(changed){ scheduleSave(); renderSetLibCats(); }
 }
 /* はじめて使うとき、今までに保存したメニューから登録する */
 function setLibSeed(){
+  setLibFold();
   const L = setLib(); if(L.seeded) return;
   Object.values(S.menus || {}).sort((a, b) => (a.date || '').localeCompare(b.date || '')).forEach(m => (m.panels || []).forEach(p => setEntries(p.text).forEach(e => setLibAdd(e.title, e.t, m.date))));
   L.seeded = true; scheduleSave();
 }
 /* ---------- 画面 ---------- */
 function renderSetLibCats(){
+  setLibFold();
   const sel = $('libPickSel'); if(!sel) return;
   const L = setLib(), cur = sel.value;
   const keys = Object.keys(L.cats).filter(k => L.cats[k].items.length).sort((a, b) => L.cats[b].items.length - L.cats[a].items.length);

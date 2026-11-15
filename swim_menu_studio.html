@@ -972,7 +972,7 @@ body.desk .dLong{display:none}
         '混在':{color:'#607080', plain:'ブロックごとに種類が分かれます'},
         '判定保留':{color:'#98a4b3', plain:'材料が足りず、まだ判定できません'}
       };
-      var TAG2CLS = {EZ:'AEC', A1:'AEC', A2:'AEC', AT:'AEP', VO2:'AEP', LT:'乳酸耐性', LP:'ANC', SP:'ANP'};
+      var TAG2CLS = {EZ:'AEC', A1:'AEC', A2:'AEC', AT:'AEP', VO2:'AEP', LT:'ANC', LP:'ANC', SP:'ANP'};
       var STROKE_JP = {Fr:'自由形', Ba:'背泳ぎ', Br:'平泳ぎ', Fly:'バタフライ', IM:'個人メドレー', fr:'自由形', free:'自由形'};
       var selPanel = 0, selLine = 0;
       var blockSwim = {};
@@ -1064,9 +1064,9 @@ body.desk .dLong{display:none}
         }
         if(judgedBy >= ref.v4 + 6){ out.cls = 'AEC'; out.why = 'ペース（100m換算 ' + fmtT(judgedBy) + '）がV4ペース（' + fmtT(ref.v4) + '）よりゆっくりで、楽に長く泳ぐ領域です。'; return out; }
         if(judgedBy >= ref.v4 - 3){ out.cls = 'AEP'; out.why = 'ペース（100m換算 ' + fmtT(judgedBy) + '）がV4ペース（' + fmtT(ref.v4) + '）付近で、有酸素パワーの領域です。'; return out; }
-        if(judgedBy >= ref.best + 4){ out.cls = '乳酸耐性'; out.why = 'V4より速く、ベストペースよりは遅い領域です。きつい状態で泳ぎ切る乳酸耐性の練習になります。'; return out; }
+        if(judgedBy >= ref.best + 4){ out.cls = 'ANC'; out.why = 'V4より速く、ベストペースよりは遅い領域です。きつい状態で泳ぎ切る、無酸素キャパシティ（乳酸耐性）の練習になります。'; return out; }
         if(out.restRatio >= 1){ out.cls = 'ANC'; out.why = 'ベストペースに近い速さで、休憩もしっかりあります。乳酸を作る力の練習です。'; return out; }
-        out.cls = '乳酸耐性'; out.why = 'ベストペースに近い速さを、短い休憩でつなぐ形です。乳酸耐性の練習になります。'; return out;
+        out.cls = 'ANC'; out.why = 'ベストペースに近い速さを、短い休憩でつなぐ形です。無酸素キャパシティ（乳酸耐性）の練習になります。'; return out;
       }
       function panelsNow(){
         if(typeof M === 'undefined' || !M || !Array.isArray(M.panels)) return [];
@@ -1318,7 +1318,7 @@ body.desk .dLong{display:none}
         </g>
       </svg>
       </div>
-      <p>対応（1対1ではない）：EZ・A1・A2→AEC ／ AT・VO2→AEP ／ LT→乳酸耐性 ／ LP→ANC ／ SP→ANP<br>
+      <p>対応（1対1ではない）：EZ・A1・A2→AEC ／ AT・VO2→AEP ／ LT・LP→ANC ／ SP→ANP<br>
       <b>行はゾーンで書き、週はクラスで見る。</b></p>
     </div>
     <div class="refPanel" data-ref="aec">
@@ -2594,6 +2594,7 @@ body.desk .dLong{display:none}
       <p>打ち始めると、型の続きがグレーで出ます。Tabキーを押すと、そのまま取り込めます（数字は前の行の本数・サークルを引き継ぎます）。</p>
       <p>道具は種類まで書くと、その種類として数え、速さの推定にも反映します。対応しているのは、パドル・フィン・シュノーケル・プルブイです。見出しに書けば、そのセクション全体が対象になります。</p>
       <p>Smooth（なめらかに楽に泳ぐ）と LR（乳酸の除去＝回復の泳ぎ）は、回復の強さとして読みます。faster100m1stLap のような複合語も、「速く」の指示として読みます（速い部分に数え、強度の判定にも使います）。</p>
+      <p>速さと強さの言葉は、あらかじめ定義してあります。Fast・Faster・fastest・Dash・sprint は「速い」として数え、1本の距離と休みで判定します。hard・harder・hardest は「きつい」（400m以上は閾値、短ければ最大酸素）として判定し、速い部分には数えません。Power は最大努力として判定しますが、速い部分には数えません。Pace100m・Pace200m・Pace400m と G2・G3・G4 は乳酸耐性、Pace1500m と G1 は閾値、G5 は 50m のレースペースとして速い言葉と同じに判定します（どれも速い部分には数えません）。LT1 は有酸素・中、LT2 と AT は閾値、OBLA は 4mmol の速度として（400m以上は閾値、短ければ最大酸素）判定します。世界の分類の A1・EN1 は AEC、EN2・EN3 は AEP、AN1・AN2 は ANC、AN3 は ANP に置きかえて判定します。部分指定（25m=AN3 など）の AN1・AN2・AN3 と sprint は、速い部分にも数えます。</p>
       <p>セットの次の行に「*」で始まる行を書くと、そのセットへの補足説明（やり方）になります。見出しにはならず、区切りは切り替わりません。書き方は自由ですが、A/B by2t（2本ごとの交互）、odd=Pads,ev=Hands（奇数本と偶数本）、IMOby4t（個人メドレーの回し方）、1~4DES（だんだん速く）は、数字にも分かれて集計されます。</p>
       <h3>記号のきまり</h3>
       <p>距離は m（大文字の M でも可）。回数は * か ×。本数は t（T でも可、省略も可）。サークルは ( ) で囲みます。セットは [ ] で囲んで *2set のように書きます。</p>
@@ -3417,9 +3418,13 @@ function classify(info, team){
   const tag = detectTag(info.comment) || info.ctxTag;
   if(tag) return out(tag, 'tag');
   const userToks = text.toLowerCase().split(/[\s,、()（）]+/).map(t => t.replace(/^※+/, '')).filter(Boolean);
+  const CAT_WORDS = {a1:'A1', en1:'A2', en2:'AT', en3:'VO2', an1:'LT', an2:'LP', an3:'SP', lt1:'A2', lt2:'AT', pace100m:'LT', pace200m:'LT', pace400m:'LT', pace1500m:'AT', g1:'AT', g2:'LT', g3:'LT', g4:'LT'};
+  for(const t of userToks){ if(CAT_WORDS[t]) return out(CAT_WORDS[t], 'kw'); }
+  if(/(^|[\s,、(（])AT([\s,、)）]|$)/.test(info.comment || '') || /(^|[\s,、(（])AT([\s,、)）]|$)/.test(info.ctxTitle || '')) return out('AT', 'kw');
+  if(userToks.includes('obla')) return out(d >= 400 ? 'AT' : 'VO2', 'kw');
   if(userToks.some(t => ((fastRules().labels || {})[t] || '') === 'slow')) return out('EZ', 'kw');
   if(/(\bez\b|easy|イージー|ゆっくり|楽に|リカバ|recovery|\bdown\b|ダウン|loose|smooth|\bsmt\b|\blr\b|乳酸除去|lactate\s*removal)/i.test(text) || info.cat === 'DOWN') return out('EZ', 'kw');
-  const fast = userToks.some(t => ((fastRules().labels || {})[t] || '') === 'fast') || /(sprint|スプリント|ダッシュ|\bmax\b|全力|all\s*out|オールアウト|\bfaster|\bfast|速く|dive|ダイブ|飛び込み)/i.test(info.comment || '') || /(sprint|スプリント|dive|ダイブ|飛び込み)/i.test(info.ctxTitle || '');
+  const fast = userToks.some(t => ((fastRules().labels || {})[t] || '') === 'fast') || userToks.includes('dash') || userToks.includes('power') || userToks.includes('g5') || /(sprint|スプリント|ダッシュ|dash|\bmax\b|全力|all\s*out|オールアウト|\bfaster|\bfast|速く|dive|ダイブ|飛び込み)/i.test(info.comment || '') || /(sprint|スプリント|dive|ダイブ|飛び込み)/i.test(info.ctxTitle || '');
   if(fast){
     if(d <= 25) return out(rr == null || rr >= 3 ? 'SP' : (rr >= 1 ? 'LP' : 'LT'), 'kw');
     if(d <= 50) return out(rr == null || rr > 3 ? 'LP' : 'LT', 'kw');
@@ -3536,15 +3541,15 @@ function findMultiSets(lines){
 /* 学習ルール（言葉の辞書）：S.fastRules.labels に {言葉: 'fast'|'slow'} を保存する */
 function fastRules(){ if(!S.fastRules || typeof S.fastRules !== 'object') S.fastRules = {labels:{}}; if(!S.fastRules.labels) S.fastRules.labels = {}; if(!S.fastRules.block) S.fastRules.block = {}; return S.fastRules; }
 function blockRuleKind(word){ const w = String(word || 'des').toLowerCase(); const b = fastRules().block; if(w in b) return b[w]; return w === 'des' ? 'lastRepFast' : null; }
-function isFastLabel(label){ const w = String(label || '').toLowerCase(); const d = fastRules().labels; if(w in d) return d[w] === 'fast'; return /dash|fast/.test(w); }
+function isFastLabel(label){ const w = String(label || '').toLowerCase(); const d = fastRules().labels; if(w in d) return d[w] === 'fast'; return /dash|fast|sprint/.test(w) || /^an[123]$/.test(w); }
 function isSlowLabel(label){ const w = String(label || '').toLowerCase(); const d = fastRules().labels; if(w in d) return d[w] === 'slow'; return /smt|smooth|easy|^ez$/.test(w); }
 /* メモ行の od=/ev= パターン（1本の中の内訳）を読む。{segs, sum, dash} を返す */
 function memoSegPattern(tr, key){
-  const re = new RegExp(key + '\\s*=\\s*((?:\\d+(?:\\.\\d+)?\\s*m\\s*[A-Za-z]+\\s*\\+?\\s*)+)', 'i');
+  const re = new RegExp(key + '\\s*=\\s*((?:\\d+(?:\\.\\d+)?\\s*m\\s*[A-Za-z]+\\d*\\s*\\+?\\s*)+)', 'i');
   const m = re.exec(tr || '');
   if(!m) return null;
   const segs = [];
-  const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+)/g;
+  const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+\d*)/g;
   let sm;
   while((sm = sre.exec(m[1])) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
   if(!segs.length) return null;
@@ -3583,7 +3588,7 @@ function analyzeText(text, team, startHm, panelStroke){
         const od = memoSegPattern(tr, 'od'), ev = memoSegPattern(tr, 'ev');
         if(od) lastSet._od = od;
         if(ev) lastSet._ev = ev;
-        if(!od && !ev && /fastest/i.test(tr)) lastSet._fullFast = true;
+        if(!od && !ev && /(fastest|sprint)/i.test(tr)) lastSet._fullFast = true;
       }
       out.push(info); return;
     }
@@ -3629,7 +3634,7 @@ function analyzeText(text, team, startHm, panelStroke){
           if(info.hypoxic) tot.hypoxic = true;
           if(lastTitle >= 0) out[lastTitle].secDist += info.dist;
           if(/fastest/i.test(info.comment || '')) info.fastFull = info.dist;
-          if(!info.fastFull && info.comment){ const toks = String(info.comment).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|faster|dash)/i.test(t)))) info.fastFull = info.dist; }
+          if(!info.fastFull && info.comment){ const toks = String(info.comment).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|faster|dash|sprint)/i.test(t)))) info.fastFull = info.dist; }
           lastSet = info;
           out.push(info); return;
         }
@@ -3649,7 +3654,7 @@ function analyzeText(text, team, startHm, panelStroke){
   });
   const noteUnknown = w => { if(w && !tot.unknown.includes(w)) tot.unknown.push(w); };
   const pushWarn = (msg) => { if(msg && !tot.warns.includes(msg)) tot.warns.push(msg); };
-  const KNOWN_WORDS = new Set(['easy','hard','max','sprint','race','pace','rp','descend','steady','aerobic','tempo','css','threshold','goal','broken','dive','loose','recovery','lr','lactate','removal','hypoxic','breath','imo','im','fr','ba','br','fly','free','freestyle','back','backstroke','breast','breaststroke','butterfly','up','down','kick','pull','drill','swim','main','choice','scull','paddle','paddles','fin','fins','snorkel','buoy','nb','des','lap']);
+  const KNOWN_WORDS = new Set(['easy','hard','max','sprint','race','pace','rp','descend','steady','aerobic','tempo','css','threshold','goal','broken','dive','loose','recovery','lr','lactate','removal','hypoxic','breath','imo','im','fr','ba','br','fly','free','freestyle','back','backstroke','breast','breaststroke','butterfly','up','down','kick','pull','drill','swim','main','choice','scull','paddle','paddles','fin','fins','snorkel','buoy','nb','des','lap','harder','hardest','power','lt1','lt2','obla','at','pace100m','pace200m','pace400m','pace1500m','g1','g2','g3','g4','g5','a1','en1','en2','en3','an1','an2','an3']);
   const scanWords = (txt) => {
     String(txt || '').split(/[\s,、()（）・:：+\/]+/).forEach(tok0 => {
       const tok = tok0.replace(/^※+/, '');
@@ -3666,7 +3671,7 @@ function analyzeText(text, team, startHm, panelStroke){
     if(info.type !== 'set') return;
     scanWords(info.comment); (info._memos || []).forEach(scanWords);
     if(info._fullFast && !info.fastFull) info.fastFull = info.dist;
-    (info._memos || []).forEach(mt => { const toks = String(mt).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|faster|dash)/i.test(t)))) info.fastFull = info.dist; });
+    (info._memos || []).forEach(mt => { const toks = String(mt).replace(/^※+/, '').split(/[,、]/).map(s => s.trim()); if(toks.some(t => t && (fastRules().labels[t.toLowerCase()] === 'fast' || /^(fast|faster|dash|sprint)/i.test(t)))) info.fastFull = info.dist; });
     if((info._od || info._ev) && info.atoms && info.atoms.length === 1){
       [info._od, info._ev].forEach(p => { if(p) p.segs.forEach(sg => { if(!isFastLabel(sg.label) && !isSlowLabel(sg.label)) noteUnknown(sg.label); }); });
       const per = info.atoms[0].d, reps = info.atoms[0].n;
@@ -3699,14 +3704,14 @@ function analyzeText(text, team, startHm, panelStroke){
             if(/^[A-Za-z]+$/.test(val) && blockRuleKind(val) === 'lastRepFast'){ addAtomFast(info, ai, atom.d); return; }
             const tail = /([A-Za-z]+)$/.exec(val);
             if(tail && !isFastLabel(tail[1]) && !isSlowLabel(tail[1]) && !blockRuleKind(tail[1])) noteUnknown(tail[1]);
-            const pair = /^([A-Za-z]+)\s*\/\s*([A-Za-z]+)$/.exec(val);
+            const pair = /^([A-Za-z]+\d*)\s*\/\s*([A-Za-z]+\d*)$/.exec(val);
             if(pair){
               [pair[1], pair[2]].forEach(w => { if(!isFastLabel(w) && !isSlowLabel(w)) noteUnknown(w); });
               if(isFastLabel(pair[1])) addAtomFast(info, ai, Math.ceil(atom.n / 2) * atom.d);
               return;
             }
             const segs = [];
-            const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+)/g;
+            const sre = /(\d+(?:\.\d+)?)\s*m\s*([A-Za-z]+\d*)/g;
             let sm;
             while((sm = sre.exec(val)) !== null) segs.push({d:parseFloat(sm[1]), label:sm[2]});
             if(segs.length){
@@ -3717,7 +3722,7 @@ function analyzeText(text, team, startHm, panelStroke){
               else if(fd > 0) addAtomFast(info, ai, fd * atom.n);
               return;
             }
-            if(/^[A-Za-z]+$/.test(val)){
+            if(/^[A-Za-z]+\d*$/.test(val)){
               if(isFastLabel(val)) addAtomFast(info, ai, atom.n * atom.d);
               else if(!isSlowLabel(val)) noteUnknown(val);
             }
@@ -8172,8 +8177,7 @@ function renderAnalysis(){
     const CLS = [
       {k:'AEC', name:'AEC（有酸素キャパシティ）', color:'#2b7bbb', zones:['EZ','A1','A2']},
       {k:'AEP', name:'AEP（有酸素パワー）', color:'#2e9e6a', zones:['AT','VO2']},
-      {k:'LTc', name:'乳酸耐性', color:'#8e44ad', zones:['LT']},
-      {k:'ANC', name:'ANC（無酸素キャパシティ）', color:'#e88b2d', zones:['LP']},
+      {k:'ANC', name:'ANC（無酸素キャパシティ）', color:'#e88b2d', zones:['LT','LP']},
       {k:'ANP', name:'ANP（無酸素パワー）', color:'#d9534f', zones:['SP']}
     ];
     const classOf = zs => CLS.map(c => ({k:c.k, name:c.name, color:c.color, v:c.zones.reduce((a, z) => a + (zs[z] || 0), 0)}));
@@ -8187,7 +8191,7 @@ function renderAnalysis(){
       ch += '<details class="explD"><summary>クラス別の数値（距離・割合）</summary><table class="list"><thead><tr><th>クラス</th><th class="num">距離</th><th class="num">割合</th></tr></thead><tbody>' + rows.map(r => '<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + r.color + ';margin-right:6px"></i>' + r.name + '</td><td class="num">' + fmtNum(r.v) + 'm</td><td class="num">' + (W.dist ? Math.round(r.v / W.dist * 100) : 0) + '%</td></tr>').join('') + '</tbody></table></details>';
       ch += '<details class="explD"><summary>直近4週の流れ（メゾサイクルの確認）</summary>';
       weekRows.forEach(w => { ch += '<div style="margin-top:6px"><span class="muted">' + w.m0.replace(/-/g, '/') + 'の週　合計 ' + fmtNum(w.wd.dist) + 'm</span>' + stackBar(w.rs) + '</div>'; });
-      ch += '<p class="muted">クラスはゾーンからの換算です（EZ・A1・A2→AEC、AT・VO2→AEP、LT→乳酸耐性、LP→ANC、SP→ANP）。割合を見る前に、総量と各クラスの絶対量（最低量を超えているか）を確認してください。計画とのズレは「強度の配分」「8週間の推移」とあわせて見ます。</p></details></div>';
+      ch += '<p class="muted">クラスはゾーンからの換算です（EZ・A1・A2→AEC、AT・VO2→AEP、LT・LP→ANC、SP→ANP）。割合を見る前に、総量と各クラスの絶対量（最低量を超えているか）を確認してください。計画とのズレは「強度の配分」「8週間の推移」とあわせて見ます。</p></details></div>';
       h += ch;
     }
   }

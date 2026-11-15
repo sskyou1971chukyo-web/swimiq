@@ -71,9 +71,9 @@ h3{font-size:16px;margin:10px 0 6px;color:var(--navy)}
 #symRow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .tawrap{flex:1;display:flex;position:relative;min-width:0}
 .brk{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.ghost{position:absolute;inset:0;overflow:hidden;pointer-events:none;padding:10px 12px;font-size:var(--edfont);line-height:var(--edlh);white-space:pre;tab-size:2;font-family:"Consolas","Menlo","Hiragino Sans","Noto Sans JP","Yu Gothic",Meiryo,monospace}
-.ghost .gtx{color:#9fb0c0}
-#panels.many .ghost{font-size:calc(var(--edfont) * .85);padding:10px 6px}
+.edGhost{position:absolute;inset:0;overflow:hidden;pointer-events:none;padding:10px 12px;font-size:var(--edfont);line-height:var(--edlh);white-space:pre;tab-size:2;font-family:"Consolas","Menlo","Hiragino Sans","Noto Sans JP","Yu Gothic",Meiryo,monospace}
+.edGhost .gtx{color:#9fb0c0}
+#panels.many .edGhost{font-size:calc(var(--edfont) * .85);padding:10px 6px}
 .brk i,.brk span{position:absolute;display:block}
 .bopen,.bclose{width:7px;border:2.5px solid;border-radius:2px}
 .bopen{border-right:none}
@@ -4132,7 +4132,7 @@ function renderPanels(){
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
       ((i > 0 || M.panels.length > 1) ? '<details class="pMore"><summary>その他 ▾</summary>' + (i > 0 ? '<button class="btn small" data-copy>基本をコピー</button>' : '') + (M.panels.length > 1 ? '<button class="btn small red" data-del>削除</button>' : '') + '</details>' : '') + '</div>' +
       '<div class="editor"><div class="gutter" aria-hidden="true"><div class="gin"></div></div>' +
-      '<div class="tawrap"><textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea><div class="brk" aria-hidden="true"></div><div class="ghost" aria-hidden="true"></div></div></div>' +
+      '<div class="tawrap"><textarea spellcheck="false" autocomplete="off" aria-label="' + esc(panelLabel(p)) + 'のメニュー入力。1行に1セット。距離と時間は自動で計算されます"></textarea><div class="brk" aria-hidden="true"></div><div class="edGhost" aria-hidden="true"></div></div></div>' +
       '<div class="pfoot" aria-live="polite"></div>';
     box.appendChild(el);
     const ta = el.querySelector('textarea'), sel = el.querySelector('[data-team]'), ssel = el.querySelector('[data-stroke]'), gut = el.querySelector('.gutter');
@@ -4359,7 +4359,7 @@ function ghostSuggest(ta){
 }
 function renderGhost(i){
   const ta = panelTA(i); if(!ta) return;
-  const el = ta.parentElement ? ta.parentElement.querySelector('.ghost') : null;
+  const el = ta.parentElement ? ta.parentElement.querySelector('.edGhost') : null;
   const g = i === curPanel ? ghostSuggest(ta) : '';
   ghostNow = {panel:i, text:g};
   if(!el) return;

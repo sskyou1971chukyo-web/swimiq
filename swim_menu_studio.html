@@ -3801,7 +3801,7 @@ function strokeName(v){ return v ? (SMAP[v] && v !== 'none' ? SMAP[v] : v) : '';
 function analyzeMenu(menu){
   return (menu.panels || []).map(p => Object.assign({team:p.team, pstroke:p.stroke || ''}, analyzeText(p.text, p.team, menu.start, strokeKeyOf(p.stroke))));
 }
-function menuHasContent(menu){ return (menu.panels || []).some(p => (p.text || '').trim()); }
+function menuHasContent(menu){ return (menu.panels || []).some(p => (p.text || '').trim()) || !!((menu.attach || []).length); }
 
 /* =====================================================================
    アドバイス知識ベース
@@ -10578,6 +10578,188 @@ document.addEventListener('DOMContentLoaded', init);
   });
   document.addEventListener('visibilitychange', function(){ if(!document.hidden && cfg.token) syncNow(false); });
   window.syncNowManual = function(){ syncNow(true); };
+})();
+</script>
+<script>
+/* ===== その日のメニューへの添付（PDF・写真） =====
+   ファイルの中身は IndexedDB（cust_menu_attach）に保存し、
+   メニューには名前などの情報だけを入れる（同期で伝わるのは情報だけ）。 */
+(function(){
+  'use strict';
+  var MAX_SIZE = 15 * 1024 * 1024;
+  var attOvUrl = null;
+
+  var st = document.createElement('style');
+  st.textContent = '#attRow{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:8px 0 2px}' +
+    '#attRow .attLabel{font-weight:700;font-size:13px;color:var(--muted)}' +
+    '.attChip{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 6px 3px 10px;font-size:13px}' +
+    '.attChip button{border:none;background:none;cursor:pointer;font:inherit;padding:0}' +
+    '.attChip .attOpen{font-weight:600;color:var(--text)}' +
+    '.attChip .attDel{color:#c0392b;font-size:15px;line-height:1;padding:2px 4px}' +
+    '.attChip.missing{opacity:.55}' +
+    '#attOvBody img{max-width:100%;height:auto}' +
+    '#attOvBody iframe{width:100%;height:65vh;border:1px solid var(--line)}';
+  document.head.appendChild(st);
+
+  function escA(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function gid(id){ return document.getElementById(id); }
+
+  function attDb(){
+    return new Promise(function(res, rej){
+      var r = indexedDB.open('cust_menu_attach', 1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore('files'); };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  async function attPut(id, buf, type){
+    var db = await attDb();
+    return new Promise(function(res, rej){
+      var tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').put({buf: buf, type: type}, id);
+      tx.oncomplete = function(){ res(); };
+      tx.onerror = function(){ rej(tx.error); };
+    });
+  }
+  async function attGet(id){
+    var db = await attDb();
+    return new Promise(function(res){
+      var rq = db.transaction('files').objectStore('files').get(id);
+      rq.onsuccess = function(){ res(rq.result || null); };
+      rq.onerror = function(){ res(null); };
+    });
+  }
+  async function attHas(id){
+    try{
+      var db = await attDb();
+      return await new Promise(function(res){
+        var rq = db.transaction('files').objectStore('files').getKey(id);
+        rq.onsuccess = function(){ res(rq.result !== undefined); };
+        rq.onerror = function(){ res(false); };
+      });
+    }catch(e){ return false; }
+  }
+  async function attDel(id){
+    try{
+      var db = await attDb();
+      return new Promise(function(res){
+        var tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').delete(id);
+        tx.oncomplete = function(){ res(); };
+        tx.onerror = function(){ res(); };
+      });
+    }catch(e){}
+  }
+
+  function buildUi(){
+    if(!gid('attRow')){
+      var strip = document.getElementById('planStrip');
+      if(!strip) return;
+      var row = document.createElement('div');
+      row.id = 'attRow';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', 'この日の添付');
+      row.innerHTML = '<span class="attLabel">添付</span><span id="attChips"></span>' +
+        '<label class="btn small" style="display:inline-block">＋ PDF・写真を付ける<input type="file" id="attFile" accept=".pdf,image/*" multiple class="sr"></label>';
+      strip.parentNode.insertBefore(row, strip.nextSibling);
+      gid('attFile').addEventListener('change', function(e){
+        var fs = Array.prototype.slice.call(e.target.files || []);
+        e.target.value = '';
+        if(fs.length) addAttachFiles(fs);
+      });
+      gid('attChips').addEventListener('click', function(e){
+        var open = e.target.closest('[data-att-open]'), del = e.target.closest('[data-att-del]');
+        if(open){ var a1 = (M.attach || []).find(function(x){ return x.id === open.dataset.attOpen; }); if(a1) openAttach(a1); }
+        if(del){ var a2 = (M.attach || []).find(function(x){ return x.id === del.dataset.attDel; }); if(a2) deleteAttach(a2); }
+      });
+    }
+    if(!gid('attOv')){
+      var ov = document.createElement('div');
+      ov.className = 'ov hidden';
+      ov.id = 'attOv';
+      ov.setAttribute('role', 'dialog');
+      ov.setAttribute('aria-modal', 'true');
+      ov.innerHTML = '<div class="dlg"><h2><span id="attOvTitle">添付</span> <button class="btn ghost small" id="attOvClose" type="button">閉じる</button></h2><div id="attOvBody"></div></div>';
+      document.body.appendChild(ov);
+      gid('attOvClose').addEventListener('click', closeAttach);
+      ov.addEventListener('click', function(e){ if(e.target === ov) closeAttach(); });
+    }
+  }
+
+  function renderAttach(){
+    buildUi();
+    var box = gid('attChips');
+    if(!box || typeof M === 'undefined' || !M) return;
+    var list = M.attach || [];
+    box.innerHTML = list.map(function(a){
+      return '<span class="attChip" data-chip="' + a.id + '"><button type="button" class="attOpen" data-att-open="' + a.id + '">' + (a.kind === 'PDF' ? '📄 ' : '🖼 ') + escA(a.name) + '</button><button type="button" class="attDel" data-att-del="' + a.id + '" aria-label="削除">×</button></span>';
+    }).join('');
+    list.forEach(function(a){
+      attHas(a.id).then(function(has){
+        if(has) return;
+        var chip = box.querySelector('[data-chip="' + a.id + '"]');
+        if(chip){ chip.classList.add('missing'); chip.title = 'このファイルは、付けた機械の中にあります'; }
+      });
+    });
+  }
+
+  async function addAttachFiles(files){
+    if(typeof M === 'undefined' || !M) return;
+    if(!M.attach) M.attach = [];
+    var added = 0;
+    for(var i = 0; i < files.length; i++){
+      var f = files[i];
+      var isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+      var isImg = (f.type || '').indexOf('image/') === 0;
+      if(!isPdf && !isImg){ toast('「' + f.name + '」は付けられません。PDFか写真にしてください', 5000); continue; }
+      if(f.size > MAX_SIZE){ toast('「' + f.name + '」は大きすぎて付けられません（15MBまで）', 5000); continue; }
+      try{
+        var buf = await f.arrayBuffer();
+        var id = 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        await attPut(id, buf, f.type || (isPdf ? 'application/pdf' : ''));
+        M.attach.push({id: id, name: f.name, kind: isPdf ? 'PDF' : '写真', size: f.size, added: new Date().toISOString()});
+        added++;
+      }catch(e){ toast('「' + f.name + '」を保存できませんでした', 5000); }
+    }
+    if(added){ commitMenu(); renderAttach(); toast(added + '件のファイルを付けました'); }
+  }
+
+  async function openAttach(a){
+    var rec = await attGet(a.id);
+    if(!rec){ toast('このファイルは、この機械には保存されていません。付けた機械で開いてください', 6000); return; }
+    var blob = new Blob([rec.buf], {type: rec.type || (a.kind === 'PDF' ? 'application/pdf' : '')});
+    if(attOvUrl) URL.revokeObjectURL(attOvUrl);
+    attOvUrl = URL.createObjectURL(blob);
+    gid('attOvTitle').textContent = a.name;
+    gid('attOvBody').innerHTML = a.kind === 'PDF'
+      ? '<iframe title="PDF" src="' + attOvUrl + '"></iframe>'
+      : '<img alt="" src="' + attOvUrl + '">';
+    showOv('attOv');
+  }
+
+  function closeAttach(){
+    closeOv('attOv');
+    gid('attOvBody').innerHTML = '';
+    if(attOvUrl){ URL.revokeObjectURL(attOvUrl); attOvUrl = null; }
+  }
+
+  function deleteAttach(a){
+    if(!confirm('「' + a.name + '」を外しますか。元に戻せません。')) return;
+    M.attach = (M.attach || []).filter(function(x){ return x.id !== a.id; });
+    attDel(a.id);
+    commitMenu();
+    renderAttach();
+    toast('添付を外しました');
+  }
+
+  if(typeof renderMenuView === 'function' && !renderMenuView.__attW){
+    var prevRmv = renderMenuView;
+    var wrappedRmv = function(){ var r = prevRmv.apply(this, arguments); try{ renderAttach(); }catch(e){} return r; };
+    wrappedRmv.__attW = true;
+    try{ renderMenuView = wrappedRmv; }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded', function(){ try{ renderAttach(); }catch(e){} });
+  window.renderAttach = renderAttach;
 })();
 </script>
 </body>

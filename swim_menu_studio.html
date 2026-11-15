@@ -2411,6 +2411,16 @@ body.desk .dLong{display:none}
         <label class="btn" style="display:inline-block">バックアップを読み込む<input type="file" id="bkLoad" accept=".json,application/json" class="sr"></label>
       </div>
     </div>
+    <div class="card">
+      <h2>同期（Macと携帯を同じにする）</h2>
+      <p class="muted">合言葉（トークン）を入れた機械同士で、メニューと項目が自動で同じになります。アプリを開いたときと、保存したときに合わせます。合言葉はこの機械の中だけに保存され、同期されるデータには含まれません。</p>
+      <p id="syncInfo" style="margin:8px 0">合言葉が未設定です</p>
+      <label class="fld">合言葉（トークン）<input type="password" id="syncToken" autocomplete="off" placeholder="ここに貼り付け"></label>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="syncSaveToken">合言葉を保存して同期</button>
+        <button class="btn" id="syncNowBtn">今すぐ同期</button>
+      </div>
+    </div>
   </div>
 </section>
 </main>
@@ -10425,6 +10435,150 @@ document.addEventListener('DOMContentLoaded', init);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addBadge);else addBadge();
 }catch(e){}})();
+</script>
+<script>
+/* ===== GitHub同期（swimiq-data / menu_data.json） =====
+   合言葉（トークン）は localStorage の cust_menu_sync_v1 にだけ保存し、
+   同期データ（S）には絶対に含めない。 */
+(function(){
+  'use strict';
+  var SYNC_KEY = 'cust_menu_sync_v1';
+  var API = 'https://api.github.com/repos/sskyou1971chukyo-web/swimiq-data/contents/menu_data.json';
+  var cfg = {token:'', lastHash:'', lastAt:0};
+  try{ var raw0 = localStorage.getItem(SYNC_KEY); if(raw0) cfg = Object.assign(cfg, JSON.parse(raw0)); }catch(e){}
+  var remoteSha = null, syncing = false, pushTimer = null;
+
+  function saveCfg(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(cfg)); }catch(e){} }
+  function hm(ts){ var d = new Date(ts); return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0'); }
+  function setStatus(msg){ var el = document.getElementById('syncInfo'); if(el) el.textContent = msg; }
+  function refreshSyncCard(){
+    var inp = document.getElementById('syncToken');
+    if(inp) inp.placeholder = cfg.token ? '設定済みです（変えるときだけ貼り付け）' : 'ここに貼り付け';
+    if(cfg.token) setStatus(cfg.lastAt ? '同期済み ' + hm(cfg.lastAt) : '合言葉は設定済みです（まだ同期していません）');
+    else setStatus('合言葉が未設定です');
+  }
+
+  /* ハッシュは「メニュー＋項目ライブラリ」だけを見る（どちらも新しい方が勝つ作りなので、機械同士で喧嘩しない） */
+  function stable(o){
+    if(o === null || typeof o !== 'object') return JSON.stringify(o);
+    if(Array.isArray(o)) return '[' + o.map(stable).join(',') + ']';
+    return '{' + Object.keys(o).sort().map(function(k){ return JSON.stringify(k) + ':' + stable(o[k]); }).join(',') + '}';
+  }
+  function hashOf(o){
+    var lib = JSON.parse(JSON.stringify((o && o.setLib) || {cats:{}}));
+    Object.keys(lib.cats || {}).forEach(function(k){ (lib.cats[k].items || []).sort(function(a,b){ return String(a.t).localeCompare(String(b.t)); }); });
+    var s = stable({menus: (o && o.menus) || {}, setLib: lib});
+    var h = 0; for(var i = 0; i < s.length; i++){ h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+    return s.length + ':' + (h >>> 0).toString(36);
+  }
+
+  function b64encode(str){
+    var bytes = new TextEncoder().encode(str), bin = '', CH = 0x8000;
+    for(var i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    return btoa(bin);
+  }
+  function b64decode(b64){
+    var bin = atob(String(b64).replace(/\s/g, '')), bytes = new Uint8Array(bin.length);
+    for(var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+  function headers(){ return {'Authorization': 'Bearer ' + cfg.token, 'Accept': 'application/vnd.github+json'}; }
+
+  /* バックアップ読み込みと同じ合わせ方（新しい方を残し、無いものを足す） */
+  function mergeStoreData(o){
+    var changed = false, add = 0;
+    Object.values(o.menus || {}).forEach(function(m){ var cur = S.menus[m.id]; if(!cur || (m.updated || 0) > (cur.updated || 0)){ S.menus[m.id] = m; add++; changed = true; } });
+    (o.plans || []).forEach(function(p){ if(!S.plans.find(function(x){ return x.id === p.id; })){ S.plans.push(p); changed = true; } });
+    if(o.settings && o.settings.teams) o.settings.teams.forEach(function(t){ if(!S.settings.teams.find(function(x){ return x.name === t.name; })){ S.settings.teams.push(t); changed = true; } });
+    if(!S.activePlanId && o.activePlanId){ S.activePlanId = o.activePlanId; changed = true; }
+    if(typeof ensurePlanMaps === 'function') ensurePlanMaps();
+    if(!Array.isArray(S.races)) S.races = [];
+    (o.races || []).forEach(function(r){ if(!S.races.find(function(x){ return x.name === r.name && x.date === r.date; })){ S.races.push(r); changed = true; } });
+    if(o.lt && typeof ltStore === 'function'){ var L = ltStore(); ['steps','races','turns','cs','speed'].forEach(function(k){ (o.lt[k] || []).forEach(function(x){ if(!L[k].some(function(y){ return y.id === x.id; })){ L[k].push(x); changed = true; } }); }); Object.keys(o.lt.profiles || {}).forEach(function(n){ if(!L.profiles[n]){ L.profiles[n] = o.lt.profiles[n]; changed = true; } }); }
+    if(o.setLib && o.setLib.cats) Object.keys(o.setLib.cats).forEach(function(k){ (o.setLib.cats[k].items || []).forEach(function(x){ setLibAdd(o.setLib.cats[k].name, x.t, x.last); }); });
+    if(o.events && typeof yEvents === 'function') o.events.forEach(function(e){ if(!yEvents().find(function(x){ return x.id === e.id; })){ yEvents().push(e); changed = true; } });
+    if(o.athletes && typeof athletes === 'function') o.athletes.forEach(function(x){ if(!athletes().find(function(y){ return y.name === x.name; })){ athletes().push(x); changed = true; } });
+    if(o.activePlans) Object.keys(o.activePlans).forEach(function(t){ if(!S.activePlans) S.activePlans = {}; if(!S.activePlans[t]){ S.activePlans[t] = o.activePlans[t]; changed = true; } });
+    if(o.swimTimes){ if(!S.swimTimes) S.swimTimes = {}; Object.keys(o.swimTimes).forEach(function(k){ if(!(k in S.swimTimes)){ S.swimTimes[k] = o.swimTimes[k]; changed = true; } }); }
+    if(o.wsPlan){ if(!S.wsPlan) S.wsPlan = {}; Object.keys(o.wsPlan).forEach(function(k){ if(!(k in S.wsPlan)){ S.wsPlan[k] = o.wsPlan[k]; changed = true; } }); }
+    Object.keys(o).forEach(function(k){ if(!(k in S) && ['menus','plans','settings','races','lt','setLib','events','athletes','activePlans','activePlanId','swimTimes','wsPlan','_savedAt','lastBackup'].indexOf(k) < 0){ S[k] = o[k]; changed = true; } });
+    return {add: add, changed: changed};
+  }
+
+  function refreshAfterMerge(){
+    try{ if(typeof M !== 'undefined' && M && M.date && typeof openMenu === 'function') openMenu(M.date, M.session); }catch(e){}
+    try{ var vs = document.getElementById('vSettings'); if(vs && vs.classList.contains('active') && typeof renderSettings === 'function') renderSettings(); }catch(e){}
+    refreshSyncCard();
+  }
+
+  async function syncNow(manual){
+    if(!cfg.token){ if(manual) setStatus('合言葉がまだ設定されていません'); return; }
+    if(syncing) return;
+    syncing = true; setStatus('同期中…');
+    try{
+      var r = await fetch(API, {headers: headers()});
+      var remoteObj = null;
+      if(r.status === 200){ var j = await r.json(); remoteSha = j.sha; remoteObj = JSON.parse(b64decode(j.content)); }
+      else if(r.status === 404){ remoteSha = null; }
+      else if(r.status === 401 || r.status === 403){ setStatus('合言葉が違うか、この置き場への権限がありません'); syncing = false; return; }
+      else { setStatus('同期できませんでした（エラー ' + r.status + '）'); syncing = false; return; }
+      var merged = false;
+      if(remoteObj && typeof remoteObj.menus === 'object'){
+        var res = mergeStoreData(remoteObj);
+        merged = res.changed;
+        if(merged){ try{ saveNow(); }catch(e){} refreshAfterMerge(); }
+      }
+      var localHash = hashOf(S), remoteHash = remoteObj ? hashOf(remoteObj) : '';
+      if(localHash !== remoteHash){
+        var body = {message: 'sync', content: b64encode(JSON.stringify(S)), branch: 'main'};
+        if(remoteSha) body.sha = remoteSha;
+        var pr = await fetch(API, {method: 'PUT', headers: Object.assign({'Content-Type': 'application/json'}, headers()), body: JSON.stringify(body)});
+        if(pr.status === 200 || pr.status === 201){ var pj = await pr.json(); if(pj && pj.content && pj.content.sha) remoteSha = pj.content.sha; cfg.lastHash = localHash; }
+        else if(pr.status === 409 || pr.status === 422){ setStatus('相手が先に更新していました。もう一度「今すぐ同期」を押してください'); syncing = false; return; }
+        else { setStatus('送信できませんでした（エラー ' + pr.status + '）'); syncing = false; return; }
+      } else cfg.lastHash = localHash;
+      cfg.lastAt = Date.now(); saveCfg();
+      setStatus('同期済み ' + hm(cfg.lastAt) + (merged ? '（新しいデータを取り込みました）' : ''));
+    }catch(e){ setStatus('同期できませんでした（通信エラー）'); }
+    syncing = false;
+  }
+
+  function schedulePush(){
+    if(!cfg.token) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(function(){ if(hashOf(S) !== cfg.lastHash) syncNow(false); }, 6000);
+  }
+
+  /* 保存のたびに、あとで送る予約を入れる */
+  if(typeof saveNow === 'function' && !saveNow.__syncW){
+    var prevSave = saveNow;
+    var wrappedSave = function(){ var r = prevSave.apply(this, arguments); schedulePush(); return r; };
+    wrappedSave.__syncW = true;
+    try{ saveNow = wrappedSave; }catch(e){}
+  }
+  /* 設定画面を開いたら状態表示を最新にする */
+  if(typeof showView === 'function' && !showView.__syncW){
+    var prevShow = showView;
+    var wrappedShow = function(id){ var r = prevShow.apply(this, arguments); if(id === 'vSettings') refreshSyncCard(); return r; };
+    wrappedShow.__syncW = true;
+    try{ showView = wrappedShow; }catch(e){}
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var saveBtn = document.getElementById('syncSaveToken');
+    if(saveBtn) saveBtn.addEventListener('click', function(){
+      var inp = document.getElementById('syncToken'), v = (inp.value || '').trim();
+      if(!v){ setStatus('合言葉を貼り付けてから押してください'); return; }
+      cfg.token = v; saveCfg(); inp.value = ''; refreshSyncCard(); syncNow(true);
+    });
+    var nowBtn = document.getElementById('syncNowBtn');
+    if(nowBtn) nowBtn.addEventListener('click', function(){ syncNow(true); });
+    refreshSyncCard();
+    setTimeout(function(){ if(cfg.token) syncNow(false); }, 1500);
+  });
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden && cfg.token) syncNow(false); });
+  window.syncNowManual = function(){ syncNow(true); };
+})();
 </script>
 </body>
 </html>

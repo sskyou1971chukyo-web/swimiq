@@ -3590,6 +3590,8 @@ function analyzeText(text, team, startHm, panelStroke){
     if(/^(※|・|\/\/|>|＞)/.test(tr)){
       info.type = 'memo';
       info.memoText = tr;
+      const mgx = multi[i];
+      if(mgx){ info.grp = mgx.g; info.grpPos = i === mgx.g.first ? 'first' : i === mgx.g.last ? 'last' : 'mid'; if(i === mgx.g.last && mgx.g.rest){ elapsed += mgx.g.rest * (mgx.g.n - 1); tot.sec += mgx.g.rest * (mgx.g.n - 1); } }
       if(lastSet){
         if(!lastSet._memos) lastSet._memos = [];
         lastSet._memos.push(tr);
@@ -3602,7 +3604,16 @@ function analyzeText(text, team, startHm, panelStroke){
     }
     if(/^#\s*\d/.test(tr) && lastSet){
       info.type = 'memo'; info.memoText = tr;
-      (lastSet._hashLines = lastSet._hashLines || []).push(tr.slice(tr.indexOf('#') + 1).trim());
+      let specLine = tr;
+      const mg0 = multi[i];
+      if(mg0){
+        info.grp = mg0.g; info.grpPos = i === mg0.g.first ? 'first' : i === mg0.g.last ? 'last' : 'mid';
+        if(i === mg0.g.last){
+          if(mg0.g.rest){ elapsed += mg0.g.rest * (mg0.g.n - 1); tot.sec += mg0.g.rest * (mg0.g.n - 1); }
+          specLine = normalize(raw.slice(0, mg0.g.closeCol) + raw.slice(mg0.g.closeEnd)).trim();
+        }
+      }
+      (lastSet._hashLines = lastSet._hashLines || []).push(specLine.slice(specLine.indexOf('#') + 1).trim());
       out.push(info); return;
     }
     if((m = /^(休憩|休み|休|レスト|rest)\s*:?\s*(\S+)/i.exec(tr)) && parseTime(m[2]) != null && tr.length < 20){
@@ -4974,7 +4985,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117t'});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117u'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());

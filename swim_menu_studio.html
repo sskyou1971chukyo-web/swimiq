@@ -4905,12 +4905,12 @@ function pageHeadHtml(sub, team){
 /* 印刷・LINE用の行の文字。強度の#タグは載せず、式とメモの間をあけ、秒は ” にそろえる */
 function displayLine(l){
   let s;
-  if(l.grp && l.type === 'set') s = l.exprBare + (l.comment ? '　' + l.comment : '');
+  if(l.grp && l.type === 'set') s = l.exprBare + (l.comment ? '　' + l.comment : '') + (l._hashSpec ? '　#' + l._hashSpec : '');
   else if(l.grp){ let r = l.raw; if(l.i === l.grp.last) r = r.slice(0, l.grp.closeCol) + r.slice(l.grp.closeEnd); if(l.i === l.grp.first) r = r.slice(0, l.grp.openCol) + r.slice(l.grp.openCol + 1); s = r.trim(); }
-  else if(l.type === 'set') s = l.expr + (l.comment ? '　' + l.comment : '');
+  else if(l.type === 'set') s = l.expr + (l.comment ? '　' + l.comment : '') + (l._hashSpec ? '　#' + l._hashSpec : '');
   else s = l.raw.replace(/\s+$/, '').replace(/^\s+/, '');
   s = s.replace(/^\s*【太】/, '');
-  s = s.replace(/\s*[#＃]\s*(EZ|A1|A2|AT|VO2|LT|LP|SP|EN1|EN2|EN3|SP1|SP2|SP3)(?![0-9a-z])/ig, '');
+  s = s.replace(/\s*[#＃]\s*(EZ|A1|A2|AT|VO2|LT|LP|SP|EN1|EN2|EN3|SP1|SP2|SP3)\s*$/i, '');
   return s.replace(/(\d)["“〃″]/g, '$1”');
 }
 function colHtml(t, label, memo){
@@ -4985,7 +4985,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117u'});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117v'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());

@@ -4997,7 +4997,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117aa'});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117ab'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());
@@ -8309,6 +8309,50 @@ function renderAnalysis(){
     (pw ? kpi('計画の目標（第' + (pi+1) + '週）', pw.km + '<small>km</small>') + kpi('達成率', (pw.km ? Math.round(W.dist/10/pw.km) : 0) + '<small>%</small>') : '') +
     '</div>';
   if(pw) h += '<p style="margin-bottom:8px">計画「' + esc(plan.name) + '」では' + PH[pw.phase].name + '。重点：' + esc(pw.focus) + '</p>';
+  // ターゲットとの答え合わせ（計画の目標と実績のズレを、絶対量で判定する）
+  {
+    let ch = '<div class="card" style="margin-bottom:14px"><h3>ターゲットとの答え合わせ</h3>';
+    if(!pw){
+      ch += '<p class="muted">この週の計画が設定されていないため、判定できません。計画を作ると、総量とクラスごと（AEC・AEP・ANC・ANP）の目標に対して、足りたか・多すぎたかがここに出ます。</p>';
+    } else if(hasFilt){
+      ch += '<p class="muted">絞り込み中は判定しません。計画の目標はチーム全体の量のため、絞り込みを外すと判定が出ます。</p>';
+    } else if(!W.dist){
+      ch += '<p class="muted">この週の実績がまだ入っていないため、判定できません。</p>';
+    } else if(!(pw.km > 0)){
+      ch += '<p class="muted">この週の計画に目標距離（km）が入っていないため、判定できません。</p>';
+    } else {
+      const CLS4 = [
+        {k:'AEC', name:'AEC（有酸素キャパシティ）', color:'#2b7bbb', zones:['EZ','A1','A2']},
+        {k:'AEP', name:'AEP（有酸素パワー）', color:'#2e9e6a', zones:['AT','VO2']},
+        {k:'ANC', name:'ANC（無酸素キャパシティ）', color:'#e88b2d', zones:['LT','LP']},
+        {k:'ANP', name:'ANP（無酸素パワー）', color:'#d9534f', zones:['SP']}
+      ];
+      const judge = (act, tgt) => {
+        if(tgt <= 0) return act <= 0 ? {label:'予定なし', color:'#9aa9b8'} : {label:'予定外に入っている', color:'#9aa9b8'};
+        const diff = act - tgt, tol = Math.max(tgt * 0.2, 150);
+        if(Math.abs(diff) <= tol) return {label:'ねらい通り', color:'#2e9e6a'};
+        if(diff < 0) return (act < tgt * 0.5 && diff < -300) ? {label:'大きく不足', color:'#d9534f'} : {label:'不足', color:'#e88b2d'};
+        return (act > tgt * 1.5 && diff > 300) ? {label:'多すぎ', color:'#d9534f'} : {label:'やや多め', color:'#e88b2d'};
+      };
+      const badge = j => '<span style="display:inline-block;padding:1px 8px;border-radius:9px;background:' + j.color + ';color:#fff;font-size:12px;font-weight:700">' + j.label + '</span>';
+      const targetTotal = pw.km * 1000;
+      const rows = CLS4.map(c => {
+        const tgt = c.zones.reduce((a, z) => a + (pz[z] || 0), 0) / 100 * targetTotal;
+        const act = c.zones.reduce((a, z) => a + (W.zones[z] || 0), 0);
+        return {k:c.k, name:c.name, color:c.color, tgt, act, j:judge(act, tgt)};
+      });
+      const tj = judge(W.dist, targetTotal);
+      const off = rows.filter(r => r.j.label !== 'ねらい通り' && r.j.label !== '予定なし');
+      ch += '<p style="margin-bottom:8px">総量は目標 ' + pw.km + 'km に対して ' + (Math.round(W.dist / 100) / 10) + 'km で「' + tj.label + '」。' + (off.length ? 'クラス別では ' + off.map(r => r.k + 'が' + r.j.label).join('、') + 'です。' : 'クラスごとの量もねらい通りです。') + '</p>';
+      ch += '<table class="list"><thead><tr><th>クラス</th><th class="num">目標</th><th class="num">実績</th><th class="num">実績÷目標</th><th>判定</th></tr></thead><tbody>';
+      ch += '<tr><td><b>総量</b></td><td class="num"><b>' + fmtNum(targetTotal) + 'm</b></td><td class="num"><b>' + fmtNum(W.dist) + 'm</b></td><td class="num"><b>' + Math.round(W.dist / targetTotal * 100) + '%</b></td><td>' + badge(tj) + '</td></tr>';
+      ch += rows.map(r => '<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:' + r.color + ';margin-right:6px"></i>' + r.name + '</td><td class="num">' + fmtNum(Math.round(r.tgt)) + 'm</td><td class="num">' + fmtNum(r.act) + 'm</td><td class="num">' + (r.tgt > 0 ? Math.round(r.act / r.tgt * 100) + '%' : '―') + '</td><td>' + badge(r.j) + '</td></tr>').join('');
+      ch += '</tbody></table>';
+      ch += '<p class="muted">目標は計画の配分（' + PH[pw.phase].name + '）× 目標 ' + pw.km + 'km です。判定は割合ではなく絶対量のズレで見ています（目標の±20%以内、または±150m以内なら「ねらい通り」）。</p>';
+    }
+    ch += '</div>';
+    h += ch;
+  }
   h += '<div class="grid2">';
   h += '<div class="card"><h3>日ごとの距離（色は強度）</h3>' + svgStack(W.days, 640, 280, 0) + zoneLegendHtml() + '</div>';
   h += '<div class="card"><h3>強度の配分</h3>' + hbars(ZONES.map(z => ({k:z.k, label:z.name + '（' + z.k + '）', v:W.zones[z.k], color:z.color})), W.dist, pz) + (pz ? '<p class="muted">黒い縦線は計画の目安です。</p>' : '') + '</div>';

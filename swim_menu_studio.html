@@ -2596,6 +2596,7 @@ body.desk .dLong{display:none}
       <p>Smooth（なめらかに楽に泳ぐ）と LR（乳酸の除去＝回復の泳ぎ）は、回復の強さとして読みます。faster100m1stLap のような複合語も、「速く」の指示として読みます（速い部分に数え、強度の判定にも使います）。</p>
       <p>速さと強さの言葉は、あらかじめ定義してあります。Fast・Faster・fastest・Dash・sprint は「速い」として数え、1本の距離と休みで判定します。hard・harder・hardest は「きつい」（400m以上は閾値、短ければ最大酸素）として判定し、速い部分には数えません。Power は最大努力として判定しますが、速い部分には数えません。Pace100m・Pace200m・Pace400m と G2・G3・G4 は乳酸耐性、Pace1500m と G1 は閾値、G5 は 50m のレースペースとして速い言葉と同じに判定します（どれも速い部分には数えません）。LT1 は有酸素・中、LT2 と AT は閾値、OBLA は 4mmol の速度として（400m以上は閾値、短ければ最大酸素）判定します。世界の分類の A1・EN1 は AEC、EN2・EN3 は AEP、AN1・AN2 は ANC、AN3 は ANP に置きかえて判定します。部分指定（25m=AN3 など）の AN1・AN2・AN3 と sprint は、速い部分にも数えます。</p>
       <p>セットの次の行に「*」で始まる行を書くと、そのセットへの補足説明（やり方）になります。見出しにはならず、区切りは切り替わりません。書き方は自由ですが、A/B by2t（2本ごとの交互）、odd=Pads,ev=Hands（奇数本と偶数本）、IMOby4t（個人メドレーの回し方）、1~4DES（だんだん速く）は、数字にも分かれて集計されます。</p>
+      <p>セットの内訳は「#」で書きます。セットの後ろに続けても、次の行の頭に書いても同じ働きです。例：50m*8(1'00) #10m fast swim with paddle +40m smooth swim。部分ごとに「距離＋要素」を書き、+ でつなぎます。要素の並びの目安は「距離 強度 種目 やり方 with 道具」（アメリカ方式）ですが、入力の順番や組み合わせは自由です（例：#10m fast IMOby2t kick +30m smooth swim +10m slow kick）。距離の後ろは半角スペースを空けるのがルールです（全角で打っても半角として読みます）。# を打つと書き方の例がグレーで出続け、Tabで取り込めます。速い部分は速い距離に、種目・道具・強さの言葉はそれぞれの内訳に分かれて集計され、部分の合計が1本の距離と合わないと警告が出ます。強さを確定する #A2 のような書き方も、今まで通り使えます。</p>
       <h3>記号のきまり</h3>
       <p>距離は m（大文字の M でも可）。回数は * か ×。本数は t（T でも可、省略も可）。サークルは ( ) で囲みます。セットは [ ] で囲んで *2set のように書きます。</p>
       <p>例：25m*10t(30") は、25mを10本、30秒サークルで250m、5分。</p>
@@ -3407,6 +3408,7 @@ function paceFactor(cat, stroke){
   return f;
 }
 /* 強度の判定。{zone, src, swim, rest, rr, d} */
+const CAT_WORDS = {a1:'A1', en1:'A2', en2:'AT', en3:'VO2', an1:'LT', an2:'LP', an3:'SP', lt1:'A2', lt2:'AT', pace100m:'LT', pace200m:'LT', pace400m:'LT', pace1500m:'AT', g1:'AT', g2:'LT', g3:'LT', g4:'LT'};
 function classify(info, team){
   const text = (info.comment || '') + ' ' + (info.ctxTitle || '');
   const dom = info.atoms.slice().sort((a,b) => b.d*b.n - a.d*a.n)[0] || {d:info.dist, n:1, c:null};
@@ -3418,7 +3420,6 @@ function classify(info, team){
   const tag = detectTag(info.comment) || info.ctxTag;
   if(tag) return out(tag, 'tag');
   const userToks = text.toLowerCase().split(/[\s,、()（）]+/).map(t => t.replace(/^※+/, '')).filter(Boolean);
-  const CAT_WORDS = {a1:'A1', en1:'A2', en2:'AT', en3:'VO2', an1:'LT', an2:'LP', an3:'SP', lt1:'A2', lt2:'AT', pace100m:'LT', pace200m:'LT', pace400m:'LT', pace1500m:'AT', g1:'AT', g2:'LT', g3:'LT', g4:'LT'};
   for(const t of userToks){ if(CAT_WORDS[t]) return out(CAT_WORDS[t], 'kw'); }
   if(/(^|[\s,、(（])AT([\s,、)）]|$)/.test(info.comment || '') || /(^|[\s,、(（])AT([\s,、)）]|$)/.test(info.ctxTitle || '')) return out('AT', 'kw');
   if(userToks.includes('obla')) return out(d >= 400 ? 'AT' : 'VO2', 'kw');
@@ -3592,6 +3593,11 @@ function analyzeText(text, team, startHm, panelStroke){
       }
       out.push(info); return;
     }
+    if(/^#\s*\d/.test(tr) && lastSet){
+      info.type = 'memo'; info.memoText = tr;
+      (lastSet._hashLines = lastSet._hashLines || []).push(tr.slice(tr.indexOf('#') + 1).trim());
+      out.push(info); return;
+    }
     if((m = /^(休憩|休み|休|レスト|rest)\s*:?\s*(\S+)/i.exec(tr)) && parseTime(m[2]) != null && tr.length < 20){
       info.type = 'rest'; info.sec = parseTime(m[2]); elapsed += info.sec; out.push(info); return;
     }
@@ -3614,6 +3620,8 @@ function analyzeText(text, team, startHm, panelStroke){
         if(r.dist > 0){
           info.type = 'set'; info.items = items; info.dist = r.dist; info.sec = r.sec; info.est = r.est; info.atoms = r.atoms;
           info.expr = p.src.slice(0, p.end).trim(); info.comment = p.src.slice(p.end).trim();
+          const hxm = /#\s*(?=\d)/.exec(info.comment);
+          if(hxm){ info._hashSpec = info.comment.slice(hxm.index + 1).trim(); info.comment = info.comment.slice(0, hxm.index).trim(); }
           if(open1) info.expr = '[' + info.expr;
           if(mg){ info.exprBare = info.expr; if(i === mg.g.first) info.expr = '[' + info.expr; if(i === mg.g.last) info.expr += ']' + mg.g.closing; }
           info.cat = detectCat(info.comment) || ctx.cat || 'SWIM';
@@ -3654,10 +3662,10 @@ function analyzeText(text, team, startHm, panelStroke){
   });
   const noteUnknown = w => { if(w && !tot.unknown.includes(w)) tot.unknown.push(w); };
   const pushWarn = (msg) => { if(msg && !tot.warns.includes(msg)) tot.warns.push(msg); };
-  const KNOWN_WORDS = new Set(['easy','hard','max','sprint','race','pace','rp','descend','steady','aerobic','tempo','css','threshold','goal','broken','dive','loose','recovery','lr','lactate','removal','hypoxic','breath','imo','im','fr','ba','br','fly','free','freestyle','back','backstroke','breast','breaststroke','butterfly','up','down','kick','pull','drill','swim','main','choice','scull','paddle','paddles','fin','fins','snorkel','buoy','nb','des','lap','harder','hardest','power','lt1','lt2','obla','at','pace100m','pace200m','pace400m','pace1500m','g1','g2','g3','g4','g5','a1','en1','en2','en3','an1','an2','an3']);
+  const KNOWN_WORDS = new Set(['easy','hard','max','sprint','race','pace','rp','descend','steady','aerobic','tempo','css','threshold','goal','broken','dive','loose','recovery','lr','lactate','removal','hypoxic','breath','imo','im','fr','ba','br','fly','free','freestyle','back','backstroke','breast','breaststroke','butterfly','up','down','kick','pull','drill','swim','main','choice','scull','paddle','paddles','fin','fins','snorkel','buoy','nb','des','lap','harder','hardest','power','lt1','lt2','obla','at','pace100m','pace200m','pace400m','pace1500m','g1','g2','g3','g4','g5','a1','en1','en2','en3','an1','an2','an3','with']);
   const scanWords = (txt) => {
     String(txt || '').split(/[\s,、()（）・:：+\/]+/).forEach(tok0 => {
-      const tok = tok0.replace(/^※+/, '');
+      const tok = tok0.replace(/^[※*]+/, '');
       if(tok.length < 2 || /^\d/.test(tok) || !/[A-Za-z]/.test(tok) || tok.includes('=')) return;
       const tl = tok.toLowerCase();
       if((fastRules().labels || {})[tl]) return;
@@ -3731,6 +3739,68 @@ function analyzeText(text, team, startHm, panelStroke){
       });
     });
     // やり方（*行）の中身を数字に分ける：交互（A/B byNt・odd/ev）、IMO回し、DES
+    const hashTexts = [];
+    if(info._hashSpec) hashTexts.push(info._hashSpec);
+    if(info._hashLines) info._hashLines.forEach(t => hashTexts.push(t));
+    if(hashTexts.length){
+      hashTexts.forEach(t => scanWords(t));
+      if(info.atoms && info.atoms.length === 1){
+        const atom = info.atoms[0], per = atom.d, reps = atom.n;
+        const parseHashPart = (ps) => {
+          const p = {d:null, fast:false, zone:null, stroke:null, imoNt:0, gear:[]};
+          ps.trim().split(/\s+/).filter(Boolean).forEach(tok => {
+            const low = tok.toLowerCase();
+            const dm = tok.match(/^(\d+(?:\.\d+)?)m$/i);
+            if(dm && p.d === null){ p.d = parseFloat(dm[1]); return; }
+            const im = low.match(/^imo?by(\d+)t$/);
+            if(im){ p.imoNt = parseInt(im[1], 10); return; }
+            if(low === 'with' || low === 'noboard') return;
+            if(CAT_WORDS[low] && !p.zone) p.zone = CAT_WORDS[low];
+            if(low === 'at' && !p.zone) p.zone = 'AT';
+            if(low === 'obla' && !p.zone) p.zone = (p.d || per) >= 400 ? 'AT' : 'VO2';
+            if(isFastLabel(tok)) p.fast = true;
+            if(!p.zone && (low === 'slow' || isSlowLabel(tok))) p.zone = 'EZ';
+            const gk = (GEAR_DEFS.find(g => g.re.test(tok)) || {}).k;
+            if(gk){ if(!p.gear.includes(gk)) p.gear.push(gk); return; }
+            const st = detectStroke(tok);
+            if(st && st !== 'S1' && !p.stroke && !p.imoNt) p.stroke = st;
+          });
+          return p;
+        };
+        const parts = [];
+        hashTexts.join(' + ').split('+').forEach(ps => { const p = parseHashPart(ps); if(p.d !== null || p.fast || p.zone || p.stroke || p.imoNt || p.gear.length) parts.push(p); });
+        if(parts.length){
+          const sum = parts.reduce((a, p) => a + (p.d || 0), 0);
+          if(sum > 0 && Math.abs(sum - per) > 1) pushWarn('内訳（#）の合計' + Math.round(sum) + 'mが1本の距離' + Math.round(per) + 'mと合いません');
+          let fastPer = 0;
+          parts.forEach(p => { if(p.fast && p.d) fastPer += p.d; });
+          if(fastPer > 0) addAtomFast(info, 0, fastPer * reps);
+          let zUsed = 0, sUsed = 0;
+          parts.forEach(p => {
+            if(!p.d) return;
+            const meters = p.d * reps;
+            if(p.zone && p.zone !== info.zone){
+              const mv = Math.min(meters, Math.max(0, info.dist - zUsed));
+              if(mv > 0){ tot.zones[info.zone] -= mv; tot.zones[p.zone] = (tot.zones[p.zone] || 0) + mv; zUsed += mv; }
+            }
+            if(p.imoNt){
+              const mv = Math.min(meters, Math.max(0, info.dist - sUsed));
+              if(mv > 0){
+                tot.strokes[info.stroke] = (tot.strokes[info.stroke] || 0) - mv;
+                const seq = ['Fly', 'Ba', 'Br', 'Fr'], each = mv / reps;
+                for(let ri = 0; ri < reps; ri++){ const sk = seq[Math.floor(ri / p.imoNt) % 4]; tot.strokes[sk] = (tot.strokes[sk] || 0) + each; }
+                sUsed += mv;
+                if(reps % (4 * p.imoNt) !== 0) pushWarn('IMO（' + p.imoNt + '本ごと）の回し方が' + reps + '本で割り切れません');
+              }
+            } else if(p.stroke && p.stroke !== info.stroke){
+              const mv = Math.min(meters, Math.max(0, info.dist - sUsed));
+              if(mv > 0){ tot.strokes[info.stroke] = (tot.strokes[info.stroke] || 0) - mv; tot.strokes[p.stroke] = (tot.strokes[p.stroke] || 0) + mv; sUsed += mv; }
+            }
+            p.gear.forEach(gk => { tot.gear[gk] = (tot.gear[gk] || 0) + meters; });
+          });
+        }
+      }
+    }
     if(info.manner && info.manner.length && info.atoms && info.atoms.length === 1){
       const atom = info.atoms[0];
       const repsSide = (nt) => { let a = 0, b = 0; for(let ri = 0; ri < atom.n; ri++){ if(Math.floor(ri / nt) % 2 === 0) a++; else b++; } return [a, b]; };
@@ -4357,8 +4427,73 @@ function prevSetVals(lines, upto){
   }
   return {reps:10, cyc:90, sets:2, rest:0};
 }
+function hashTargetDist(lines, li, beforeHash){
+  const cands = [];
+  if(beforeHash) cands.push(beforeHash);
+  for(let k = li - 1; k >= 0; k--) cands.push(lines[k]);
+  for(const c of cands){
+    const p = parseSetExpr(normalize(String(c).trim()));
+    if(!p || !p.items || !p.items.length) continue;
+    let it = p.items[0];
+    if(it.g) it = (it.items && it.items[0]) || {};
+    if(it.d != null) return it.d;
+  }
+  return null;
+}
+function hashGhostSuffix(setD, typed){
+  const partDistSum = (txt) => txt.split('+').reduce((a, ps) => { const m = ps.match(/(\d+(?:\.\d+)?)\s*m/i); return a + (m ? parseFloat(m[1]) : 0); }, 0);
+  const hasDist = (arr) => arr.some(t => /^\d+(?:\.\d+)?m$/i.test(t));
+  const hasInt = (arr) => arr.some(t => { const l = t.toLowerCase(); return !!CAT_WORDS[l] || /^(fast|faster|fastest|dash|sprint|slow|smooth|smt|easy|ez|hard|harder|hardest|at|obla|race|max|power)$/.test(l); });
+  const hasAct = (arr) => arr.some(t => /^(swim|kick|pull|drill|scull)$/i.test(t) || /^imo?by\d+t$/i.test(t) || !!detectStroke(t));
+  const hasGear = (arr) => arr.some(t => t.toLowerCase() === 'with' || t.toLowerCase() === 'noboard' || detectGear(t).length > 0);
+  const parts = typed.split('+');
+  const cur = parts[parts.length - 1];
+  const doneSum = parts.length > 1 ? partDistSum(parts.slice(0, -1).join('+')) : 0;
+  const toks = cur.trim() === '' ? [] : cur.trim().split(/\s+/);
+  const endsSpace = cur === '' || /\s$/.test(cur);
+  const complete = endsSpace ? toks : toks.slice(0, -1);
+  const partial = endsSpace ? '' : (toks.length ? toks[toks.length - 1] : '');
+  const exDist = setD ? (setD % 5 === 0 ? setD / 5 : 10) : 25;
+  if(!toks.length){
+    if(doneSum > 0 && setD){ const rem0 = setD - doneSum; return rem0 > 0 ? rem0 + 'm smooth swim' : ''; }
+    return exDist + 'm fast swim with paddle';
+  }
+  const allToks = partial ? complete.concat([partial]) : complete;
+  const slots = [];
+  if(!hasDist(allToks)) slots.push({k:'dist', w:exDist + 'm'});
+  if(!hasInt(allToks)) slots.push({k:'int', w:'fast'});
+  if(!hasAct(allToks)) slots.push({k:'act', w:'swim'});
+  if(!hasGear(allToks)) slots.push({k:'gear', w:'with paddle'});
+  if(!slots.length){
+    const curDist = (cur.match(/(\d+(?:\.\d+)?)\s*m/i) || [])[1];
+    const total = doneSum + (curDist ? parseFloat(curDist) : 0);
+    if(setD && total < setD) return ' +' + (setD - total) + 'm smooth swim';
+    return '';
+  }
+  if(partial && slots[0].w.toLowerCase().indexOf(partial.toLowerCase()) === 0){
+    return slots[0].w.slice(partial.length) + (slots.length > 1 ? ' ' + slots.slice(1).map(s => s.w).join(' ') : '');
+  }
+  return ' ' + slots.map(s => s.w).join(' ');
+}
+function hashGhostSuggest(ta){
+  const v = ta.value, pos = ta.selectionStart;
+  const le = v.indexOf('\n', pos); const lineEnd = le < 0 ? v.length : le;
+  if(v.slice(pos, lineEnd).trim()) return '';
+  const ls = v.lastIndexOf('\n', pos - 1) + 1;
+  const nLine = normalize(v.slice(ls, lineEnd));
+  const nBefore = normalize(v.slice(ls, pos));
+  const hashIdx = nBefore.lastIndexOf('#');
+  if(hashIdx < 0) return '';
+  const afterHash = nLine.slice(hashIdx + 1);
+  const typed = nBefore.slice(hashIdx + 1);
+  if(!(/^\s*\d+(?:\.\d+)?m/i.test(afterHash) || /^\s*\d+(?:\.\d+)?$/.test(typed))) return '';
+  const d = hashTargetDist(v.split('\n'), lineIndexOf(ta), nLine.slice(0, hashIdx));
+  return hashGhostSuffix(d, typed);
+}
 function ghostSuggest(ta){
   if(!ta || ta.selectionStart !== ta.selectionEnd) return '';
+  const hg = hashGhostSuggest(ta);
+  if(hg) return hg;
   const v = ta.value, pos = ta.selectionStart;
   const le = v.indexOf('\n', pos); const lineEnd = le < 0 ? v.length : le;
   if(v.slice(pos, lineEnd).trim()) return '';

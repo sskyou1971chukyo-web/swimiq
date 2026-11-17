@@ -4985,7 +4985,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117v'});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117w'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());
@@ -6921,6 +6921,12 @@ async function preparePdfTarget(name){
   }
   return true;
 }
+/* PDFの年月フォルダ名（ファイル名の日付から。無ければ今日） */
+function pdfMonthName(name){
+  const m = /(\d{4})-(\d{2})-\d{2}/.exec(name || '') || /(\d{4})-(\d{2})/.exec(name || '');
+  if(m) return m[1] + '-' + m[2];
+  const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
 /* PDFを保存して、保存した場所の説明を返す */
 async function savePdfBlob(blob, name){
   const t = pdfTarget; pdfTarget = null;
@@ -6930,9 +6936,11 @@ async function savePdfBlob(blob, name){
       return (lastSaveWhere = '選んだ場所に「' + t.fh.name + '」という名前で保存しました。');
     }
     if(t && t.type === 'dir'){
-      const fh = await t.dh.getFileHandle(name, {create:true});
+      const sub = pdfMonthName(name);
+      const dir = await t.dh.getDirectoryHandle(sub, {create:true});
+      const fh = await dir.getFileHandle(name, {create:true});
       const w = await fh.createWritable(); await w.write(blob); await w.close();
-      return (lastSaveWhere = '「' + t.dh.name + '」フォルダに保存しました。');
+      return (lastSaveWhere = '「' + t.dh.name + '」フォルダの中の「' + sub + '」フォルダに保存しました。');
     }
   } catch(e){ console.error(e); toast('選んだ場所に保存できなかったので、ダウンロードのフォルダに保存します', 5000); }
   downloadBlob(blob, name);
@@ -6951,7 +6959,7 @@ function renderPdfDest(){
     opt('folder', '決めたフォルダにいつも保存する' + (dn ? '　今のフォルダ：<b>' + esc(dn) + '</b>' : '　（まだ選んでいません）')) +
     opt('ask', '保存するたびに、場所と名前を選ぶ') +
     '<div class="row" style="margin-top:8px"><button class="btn primary" id="pdfPickDir">' + (dn ? '保存先のフォルダを選び直す' : '保存先のフォルダを選ぶ') + '</button></div>' +
-    '<p class="muted" style="margin-top:6px">フォルダを決めたあと、初めて保存するときに「このフォルダへの保存を許可しますか」と聞かれることがあります。そのときは許可してください。</p>';
+    '<p class="muted" style="margin-top:6px">「決めたフォルダ」のときは、その中に月ごとのフォルダ（例：2026-11）を自動で作って保存します。フォルダを決めたあと、初めて保存するときに「このフォルダへの保存を許可しますか」と聞かれることがあります。そのときは許可してください。</p>';
   box.querySelectorAll('input[name=pdfDest]').forEach(r => r.addEventListener('change', () => {
     if(r.value === 'folder' && !dn){ pickPdfFolder(); return; }
     S.settings.pdfDest = r.value; saveNow(); renderPdfDest();
@@ -10674,10 +10682,11 @@ document.addEventListener('DOMContentLoaded', init);
     syncing = true; setStatus('同期中…');
     try{
       var r = await fetch(API, {headers: headers()});
-      var remoteObj = null;
+      var remoteObj = null, getWas404 = false;
       if(r.status === 200){ var j = await r.json(); remoteSha = j.sha; remoteObj = JSON.parse(b64decode(j.content)); }
-      else if(r.status === 404){ remoteSha = null; }
-      else if(r.status === 401 || r.status === 403){ setStatus('合言葉が違うか、この置き場への権限がありません'); syncing = false; return; }
+      else if(r.status === 404){ remoteSha = null; getWas404 = true; }
+      else if(r.status === 401){ setStatus('合言葉（トークン）が間違っています。貼り直すか、作り直してください'); syncing = false; return; }
+      else if(r.status === 403){ setStatus('合言葉に、この置き場（swimiq-data）への権限がありません。トークンの設定で、置き場に「swimiq-data」を選び、Contents（中身）の読み書きを許可してください'); syncing = false; return; }
       else { setStatus('同期できませんでした（エラー ' + r.status + '）'); syncing = false; return; }
       var merged = false;
       if(remoteObj && typeof remoteObj.menus === 'object'){
@@ -10692,6 +10701,7 @@ document.addEventListener('DOMContentLoaded', init);
         var pr = await fetch(API, {method: 'PUT', headers: Object.assign({'Content-Type': 'application/json'}, headers()), body: JSON.stringify(body)});
         if(pr.status === 200 || pr.status === 201){ var pj = await pr.json(); if(pj && pj.content && pj.content.sha) remoteSha = pj.content.sha; cfg.lastHash = localHash; }
         else if(pr.status === 409 || pr.status === 422){ setStatus('相手が先に更新していました。もう一度「今すぐ同期」を押してください'); syncing = false; return; }
+        else if(pr.status === 404 && getWas404){ setStatus('置き場（swimiq-data）が見つかりません。置き場をまだ作っていないか、合言葉（トークン）の設定で見える置き場に「swimiq-data」が選ばれていません'); syncing = false; return; }
         else { setStatus('送信できませんでした（エラー ' + pr.status + '）'); syncing = false; return; }
       } else cfg.lastHash = localHash;
       cfg.lastAt = Date.now(); saveCfg();

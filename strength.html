@@ -235,6 +235,28 @@ button[data-add][disabled],button[data-cadd][disabled]{background:var(--am)!impo
 .rmain strong,.rmain .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%}
 .rmain{min-width:0}
 .nl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 種目の選び方（2026-11-18）：検索＋部位＋器具の札。札の列は横に流せる */
+.exbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0 4px;margin:0 0 4px}
+.exbar .exq{width:100%;min-height:52px;font-size:1.05rem;border-radius:10px}
+.exrow{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:8px 2px 2px;margin:0 -2px}
+.exrow::-webkit-scrollbar{display:none}
+.exchip{flex:0 0 auto;min-height:44px;min-width:52px;padding:4px 14px;border-radius:10px;border:2px solid var(--line);background:var(--pane2);color:#fff;font-weight:700;font-size:1rem;white-space:nowrap}
+.exchip.star{font-size:1.2rem;min-width:48px;padding:4px 10px}
+.exchip[aria-pressed=true]{background:var(--am);border-color:var(--am);color:#000}
+.exchip:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.exnum{margin:6px 0 2px}
+.excards{margin-top:4px}
+.excards > li{background:var(--soft);border:1px solid #2e2f33;border-top:1px solid #2e2f33;border-radius:12px;margin:8px 0;padding:6px 8px 6px 6px}
+.excards .rmain.th{grid-template-columns:64px minmax(0,1fr)}
+.excards .rmain.th > .thb{width:64px;height:64px;grid-row:1 / span 2}
+.excards .rmain.th{grid-template-rows:auto auto;align-content:center}
+.excards .rmain strong{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
+.excards .rmain{min-height:0;padding:4px}
+.excards .rmain .d .eqt{display:block;color:#fff;font-size:.95rem;margin:2px 0}
+.excards .ghost.sm[data-fav]{min-width:48px;min-height:48px;font-size:1.3rem;border:0;background:none}
+.excards .ghost.sm[data-fav][aria-pressed=true]{color:var(--am)}
+.exmore{margin-top:14px}
 </style>
 <style>
 /* 種目カード150枚 */
@@ -383,7 +405,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-07 sheet1';
+const APP_VER = '2026-11-18 picker';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2483,8 +2505,110 @@ function addThumbs(){ document.querySelectorAll('button.rmain[data-go="detail"][
 const _renderTh = render; render = function(focus){ _renderTh(focus); try{ addThumbs(); }catch(err){} };
 { let thQ = false; new MutationObserver(()=>{ if(thQ) return; thQ = true; requestAnimationFrame(()=>{ thQ = false; try{ addThumbs(); }catch(err){} }); }).observe(document.body, {childList:true, subtree:true}); }
 
+/* ============ 種目の選び方を「名前で検索＋部位＋器具」の押すだけの形に（2026-11-18） ============
+   見本の動画（他社のトレーニングアプリ）の形：上に検索、その下に部位の札の列、器具の札の列、下に絵つきの種目の一覧。
+   札は押すと選ばれ、もう一度押すと外れる。部位と器具と検索は組み合わせて絞り込める。
+   前の「選び方」のプルダウン（最近やった種目、カードの順、自分で登録、泳ぎ別、体の絵）は「そのほかの選び方」にまとめて残す。
+   器具は種目の名前（とつながっている種目カードの名前と説明）から、このアプリの作り手が決めた言葉の決まりで判断している。資料の裏付けはない */
+const EQ_LIST = [['bb','バーベル'],['db','ダンベル'],['kb','ケトルベル'],['cb','ケーブル'],['mc','マシン'],['bw','自重'],['band','バンド・チューブ'],['ball','ボール'],['other','その他']];
+const EQ_NAME = Object.fromEntries(EQ_LIST);
+const eqCache = {};
+function eqText(e){ let t = (e.name||'')+' '+(e.equip||''); try{ kcForEx(e).forEach(no=>{ const c = KC_CBY[no]; if(c) t += ' '+c.name+' '+(c.sub||''); }); }catch(err){} return t; }
+function eqOf(e){ if(!e) return []; if(eqCache[e.id]) return eqCache[e.id]; const t = eqText(e); const s = [];
+  if(/バーベル|トラップバー|ランドマイン|EZバー|プレート/.test(t)) s.push('bb');
+  if(/ダンベル/.test(t)) s.push('db');
+  if(/ケトルベル/.test(t)) s.push('kb');
+  if(/ケーブル|パロフ|プーリー/.test(t)) s.push('cb');
+  if(/マシン|スミス|ラットプルダウン|レッグプレス|レッグエクステンション|ペックデック|ハックスクワット|(^|[^グ])レッグカール/.test(t)) s.push('mc');
+  if(/バンド|チューブ/.test(t)) s.push('band');
+  if(/Tバー|ラックプル|スカルクラッシャー|ライイングトライセプス/.test(t) && !s.includes('bb')) s.push('bb');
+  if(/プッシュダウン/.test(t) && !s.length) s.push('cb');
+  if(/バックエクステンション/.test(t) && !s.length) s.push('mc');
+  if(/ボール|スラム|チェストパス|スロー/.test(t)) s.push('ball');
+  if(!s.length && (e.type==='olympic' || /^(バック|フロント)?スクワット$|^(バック|フロント)スクワット|ベンチプレス|デッドリフト|^RDL|ルーマニアン|クリーン|スナッチ|ジャーク|スラスター|ヒップスラスト|ベントオーバーロウ|グッドモーニング|ショルダープレス/.test(e.name))) s.push('bb');
+  let bw = false; try{ bw = bwEx(e); }catch(err){}
+  if(bw && !s.includes('bw')) s.push('bw');
+  if(!s.length && (e.gym || ['plyo','mobility','activation','core'].includes(e.type) || /自重|プッシュアップ|懸垂|プルアップ|チンアップ|ディップス|プランク|倒立|ジャンプ|ホップ|バウンディング|ストレッチ|ブリッジ|ランジ|スクワット|ホールド|クランチ|シット|レバー|ハング|ドッグ|ウォーク|歩行|ランディング|着地|転|宙返り|CARs|レイズ|スプリント|ノルディック|スーパーマン|バーピー/.test(e.name))) s.push('bw');
+  if(!s.length) s.push('other');
+  eqCache[e.id] = s; return s; }
+function exF(){ db.exF = db.exF || {part:'', eq:'', fav:false, mode:'', q:''}; return db.exF; }
+let exShowN = 60;
+function exBase(){ const F = exF(); let L;
+  if(F.mode && F.mode!=='body') L = exList(F.mode);
+  else if(F.part) L = exList('part:'+F.part);
+  else L = EX.filter(e=>!e.gym || e.linked).sort((a,b)=>((b.gym?0:1)-(a.gym?0:1)) || (LV_N[evLevel(b)]-LV_N[evLevel(a)]) || shortName(a).localeCompare(shortName(b),'ja'));
+  if(F.mode && F.mode!=='body' && F.part) L = L.filter(e=>(PLACES[e.id]||[]).some(x=>x.part===F.part));
+  if(F.part && F.mode!=='kc' && F.mode!=='recent'){ const mn = e=>(PLACES[e.id]||[]).some(x=>x.part===F.part && x.main) ? 0 : 1; L = L.map((e,i)=>[e,i]).sort((a,b)=>(mn(a[0])-mn(b[0])) || (a[1]-b[1])).map(x=>x[0]); }
+  if(F.fav) L = L.filter(isFavEx);
+  if(F.eq) L = L.filter(e=>eqOf(e).includes(F.eq));
+  const q = String(F.q||'').trim();
+  if(q){ const n = s=>String(s||'').replace(/[\s　・]/g,'').toLowerCase(); const qq = n(q); L = L.filter(e=>n(e.name).includes(qq) || n(e.muscles).includes(qq) || n(eqText(e)).includes(qq) || eqOf(e).some(x=>n(EQ_NAME[x]).includes(qq))); }
+  const seen = new Set(); L = L.filter(e=>{ if(!e || seen.has(e.id)) return false; seen.add(e.id); return true; });
+  return F.mode==='kc' || F.mode==='recent' ? L : favFirst(L); }
+function exRowEq(e, k){ const h = exRow(e, k); const t = eqOf(e).filter(x=>x!=='other').map(x=>EQ_NAME[x]).join('・'); const v = (e.name.match(/[（(]([^）)]+)[）)]/)||[])[1];
+  const line = '<span class="eqt">'+esc([t, v && !t.includes(v) ? v : ''].filter(Boolean).join('　'))+'</span>';
+  return h.replace('<span class="d">', '<span class="d">'+line); }
+function exPickNote(){ if(!pick) return '';
+  if(isCoach()) return '<div class="note warn">選手に渡すメニューの種目を選んでいます（'+draft().rows.length+'種目）。右の「入れる」を押すと入ります。<br><button type="button" class="link" data-go="coach">メニュー作りに戻る</button></div>';
+  return '<div class="note warn">今日のメニューに入れる種目を選んでいます。右の「入れる」を押すと入ります。<br><button type="button" class="link" data-go="today">今日のノートに戻る</button></div>'; }
+function exChipsHTML(){ const F = exF();
+  const parts = '<div class="exrow" role="group" aria-label="部位で絞る"><button type="button" class="exchip star" data-exfav aria-pressed="'+!!F.fav+'" aria-label="お気に入りだけ">★</button>'+PARTS.map(p=>'<button type="button" class="exchip" data-expart="'+p.k+'" aria-pressed="'+(F.part===p.k)+'">'+esc(p.name)+'</button>').join('')+'</div>';
+  const eqs = '<div class="exrow" role="group" aria-label="器具で絞る">'+EQ_LIST.map(x=>'<button type="button" class="exchip" data-exeq="'+x[0]+'" aria-pressed="'+(F.eq===x[0])+'">'+esc(x[1])+'</button>').join('')+'</div>';
+  return parts+eqs; }
+function exModeOpts(){ const F = exF(); const o = [['','ふつう（すべての種目）'],['recent','最近やった種目'],['kc','種目カードの150種目（カードの順）'],['user','自分で登録した種目'],['body','体の絵から選ぶ']].concat(Object.keys(STROKE_LABEL).map(s=>['stroke:'+s,'泳ぎ：'+STROKE_LABEL[s]]));
+  return o.map(x=>'<option value="'+x[0]+'"'+(x[0]===(F.mode||'')?' selected':'')+'>'+esc(x[1])+'</option>').join(''); }
+function exFilterTxt(){ const F = exF(); const a = []; if(F.fav) a.push('お気に入り'); if(F.part) a.push((PARTS.find(p=>p.k===F.part)||{}).name||''); if(F.eq) a.push(EQ_NAME[F.eq]); if(F.mode){ const m = {recent:'最近やった種目', kc:'種目カードの順', user:'自分で登録した種目', body:'体の絵'}[F.mode] || (F.mode.startsWith('stroke:') ? '泳ぎ：'+STROKE_LABEL[F.mode.slice(7)] : ''); if(m) a.push(m); } if(String(F.q||'').trim()) a.push('「'+F.q.trim()+'」'); return a.join('、'); }
+function exResHTML(){ const F = exF(); const k = curDay();
+  if(F.mode==='body' && !String(F.q||'').trim()) return bodyHTML();
+  const L = exBase(); const shown = L.slice(0, exShowN); const ft = exFilterTxt();
+  return '<p class="sub exnum" role="status">'+L.length+'種目'+(ft?'（'+esc(ft)+'）':'')+(ft?'　<button type="button" class="link" id="exClr">絞り込みを全部外す</button>':'')+'</p>'+
+    (L.length ? '<ul class="exl excards">'+shown.map(e=>exRowEq(e, k)).join('')+'</ul>'+(L.length>shown.length?'<button type="button" class="ghost" id="exMore">さらに '+Math.min(60, L.length-shown.length)+' 種目を出す（残り '+(L.length-shown.length)+'）</button>':'')
+      : '<p class="sub">'+(F.fav && !(db.favs||[]).length ? 'お気に入りはまだありません。種目の右の☆を押すと入ります。' : '当てはまる種目がありません。札をもう一度押すと外れます。')+'</p>'); }
+function exBindRes(){ const F = exF(); const k = curDay(); const redraw = sel=>{ const box = $('#exRes'); if(!box) return; box.innerHTML = exResHTML(); exBindRes(); try{ addThumbs(); }catch(err){} let f = sel && document.querySelector(sel); if(f && f.disabled){ const li = f.closest('li'); f = li && li.querySelector('.rmain'); } if(f) f.focus(); };
+  const c = $('#exClr'); if(c) c.addEventListener('click',()=>{ Object.assign(F, {part:'', eq:'', fav:false, mode:'', q:''}); save(); exShowN = 60; render(false); const q = $('#exQ2'); if(q) q.focus(); say('絞り込みを外しました'); });
+  const m = $('#exMore'); if(m) m.addEventListener('click',()=>{ const n = exShowN; exShowN += 60; redraw(null); const items = document.querySelectorAll('#exRes .excards > li'); const t = items[n] && items[n].querySelector('button'); if(t) t.focus(); });
+  document.querySelectorAll('#exRes [data-add]').forEach(b=>b.addEventListener('click',()=>{ if(b.disabled) return; const e = EXMAP[b.dataset.add]; const d = day(k); const last = lastOf(e.id, null); d.rows.push(newRow(e.id, last ? {kg:last.r.kg, reps:last.r.reps, sets:last.r.sets} : {kg:0, reps:5, sets:3})); if(!d.src) d.src = 'self'; save(); say(shortName(e)+'を入れました'+(last?'（前回の数字）':'')); redraw('[data-add="'+e.id+'"]'); }));
+  document.querySelectorAll('#exRes [data-cadd]').forEach(b=>b.addEventListener('click',()=>{ if(b.disabled) return; const e = EXMAP[b.dataset.cadd]; addToDraft(e); say(shortName(e)+'を入れました（'+draft().rows.length+'種目）'); const n = document.querySelector('#view .note.warn'); if(n) n.innerHTML = exPickNote().replace(/^<div class="note warn">|<\/div>$/g,''); redraw('[data-cadd="'+e.id+'"]'); }));
+  document.querySelectorAll('#exRes [data-fav]').forEach(b=>b.addEventListener('click',()=>{ const id = b.dataset.fav; db.favs = db.favs||[]; const i = db.favs.indexOf(id); if(i<0) db.favs.push(id); else db.favs.splice(i,1); save(); say(i<0?'お気に入りに入れました':'お気に入りから外しました'); redraw('[data-fav="'+id+'"]'); }));
+  document.querySelectorAll('#exRes [data-bv]').forEach(b=>b.addEventListener('click',()=>{ bodyView = b.dataset.bv; redraw('[data-bv="'+bodyView+'"]'); }));
+  document.querySelectorAll('#exRes .hot, #exRes .lab').forEach(g=>{ const h = ()=>{ F.part = g.dataset.part; F.mode = ''; save(); exShowN = 60; render(false); const p = document.querySelector('[data-expart="'+F.part+'"]'); if(p){ p.focus(); try{ p.scrollIntoView({block:'nearest', inline:'center'}); }catch(err){} } say((PARTS.find(p=>p.k===F.part)||{}).name+'の種目を出しました'); }; g.addEventListener('click',h); g.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); h(); } }); }); }
+VIEWS.ex = ()=>{ const F = exF();
+  return {title: pick ? (isCoach() ? 'メニューに種目を入れる' : '種目を足す') : '種目', html:
+    exPickNote()+
+    '<div class="exbar"><label class="sr" for="exQ2">名前で検索</label><input type="search" class="txt exq" id="exQ2" value="'+esc(F.q||'')+'" placeholder="名前で検索（例：スクワット、広背筋、ダンベル）" autocomplete="off" enterkeyhint="search">'+exChipsHTML()+'</div>'+
+    '<div id="exRes">'+exResHTML()+'</div>'+
+    '<details class="more exmore"><summary>そのほかの選び方（体の絵、泳ぎ別、カード、種目の登録）</summary><div class="inner">'+
+      '<label class="f">選び方<select class="txt" id="exMode">'+exModeOpts()+'</select></label>'+
+      '<div class="stack two" style="margin-top:10px"><button type="button" class="ghost sm" data-go="cards">種目カード150枚から探す</button><button type="button" class="ghost sm" data-go="uexnew">種目を新しく登録する</button></div>'+
+    '</div></details>',
+    after(){ exBindRes();
+      const redrawList = ()=>{ const box = $('#exRes'); box.innerHTML = exResHTML(); exBindRes(); try{ addThumbs(); }catch(err){} };
+      document.querySelectorAll('[data-expart]').forEach(b=>b.addEventListener('click',()=>{ const v = b.dataset.expart; F.part = F.part===v ? '' : v; if(F.mode==='body') F.mode = ''; save(); exShowN = 60;
+        document.querySelectorAll('[data-expart]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.expart===F.part)); redrawList(); say(F.part ? b.textContent+'で絞りました。'+exBase().length+'種目' : b.textContent+'を外しました'); }));
+      document.querySelectorAll('[data-exeq]').forEach(b=>b.addEventListener('click',()=>{ const v = b.dataset.exeq; F.eq = F.eq===v ? '' : v; save(); exShowN = 60;
+        document.querySelectorAll('[data-exeq]').forEach(x=>x.setAttribute('aria-pressed', x.dataset.exeq===F.eq)); redrawList(); say(F.eq ? b.textContent+'で絞りました。'+exBase().length+'種目' : b.textContent+'を外しました'); }));
+      const fv = document.querySelector('[data-exfav]'); fv.addEventListener('click',()=>{ F.fav = !F.fav; save(); exShowN = 60; fv.setAttribute('aria-pressed', F.fav); redrawList(); say(F.fav ? 'お気に入りだけにしました。'+exBase().length+'種目' : 'お気に入りの絞り込みを外しました'); });
+      const md = $('#exMode'); md.addEventListener('change',()=>{ F.mode = md.value; save(); exShowN = 60; redrawList(); say('選び方を変えました'); });
+      const q = $('#exQ2'); let tm; q.addEventListener('input',()=>{ clearTimeout(tm); tm = setTimeout(()=>{ if(imeOn) return; F.q = q.value; save(); exShowN = 60; redrawList(); }, 250); });
+      q.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); q.blur(); } });
+      const on = document.querySelector('.exchip[aria-pressed="true"]:not(.star)'); if(on){ try{ on.parentNode.scrollLeft = on.offsetLeft - 40; }catch(err){} }
+    } }; };
+
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
+</script>
+<script>
+/* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */
+(function(){ try{
+  var isNet = location.protocol === 'https:';
+  var b = document.createElement('span');
+  b.textContent = isNet ? 'ネット版' : 'ファイル版';
+  b.style.cssText = 'margin-left:auto;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;background:' + (isNet ? '#2e9e6a' : '#9aa9b8');
+  var hd = document.getElementById('top');
+  if(hd) hd.appendChild(b);
+  else { b.style.cssText += ';position:fixed;top:8px;right:8px;z-index:99999'; document.body.appendChild(b); }
+  document.title += isNet ? '（ネット版）' : '（ファイル版）';
+}catch(e){} })();
 </script>
 </body>
 </html>

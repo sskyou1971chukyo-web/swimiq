@@ -4214,6 +4214,7 @@ function selectPanel(i){
 }
 const MAX_PANELS = 6;
 function panelLabel(p){ return (p.cls ? p.cls + ' ' : '') + p.team + (p.stroke ? ' ' + strokeName(p.stroke) : ''); }
+function panelPool(p){ return (p && p.pool) || M.pool || '長水路'; }
 let scrollSyncing = false;
 function renderPanels(){
   const box = $('panels'); box.innerHTML = '';
@@ -4230,6 +4231,7 @@ function renderPanels(){
       '<select data-cls aria-label="' + (i+1) + '列目の所属">' + clsSelectOptions(p.cls) + '</select>' +
       '<select data-team aria-label="' + (i+1) + '列目のチーム">' + names.map(n => '<option' + (n === p.team ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__add__">＋ 項目を追加・削除</option></select>' +
       '<select data-stroke aria-label="' + (i+1) + '列目の種目">' + strokeSelectOptions(p.stroke) + '</select>' +
+      '<button type="button" class="btn small" data-pool title="この列の水路を切り替える">' + panelPool(p) + '</button>' +
       '<button type="button" class="btn small" data-persons title="この列を泳ぐ人（週間分析の個人別集計に使います）">' + personsBtnLabel(p) + '</button>' +
       '<button type="button" class="btn small printTog' + (p.print === false ? '' : ' on') + '" data-ptog aria-pressed="' + (p.print !== false) + '">' + (p.print === false ? '印刷しない' : '印刷する') + '</button>' +
       '<button type="button" class="btn small memoTog' + (p.memo ? ' on' : '') + '" data-mtog aria-pressed="' + !!p.memo + '" title="メモとして使うときは、時間・距離・負荷を表示しません">メモ</button>' +
@@ -4269,6 +4271,7 @@ function renderPanels(){
     ssel.addEventListener('change', () => { if(ssel.value === '__add__'){ ssel.value = p.stroke || ''; curPanel = i; openOpt('stroke', i); return; } p.stroke = ssel.value; ta.setAttribute('aria-label', panelLabel(p) + 'のメニュー入力'); updatePanel(i); commitMenu(); renderAdvice(true); });
     const csel = el.querySelector('[data-cls]');
     csel.addEventListener('change', () => { if(csel.value === '__add__'){ csel.value = p.cls || ''; curPanel = i; openOpt('cls', i); return; } p.cls = csel.value; commitMenu(); });
+    el.querySelector('[data-pool]').addEventListener('click', () => { p.pool = panelPool(p) === '長水路' ? '短水路' : '長水路'; commitMenu(); renderPanels(); toast(panelLabel(p) + '：' + p.pool + 'にしました'); });
     el.querySelector('[data-persons]').addEventListener('click', () => { curPanel = i; openPersons(i); });
     el.querySelectorAll('[data-opt]').forEach(b => b.addEventListener('click', () => { curPanel = i; openOpt(b.dataset.opt, i); }));
     el.querySelector('[data-ptog]').addEventListener('click', () => { p.print = p.print === false ? true : false; commitMenu(); renderPanels(); updatePrintCount(); toast(panelLabel(p) + '：' + (p.print === false ? '印刷しない' : '印刷する') + 'にしました'); });
@@ -4819,7 +4822,7 @@ function listClick(e){
   else if(b.dataset.copy){
     const m = S.menus[b.dataset.copy];
     if(menuHasContent(M) && !confirm('今開いているメニューを、選んだメニューの内容で置きかえます。よろしいですか。')) return;
-    M.panels = m.panels.map(p => ({team:p.team, stroke:p.stroke || '', text:p.text})); M.start = m.start; M.pool = m.pool; M.title = m.title || '';
+    M.panels = m.panels.map(p => ({team:p.team, stroke:p.stroke || '', cls:p.cls || '', pool:p.pool || '', text:p.text})); M.start = m.start; M.pool = m.pool; M.title = m.title || '';
     commitMenu(); closeOv('listOv'); renderMenuView(); toast('コピーしました');
   } else if(b.dataset.rm){
     const m = S.menus[b.dataset.rm];
@@ -4894,11 +4897,11 @@ function openPlanned(){
 }
 
 /* ---------- 印刷とPDF（3列ずつ1ページ。4列以上は2ページ） ---------- */
-function pageHeadHtml(sub, team){
+function pageHeadHtml(sub, team, pool){
   const plan = planInfoFor(M.date, team || (M.panels[0] && M.panels[0].team));
   const sp = '<span class="gap"></span>';
   const l1 = esc(S.settings.header || '') + 'メニュー' + (sub ? '　' + esc(sub) : '') + (M.title ? '<span class="tt">' + esc(M.title) + '</span>' : '');
-  const l2 = [M.date.slice(0,4) + '年' + jpDate(M.date) + ' ' + fmtClock(M.start) + '開始', M.pool, plan && plan.weekNo].filter(Boolean).map(esc).join(sp);
+  const l2 = [M.date.slice(0,4) + '年' + jpDate(M.date) + ' ' + fmtClock(M.start) + '開始', pool === undefined ? M.pool : pool, plan && plan.weekNo].filter(Boolean).map(esc).join(sp);
   const l3 = plan ? [plan.targetTxt, plan.raceTxt].filter(Boolean).map(esc).join(sp) : '';
   return '<div class="pp-head"><div class="hl t1">' + l1 + '</div><div class="hl t2">' + l2 + '</div>' + (l3 ? '<div class="hl t3">' + l3 + '</div>' : '') + '</div>';
 }
@@ -4913,11 +4916,11 @@ function displayLine(l){
   s = s.replace(/\s*[#＃]\s*(EZ|A1|A2|AT|VO2|LT|LP|SP|EN1|EN2|EN3|SP1|SP2|SP3)\s*$/i, '');
   return s.replace(/(\d)["“〃″]/g, '$1”');
 }
-function colHtml(t, label, memo){
+function colHtml(t, label, memo, pool){
   const lines = t.lines.slice();
   while(lines.length && lines[lines.length-1].type === 'blank') lines.pop();
   if(memo) lines.forEach(l => { l.grp = null; });
-  let h = '<div class="pp-col' + (memo ? ' memoCol' : '') + '"><div class="ch"><span>' + esc(label) + '</span>' + (memo ? '<span>メモ</span>' : '<span>合計 ' + fmtNum(t.dist) + 'm　終了 ' + secToHm(t.end) + '</span>') + '</div>';
+  let h = '<div class="pp-col' + (memo ? ' memoCol' : '') + '"><div class="ch"><span>' + esc(label) + (pool ? '（' + esc(pool) + '）' : '') + '</span>' + (memo ? '<span>メモ</span>' : '<span>合計 ' + fmtNum(t.dist) + 'm　終了 ' + secToHm(t.end) + '</span>') + '</div>';
   lines.forEach(l => {
     if(l.type === 'blank'){ h += '<div class="pp-row" style="height:.45em"></div>'; return; }
     let a = '';
@@ -4944,17 +4947,19 @@ function buildPrintPage(kind){
   if(kind === 'compare'){
     pages.push({html:pageHeadHtml('時間比較') + compareTableHtml(true), n:idx.length});
   } else if(kind === 'plan'){
-    idx.forEach(i => pages.push({html:pageHeadHtml('予定と答え合わせ', M.panels[i].team) + planTableHtml(i, true) + '<p class="pvnote">予定タイムは基準ペースからの見込みです。練習後に実際のタイムと、選手が感じたきつさ（RPE：0〜10）を書き入れて比べてください。</p>', n:1}));
+    idx.forEach(i => pages.push({html:pageHeadHtml('予定と答え合わせ', M.panels[i].team, panelPool(M.panels[i])) + planTableHtml(i, true) + '<p class="pvnote">予定タイムは基準ペースからの見込みです。練習後に実際のタイムと、選手が感じたきつさ（RPE：0〜10）を書き入れて比べてください。</p>', n:1}));
   } else {
     const per = [1,2,3].includes(+S.settings.printPerSheet) ? +S.settings.printPerSheet : 2;
     if(idx.length === 1 && per > 1){
       // メニューが1つのときは、同じメニューを1枚に2つ・3つ並べる（切り取って配れるよう、それぞれに見出しを付ける）
-      const one = '<td>' + pageHeadHtml('', M.panels[idx[0]].team) + colHtml(tots[idx[0]], panelLabel(M.panels[idx[0]]), M.panels[idx[0]].memo) + '</td>';
+      const one = '<td>' + pageHeadHtml('', M.panels[idx[0]].team, panelPool(M.panels[idx[0]])) + colHtml(tots[idx[0]], panelLabel(M.panels[idx[0]]), M.panels[idx[0]].memo) + '</td>';
       pages.push({html:'<table class="pp-colsT cut"><tr>' + Array(per).fill(one).join('') + '</tr></table>', n:per, copy:true});
     } else for(let k = 0; k < idx.length; k += per){
       const chunk = idx.slice(k, k + per);
       const sub = idx.length > per ? (k/per + 1) + '/' + Math.ceil(idx.length/per) : '';
-      pages.push({html:pageHeadHtml(sub, M.panels[chunk[0]].team) + '<table class="pp-colsT gap"><tr>' + chunk.map(i => '<td>' + colHtml(tots[i], panelLabel(M.panels[i]), M.panels[i].memo) + '</td>').join('') + '</tr></table>', n:chunk.length});
+      const cpools = chunk.map(i => panelPool(M.panels[i]));
+      const cuni = cpools.every(x => x === cpools[0]);
+      pages.push({html:pageHeadHtml(sub, M.panels[chunk[0]].team, cuni ? cpools[0] : '') + '<table class="pp-colsT gap"><tr>' + chunk.map((i, k) => '<td>' + colHtml(tots[i], panelLabel(M.panels[i]), M.panels[i].memo, cuni ? '' : cpools[k]) + '</td>').join('') + '</tr></table>', n:chunk.length});
     }
   }
   const landscape = kind === 'plan' || kind === 'compare' || pages.some(p => p.n > 1);
@@ -4985,7 +4990,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117x'});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117y'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());
@@ -5025,12 +5030,13 @@ function menuPlainText(){
   const tots = analyzeMenu(M);
   const out = [];
   out.push('【' + (S.settings.header || '') + ' 練習メニュー】');
-  out.push(jpDate(M.date) + '　開始' + fmtClock(M.start) + '　' + M.pool + (M.title ? '　' + M.title : ''));
+  const poolSet = [...new Set(M.panels.filter(p => (p.text || '').trim() && p.print !== false).map(panelPool))];
+  out.push(jpDate(M.date) + '　開始' + fmtClock(M.start) + (poolSet.length === 1 ? '　' + poolSet[0] : '') + (M.title ? '　' + M.title : ''));
   const plan = planInfoFor(M.date, M.panels[0] && M.panels[0].team); if(plan) out.push(plan.label);
   tots.forEach((t, i) => {
     if(!(M.panels[i].text || '').trim() || M.panels[i].print === false) return;
     out.push('');
-    out.push('■' + panelLabel(M.panels[i]) + '　合計' + fmtNum(t.dist) + 'm　終了' + secToHm(t.end));
+    out.push('■' + panelLabel(M.panels[i]) + '　' + panelPool(M.panels[i]) + '　合計' + fmtNum(t.dist) + 'm　終了' + secToHm(t.end));
     const lines = t.lines.slice(); while(lines.length && lines[lines.length-1].type === 'blank') lines.pop();
     lines.forEach(l => {
       const txt = displayLine(l);

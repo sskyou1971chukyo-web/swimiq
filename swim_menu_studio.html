@@ -477,6 +477,13 @@ table.pv tr.pvt td{background:#f2f5f9}
 .pp-cols.cut .pp-copy{flex:1 1 0;min-width:0;padding:0 8px}
 .pp-cols.cut .pp-copy+.pp-copy{border-left:1.5px dashed #888}
 .pp-cols.cut .pp-copy .pp-col{width:100%}
+.pp-colsT{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.pp-colsT td{vertical-align:top;padding:0}
+.pp-colsT.cut td{padding:0 8px}
+.pp-colsT.cut td+td{border-left:1.5px dashed #888}
+.pp-colsT.gap td{padding:0 5px}
+.pp-colsT.gap td:first-child{padding-left:0}
+.pp-colsT.gap td:last-child{padding-right:0}
 .perSel select{font-size:16px!important;padding:4px 8px!important}
 .pp-foot{font-size:.75em;color:#444;margin-top:4px;text-align:right}
 
@@ -4931,12 +4938,12 @@ function buildPrintPage(kind){
     const per = [1,2,3].includes(+S.settings.printPerSheet) ? +S.settings.printPerSheet : 2;
     if(idx.length === 1 && per > 1){
       // メニューが1つのときは、同じメニューを1枚に2つ・3つ並べる（切り取って配れるよう、それぞれに見出しを付ける）
-      const one = '<div class="pp-copy">' + pageHeadHtml('', M.panels[idx[0]].team) + colHtml(tots[idx[0]], panelLabel(M.panels[idx[0]]), M.panels[idx[0]].memo) + '</div>';
-      pages.push({html:'<div class="pp-cols cut">' + Array(per).fill(one).join('') + '</div>', n:per, copy:true});
+      const one = '<td>' + pageHeadHtml('', M.panels[idx[0]].team) + colHtml(tots[idx[0]], panelLabel(M.panels[idx[0]]), M.panels[idx[0]].memo) + '</td>';
+      pages.push({html:'<table class="pp-colsT cut"><tr>' + Array(per).fill(one).join('') + '</tr></table>', n:per, copy:true});
     } else for(let k = 0; k < idx.length; k += per){
       const chunk = idx.slice(k, k + per);
       const sub = idx.length > per ? (k/per + 1) + '/' + Math.ceil(idx.length/per) : '';
-      pages.push({html:pageHeadHtml(sub, M.panels[chunk[0]].team) + '<div class="pp-cols">' + chunk.map(i => colHtml(tots[i], panelLabel(M.panels[i]), M.panels[i].memo)).join('') + '</div>', n:chunk.length});
+      pages.push({html:pageHeadHtml(sub, M.panels[chunk[0]].team) + '<table class="pp-colsT gap"><tr>' + chunk.map(i => '<td>' + colHtml(tots[i], panelLabel(M.panels[i]), M.panels[i].memo) + '</td>').join('') + '</tr></table>', n:chunk.length});
     }
   }
   const landscape = kind === 'plan' || kind === 'compare' || pages.some(p => p.n > 1);
@@ -4945,10 +4952,6 @@ function buildPrintPage(kind){
   const box = $('printPage');
   box.innerHTML = pages.map(p => '<div class="pp-page" style="width:' + W + 'px;height:' + H + 'px"><div class="ppInner">' + p.html + '<div class="pp-foot">' + esc(S.settings.header || '') + ' MENU STUDIO で作成</div></div></div>').join('');
   [...box.querySelectorAll('.pp-page')].forEach((pg, j) => {
-    pg.querySelectorAll('.pp-cols').forEach(cols => {
-      const kids = [...cols.children];
-      kids.forEach(c => { c.style.float = 'left'; c.style.width = (100 / kids.length) + '%'; c.style.boxSizing = 'border-box'; });
-    });
     let fs = (kind === 'compare' || kind === 'plan') ? 16 : ([0, 28, 26, 21][pages[j].n] || 16);
     pg.style.fontSize = fs + 'px';
     const inner = pg.querySelector('.ppInner');
@@ -4971,7 +4974,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start)});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117t'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());

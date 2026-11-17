@@ -4945,6 +4945,10 @@ function buildPrintPage(kind){
   const box = $('printPage');
   box.innerHTML = pages.map(p => '<div class="pp-page" style="width:' + W + 'px;height:' + H + 'px"><div class="ppInner">' + p.html + '<div class="pp-foot">' + esc(S.settings.header || '') + ' MENU STUDIO で作成</div></div></div>').join('');
   [...box.querySelectorAll('.pp-page')].forEach((pg, j) => {
+    pg.querySelectorAll('.pp-cols').forEach(cols => {
+      const kids = [...cols.children];
+      kids.forEach(c => { c.style.float = 'left'; c.style.width = (100 / kids.length) + '%'; c.style.boxSizing = 'border-box'; });
+    });
     let fs = (kind === 'compare' || kind === 'plan') ? 16 : ([0, 28, 26, 21][pages[j].n] || 16);
     pg.style.fontSize = fs + 'px';
     const inner = pg.querySelector('.ppInner');

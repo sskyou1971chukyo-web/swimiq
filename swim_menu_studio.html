@@ -670,7 +670,7 @@ body.desk .dLong{display:none}
   .dBar #mDateJpBox{display:none}
   .dBar label.fld{flex-direction:row;align-items:center;gap:4px;font-size:13px}
   .dBar #mStart{width:72px!important;height:40px;font-size:17px;font-weight:700}
-  .dBar #mPool{height:40px;font-size:16px;font-weight:700}
+  .dBar #btnPool{height:40px;font-size:16px;font-weight:700}
   .dBar #mStartBox{font-size:0;white-space:nowrap}
   .dBar #mStartBox::before{content:"開始";font-size:14px;font-weight:700;color:var(--muted)}
   .dBar #mPoolBox{font-size:0}
@@ -758,7 +758,7 @@ body.desk .dLong{display:none}
     <div class="fld" id="mDateJpBox" style="font-size:13px;color:var(--muted);font-weight:700">&nbsp;<span id="mDateJp" style="font-size:18px;color:var(--text)"></span></div>
     <button class="btn" id="btnToday">今日にする</button>
     <label class="fld" id="mStartBox">開始時刻（24時間）<input type="text" id="mStart" inputmode="numeric" placeholder="6:00" style="width:110px" aria-describedby="mStartHelp"></label><span id="mStartHelp" class="sr">6:00 や 1830 のように入れます</span>
-    <label class="fld" id="mPoolBox">水路<select id="mPool"><option>長水路</option><option>短水路</option></select></label>
+    <div class="fld" id="mPoolBox">水路<button class="btn" id="btnPool" type="button" aria-label="水路を切り替える（長水路と短水路）">長水路</button></div>
     <label class="fld" id="mTitleBox" style="flex:1;min-width:200px">メニューの題名（任意）<input type="text" id="mTitle" placeholder="例：閾値の日"></label>
   </div>
   <div id="dBar" class="pcOnly dBar" role="group" aria-label="日付と時刻"><span id="dBarSp" class="dBarSp"></span><button class="btn" id="dockShow" aria-pressed="true">記号の帯をしまう</button></div>
@@ -4193,7 +4193,7 @@ function commitMenu(){
   scheduleSave();
 }
 function renderMenuView(){
-  $('mDate').value = M.date; $('mStart').value = fmtClock(M.start); $('mPool').value = M.pool; $('mTitle').value = M.title || '';
+  $('mDate').value = M.date; $('mStart').value = fmtClock(M.start); if($('btnPool')) $('btnPool').textContent = M.pool; $('mTitle').value = M.title || '';
   $('mDateJp').textContent = M.date.slice(0,4) + '年' + jpDate(M.date) + (M.date === todayYmd() ? '（今日）' : '');
   renderPanels(); renderPlanStrip(); renderAdvice(true); updateSummary(); renderWeekRow();
   if(typeof fitEditor === 'function') requestAnimationFrame(fitEditor);
@@ -4985,7 +4985,7 @@ async function makePdf(save){
     if(j) pdf.addPage('a4', landscape ? 'landscape' : 'portrait');
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 8, 8, pw - 16, ph - 16);
   }
-  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117w'});
+  pdf.setProperties({title:S.settings.header + ' 練習メニュー ' + M.date + ' ' + fmtClock(M.start), keywords:'sms-build-20261117x'});
   const blob = pdf.output('blob');
   lastPdf = {blob, name:pdfName(), id:M.id, updated:M.updated, kind:printKind};
   if(save) lastPdf.where = await savePdfBlob(blob, pdfName());
@@ -10347,7 +10347,7 @@ function init(){
     const c = parseClock($('mStart').value);
     if(!c){ toast('開始時刻は 6:00 や 1830 のように、24時間で入れてください'); $('mStart').value = fmtClock(M.start); return; }
     $('mStart').value = c; M.start = c; S.settings.lastStart = M.start; M.panels.forEach((p, i) => updatePanel(i)); commitMenu(); renderAdvice(true); renderWeekRow(); });
-  $('mPool').addEventListener('change', () => { M.pool = $('mPool').value; S.settings.lastPool = M.pool; commitMenu(); renderWeekRow(); });
+  $('btnPool').addEventListener('click', () => { M.pool = M.pool === '長水路' ? '短水路' : '長水路'; S.settings.lastPool = M.pool; $('btnPool').textContent = M.pool; commitMenu(); renderWeekRow(); updateSummary(); });
   $('mTitle').addEventListener('input', () => { M.title = $('mTitle').value; commitMenu(); });
   $('btnPrint').addEventListener('click', () => doPrint());
   $('btnLine').addEventListener('click', openLine);
@@ -10369,7 +10369,7 @@ function init(){
     toast('基本メニューをコピーした列を追加しました。チームと種目を選び、内容をアレンジしてください', 5000);
   });
   $('mSummary').addEventListener('click', () => { const o = $('menuTop').classList.toggle('open'); $('mSummary').setAttribute('aria-expanded', String(o)); updateSummary(); });
-  ['mStart','mPool','mTitle','mDate'].forEach(id => $(id).addEventListener('change', updateSummary));
+  ['mStart','mTitle','mDate'].forEach(id => $(id).addEventListener('change', updateSummary));
   const setMore = o => { document.body.classList.toggle('moreOpen', o); $('btnMore').setAttribute('aria-expanded', String(o)); $('btnMore').textContent = o ? 'その他を閉じる' : 'その他の操作'; };
   $('btnMore').addEventListener('click', () => setMore(!document.body.classList.contains('moreOpen')));
   document.addEventListener('click', e => { if(document.body.classList.contains('moreOpen') && e.target.closest('.tgroup.sec button, button.msec')) setMore(false); });

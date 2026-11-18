@@ -704,11 +704,12 @@ let bodyView = 'front';
 function bodyMirror(d){ let i = 0; return d.replace(/-?\d+(\.\d+)?/g, n=>{ const v = (i++ % 2 === 0) ? (896 - Number(n)) : Number(n); return String(Math.round(v*10)/10); }); }
 function bodyTextW(t){ let w = 0; for(const ch of t){ w += ch.charCodeAt(0) > 255 ? 36 : 19; } return w + 40; }
 function bodyHTML(){ const V = BODY_VIEWS[bodyView]; const cnt = pk=>EX.filter(e=>(PLACES[e.id]||[]).some(x=>x.part===pk)).length;
+  let minX = 0, maxX = 896; V.zones.forEach(z=>{ const m = BODY_MAP[z.key]; const w = bodyTextW(m.name); const x = z.label[0]==='L' ? z.label[1] - w : z.label[1]; if(x < minX) minX = x; if(x + w > maxX) maxX = x + w; }); minX -= 8; maxX += 8; const VB = minX + ' 0 ' + (maxX - minX) + ' 1776';
   let s = '<image href="'+V.img+'" x="0" y="0" width="896" height="1776"/>';
   V.zones.forEach(z=>{ const m = BODY_MAP[z.key]; s += '<g class="hot" role="button" tabindex="0" data-part="'+m.part+'" aria-label="'+esc(m.name)+'、'+cnt(m.part)+'種目" style="--c:'+z.color+'"><path class="z" d="'+z.d+'"/>'+(V.mirror?'<path class="z" d="'+bodyMirror(z.d)+'"/>':'')+'<title>'+esc(m.name)+'</title></g>'; });
   V.zones.forEach(z=>{ const m = BODY_MAP[z.key]; const [side, lx, ly] = z.label; const w = bodyTextW(m.name); const x = side==='L' ? lx - w : lx;
     s += '<g class="lab" role="button" tabindex="0" data-part="'+m.part+'" aria-label="'+esc(m.name)+'の名前札"><line x1="'+lx+'" y1="'+ly+'" x2="'+z.anchor[0]+'" y2="'+z.anchor[1]+'"/><circle cx="'+z.anchor[0]+'" cy="'+z.anchor[1]+'" r="8"/><rect x="'+x+'" y="'+(ly-28)+'" width="'+w+'" height="56"/><text x="'+(x+20)+'" y="'+(ly+12)+'">'+esc(m.name)+'</text></g>'; });
-  return '<div class="chips" role="group" aria-label="見る向き">'+Object.keys(BODY_VIEWS).map(v=>'<button type="button" class="chip" data-bv="'+v+'" aria-pressed="'+(v===bodyView)+'">'+esc(BODY_VIEWS[v].name)+'</button>').join('')+'</div><p class="sub">体の部位を押すと、その部位の種目が出ます。</p><svg class="body" viewBox="0 0 896 1776" role="group" aria-label="体の絵">'+s+'</svg>'; }
+  return '<div class="chips" role="group" aria-label="見る向き">'+Object.keys(BODY_VIEWS).map(v=>'<button type="button" class="chip" data-bv="'+v+'" aria-pressed="'+(v===bodyView)+'">'+esc(BODY_VIEWS[v].name)+'</button>').join('')+'</div><p class="sub">体の部位を押すと、その部位の種目が出ます。</p><svg class="body" viewBox="' + VB + '" role="group" aria-label="体の絵">'+s+'</svg>'; }
 
 /* ---- 種目の詳細（説明と根拠は前の版のまま） ---- */
 function refItem(k, link){ const kind = refKind(k); const url = REF_URL[k] || (kind==='講演資料' ? '' : 'https://scholar.google.com/scholar?q='+encodeURIComponent(REFS[k]));

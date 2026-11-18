@@ -775,7 +775,15 @@ VIEWS.settings = ()=>({title:'設定', html:
   '<h2>コーチへの送信</h2><p id="syncLine">'+esc(syncStatusTxt())+'</p><div class="stack two"><button type="button" class="ghost" id="syncBtn">今すぐ送る</button><button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button></div>'+
   (db.undoRow?'<h2>外した種目を戻す</h2><button type="button" class="ghost" id="undoRow">'+esc(md(db.undoRow.k))+'の「'+esc(shortName(EXMAP[db.undoRow.row.exId]))+'」を戻す</button>':'')+
   '<h2>バックアップ</h2><p class="sub">記録はこの携帯のこのブラウザーの中にあります。ときどき保存してください。</p><div class="stack two"><button type="button" class="ghost" id="bkSave">バックアップを保存</button><label class="ghost" style="position:relative">バックアップから戻す<input type="file" id="bkLoad" accept=".json,application/json" style="position:absolute;inset:0;opacity:0"></label></div>'+
-  '<h2>このアプリについて</h2><p class="sub">版 '+APP_VER+'。種目 '+EX.length+'、文献 '+REF_ORDER.length+'件。種目の説明と根拠は、前の版で確かめたものをそのまま使っています。</p>',
+  '<h2>このアプリについて</h2><p class="sub">版 '+APP_VER+'。種目 '+EX.length+'、文献 '+REF_ORDER.length+'件。種目の説明と根拠は、前の版で確かめたものをそのまま使っています。</p>'+
+  '<details class="more"><summary>根拠：ACSMの新しい筋トレ指針（2026年改訂）</summary><div class="inner">'+
+  '<p>・<strong>追い込まなくてよい</strong>：あと2〜3回できる所で止めても、筋力・筋肥大・パワーは限界まで行った場合と劣らない。</p>'+
+  '<p>・<strong>最大筋力</strong>：80%1RM以上の重さ、全可動域、週2回以上。大事な種目を最初に行う。</p>'+
+  '<p>・<strong>筋肥大</strong>：1つの筋肉に週10セット以上。ただし限界近くまで寄せることが前提で、楽なセットでは足りない。</p>'+
+  '<p>・<strong>パワー</strong>：30〜70%1RMを、最大スピードで動かす意図で行う。</p>'+
+  '<p>・<strong>器具</strong>：フリーウエイト、マシン、バンドで成果は一貫して変わらない。</p>'+
+  '<p class="sub">根拠：Currier BS, et al. American College of Sports Medicine Position Stand. Resistance Training Prescription for Muscle Function, Hypertrophy, and Physical Performance in Healthy Adults. Med Sci Sports Exerc. 2026;58(4):851-872. DOI: 10.1249/MSS.0000000000003897。系統的レビュー137件、参加者3万人以上を統合した公式見解（2009年版の改訂）。対象は健康な成人で、競技選手専用の研究ではない点に注意。</p>'+
+  '</div></details>',
   after(){ document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>{ db.role = b.dataset.role; db.mode = 'coach'; save(); paintMode(); document.querySelectorAll('[data-role]').forEach(x=>x.setAttribute('aria-pressed', x===b)); }));
     $('#sF').addEventListener('submit',ev=>{ ev.preventDefault(); const n = $('#sName').value.trim(); if(!n){ say('名前を入れてください'); $('#sName').focus(); return; } db.me = n; db.syncUrl = $('#sUrl').value.trim(); save(); say('保存しました'); render(false); $('#sName').focus(); });
     $('#syncBtn').addEventListener('click',()=>syncNow(true)); $('#menuFetch').addEventListener('click',()=>fetchMenu(true));

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>梅村理事長訪問 日程調整</title>
+<style>
+body{font-family:sans-serif;margin:0;padding:14px;background:#f6f6f4;color:#222}
+h1{font-size:20px;margin:4px 0 8px}
+p.note{font-size:14px;color:#444;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.chip{padding:10px 14px;border:2px solid #999;border-radius:999px;background:#fff;font-size:16px;cursor:pointer}
+.chip.sel{border-color:#1a7f37;background:#e6f4ea;font-weight:bold}
+.day{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.day h2{font-size:16px;margin:0 0 8px}
+.slots{display:flex;gap:8px}
+.slot{flex:1;padding:14px 4px;font-size:15px;border-radius:8px;border:2px solid #1a7f37;background:#e6f4ea;cursor:pointer;text-align:center;line-height:1.3}
+.slot small{display:block;font-size:12px}
+.slot.ng{border-color:#c0392b;background:#fdecea}
+#bar{position:sticky;bottom:0;background:#fff;border-top:1px solid #ccc;padding:10px;display:flex;align-items:center;gap:12px}
+#send{flex:1;padding:16px;font-size:18px;font-weight:bold;background:#1a7f37;color:#fff;border:none;border-radius:10px;cursor:pointer}
+#send:disabled{background:#aaa}
+#msg{font-size:14px;font-weight:bold}
+table{border-collapse:collapse;width:100%;font-size:12px;background:#fff}
+th,td{border:1px solid #ccc;padding:4px;vertical-align:top}
+td.allok{background:#ffe9a8;font-weight:bold}
+input[type=password]{padding:10px;font-size:16px;width:60%}
+button.sub{padding:10px 16px;font-size:16px}
+a{color:#1a7f37}
+</style>
+</head>
+<body>
+<div id="answerView">
+<h1>梅村理事長訪問 日程調整</h1>
+<p class="note">期間：11月24日〜12月18日の平日<br>最初は全部「○（行ける）」になっています。都合の悪い日時だけタップして「×」にしてください。最後に下の「送る」を押してください。</p>
+<div class="chips" id="names"></div>
+<div id="days"></div>
+<div id="bar"><span id="xcount"></span><button id="send">送る</button></div>
+<p id="msg"></p>
+<p><a href="#" id="toList">一覧（設定者専用）</a></p>
+</div>
+<div id="listView" style="display:none">
+<h1>回答一覧（設定者専用）</h1>
+<p class="note">合言葉を入れてください。</p>
+<input type="password" id="pass" placeholder="合言葉">
+<button class="sub" id="unlock">開く</button>
+<p id="listMsg"></p>
+<div id="listBody"></div>
+<p><a href="#" id="toAnswer">回答画面にもどる</a></p>
+</div>
+<script>
+var EXEC = 'https://script.google.com/macros/s/AKfycbzziPlQe2ZXtMQrOEJZspYlwBCyQ1-kCik8X7CguiPoLRgQBbAj0Evp7iD4hiQihTnv/exec';
+var MEMBERS = ['高橋繁浩','谷口卓','佐々木祐一郎','西小野広大','松本周也','内村弥路','藤井萌夏'];
+var SLOTS = ['10:00-12:00','12:00-14:00','14:00-16:00'];
+var WD = ['日','月','火','水','木','金','土'];
+var DAYS = [];
+(function(){
+  var d = new Date(2026,10,24);
+  var end = new Date(2026,11,18);
+  while(d <= end){
+    var w = d.getDay();
+    if(w >= 1 && w <= 5){ DAYS.push({m:d.getMonth()+1, d:d.getDate(), w:WD[w]}); }
+    d.setDate(d.getDate()+1);
+  }
+})();
+var myName = '';
+var answers = {};
+DAYS.forEach(function(day){ SLOTS.forEach(function(s){ answers[day.m+'/'+day.d+'|'+s] = '○'; }); });
+var namesEl = document.getElementById('names');
+MEMBERS.forEach(function(n){
+  var b = document.createElement('button');
+  b.className = 'chip'; b.textContent = n;
+  b.onclick = function(){
+    myName = n;
+    var cs = namesEl.children;
+    for(var i = 0; i < cs.length; i++){ cs[i].className = 'chip' + (cs[i].textContent === n ? ' sel' : ''); }
+  };
+  namesEl.appendChild(b);
+});
+var daysEl = document.getElementById('days');
+function paint(){
+  daysEl.innerHTML = '';
+  DAYS.forEach(function(day){
+    var div = document.createElement('div'); div.className = 'day';
+    var h = document.createElement('h2'); h.textContent = day.m + '/' + day.d + '（' + day.w + '）'; div.appendChild(h);
+    var row = document.createElement('div'); row.className = 'slots';
+    SLOTS.forEach(function(s){
+      var key = day.m + '/' + day.d + '|' + s;
+      var b = document.createElement('button');
+      b.className = 'slot' + (answers[key] === '×' ? ' ng' : '');
+      b.innerHTML = s + '<small>' + answers[key] + '</small>';
+      b.onclick = function(){ answers[key] = (answers[key] === '○') ? '×' : '○'; paint(); };
+      row.appendChild(b);
+    });
+    div.appendChild(row);
+    daysEl.appendChild(div);
+  });
+  var x = 0;
+  for(var k in answers){ if(answers[k] === '×') x++; }
+  document.getElementById('xcount').textContent = '×：' + x + '件';
+}
+paint();
+document.getElementById('send').onclick = function(){
+  var msg = document.getElementById('msg');
+  if(!myName){ msg.style.color = '#c0392b'; msg.textContent = '最初に名前を選んでください。'; window.scrollTo(0,0); return; }
+  var btn = document.getElementById('send');
+  btn.disabled = true; btn.textContent = '送信中…';
+  fetch(EXEC, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({name: myName, answers: answers})
+  }).then(function(){
+    btn.disabled = false; btn.textContent = '送る';
+    msg.style.color = '#1a7f37';
+    msg.textContent = '送信しました。ありがとうございました。';
+    window.scrollTo(0, document.body.scrollHeight);
+  }).catch(function(){
+    btn.disabled = false; btn.textContent = '送る';
+    msg.style.color = '#c0392b';
+    msg.textContent = '送信できませんでした。電波の良い場所でもう一度お試しください。';
+  });
+};
+document.getElementById('toList').onclick = function(e){
+  e.preventDefault();
+  document.getElementById('answerView').style.display = 'none';
+  document.getElementById('listView').style.display = 'block';
+};
+document.getElementById('toAnswer').onclick = function(e){
+  e.preventDefault();
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('answerView').style.display = 'block';
+};
+window.renderList = function(r){
+  var lm = document.getElementById('listMsg');
+  if(!r.ok){ lm.textContent = r.msg; return; }
+  lm.textContent = '回答：' + r.rows.length + '名 ／ 7名';
+  var answered = {};
+  r.rows.forEach(function(row){ answered[row.name] = true; });
+  var missing = MEMBERS.filter(function(n){ return !answered[n]; });
+  var html = '';
+  if(missing.length){ html += '<p class="note">未回答：' + missing.join('、') + '</p>'; }
+  html += '<table><tr><th>日付</th>';
+  SLOTS.forEach(function(s){ html += '<th>' + s + '</th>'; });
+  html += '</tr>';
+  DAYS.forEach(function(day){
+    html += '<tr><td>' + day.m + '/' + day.d + '（' + day.w + '）</td>';
+    SLOTS.forEach(function(s){
+      var key = day.m + '/' + day.d + '|' + s;
+      var oks = [];
+      r.rows.forEach(function(row){ if(row.answers[key] === '○') oks.push(row.name); });
+      var all = (r.rows.length > 0 && oks.length === r.rows.length);
+      html += '<td class="' + (all ? 'allok' : '') + '">○ ' + oks.length + '名<br>' + oks.join('、') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</table><p class="note">黄色は、回答した全員が○の枠です。</p>';
+  document.getElementById('listBody').innerHTML = html;
+};
+document.getElementById('unlock').onclick = function(){
+  var pass = document.getElementById('pass').value;
+  var lm = document.getElementById('listMsg');
+  lm.textContent = '読み込み中…';
+  var old = document.getElementById('jsonp');
+  if(old){ old.remove(); }
+  var sc = document.createElement('script');
+  sc.id = 'jsonp';
+  sc.src = EXEC + '?mode=list&pass=' + encodeURIComponent(pass) + '&callback=renderList&_=' + Date.now();
+  sc.onerror = function(){ lm.textContent = '読み込めませんでした。'; };
+  document.body.appendChild(sc);
+};
+</script>
+</body>
+</html>

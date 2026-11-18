@@ -336,8 +336,11 @@ details.kc-dt .kc-bb{padding:0 14px 12px}
 .kc-cardbtn b{display:block;font-size:1.05rem;line-height:1.3;color:#111}
 .kc-cardbtn span span{display:block;font-size:.85rem;color:#333;line-height:1.35}
 .kc-cardbtn:hover,.kc-cardbtn:focus-visible{border-color:var(--am)}
-.kc-learn{display:flex;flex-direction:column;gap:8px;margin:12px 0}
-.kc-learn .kc-ytbtn{margin:0;width:100%;max-width:none}
+.kc-learn{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.kc-learn .kc-cardbtn{flex:1 1 178px;width:auto;grid-template-columns:52px minmax(0,1fr);gap:8px;min-height:64px}
+.kc-learn .kc-cardbtn img{width:52px;height:52px}
+.kc-learn .kc-ytbtn{flex:1 1 138px;margin:0;width:auto;max-width:none}
+.kc-learn .cz-nocard{flex:1 1 100%}
 .kc-dh{margin:18px 0 0}
 .kc-none{margin-left:auto;font-size:.8rem;font-weight:400;color:var(--sub);border:1px dashed var(--line);border-radius:6px;padding:0 6px;flex:none}
 details.kc-dt>summary .kc-none~*{display:none}
@@ -2272,7 +2275,7 @@ const _detailKC = VIEWS.detail; VIEWS.detail = cur=>{ const v = _detailKC(cur); 
   let tail = v.html.slice(j); const y0 = tail.indexOf('<details class="more"><summary>動画で見る'); if(y0>=0){ const y1 = tail.indexOf('</details>', y0); tail = tail.slice(0,y0)+tail.slice(y1+10); }
   tail = tail.replace('<details class="more"><summary>根拠の文献','<details class="more kc-ref"><summary>根拠の文献');
   const same = kcForEx(e); const near = kcNearEx(e);
-  let body = '<div class="kc-learn">'+kcYtBtn(shortName(e))+same.map(no=>kcCardBtn(no,'data-kc2',false)).join('')+near.map(no=>kcCardBtn(no,'data-kc2',true)).join('')+'</div>';
+  let body = '<div class="kc-learn">'+same.map(no=>kcCardBtn(no,'data-kc2',false)).join('')+near.map(no=>kcCardBtn(no,'data-kc2',true)).join('')+kcYtBtn(shortName(e))+'</div>';
   if(same.length){ const c = KC_CBY[same[0]]; body += '<h2 class="kc-dh">説明（種目カード '+kcPad(c.no)+' より）</h2>'+KC_ALLBAR+kcSections(c)+'<p class="kc-src">'+esc(KC_SRC)+'</p>'; }
   else body += '<h2 class="kc-dh">説明</h2>'+(near.length?'':'<p class="sub" style="margin-top:0">この種目のカードはまだありません。このアプリに登録してある説明を、カードと同じ並びで出しています。</p>')+KC_ALLBAR+kcSectionsEx(e);
   v.html = v.html.slice(0,i)+body+tail;

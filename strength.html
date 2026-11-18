@@ -408,7 +408,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-18 お知らせ';
+const APP_VER = '2026-11-18 大改善';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2619,6 +2619,11 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261118c', date:'11月18日', items:[
+    '選手の画面：開いたら一番上に「次にやること」の大きなボタンが出ます。押していくだけで、その日の練習が進みます',
+    'BIG3トータル（ベンチ＋デッド＋スクワットの推定1RM）と、伸びのグラフが見られるようになりました（記録の画面と、練習を終えたあとのボタンから）',
+    'コーチの画面：送ったメニュー一覧、選手同士の1RM比較、選手カレンダー（日を押すとその日の結果が出て、そのままメニューを作れます）、次の種目の提案と並び順の提案が増えました'
+  ] },
   { v:'20261118b', date:'11月18日', items:[
     '更新のお知らせを出すようにしました（この表示です）。設定の「このアプリについて」から、いつでも読み直せます',
     '根拠に「ACSMの新しい筋トレ指針（2026年改訂）」を足しました（設定の「このアプリについて」の中）',
@@ -2633,6 +2638,134 @@ const _renderNews = render;
 render = function(focus){ _renderNews(focus); if(newsPending()){ const v = $('#view'); if(v && !v.querySelector('[data-newsok]')) v.insertAdjacentHTML('afterbegin', newsBannerHTML()); } };
 document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-newsok]'); if(!b) return; db.newsSeen = APP_NEWS[0].v; save(); render(false); });
 const _settingsNews = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsNews(); v.html += '<details class="more"><summary>更新のお知らせ</summary><div class="inner">'+APP_NEWS.map(n=>'<p class="sub" style="margin:8px 0 4px"><b>'+n.date+'の更新</b></p><ul style="margin:0;padding-left:20px">'+n.items.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>').join('')+'</div></details>'; return v; };
+
+/* ============ 次にやることバー（選手）＋ BIG3 ============ */
+const BIG3 = [
+  { name:'ベンチプレス', ids:['b_bench'] },
+  { name:'デッドリフト', ids:['gy_EX0256','l_trap'] },
+  { name:'スクワット', ids:['l_bsq','gy_EX0068'] }
+];
+function liftBest(ids){ let best = null; ids.forEach(id=>{ const b = bestOf(id, null); if(b && (!best || b.v > best.v)) best = { v:b.v, k:b.k, exId:id }; }); return best; }
+function liftSeries(ids){ const pts = []; ids.forEach(id=>histRows(id, null).forEach(x=>{ const v = rowBest(x.r, x.k); if(v != null) pts.push({ k:x.k, v }); })); pts.sort((a,b)=>a.k < b.k ? -1 : a.k > b.k ? 1 : 0); let cur = null; const out = []; pts.forEach(p=>{ if(cur == null || p.v > cur) cur = p.v; if(!out.length || out[out.length-1].k !== p.k) out.push({ k:p.k, v:cur }); else out[out.length-1].v = cur; }); return out; }
+function big3Series(){ const per = BIG3.map(l=>liftSeries(l.ids)); const dates = [...new Set(per.flatMap(s=>s.map(p=>p.k)))].sort(); const at = (s,d)=>{ let v = null; for(const p of s){ if(p.k <= d) v = p.v; else break; } return v; }; return dates.map(d=>{ const vs = per.map(s=>at(s,d)); return { k:d, v: vs.every(x=>x != null) ? r1(vs.reduce((a,b)=>a+b,0)) : null }; }).filter(p=>p.v != null); }
+function lineSVG(data, label){ if(data.length < 2) return ''; const W = 340, H = 132; const ys = data.map(p=>p.v); const y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = Math.max(2, (y1-y0)*0.2); const lo = y0-pad, hi = y1+pad; const px = i=>12 + i*(W-24)/(data.length-1); const py = v=>10 + (hi-v)/(hi-lo)*(H-42);
+  return '<div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+esc(label)+'">'+
+  '<polyline fill="none" stroke="#ffc400" stroke-width="3" points="'+data.map((p,i)=>px(i).toFixed(1)+','+py(p.v).toFixed(1)).join(' ')+'"/>'+
+  data.map((p,i)=>'<circle cx="'+px(i).toFixed(1)+'" cy="'+py(p.v).toFixed(1)+'" r="3.5" fill="#ffc400"/>').join('')+
+  '<text x="4" y="14" fill="#fff" font-size="12" font-weight="700">'+kg(data[data.length-1].v)+' kg</text>'+
+  '<text x="4" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+data[0].k.slice(5).replace('-','/')+'</text><text x="'+(W-46)+'" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+data[data.length-1].k.slice(5).replace('-','/')+'</text></svg></div>'; }
+function big3CardHTML(){ const bs = BIG3.map(l=>({ l, b:liftBest(l.ids) })); const total = bs.every(x=>x.b) ? r1(bs.reduce((t,x)=>t+x.b.v,0)) : null;
+  return '<h2>BIG3トータル</h2><ul class="tiles"><li><span class="big">'+(total != null ? kg(total) : '―')+'<small>kg</small></span><span class="sub">ベンチ＋デッド＋スクワットの推定1RM</span></li><li><span class="big">'+bs.filter(x=>x.b).length+'<small>/3</small></span><span class="sub">記録がある種目</span></li></ul>'+
+  '<ul class="rows">'+bs.map(x=>'<li class="row"><span class="rmain"><strong>'+x.l.name+'</strong><span class="d">'+(x.b ? esc(shortName(EXMAP[x.b.exId]))+'　'+md(x.b.k)+'の記録' : 'まだ記録がありません')+'</span></span><b>'+(x.b ? kg(x.b.v)+' kg' : '―')+'</b></li>').join('')+'</ul>'; }
+VIEWS.big3 = ()=>{ const ser = big3Series(); return { title:'BIG3とグラフ', html: big3CardHTML()+
+  '<h2>BIG3トータルの伸び</h2>'+(ser.length >= 2 ? lineSVG(ser, 'BIG3トータルの推移') : '<p class="sub">3種目そろって、記録が2回以上たまるとグラフが出ます。</p>')+
+  BIG3.map(l=>{ const s = liftSeries(l.ids); return '<h2>'+l.name+'のベストの伸び</h2>'+(s.length >= 2 ? lineSVG(s, l.name+'の推定1RMの推移') : '<p class="sub">'+(s.length ? 'いまのベストは '+kg(s[s.length-1].v)+' kgです。もう1回記録するとグラフが出ます。' : 'まだ記録がありません。')+'</p>'); }).join(''), after(){} }; };
+ROOTS.push('big3');
+const _resultB3 = VIEWS.result; VIEWS.result = ()=>{ const v = _resultB3(); v.html = big3CardHTML()+'<button type="button" class="ghost" data-go="big3" style="width:100%;margin:4px 0 14px">BIG3のグラフを大きく見る</button>'+v.html; return v; };
+function nextBarHTML(){ if(isCoach() || !db.ready) return ''; const k = curDay(); const d = day(k); const step = stepOf(k); let label, act;
+  if(step === 1){ label = '① 練習前を記録する'; act = 'pre'; }
+  else if(step === 2){ if(!d.rows.length){ const inbox = inboxFor(k); if(inbox.length){ label = '② 届いたメニューを使う（'+menuCnt(inbox[0])+'）'; act = 'inbox'; } else { label = '② 種目を選んでメニューを作る'; act = 'pick'; } }
+    else { const r = d.rows.find(x=>!x.status); label = '② 次は「'+shortName(EXMAP[r.exId])+'」を記録する'; act = 'row:'+r.rid; } }
+  else if(step === 3){ label = '③ 今日の練習を終える'; act = 'fin'; }
+  else { label = 'おつかれさまです。BIG3とグラフを見る'; act = 'big3'; }
+  const steps = ['①練習前','②メニュー','③終える'].map((t,i)=> step === i+1 ? '<b style="color:#ffc400">'+t+'</b>' : (step > i+1 || step === 4 ? t+' ✓' : t)).join(' → ');
+  return '<div style="position:sticky;top:0;z-index:7;background:var(--bg);padding:8px 0 6px"><button type="button" class="cta" data-next="'+act+'" style="width:100%;min-height:60px;font-size:1.12rem">'+esc(label)+'</button><p class="sub" style="margin:6px 0 0;text-align:center">'+steps+(step === 2 && d.rows.length ? '　'+d.rows.filter(r=>r.status).length+'/'+d.rows.length+' 種目おわり' : '')+'</p></div>'; }
+function nextAct(act){ const k = curDay(); const d = day(k);
+  if(act === 'pre'){ const h = $('#pg1'); if(h) h.scrollIntoView({ behavior:'smooth', block:'start' }); const i = $('#preBw'); if(i) setTimeout(()=>i.focus(), 350); return; }
+  if(act === 'inbox'){ const inbox = inboxFor(k); if(inbox.length){ applyInbox(k, inbox[0]); save(); render(false); } return; }
+  if(act === 'pick'){ pick = true; go('ex'); return; }
+  if(act === 'fin'){ if(d.rows.length && d.rows.every(r=>r.status)){ d.finished = new Date().toISOString(); save(); say('今日の練習を記録しました'); render(false); syncNow(false); } return; }
+  if(act === 'big3'){ go('big3'); return; }
+  if(act.indexOf('row:') === 0){ openRow(k, act.slice(4)); return; } }
+const _todayNext = VIEWS.today; VIEWS.today = ()=>{ const v = _todayNext(); const bar = nextBarHTML(); if(bar){ v.html = bar+v.html; const a0 = v.after || (()=>{}); v.after = ()=>{ a0(); const b = document.querySelector('[data-next]'); if(b) b.addEventListener('click', ()=>nextAct(b.dataset.next)); }; } return v; };
+
+/* ============ コーチ：ハブ＋送ったメニュー一覧・比較・カレンダー・提案 ============ */
+ROOTS.push('sent', 'cmp', 'acal', 'prop');
+function exByName(nm){ const t = String(nm || '').trim(); if(!t) return null; return EX.find(e=>e.name === t || shortName(e) === t) || null; }
+function teamNames(){ const by = teamByName(); const s = new Set([...Object.keys(by), ...(db.names || [])]); return [...s].sort(); }
+function teamGateHTML(){ return '<div class="note warn">まだ選手の記録を取り込んでいません。<br><button type="button" class="cta" id="tgFetch" style="margin-top:8px">最新の記録を取り込む</button></div>'; }
+function bindTeamGate(){ const b = $('#tgFetch'); if(b) b.addEventListener('click', ()=>fetchAll(true)); }
+function rmHist(name, exName){ return ((teamByName()[name]) || []).filter(x=>String(x['種類']) === '記録' && String(x['種目']) === exName && Number(x['推定1RM']) > 0).map(x=>({ k:rowDate(x), v:Number(x['推定1RM']) })).sort((a,b)=>a.k < b.k ? -1 : 1); }
+function bestToDate(pts, dates){ let cur = null; const out = []; dates.forEach(d=>{ pts.forEach(p=>{ if(p.k === d && (cur == null || p.v > cur)) cur = p.v; }); if(cur != null) out.push({ k:d, v:cur }); }); return out; }
+function lineSVG2(d1, d2, n1, n2){ const dates = [...new Set([...d1, ...d2].map(p=>p.k))].sort(); const s1 = bestToDate(d1, dates), s2 = bestToDate(d2, dates); const all = [...s1, ...s2]; if(all.length < 2 || !s1.length || !s2.length) return ''; const W = 340, H = 150; const ys = all.map(p=>p.v); const y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = Math.max(2, (y1-y0)*0.2); const lo = y0-pad, hi = y1+pad; const px = k=>14 + dates.indexOf(k)*(W-28)/Math.max(1, dates.length-1); const py = v=>12 + (hi-v)/(hi-lo)*(H-48);
+  const line = (s, c)=>'<polyline fill="none" stroke="'+c+'" stroke-width="3" points="'+s.map(p=>px(p.k).toFixed(1)+','+py(p.v).toFixed(1)).join(' ')+'"/>'+s.map(p=>'<circle cx="'+px(p.k).toFixed(1)+'" cy="'+py(p.v).toFixed(1)+'" r="3.5" fill="'+c+'"/>').join('');
+  return '<div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="1RMの比較グラフ"><text x="4" y="14" fill="#ffc400" font-size="12" font-weight="700">― '+esc(n1)+'（ベスト '+kg(Math.max(...s1.map(p=>p.v)))+' kg）</text><text x="4" y="30" fill="#4da3ff" font-size="12" font-weight="700">― '+esc(n2)+'（ベスト '+kg(Math.max(...s2.map(p=>p.v)))+' kg）</text>'+line(s1, '#ffc400')+line(s2, '#4da3ff')+'<text x="4" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+dates[0].slice(5).replace('-', '/')+'</text><text x="'+(W-46)+'" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+dates[dates.length-1].slice(5).replace('-', '/')+'</text></svg></div>'; }
+
+VIEWS.sent = ()=>{ const list = (db.sentMenus || []).slice().reverse(); return { title:'送ったメニュー一覧', html:
+  (list.length ? '<ul class="rows">'+list.map(m=>'<li class="row"><span class="rmain"><strong>'+wdTxt(m.date)+'</strong><span class="d">'+esc((m.to || []).join('、'))+'<br>'+(m.rows || []).map(r=>esc(r.name || shortName(EXMAP[r.exId] || { name:'' }))).join('、')+(m.note ? '<br>メモ：'+esc(m.note) : '')+'</span></span><span style="display:flex;flex-direction:column;gap:6px"><button type="button" class="ghost sm" data-sreuse="'+esc(m.mid)+'">もう一度使う</button><button type="button" class="ghost sm" data-sedit="'+esc(m.mid)+'">直す</button><button type="button" class="ghost sm" data-sdel="'+esc(m.mid)+'">取り消す</button></span></li>').join('')+'</ul>'
+  : '<p class="sub">まだ送ったメニューがありません。メニュー作りの画面から送ると、ここに残ります。</p>'),
+  after(){ document.querySelectorAll('[data-sreuse]').forEach(b=>b.addEventListener('click', ()=>{ reuseMenu(b.dataset.sreuse); go('coach'); }));
+    document.querySelectorAll('[data-sedit]').forEach(b=>b.addEventListener('click', ()=>{ editReserved(b.dataset.sedit); go('coach'); }));
+    document.querySelectorAll('[data-sdel]').forEach(b=>b.addEventListener('click', ()=>cancelMenu(b.dataset.sdel))); } }; };
+
+VIEWS.cmp = ()=>{ const names = teamNames(); const c = db.cmp = db.cmp || { a:'', b:'', ex:'' }; if(!c.a && names[0]) c.a = names[0]; if(!c.b && names[1]) c.b = names[1];
+  const exSet = new Set(); [c.a, c.b].forEach(n=>((teamByName()[n]) || []).forEach(x=>{ if(String(x['種類']) === '記録' && x['種目']) exSet.add(String(x['種目'])); }));
+  const exList = [...exSet].sort(); if(!exList.includes(c.ex)) c.ex = exList[0] || '';
+  const h1 = c.ex ? rmHist(c.a, c.ex) : [], h2 = c.ex ? rmHist(c.b, c.ex) : [];
+  const best = h=>h.length ? Math.max(...h.map(p=>p.v)) : null; const last = h=>h.length ? h[h.length-1] : null;
+  const sel = (id, val, opts)=>'<select class="txt" id="'+id+'">'+opts.map(o=>'<option value="'+esc(o)+'"'+(o === val ? ' selected' : '')+'>'+esc(o)+'</option>').join('')+'</select>';
+  return { title:'選手の比較（1RM）', html:
+    (!names.length ? teamGateHTML() :
+    '<label class="f">選手A'+sel('cmpA', c.a, names)+'</label><label class="f">選手B'+sel('cmpB', c.b, names)+'</label><label class="f">種目（2人が実施したことのある種目）'+sel('cmpEx', c.ex, exList)+'</label>'+
+    (c.ex ? '<ul class="tiles"><li><span class="big">'+(best(h1) != null ? kg(best(h1)) : '―')+'<small>kg</small></span><span class="sub">'+esc(c.a)+' のベスト'+(last(h1) ? '（最新 '+md(last(h1).k)+' '+kg(last(h1).v)+' kg）' : '')+'</span></li><li><span class="big">'+(best(h2) != null ? kg(best(h2)) : '―')+'<small>kg</small></span><span class="sub">'+esc(c.b)+' のベスト'+(last(h2) ? '（最新 '+md(last(h2).k)+' '+kg(last(h2).v)+' kg）' : '')+'</span></li></ul>'+
+      (best(h1) != null && best(h2) != null ? '<p class="sub">差は '+kg(r1(Math.abs(best(h1)-best(h2))))+' kg（'+esc(best(h1) >= best(h2) ? c.a : c.b)+' が上）</p>' : '')+
+      lineSVG2(h1, h2, c.a, c.b) : '<p class="sub">2人とも記録がある種目が、まだありません。</p>')),
+    after(){ bindTeamGate(); ['cmpA', 'cmpB', 'cmpEx'].forEach(id=>{ const s = $('#'+id); if(s) s.addEventListener('change', ()=>{ db.cmp[id === 'cmpA' ? 'a' : id === 'cmpB' ? 'b' : 'ex'] = s.value; save(); render(false); }); }); } }; };
+
+VIEWS.acal = ()=>{ const names = teamNames(); const a = db.acal = db.acal || { name:'', ym: today().slice(0, 7), day:'' }; if(!a.name && names[0]) a.name = names[0];
+  const rows = (teamByName()[a.name]) || []; const byDay = {}; rows.forEach(x=>{ const d = rowDate(x); (byDay[d] = byDay[d] || []).push(x); });
+  const [yy, mm] = a.ym.split('-').map(Number); const nd = new Date(yy, mm, 0).getDate(); const first = new Date(yy, mm-1, 1).getDay();
+  let cells = ''; for(let i = 0; i < first; i++) cells += '<span></span>';
+  for(let d = 1; d <= nd; d++){ const key = a.ym+'-'+String(d).padStart(2, '0'); const n = (byDay[key] || []).filter(x=>String(x['種類']) === '記録').length; const has = (byDay[key] || []).length > 0;
+    cells += '<button type="button" data-acday="'+key+'" aria-pressed="'+(a.day === key)+'" style="min-height:44px;border-radius:8px;border:1px solid '+(a.day === key ? '#ffc400' : '#3a3b3d')+';background:'+(has ? '#26314d' : 'transparent')+';color:#fff">'+d+(n ? '<br><small>'+n+'種目</small>' : '')+'</button>'; }
+  const dayRows = a.day ? (byDay[a.day] || []) : [];
+  const recs = dayRows.filter(x=>String(x['種類']) === '記録'); const cond = dayRows.find(x=>String(x['種類']) === '調子'); const prac = dayRows.find(x=>String(x['種類']) === '練習');
+  return { title:'選手カレンダー', html:
+    (!names.length ? teamGateHTML() :
+    '<label class="f">選手<select class="txt" id="acName">'+names.map(n=>'<option value="'+esc(n)+'"'+(n === a.name ? ' selected' : '')+'>'+esc(n)+'</option>').join('')+'</select></label>'+
+    '<div class="stack two" style="margin:8px 0"><button type="button" class="ghost sm" id="acPrev">前の月</button><button type="button" class="ghost sm" id="acNext">次の月</button></div>'+
+    '<h2>'+yy+'年'+mm+'月</h2><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center"><span class="sub">日</span><span class="sub">月</span><span class="sub">火</span><span class="sub">水</span><span class="sub">木</span><span class="sub">金</span><span class="sub">土</span>'+cells+'</div>'+
+    (a.day ? '<h2>'+md(a.day)+' の結果</h2>'+(cond ? '<p class="sub">調子：睡眠 '+(cond['睡眠h'] !== '' && cond['睡眠h'] != null ? cond['睡眠h']+'h' : '未')+'、疲れ '+(cond['疲れ'] || '未')+'</p>' : '')+(prac ? '<p class="sub">練習量：'+kg(Number(prac['動かした重さkg']) || 0)+' kg</p>' : '')+
+      (recs.length ? '<ul class="rows">'+recs.map(x=>'<li class="row"><span class="rmain"><strong>'+esc(x['種目'])+'</strong><span class="d">'+esc(x['セットの内容'] || '')+'</span></span><b>'+(Number(x['推定1RM']) > 0 ? kg(Number(x['推定1RM']))+' kg' : '')+'</b></li>').join('')+'</ul><button type="button" class="cta" id="acDraft" style="width:100%;min-height:54px">この日の種目でメニューを作る</button>' : '<p class="sub">この日に種目の記録はありません。</p>') : '<p class="sub">日を押すと、その日の結果が出ます。</p>')),
+    after(){ bindTeamGate(); const nm = $('#acName'); if(nm) nm.addEventListener('change', ()=>{ db.acal.name = nm.value; db.acal.day = ''; save(); render(false); });
+      const mv = d=>{ const [y, m] = db.acal.ym.split('-').map(Number); const dt = new Date(y, m-1+d, 1); db.acal.ym = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2, '0'); db.acal.day = ''; save(); render(false); };
+      const pv = $('#acPrev'); if(pv) pv.addEventListener('click', ()=>mv(-1)); const nx = $('#acNext'); if(nx) nx.addEventListener('click', ()=>mv(1));
+      document.querySelectorAll('[data-acday]').forEach(b=>b.addEventListener('click', ()=>{ db.acal.day = b.dataset.acday; save(); render(false); }));
+      const dr = $('#acDraft'); if(dr) dr.addEventListener('click', ()=>draftFromDay(db.acal.name, db.acal.day)); } }; };
+function draftFromDay(name, dayKey){ const rows = ((teamByName()[name]) || []).filter(x=>rowDate(x) === dayKey && String(x['種類']) === '記録'); const seen = new Set(); const out = [];
+  rows.forEach(x=>{ const e = exByName(x['種目']); if(e && !seen.has(e.id)){ seen.add(e.id); out.push(newRow(e.id, { kg:0, reps:5, sets:3 })); } });
+  if(!out.length){ say('その日に種目の記録がありません'); return; }
+  const d = draft(); d.rows = out; d.to = [name]; save(); say(name+'さんの '+md(dayKey)+' の'+out.length+'種目を下書きに入れました。重さは直してください'); go('coach'); }
+
+const PART_MAIN = ['pec', 'lat', 'deltoid', 'biceps', 'triceps', 'abs', 'quad', 'ham', 'glute', 'calf'];
+function partName(pk){ const m = Object.values(BODY_MAP).find(x=>x.part === pk); return m ? m.name : pk; }
+function partOfEx(e){ const pl = PLACES[e.id] || []; return pl.length ? pl[0].part : null; }
+function propAnalyze(name){ const since = addDays(today(), -27); const byPart = {}; const exDays = {};
+  ((teamByName()[name]) || []).forEach(x=>{ if(String(x['種類']) !== '記録') return; const dt = rowDate(x); if(dt < since || dt > today()) return; const e = exByName(x['種目']); if(!e) return; const pk = partOfEx(e); if(pk) (byPart[pk] = byPart[pk] || new Set()).add(dt); (exDays[e.id] = exDays[e.id] || new Set()).add(dt); });
+  const counts = {}; Object.keys(byPart).forEach(pk=>counts[pk] = byPart[pk].size);
+  const lack = PART_MAIN.filter(pk=>!(counts[pk] > 0)); const low = PART_MAIN.filter(pk=>(counts[pk] || 0) === 1); const much = Object.keys(counts).filter(pk=>counts[pk] >= 5);
+  const bigMiss = BIG3.filter(l=>!l.ids.some(id=>exDays[id])).map(l=>l.name);
+  return { counts, lack, low, much, bigMiss }; }
+function orderScore(r){ const e = EXMAP[r.exId]; if(!e) return 50; if(BIG3.some(l=>l.ids.includes(r.exId))) return 0; if(e.cat === 'core') return 40; if(e.cat === 'mobility' || e.cat === 'plyo') return 45; return 10; }
+VIEWS.prop = ()=>{ const names = teamNames(); const p = db.prop = db.prop || { name:'' }; if(!p.name && names[0]) p.name = names[0];
+  const an = p.name ? propAnalyze(p.name) : null; const d = draft();
+  const cand = pk=>EX.filter(e=>!e.gym && partOfEx(e) === pk).slice(0, 3);
+  const propBlock = !an ? '' :
+    (an.bigMiss.length ? '<div class="note warn">BIG3で、この4週間にやっていない種目：'+an.bigMiss.join('、')+'<br><span class="sub">原則：大きな筋肉の種目を軸にすると、全体の伸びが安定します。</span></div>' : '')+
+    (an.lack.length ? '<h2>不足している部位（4週間で実施なし）</h2>'+an.lack.map(pk=>'<p style="margin:8px 0 4px"><b>'+esc(partName(pk))+'</b></p><div class="stack two">'+cand(pk).map(e=>'<button type="button" class="ghost sm" data-padd="'+e.id+'">'+esc(shortName(e))+' を入れる</button>').join('')+'</div>').join('') : '')+
+    (an.low.length ? '<p class="sub">1回だけの部位：'+an.low.map(partName).join('、')+'（週1回以上にすると伸びやすくなります）</p>' : '')+
+    (an.much.length ? '<div class="note warn">多すぎる部位：'+an.much.map(pk=>partName(pk)+'（4週間で'+an.counts[pk]+'回）')+'<br><span class="sub">原則：同じ部位は48時間あけ、週2〜3回までが目安です。</span></div>' : '')+
+    (!an.lack.length && !an.bigMiss.length ? '<div class="note good">この4週間は、部位の偏りが小さいです。</div>' : '');
+  const sorted = d.rows.slice().sort((a, b)=>orderScore(a) - orderScore(b) || (partOfEx(EXMAP[a.exId] || {}) || '').localeCompare(partOfEx(EXMAP[b.exId] || {}) || ''));
+  const changed = sorted.some((r, i)=>r !== d.rows[i]);
+  return { title:'次の種目の提案', html:
+    (!names.length ? teamGateHTML() :
+    '<label class="f">選手<select class="txt" id="prName">'+names.map(n=>'<option value="'+esc(n)+'"'+(n === p.name ? ' selected' : '')+'>'+esc(n)+'</option>').join('')+'</select></label>'+propBlock+
+    '<h2>並び順の提案（いまの下書き）</h2>'+(d.rows.length ? '<p class="sub">原則：重い多関節の種目（BIG3など）を先に、同じ部位は続け、体幹は最後に。</p><ul class="rows">'+sorted.map((r, i)=>'<li class="row"><span class="rmain"><strong>'+(i+1)+'. '+esc(shortName(EXMAP[r.exId]))+'</strong><span class="d">'+esc(rowTxt(r))+'</span></span>'+(r !== d.rows[i] ? '<span class="tag warn">順番が変わります</span>' : '')+'</li>').join('')+'</ul>'+(changed ? '<button type="button" class="cta" id="prOrder" style="width:100%;min-height:54px">この並びで実行する</button>' : '<p class="sub">いまの並びが、原則どおりです。</p>') : '<p class="sub">下書きに種目がありません。メニュー作りの画面で種目を入れてから見てください。</p>')),
+    after(){ bindTeamGate(); const nm = $('#prName'); if(nm) nm.addEventListener('change', ()=>{ db.prop.name = nm.value; save(); render(false); });
+      document.querySelectorAll('[data-padd]').forEach(b=>b.addEventListener('click', ()=>{ const e = EXMAP[b.dataset.padd]; const dd = draft(); dd.rows.push(newRow(e.id, { kg:0, reps:5, sets:3 })); if(!(dd.to || []).length && db.prop.name) dd.to = [db.prop.name]; save(); say(shortName(e)+'を下書きに入れました（'+dd.rows.length+'種目）'); render(false); }));
+      const ob = $('#prOrder'); if(ob) ob.addEventListener('click', ()=>{ const dd = draft(); dd.rows = dd.rows.slice().sort((a, b)=>orderScore(a) - orderScore(b) || (partOfEx(EXMAP[a.exId] || {}) || '').localeCompare(partOfEx(EXMAP[b.exId] || {}) || '')); save(); say('並び順を変えました'); render(false); }); } }; };
+const _coachHub = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachHub(); v.html = '<div class="stack two" style="margin-bottom:12px"><button type="button" class="ghost" data-go="sent">送ったメニュー一覧</button><button type="button" class="ghost" data-go="cmp">選手の比較（1RM）</button><button type="button" class="ghost" data-go="acal">選手カレンダー</button><button type="button" class="ghost" data-go="prop">次の種目の提案</button></div>'+v.html; return v; };
 </script>
 <script>
 /* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */

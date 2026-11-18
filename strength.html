@@ -408,7 +408,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-18 picker';
+const APP_VER = '2026-11-18 お知らせ';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2617,6 +2617,22 @@ async function joinPing(){ if(joinBusy) return; if(!db.ready || isCoach() || !sy
 const joinTimer = setInterval(()=>{ if(isCoach() || (db.joinedName && db.joinedName === (db.me||'').trim())){ clearInterval(joinTimer); return; } joinPing(); }, 4000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') joinPing(); });
 joinPing();
+/* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
+const APP_NEWS = [
+  { v:'20261118b', date:'11月18日', items:[
+    '更新のお知らせを出すようにしました（この表示です）。設定の「このアプリについて」から、いつでも読み直せます',
+    '根拠に「ACSMの新しい筋トレ指針（2026年改訂）」を足しました（設定の「このアプリについて」の中）',
+    '選手が登録した時点で、コーチの送り先に名前が並ぶようになりました',
+    '体の絵で、筋肉の名前札が見切れないようにしました',
+    '種目カードとYouTubeのボタンを横並びにしました'
+  ] }
+];
+function newsPending(){ return !!db.ready && db.newsSeen !== APP_NEWS[0].v && !!(db.joinedName || isCoach() || (db.days && Object.keys(db.days).length)); }
+function newsBannerHTML(){ return '<div class="note good" style="margin:0 0 10px"><b>新しくなりました（'+APP_NEWS[0].date+'）</b><ul style="margin:6px 0 8px;padding-left:20px">'+APP_NEWS[0].items.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul><button type="button" class="cta" data-newsok="1">わかった</button></div>'; }
+const _renderNews = render;
+render = function(focus){ _renderNews(focus); if(newsPending()){ const v = $('#view'); if(v && !v.querySelector('[data-newsok]')) v.insertAdjacentHTML('afterbegin', newsBannerHTML()); } };
+document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-newsok]'); if(!b) return; db.newsSeen = APP_NEWS[0].v; save(); render(false); });
+const _settingsNews = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsNews(); v.html += '<details class="more"><summary>更新のお知らせ</summary><div class="inner">'+APP_NEWS.map(n=>'<p class="sub" style="margin:8px 0 4px"><b>'+n.date+'の更新</b></p><ul style="margin:0;padding-left:20px">'+n.items.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>').join('')+'</div></details>'; return v; };
 </script>
 <script>
 /* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */

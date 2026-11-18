@@ -12,7 +12,10 @@ p.note{font-size:14px;color:#444;line-height:1.6}
 .chip{padding:10px 14px;border:2px solid #999;border-radius:999px;background:#fff;font-size:16px;cursor:pointer}
 .chip.sel{border-color:#1a7f37;background:#e6f4ea;font-weight:bold}
 .day{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;margin-bottom:10px}
-.day h2{font-size:16px;margin:0 0 8px}
+.dayhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.day h2{font-size:16px;margin:0}
+.allbtn{padding:8px 14px;font-size:14px;border-radius:8px;border:2px solid #c0392b;background:#fff;color:#c0392b;cursor:pointer}
+.allbtn.back{border-color:#1a7f37;color:#1a7f37}
 .slots{display:flex;gap:8px}
 .slot{flex:1;padding:14px 4px;font-size:15px;border-radius:8px;border:2px solid #1a7f37;background:#e6f4ea;cursor:pointer;text-align:center;line-height:1.3}
 .slot small{display:block;font-size:12px}
@@ -82,7 +85,18 @@ function paint(){
   daysEl.innerHTML = '';
   DAYS.forEach(function(day){
     var div = document.createElement('div'); div.className = 'day';
-    var h = document.createElement('h2'); h.textContent = day.m + '/' + day.d + '（' + day.w + '）'; div.appendChild(h);
+    var head = document.createElement('div'); head.className = 'dayhead';
+    var h = document.createElement('h2'); h.textContent = day.m + '/' + day.d + '（' + day.w + '）'; head.appendChild(h);
+    var allNg = SLOTS.every(function(s){ return answers[day.m + '/' + day.d + '|' + s] === '×'; });
+    var ab = document.createElement('button');
+    ab.className = 'allbtn' + (allNg ? ' back' : '');
+    ab.textContent = allNg ? '全て○' : '全て×';
+    ab.onclick = function(){
+      SLOTS.forEach(function(s){ answers[day.m + '/' + day.d + '|' + s] = allNg ? '○' : '×'; });
+      paint();
+    };
+    head.appendChild(ab);
+    div.appendChild(head);
     var row = document.createElement('div'); row.className = 'slots';
     SLOTS.forEach(function(s){
       var key = day.m + '/' + day.d + '|' + s;

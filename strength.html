@@ -897,7 +897,7 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   try{ const r = await fetch(syncUrl()+'?action=all&key='+encodeURIComponent(db.coachKey)); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
     db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); if(manual || !busyTyping()){ const y = ($('#pkList')||{}).scrollTop||0; render(false); const l = $('#pkList'); if(l) l.scrollTop = y; } }
   catch(e){ const m = String(e.message||e); say(/合言葉/.test(m) ? 'コーチの合言葉が違います。設定のコーチの合言葉を、Code.gs の COACH_KEY と同じにしてください' : /Failed to fetch|NetworkError|Load failed/.test(m) ? '取り込めませんでした。通信できません' : '取り込めませんでした。'+m); } }
-function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー').map(fixRow); }
+function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録').map(fixRow); }
 /* スプレッドシートが日付に変えてしまった「セットの内容」を元に戻す。まず一緒に送った元の記録（JSON）から、無ければ日付の数字から */
 function fixRow(x){ if(PART_RE.test(String(x['種目']||'')) && x['推定1RM']!=='' && x['推定1RM']!=null) x = Object.assign({}, x, {'推定1RM':''}); const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
   try{ const raw = JSON.parse(x['JSON']||'null'); if(raw && (raw.setList || raw.reps!=null)) t = setsStr(raw); }catch(e){}
@@ -2599,6 +2599,15 @@ VIEWS.ex = ()=>{ const F = exF();
 
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
+/* 登録した選手の名前を、その時点でサーバーへ知らせる。コーチの送り先リストに、記録を送る前から名前が並ぶようにする */
+let joinBusy = false;
+async function joinPing(){ if(joinBusy) return; if(!db.ready || isCoach() || !syncUrl()) return; const me = (db.me||'').trim(); if(!me || db.joinedName === me) return; joinBusy = true;
+  try{ const res = await fetch(syncUrl(), {method:'POST', body:JSON.stringify({name:me, items:[{uid:'N|'+me, kind:'登録', date:today()}]})}); const j = await res.json(); if(!j.ok) throw new Error(j.error||'失敗'); db.joinedName = me; save(); }
+  catch(e){ /* 通信できないときは、次に開いたときに送り直す */ }
+  finally{ joinBusy = false; } }
+const joinTimer = setInterval(()=>{ if(isCoach() || (db.joinedName && db.joinedName === (db.me||'').trim())){ clearInterval(joinTimer); return; } joinPing(); }, 4000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') joinPing(); });
+joinPing();
 </script>
 <script>
 /* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */

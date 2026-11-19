@@ -408,7 +408,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-19 並び替え';
+const APP_VER = '2026-11-19 自動の並び';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2385,6 +2385,7 @@ function czPlan(n){ const td = today(); const rows = srcRows(n); const C = anaCo
 function czMake(n){ const d = draft(); czPrev = {rows:JSON.stringify(d.rows), purpose:d.purpose||'', why:d.purposeWhy||''};
   const pp = czPurpose(n); d.purpose = pp.p; d.purposeWhy = pp.why; d.rows = [];
   czPlan(n).forEach(x=>{ const r = newRow(x.e.id, {kg:0, reps:5, sets:3, rest:'', free:null}); r.why = x.why; if(d.purpose) applyAuto(r, d.purpose); d.rows.push(r); });
+  d.rows = principleSortRows(d.rows);
   save(); return d.rows.length; }
 function czSwapList(r, n){ const e = EXMAP[r.exId]; const part = anaPart(e); const d = draft(); const inD = id=>d.rows.some(x=>x.exId===id);
   let L = part && n ? anaSuggest(part, n, 8).map(x=>x.e) : EX.filter(x=>anaPart(x)===part && !x.norx && !x.adv && !(x.twin && EXMAP[x.twin]));
@@ -2619,6 +2620,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261119c', date:'11月19日', items:[
+    'アプリが自動で作るメニューも、最初からトレーニングの原則どおりの順番（パワー系→重い多関節→補助→体幹）で出るようになりました'
+  ] },
   { v:'20261119b', date:'11月19日', items:[
     'コーチのメニュー作りに「トレーニングの原則どおりに並び替える」ボタンが付きました。並び替えると、送るときに「なぜその順番なのか」の説明が選手にも届きます。そのままが良いときは「このままにする」を押してください'
   ] },

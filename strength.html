@@ -408,7 +408,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-18 大改善';
+const APP_VER = '2026-11-18 提案の修正';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2619,6 +2619,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261118d', date:'11月18日', items:[
+    'コーチの「次の種目の提案」で、不足している部位の種目を下書きに入れるボタンが出ない不具合を直しました'
+  ] },
   { v:'20261118c', date:'11月18日', items:[
     '選手の画面：開いたら一番上に「次にやること」の大きなボタンが出ます。押していくだけで、その日の練習が進みます',
     'BIG3トータル（ベンチ＋デッド＋スクワットの推定1RM）と、伸びのグラフが見られるようになりました（記録の画面と、練習を終えたあとのボタンから）',
@@ -2737,8 +2740,9 @@ function draftFromDay(name, dayKey){ const rows = ((teamByName()[name]) || []).f
   if(!out.length){ say('その日に種目の記録がありません'); return; }
   const d = draft(); d.rows = out; d.to = [name]; save(); say(name+'さんの '+md(dayKey)+' の'+out.length+'種目を下書きに入れました。重さは直してください'); go('coach'); }
 
-const PART_MAIN = ['pec', 'lat', 'deltoid', 'biceps', 'triceps', 'abs', 'quad', 'ham', 'glute', 'calf'];
-function partName(pk){ const m = Object.values(BODY_MAP).find(x=>x.part === pk); return m ? m.name : pk; }
+const PART_MAIN = ['chest', 'back', 'legs', 'shoulder', 'arms', 'core'];
+const PART_NAMES = { chest:'胸', back:'背中', legs:'脚・臀部', shoulder:'肩', arms:'腕', core:'体幹', power:'ジャンプ・パワー', mob:'可動性' };
+function partName(pk){ return PART_NAMES[pk] || pk; }
 function partOfEx(e){ const pl = PLACES[e.id] || []; return pl.length ? pl[0].part : null; }
 function propAnalyze(name){ const since = addDays(today(), -27); const byPart = {}; const exDays = {};
   ((teamByName()[name]) || []).forEach(x=>{ if(String(x['種類']) !== '記録') return; const dt = rowDate(x); if(dt < since || dt > today()) return; const e = exByName(x['種目']); if(!e) return; const pk = partOfEx(e); if(pk) (byPart[pk] = byPart[pk] || new Set()).add(dt); (exDays[e.id] = exDays[e.id] || new Set()).add(dt); });

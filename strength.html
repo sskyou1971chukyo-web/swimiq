@@ -408,7 +408,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-19 コーチ許可';
+const APP_VER = '2026-11-19 並び替え';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -528,7 +528,7 @@ VIEWS.today = ()=>{
   const srcTxt = {coach:'コーチから届いたメニュー', self:'自分で作ったメニュー', prev:'前回のメニューを写したもの'}[d.src] || '';
   const inbox = inboxFor(k);
   let menu = '';
-  if(rows.length){ menu = (srcTxt?'<p class="sub" style="margin-top:0">'+esc(srcTxt)+(d.note?'　コーチのメモ：'+esc(d.note):'')+'</p>':'')+'<ul class="rows">'+rows.map(r=>{ const e = EXMAP[r.exId]; const b = bestOf(r.exId, k); const cur = r.status==='done' ? rowBest(r, k) : null; const pb = cur!=null && b && cur>b.v;
+  if(rows.length){ menu = (srcTxt?'<p class="sub" style="margin-top:0;white-space:pre-wrap">'+esc(srcTxt)+(d.note?'　コーチのメモ：'+esc(d.note):'')+'</p>':'')+'<ul class="rows">'+rows.map(r=>{ const e = EXMAP[r.exId]; const b = bestOf(r.exId, k); const cur = r.status==='done' ? rowBest(r, k) : null; const pb = cur!=null && b && cur>b.v;
       return '<li class="row '+r.status+'"><button type="button" class="rmain" data-edit="'+r.rid+'" aria-label="'+esc(shortName(e))+'、'+esc(rowTxt(r))+'、押すと重さや回数を直す"><strong>'+esc(shortName(e))+(pb?' <span class="tag ok">自己ベスト</span>':'')+'</strong><span class="d">'+esc(rowTxt(r))+(r.rest?'　休憩 '+esc(r.rest):'')+'</span></button>'+
         '<button type="button" class="st '+r.status+'" data-st="'+r.rid+'" aria-label="'+esc(shortName(e))+'は'+(r.status==='done'?'できた。押すと、できなかったに変える':r.status==='skip'?'できなかった、またはやらなかった。押すと、まだに戻す':'まだ。押すと、できたにする')+'">'+(r.status==='done'?'✓ できた':r.status==='skip'?'✕ なし':'まだ')+'</button></li>'; }).join('')+'</ul>'+
       (d.finished ? (inbox.length ? '<div class="cnotice" style="margin-top:12px"><p class="cnh nl">新しく届いたメニュー</p><p class="sub nl" style="margin:2px 0 8px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p><p class="sub" style="margin:0 0 8px">今日の練習は一度終えています。押すと、終えた分は記録として残したまま、このメニューを続けて行えます。</p><button type="button" class="cta" id="menuCont">このメニューで続ける</button></div>' : '') : '<div class="stack two" style="margin-top:12px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(inbox.length?'<p class="sub nl" style="margin:4px 0 0;grid-column:1/-1">新しく届いたメニュー　'+esc(menuNames(inbox[0]))+'</p><button type="button" class="cta" id="menuGet" style="grid-column:1/-1">新しいメニューに入れ替える</button>':'<button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button>')+'</div>'); }
@@ -2619,6 +2619,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261119b', date:'11月19日', items:[
+    'コーチのメニュー作りに「トレーニングの原則どおりに並び替える」ボタンが付きました。並び替えると、送るときに「なぜその順番なのか」の説明が選手にも届きます。そのままが良いときは「このままにする」を押してください'
+  ] },
   { v:'20261119a', date:'11月19日', items:[
     'コーチの画面（選手の結果やメニュー作り）は、佐々木が許可したコーチだけが見られるようになりました。コーチを選ぶと許可の希望が自動で届きます'
   ] },
@@ -2763,7 +2766,7 @@ VIEWS.prop = ()=>{ const names = teamNames(); const p = db.prop = db.prop || { n
     (an.low.length ? '<p class="sub">1回だけの部位：'+an.low.map(partName).join('、')+'（週1回以上にすると伸びやすくなります）</p>' : '')+
     (an.much.length ? '<div class="note warn">多すぎる部位：'+an.much.map(pk=>partName(pk)+'（4週間で'+an.counts[pk]+'回）')+'<br><span class="sub">原則：同じ部位は48時間あけ、週2〜3回までが目安です。</span></div>' : '')+
     (!an.lack.length && !an.bigMiss.length ? '<div class="note good">この4週間は、部位の偏りが小さいです。</div>' : '');
-  const sorted = d.rows.slice().sort((a, b)=>orderScore(a) - orderScore(b) || (partOfEx(EXMAP[a.exId] || {}) || '').localeCompare(partOfEx(EXMAP[b.exId] || {}) || ''));
+  const sorted = principleSortRows(d.rows);
   const changed = sorted.some((r, i)=>r !== d.rows[i]);
   return { title:'次の種目の提案', html:
     (!names.length ? teamGateHTML() :
@@ -2771,7 +2774,7 @@ VIEWS.prop = ()=>{ const names = teamNames(); const p = db.prop = db.prop || { n
     '<h2>並び順の提案（いまの下書き）</h2>'+(d.rows.length ? '<p class="sub">原則：重い多関節の種目（BIG3など）を先に、同じ部位は続け、体幹は最後に。</p><ul class="rows">'+sorted.map((r, i)=>'<li class="row"><span class="rmain"><strong>'+(i+1)+'. '+esc(shortName(EXMAP[r.exId]))+'</strong><span class="d">'+esc(rowTxt(r))+'</span></span>'+(r !== d.rows[i] ? '<span class="tag warn">順番が変わります</span>' : '')+'</li>').join('')+'</ul>'+(changed ? '<button type="button" class="cta" id="prOrder" style="width:100%;min-height:54px">この並びで実行する</button>' : '<p class="sub">いまの並びが、原則どおりです。</p>') : '<p class="sub">下書きに種目がありません。メニュー作りの画面で種目を入れてから見てください。</p>')),
     after(){ bindTeamGate(); const nm = $('#prName'); if(nm) nm.addEventListener('change', ()=>{ db.prop.name = nm.value; save(); render(false); });
       document.querySelectorAll('[data-padd]').forEach(b=>b.addEventListener('click', ()=>{ const e = EXMAP[b.dataset.padd]; const dd = draft(); dd.rows.push(newRow(e.id, { kg:0, reps:5, sets:3 })); if(!(dd.to || []).length && db.prop.name) dd.to = [db.prop.name]; save(); say(shortName(e)+'を下書きに入れました（'+dd.rows.length+'種目）'); render(false); }));
-      const ob = $('#prOrder'); if(ob) ob.addEventListener('click', ()=>{ const dd = draft(); dd.rows = dd.rows.slice().sort((a, b)=>orderScore(a) - orderScore(b) || (partOfEx(EXMAP[a.exId] || {}) || '').localeCompare(partOfEx(EXMAP[b.exId] || {}) || '')); save(); say('並び順を変えました'); render(false); }); } }; };
+      const ob = $('#prOrder'); if(ob) ob.addEventListener('click', ()=>{ const dd = draft(); dd.rows = principleSortRows(dd.rows); dd.reordered = true; dd.orderKept = false; dd.orderExplain = buildOrderExplain(dd.rows); save(); say('並び順を変えました'); render(false); }); } }; };
 const _coachHub = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachHub(); v.html = '<div class="stack two" style="margin-bottom:12px"><button type="button" class="ghost" data-go="sent">送ったメニュー一覧</button><button type="button" class="ghost" data-go="cmp">選手の比較（1RM）</button><button type="button" class="ghost" data-go="acal">選手カレンダー</button><button type="button" class="ghost" data-go="prop">次の種目の提案</button></div>'+v.html; return v; };
 
 /* ============ コーチの許可：許可されたコーチだけがコーチの画面を見られる ============ */
@@ -2814,6 +2817,40 @@ const _teamAdmin = VIEWS.team; VIEWS.team = () => { const v = _teamAdmin(); if(i
   document.querySelectorAll('[data-cok-add]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.cokAdd; const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }));
   document.querySelectorAll('[data-cok-del]').forEach(b => b.addEventListener('click', () => { setCoachList((db.coachesCache || []).filter(c => normName(c) !== normName(b.dataset.cokDel))); }));
   const ab = $('#cokAddBtn'); if(ab) ab.addEventListener('click', () => { const n = ($('#cokName').value || '').trim(); if(!n){ say('名前を入れてください'); return; } const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }); }; } return v; };
+
+/* ============ トレーニングの原則どおりの並び替え ============ */
+function orderTier(e){ if(!e) return 3;
+  if(e.twin && EXMAP[e.twin]) e = EXMAP[e.twin];
+  if(e.type === 'plyo' || e.cat === 'plyo' || e.type === 'olympic' || e.cat === 'olympic') return 0;
+  if(BIG3.some(l => l.ids.includes(e.id)) || e.id === 'u_pullup') return 1;
+  if(e.type === 'activation' || e.type === 'mobility' || e.type === 'core' || e.cat === 'mobility' || e.cat === 'core') return 5;
+  if(/カーフ|レッグエクステンション|レッグカール/.test(e.name || '')) return 4;
+  if(e.cat === 'lower') return 3;
+  if(e.cat === 'push' || e.cat === 'pull') return 2;
+  if(e.cat === 'shoulder') return 4;
+  return 3; }
+function principleSortRows(rows){ return rows.map((r, i) => [orderTier(EXMAP[r.exId]), i, r]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]); }
+const TIER_WHY = [
+  'パワーの種目です。体が新鮮なうちでないと高く速く動けず、着地も崩れるので、最初に行います',
+  '重い多関節のメイン種目です。体力と集中力が残っている前半に行います',
+  'メインを助ける補助種目です。メインの種目の後に行います',
+  '脚の補助種目です。両脚のメインの後に行います',
+  '単関節の種目です。小さい筋肉は終盤に行います',
+  '姿勢・体幹の種目です。最後に行います'];
+function buildOrderExplain(rows){ return '順番の説明（トレーニングの原則で並び替えました）\n' + rows.map((r, i) => (i + 1) + '. ' + shortName(EXMAP[r.exId]) + '：' + TIER_WHY[orderTier(EXMAP[r.exId])]).join('\n'); }
+const _coachOrd = VIEWS.coach; VIEWS.coach = () => { const v = _coachOrd(); const d = draft();
+  if(d.rows.length >= 2){ const anchor = '<details class="more"><summary>案の決め方と、重さや回数の決め方</summary>';
+    if(v.html.includes(anchor)){ const ui = '<div class="stack two" style="margin-top:10px"><button type="button" class="cta" id="ordSort">トレーニングの原則どおりに並び替える</button><button type="button" class="ghost" id="ordKeep">このままにする</button></div>' +
+      (d.reordered ? '<p class="sub" style="margin-top:6px">並び替え済みです。送ると、順番の理由の説明も選手に届きます。</p>' : d.orderKept ? '<p class="sub" style="margin-top:6px">この順番で確定しています。</p>' : '<p class="sub" style="margin-top:6px">「並び替える」を押すと、原則どおりの順番になり、理由の説明が選手にも届きます。</p>');
+      v.html = v.html.replace(anchor, ui + anchor);
+      const a0 = v.after || (() => {}); v.after = () => { a0();
+        const so = $('#ordSort'); if(so) so.addEventListener('click', () => { const dd = draft(); dd.rows = principleSortRows(dd.rows); dd.reordered = true; dd.orderKept = false; dd.orderExplain = buildOrderExplain(dd.rows); save(); say('原則どおりに並び替えました'); render(false); });
+        const kp = $('#ordKeep'); if(kp) kp.addEventListener('click', () => { const dd = draft(); dd.orderKept = true; dd.reordered = false; dd.orderExplain = ''; save(); say('この順番のままにします'); render(false); }); }; } }
+  return v; };
+const _sendMenuOrd = sendMenu; sendMenu = async function(){ const d = draft();
+  if(d.reordered && d.orderExplain){ const orig = d.note || ''; d.note = (orig ? orig + '\n' : '') + d.orderExplain; save();
+    try{ return await _sendMenuOrd(); } finally { d.note = orig; save(); } }
+  return _sendMenuOrd(); };
 </script>
 <script>
 /* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */

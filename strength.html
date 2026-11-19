@@ -408,7 +408,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-18 提案の修正';
+const APP_VER = '2026-11-19 コーチ許可';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -906,7 +906,7 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   try{ const r = await fetch(syncUrl()+'?action=all&key='+encodeURIComponent(db.coachKey)); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
     db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); if(manual || !busyTyping()){ const y = ($('#pkList')||{}).scrollTop||0; render(false); const l = $('#pkList'); if(l) l.scrollTop = y; } }
   catch(e){ const m = String(e.message||e); say(/合言葉/.test(m) ? 'コーチの合言葉が違います。設定のコーチの合言葉を、Code.gs の COACH_KEY と同じにしてください' : /Failed to fetch|NetworkError|Load failed/.test(m) ? '取り込めませんでした。通信できません' : '取り込めませんでした。'+m); } }
-function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録').map(fixRow); }
+function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録' && String(x['種類'])!=='コーチ許可' && String(x['種類'])!=='コーチ希望' && String(x['選手']||'').trim()!=='__coaches__').map(fixRow); }
 /* スプレッドシートが日付に変えてしまった「セットの内容」を元に戻す。まず一緒に送った元の記録（JSON）から、無ければ日付の数字から */
 function fixRow(x){ if(PART_RE.test(String(x['種目']||'')) && x['推定1RM']!=='' && x['推定1RM']!=null) x = Object.assign({}, x, {'推定1RM':''}); const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
   try{ const raw = JSON.parse(x['JSON']||'null'); if(raw && (raw.setList || raw.reps!=null)) t = setsStr(raw); }catch(e){}
@@ -2619,6 +2619,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261119a', date:'11月19日', items:[
+    'コーチの画面（選手の結果やメニュー作り）は、佐々木が許可したコーチだけが見られるようになりました。コーチを選ぶと許可の希望が自動で届きます'
+  ] },
   { v:'20261118d', date:'11月18日', items:[
     'コーチの「次の種目の提案」で、不足している部位の種目を下書きに入れるボタンが出ない不具合を直しました'
   ] },
@@ -2770,6 +2773,47 @@ VIEWS.prop = ()=>{ const names = teamNames(); const p = db.prop = db.prop || { n
       document.querySelectorAll('[data-padd]').forEach(b=>b.addEventListener('click', ()=>{ const e = EXMAP[b.dataset.padd]; const dd = draft(); dd.rows.push(newRow(e.id, { kg:0, reps:5, sets:3 })); if(!(dd.to || []).length && db.prop.name) dd.to = [db.prop.name]; save(); say(shortName(e)+'を下書きに入れました（'+dd.rows.length+'種目）'); render(false); }));
       const ob = $('#prOrder'); if(ob) ob.addEventListener('click', ()=>{ const dd = draft(); dd.rows = dd.rows.slice().sort((a, b)=>orderScore(a) - orderScore(b) || (partOfEx(EXMAP[a.exId] || {}) || '').localeCompare(partOfEx(EXMAP[b.exId] || {}) || '')); save(); say('並び順を変えました'); render(false); }); } }; };
 const _coachHub = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachHub(); v.html = '<div class="stack two" style="margin-bottom:12px"><button type="button" class="ghost" data-go="sent">送ったメニュー一覧</button><button type="button" class="ghost" data-go="cmp">選手の比較（1RM）</button><button type="button" class="ghost" data-go="acal">選手カレンダー</button><button type="button" class="ghost" data-go="prop">次の種目の提案</button></div>'+v.html; return v; };
+
+/* ============ コーチの許可：許可されたコーチだけがコーチの画面を見られる ============ */
+const COACH_OWNER = '佐々木祐一郎';
+function isOwner(){ return normName(db.me || '') === normName(COACH_OWNER); }
+function coachAllowed(){ if(isOwner()) return true; if(db.role !== 'coach') return false; const me = normName(db.me || ''); return (db.coachesCache || []).some(n => normName(n) === me); }
+function extractCoachLists(){ const rows = ((db.team || {}).rows) || []; let best = null; const wants = new Set();
+  rows.forEach(x=>{ const kind = String(x['種類'] || ''); const n = String(x['選手'] || '').trim();
+    if(n === '__coaches__' && kind === 'コーチ許可'){ try{ const o = JSON.parse(String(x['セットの内容'] || '')); if(o && Array.isArray(o.names) && (!best || (o.rev || 0) > (best.rev || 0))) best = o; }catch(e){} }
+    if(kind === 'コーチ希望' && n && n !== '__coaches__') wants.add(n); });
+  if(best) db.coachesCache = best.names.slice();
+  db.coachWants = [...wants];
+  db.names = (db.names || []).filter(n => n !== '__coaches__');
+  return !!best; }
+const _fetchAllGate = fetchAll; fetchAll = async function(manual){ await _fetchAllGate(manual); if(db.team && (db.team.rows || []).length){ const had = extractCoachLists();
+    if(isOwner() && !had && !db.coachListInit){ db.coachListInit = true; save(); postCoachList(); }
+    if(!coachAllowed()){ db.team = { rows: [], at: new Date().toISOString() }; save(); if(manual) say('コーチの許可がないため、選手の記録は取り込めません'); } } };
+async function postCoachList(){ if(!isOwner() || !syncUrl()) return; const names = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const rev = Date.now();
+  try{ await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name: '__coaches__', items: [{ uid: 'C|coaches|' + rev, kind: 'コーチ許可', date: today(), sets: JSON.stringify({ rev, names }) }] }) }); }catch(e){} }
+function setCoachList(names){ db.coachesCache = names.slice(); save(); postCoachList(); render(false); say('コーチの許可を送りました'); }
+let claimBusy = false;
+async function claimPing(){ if(claimBusy) return; if(!db.ready || db.role !== 'coach' || coachAllowed() || !syncUrl()) return; const me = (db.me || '').trim(); if(!me || db.claimName === me) return; claimBusy = true;
+  try{ const res = await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name: me, items: [{ uid: 'W|' + me, kind: 'コーチ希望', date: today() }] }) }); const j = await res.json(); if(j && j.ok){ db.claimName = me; save(); } }catch(e){} finally{ claimBusy = false; } }
+setInterval(claimPing, 5000); document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') claimPing(); }); claimPing();
+function coachLockView(){ const hasKey = !!db.coachKey; return { title: 'コーチ専用', html:
+  '<div class="note warn"><strong>この画面は、許可されたコーチだけが見られます。</strong><br>' +
+  (hasKey ? 'まだコーチの許可がありません。許可の希望は自動で佐々木に送られています。許可されたら、下の「許可を確認する」を押してください。' : 'まず、設定でコーチの合言葉を入れてください。そのあと佐々木が許可すると見られるようになります（希望は自動で送られます）。') +
+  '</div><div class="stack"><button type="button" class="cta" id="lockCheck" style="min-height:54px">許可を確認する</button><button type="button" class="ghost" data-go="settings">設定を開く</button><button type="button" class="ghost" data-go="today">自分の練習にもどる</button></div>',
+  after(){ const b = $('#lockCheck'); if(b) b.addEventListener('click', async ()=>{ await fetchAll(true); if(coachAllowed()){ say('コーチとして許可されました'); go('team'); } else say('まだ許可されていません'); }); } }; }
+['coach', 'team', 'athlete', 'names', 'sent', 'cmp', 'acal', 'prop'].forEach(vn => { if(!VIEWS[vn]) return; const orig = VIEWS[vn]; VIEWS[vn] = cur => (db.role === 'coach' && !coachAllowed()) ? coachLockView() : orig(cur); });
+const _sendMenuGate = sendMenu; sendMenu = async function(){ if(!coachAllowed()){ say('コーチの許可がありません'); return; } return _sendMenuGate(); };
+const _namesCallGate = namesCall; namesCall = async function(a, e){ if(!coachAllowed()) throw new Error('コーチの許可がありません'); return _namesCallGate(a, e); };
+function coachAdminHTML(){ const cur = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const wants = (db.coachWants || []).filter(n => normName(n) !== normName(COACH_OWNER) && !cur.some(c => normName(c) === normName(n)));
+  return '<section class="page" style="margin-bottom:12px"><h2>コーチの許可</h2>' +
+  '<p class="sub" style="margin-top:0">許可した人だけが、コーチの画面（選手の結果やメニュー作り）を見られます。あなた（佐々木祐一郎）は常に許可されています。</p>' +
+  (wants.length ? '<h3>許可の希望が届いています</h3><ul class="rows">' + wants.map(n => '<li class="row"><span class="rmain"><strong>' + esc(n) + '</strong></span><button type="button" class="cta sm" data-cok-add="' + esc(n) + '">許可する</button></li>').join('') + '</ul>' : '<p class="sub">許可の希望は届いていません（コーチを選んだ人の端末から自動で届きます）。</p>') +
+  '<h3>許可中のコーチ</h3>' + (cur.length ? '<ul class="rows">' + cur.map(n => '<li class="row"><span class="rmain"><strong>' + esc(n) + '</strong></span><button type="button" class="ghost sm" data-cok-del="' + esc(n) + '">取り消す</button></li>').join('') + '</ul>' : '<p class="sub">まだ誰も許可していません。</p>') +
+  '<label class="f">名前で許可する<input type="text" class="txt" id="cokName" placeholder="例：山田コーチ"></label><button type="button" class="ghost" id="cokAddBtn" style="width:100%">この名前を許可する</button></section>'; }
+const _teamAdmin = VIEWS.team; VIEWS.team = () => { const v = _teamAdmin(); if(isOwner()){ v.html = coachAdminHTML() + v.html; const a0 = v.after || (() => {}); v.after = () => { a0();
+  document.querySelectorAll('[data-cok-add]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.cokAdd; const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }));
+  document.querySelectorAll('[data-cok-del]').forEach(b => b.addEventListener('click', () => { setCoachList((db.coachesCache || []).filter(c => normName(c) !== normName(b.dataset.cokDel))); }));
+  const ab = $('#cokAddBtn'); if(ab) ab.addEventListener('click', () => { const n = ($('#cokName').value || '').trim(); if(!n){ say('名前を入れてください'); return; } const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }); }; } return v; };
 </script>
 <script>
 /* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */

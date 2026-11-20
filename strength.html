@@ -256,7 +256,11 @@ button[data-add][disabled],button[data-cadd][disabled]{background:var(--am)!impo
 .excards .rmain .d .eqt{display:block;color:#fff;font-size:.95rem;margin:2px 0}
 .excards .ghost.sm[data-fav]{min-width:48px;min-height:48px;font-size:1.3rem;border:0;background:none}
 .excards .ghost.sm[data-fav][aria-pressed=true]{color:var(--am)}
-.exmore{margin-top:14px}
+.exmore{margin:14px 0 8px}
+details.more.exmore summary{background:var(--am);color:#141414;border-radius:12px;padding:13px 12px;font-size:17px;font-weight:800;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.5)}
+details.more.exmore summary::marker{content:''}
+details.more.exmore[open ] summary{border-radius:12px 12px 0 0}
+.exmore .inner{border:2px solid var(--am);border-top:none;border-radius:0 0 12px 12px;padding:12px}
 </style>
 <style>
 /* 種目カード150枚 */
@@ -408,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-19 自動の並び';
+const APP_VER = '2026-11-20 選び方';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2589,11 +2593,11 @@ VIEWS.ex = ()=>{ const F = exF();
   return {title: pick ? (isCoach() ? 'メニューに種目を入れる' : '種目を足す') : '種目', html:
     exPickNote()+
     '<div class="exbar"><label class="sr" for="exQ2">名前で検索</label><input type="search" class="txt exq" id="exQ2" value="'+esc(F.q||'')+'" placeholder="名前で検索（例：スクワット、広背筋、ダンベル）" autocomplete="off" enterkeyhint="search">'+exChipsHTML()+'</div>'+
-    '<div id="exRes">'+exResHTML()+'</div>'+
     '<details class="more exmore"><summary>そのほかの選び方（体の絵、泳ぎ別、カード、種目の登録）</summary><div class="inner">'+
       '<label class="f">選び方<select class="txt" id="exMode">'+exModeOpts()+'</select></label>'+
       '<div class="stack two" style="margin-top:10px"><button type="button" class="ghost sm" data-go="cards">種目カード150枚から探す</button><button type="button" class="ghost sm" data-go="uexnew">種目を新しく登録する</button></div>'+
-    '</div></details>',
+    '</div></details>'+
+    '<div id="exRes">'+exResHTML()+'</div>',
     after(){ exBindRes();
       const redrawList = ()=>{ const box = $('#exRes'); box.innerHTML = exResHTML(); exBindRes(); try{ addThumbs(); }catch(err){} };
       document.querySelectorAll('[data-expart]').forEach(b=>b.addEventListener('click',()=>{ const v = b.dataset.expart; F.part = F.part===v ? '' : v; if(F.mode==='body') F.mode = ''; save(); exShowN = 60;
@@ -2620,6 +2624,10 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261120a', date:'11月20日', items:[
+    '種目を選ぶ画面で、「そのほかの選び方（体の絵・泳ぎ別・カード・種目の登録）」が、検索と絞り込みのすぐ下に、目立つ黄色のバーで出るようになりました',
+    'コーチの「送ったメニュー一覧」で、取り消したメニューは表示されなくなりました'
+  ] },
   { v:'20261119c', date:'11月19日', items:[
     'アプリが自動で作るメニューも、最初からトレーニングの原則どおりの順番（パワー系→重い多関節→補助→体幹）で出るようになりました'
   ] },
@@ -2704,7 +2712,7 @@ function lineSVG2(d1, d2, n1, n2){ const dates = [...new Set([...d1, ...d2].map(
   const line = (s, c)=>'<polyline fill="none" stroke="'+c+'" stroke-width="3" points="'+s.map(p=>px(p.k).toFixed(1)+','+py(p.v).toFixed(1)).join(' ')+'"/>'+s.map(p=>'<circle cx="'+px(p.k).toFixed(1)+'" cy="'+py(p.v).toFixed(1)+'" r="3.5" fill="'+c+'"/>').join('');
   return '<div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="1RMの比較グラフ"><text x="4" y="14" fill="#ffc400" font-size="12" font-weight="700">― '+esc(n1)+'（ベスト '+kg(Math.max(...s1.map(p=>p.v)))+' kg）</text><text x="4" y="30" fill="#4da3ff" font-size="12" font-weight="700">― '+esc(n2)+'（ベスト '+kg(Math.max(...s2.map(p=>p.v)))+' kg）</text>'+line(s1, '#ffc400')+line(s2, '#4da3ff')+'<text x="4" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+dates[0].slice(5).replace('-', '/')+'</text><text x="'+(W-46)+'" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+dates[dates.length-1].slice(5).replace('-', '/')+'</text></svg></div>'; }
 
-VIEWS.sent = ()=>{ const list = (db.sentMenus || []).slice().reverse(); return { title:'送ったメニュー一覧', html:
+VIEWS.sent = ()=>{ const list = (db.sentMenus || []).filter(m => !m.cancel).slice().reverse(); return { title:'送ったメニュー一覧', html:
   (list.length ? '<ul class="rows">'+list.map(m=>'<li class="row"><span class="rmain"><strong>'+wdTxt(m.date)+'</strong><span class="d">'+esc((m.to || []).join('、'))+'<br>'+(m.rows || []).map(r=>esc(r.name || shortName(EXMAP[r.exId] || { name:'' }))).join('、')+(m.note ? '<br>メモ：'+esc(m.note) : '')+'</span></span><span style="display:flex;flex-direction:column;gap:6px"><button type="button" class="ghost sm" data-sreuse="'+esc(m.mid)+'">もう一度使う</button><button type="button" class="ghost sm" data-sedit="'+esc(m.mid)+'">直す</button><button type="button" class="ghost sm" data-sdel="'+esc(m.mid)+'">取り消す</button></span></li>').join('')+'</ul>'
   : '<p class="sub">まだ送ったメニューがありません。メニュー作りの画面から送ると、ここに残ります。</p>'),
   after(){ document.querySelectorAll('[data-sreuse]').forEach(b=>b.addEventListener('click', ()=>{ reuseMenu(b.dataset.sreuse); go('coach'); }));

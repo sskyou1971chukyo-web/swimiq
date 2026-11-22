@@ -7428,7 +7428,7 @@ const T_MARKS = {
   800:{step:'必須', turn:'約10回', cs:'あると良い', speed:'不要'},
   1500:{step:'必須', turn:'約10回', cs:'あると良い', speed:'不要'}
 };
-const T_TABS = [['choose', 'テストを選ぶ'], ['step', 'ステップテスト'], ['record', 'LTの記録'], ['turn', 'ターン'], ['cs', 'クリティカルスピード'], ['speed', 'スピード'], ['mcevoy', 'マケボイ']];
+const T_TABS = [['choose', 'テストを選ぶ'], ['step', 'ステップテスト'], ['record', 'LTの記録'], ['turn', 'ターン'], ['cs', 'クリティカルスピード'], ['speed', 'スピード'], ['mcevoy', '速さのテスト']];
 const STROKE_T = ['自由形', '背泳ぎ', '平泳ぎ', 'バタフライ', '個人メドレー'];
 const DEF_OFFSETS = [26, 21, 16, 12, 8, 4, 1];
 
@@ -7463,23 +7463,23 @@ function renderTests(){
 
 /* ---------- マケボイ（動画のテスト群） ---------- */
 const MCV_DEFS = [
-  {id:'bt15m', name:'15mタイム', unit:'秒', dir:'low', swc:1},
-  {id:'bt50', name:'50mタイム', unit:'秒', dir:'low', swc:0.8},
-  {id:'btSeg1525', name:'区間 15〜25m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btSeg2535', name:'区間 25〜35m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btSeg3550', name:'区間 35〜50m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btV0', name:'負荷-速度 V0（最高速の推定）', unit:'m/秒', dir:'high', swc:2},
-  {id:'btL0', name:'負荷-速度 L0（最大の力の推定）', unit:'kg', dir:'high', swc:3},
-  {id:'btPara', name:'パラシュート25m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btParaDrop', name:'パラシュート8本の落ち幅（8本目−1本目）', unit:'秒', dir:'low', abs:0.3},
-  {id:'btCmj', name:'垂直跳び', unit:'cm', dir:'high', swc:3},
-  {id:'btChin', name:'懸垂', unit:'回', dir:'high', abs:1},
-  {id:'btShFlex', name:'肩屈曲（床までの距離）', unit:'cm', dir:'low', abs:1},
-  {id:'btShEr', name:'肩の分離・外旋（前腕の倒れ）', unit:'度', dir:'high', abs:5},
-  {id:'btComb', name:'コンバインド・エクステンション（手の高さ）', unit:'cm', dir:'high', abs:1},
-  {id:'btThomas', name:'トーマステスト（太ももの浮き）', unit:'cm', dir:'low', abs:1},
-  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2}
-];
+  {id:'btShFlex', name:'肩屈曲テスト', unit:'cm', dir:'low', abs:1, why:'腕が真っすぐ上に立たないと、入水でストリームラインが作れず、スタート直後から速さを捨ててしまう。形の上限はここで決まる', how:'仰向けに寝て膝を立て、腰を床に押しつけたまま両腕を頭の上に伸ばす。手首が床につくか、浮く場合は床からの距離を測る。腰が反ったら無効'},
+  {id:'btShEr', name:'肩の分離テスト', unit:'度', dir:'high', abs:5, why:'「肩が硬い」の正体がどの筋肉か（大胸筋／肩甲下筋・大円筋／広背筋）で直し方がまったく違う。思い込みで選ばないために切り分ける', how:'立って片腕を横に90度上げ、肘を90度に曲げる（ゴールポストの形）。上腕の位置を保ったまま前腕を後ろへ倒し、倒れた角度を測る。左右とも行う'},
+  {id:'btComb', name:'コンバインド・エクステンションテスト', unit:'cm', dir:'high', abs:1, why:'うつ伏せのストリームライン姿勢そのもので測るテスト。肩と背中が「一緒に」伸びるかが見られる', how:'うつ伏せに寝てあごを床につけ、両腕を頭の上に伸ばしてストリームラインの形を作る。あごをつけたまま両手をできるだけ高く上げ、床から手までの高さを測る'},
+  {id:'btThomas', name:'トーマステスト', unit:'cm', dir:'low', abs:1, why:'股関節が後ろに伸びないと、キックとストリームラインで腰が反って抵抗になる。奥の筋肉（腸腰筋）が硬いのか太ももの前（大腿直筋）が硬いのかで直し方が変わる', how:'台の端に座り、片方の膝を胸に抱えたまま仰向けに倒れ、反対の脚を台の端から下ろす。太ももが台の高さまで下がるか、浮く場合は浮きの高さを測る'},
+  {id:'btBridge', name:'ブリッジテスト', unit:'cm', dir:'high', abs:2, why:'肩・背中・股関節はバラバラに柔らかくても意味がない。個別の制限が「動きの中で同時につながる形」にどう出るかを見る統合テスト', how:'仰向けから手と足で床を押して体を持ち上げ、お尻をできるだけ高く上げて胸を開く。お尻の高さを測り、横から写真も撮る。首に体重をかけない'},
+  {id:'bt15m', name:'15mタイムテスト', unit:'秒', dir:'low', swc:1, why:'スタートから15mは「台で作った速さを、入水と水中でどれだけ捨てずに運べたか」がそのまま数字になる区間', how:'いつもの台・いつもの構えでスタートし、レースどおり全力で15mまで進む。頭が15mを越えるまでの時間を動画のコマから読む。3本行い、一番良い値と真ん中の値を記録する'},
+  {id:'btSeg1525', name:'区間スプリットテスト（15〜25m）', unit:'秒', dir:'low', swc:1.5, why:'「遅い」を「どこで遅いか」に変えるため。スタートで落としているのか、中盤が崩れるのか、最後に失速するのかで、直す練習が正反対になる', how:'50mをレースと同じ条件で全力で泳ぎ全体を動画に撮る。頭が15m・25m・35mを通過した時刻とタッチ時刻を読み、各区間の時間を出す'},
+  {id:'btSeg2535', name:'区間スプリットテスト（25〜35m）', unit:'秒', dir:'low', swc:1.5, why:'「遅い」を「どこで遅いか」に変えるため。25〜35mで大きく落ちる場合は、泳ぎの技術的な崩れが出ている', how:'50mをレースと同じ条件で全力で泳ぎ全体を動画に撮る。頭が15m・25m・35mを通過した時刻とタッチ時刻を読み、各区間の時間を出す'},
+  {id:'btSeg3550', name:'区間スプリットテスト（35〜50m）', unit:'秒', dir:'low', swc:1.5, why:'「遅い」を「どこで遅いか」に変えるため。最後の区間の落ち幅が大きい場合は、出力を保つ力の問題', how:'50mをレースと同じ条件で全力で泳ぎ全体を動画に撮る。頭が15m・25m・35mを通過した時刻とタッチ時刻を読み、各区間の時間を出す'},
+  {id:'bt50', name:'50mタイムテスト', unit:'秒', dir:'low', swc:0.8, why:'50m全体の速さの現在地。区間スプリットと並べることで「どこで落としたか」が見える', how:'レースと同じ条件で50mを全力で泳ぎ、タッチまでの時間を記録する'},
+  {id:'btV0', name:'負荷-速度テスト（V0・最高速の推定）', unit:'m/秒', dir:'high', swc:2, why:'どの速さでどれだけ力を出せるかが分かると、ジムで鍛えるべきもの（重さか、速さか）が決まる。「ジムで強くなったのに水中で速くならない」を防ぐ', how:'ベルトとロープで重りを引っ張りながら25mを全力で泳ぐ。重さを変えて3〜5回（男子1・3・5・7・9kg、女子1〜5kg、各回の休憩は5分以上）。速さと重さを直線に引き、その端からV0（最高速の推定）とL0（最大の力の推定）を読む'},
+  {id:'btL0', name:'負荷-速度テスト（L0・最大の力の推定）', unit:'kg', dir:'high', swc:3, why:'どの速さでどれだけ力を出せるかが分かると、ジムで鍛えるべきもの（重さか、速さか）が決まる。「ジムで強くなったのに水中で速くならない」を防ぐ', how:'ベルトとロープで重りを引っ張りながら25mを全力で泳ぐ。重さを変えて3〜5回（男子1・3・5・7・9kg、女子1〜5kg、各回の休憩は5分以上）。速さと重さを直線に引き、その端からV0（最高速の推定）とL0（最大の力の推定）を読む'},
+  {id:'btPara', name:'パラシュートテスト（25m）', unit:'秒', dir:'low', swc:1.5, why:'抵抗をかけた全力スプリントで、水中で「力を速さに変える力」を測る', how:'パラシュートを付けて25mを全力で泳ぎ、タイムを測る。8×25mの評価セットの1本目としても記録できる'},
+  {id:'btParaDrop', name:'パラシュートテスト（8本の落ち幅）', unit:'秒', dir:'low', abs:0.3, why:'1本目と8本目のタイム差（落ち幅）で、抵抗がかかった状態で出力を保つ力と、泳ぎの形が崩れ始める本数が分かる', how:'パラシュートを付けて25m×8本、2分サークル、全力で泳ぐ。各回のタイムを記録し、8本目から1本目を引いた値を入れる'},
+  {id:'btCmj', name:'垂直跳びテスト', unit:'cm', dir:'high', swc:3, why:'スタート台を蹴る力と全身のパワーの状態を30秒で見る。疲労がたまると真っ先に数字が落ちるので、その日の体調の物差しにもなる', how:'両手を腰に当てて立ち、反動でしゃがみ込んでそのまま真上に跳ぶ。跳んだ高さを測り、3回行って一番良い値を記録する。手を振ると数字が変わるので形は毎回同じに'},
+  {id:'btChin', name:'懸垂テスト', unit:'回', dir:'high', abs:1, why:'自由形で水を引く筋肉の力を、自分の体重込みで見る', how:'バーにぶら下がる（手のひらが自分を向く形か、両手が向き合う形）。反動なしであごがバーの上に出るまで引き上げ、腕が伸びきるところまで下ろす。正しい形でできた回数を数える'}
+]
 function mcvDefsC(){ if(!Array.isArray(S.testDefs)) S.testDefs = []; return S.testDefs; }
 function mcvRecs(){ if(!Array.isArray(S.testRec)) S.testRec = []; return S.testRec; }
 function mcvDefs(){ return MCV_DEFS.concat(mcvDefsC()); }
@@ -7514,8 +7514,8 @@ function mcvChart(def, a){
   return s;
 }
 function tMcevoyHtml(name){
-  return '<div class="card" id="mcWrap"><h2>マケボイのテスト（' + esc(name) + 'さん）</h2>' +
-    '<p class="muted" style="margin-top:0">50m自由形の世界記録保持者マケボイのチームが使うテスト群です。結果を入れると蓄積され、下にグラフと評価（改善・停滞・改悪）が出ます。評価は直前の記録と比べて、テストごとに決めた「意味のある変化」をこえたかどうかで分けます。記録は「トレーニング分析」の「七、テストの記録」と同じ場所にたまります。</p>' +
+  return '<div class="card" id="mcWrap"><h2>速さのテスト（' + esc(name) + 'さん）</h2>' +
+    '<p class="muted" style="margin-top:0">速さと、その土台になる体の動きを測るテスト集です（配布資料「速さを測るテスト集」と同じ内容）。テストを選ぶと、下に「何のためか」と「やり方」が出ます。結果を入れると蓄積され、グラフと評価（改善・停滞・改悪）が出ます。評価は直前の記録と比べて、テストごとに決めた「意味のある変化」をこえたかどうかで分けます。記録は「トレーニング分析」の「七、テストの記録」と同じ場所にたまります。</p>' +
     '<div class="row">' +
       '<label class="fld">テスト<select id="mcDef">' + mcvDefs().map(d => '<option value="' + d.id + '">' + esc(d.name) + '（' + esc(d.unit) + '）</option>').join('') + '</select></label>' +
       '<label class="fld">日付<input type="date" id="mcDate" value="' + mcvToday() + '"></label>' +
@@ -7523,6 +7523,7 @@ function tMcevoyHtml(name){
       '<label class="fld">メモ<input type="text" id="mcMemo" style="width:160px"></label>' +
       '<button class="tbtn" type="button" id="mcAdd">記録する</button>' +
     '</div>' +
+    '<div id="mcInfo" style="margin-top:8px"></div>' +
     '<p class="muted" id="mcMsg" role="status" aria-live="polite"></p>' +
     '<details><summary>テストの種類を増やす（自分のテスト名と結果を入れたいとき）</summary>' +
       '<div class="row" style="margin-top:6px">' +
@@ -7540,7 +7541,7 @@ function tMcevoyHtml(name){
 function mcRenderView(name){
   const box = $('mcView'); if(!box) return;
   const mine = mcvRecs().filter(r => r.who === name);
-  if(!mine.length){ box.innerHTML = '<p class="muted">' + esc(name) + 'さんのマケボイ・テストの記録はまだありません。上の「結果を入れる」から最初の記録を入れてください</p>'; return; }
+  if(!mine.length){ box.innerHTML = '<p class="muted">' + esc(name) + 'さんの速さのテストの記録はまだありません。上のフォームから最初の記録を入れてください</p>'; return; }
   const byDef = {};
   mine.forEach(r => { (byDef[r.def] = byDef[r.def] || []).push(r); });
   Object.keys(byDef).forEach(k => byDef[k].sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
@@ -7573,6 +7574,8 @@ function mcevoyAfterRender(name){
   const wrap = $('mcWrap'); if(!wrap) return;
   const dl = $('mcDefList');
   if(dl) dl.innerHTML = mcvDefsC().length ? '追加したテスト：' + mcvDefsC().map(d => '<span style="margin-right:10px">' + esc(d.name) + '（' + esc(d.unit) + '）<button type="button" class="tbtn g" data-mcdeldef="' + d.id + '">消す</button></span>').join('') : '<span class="muted">追加したテストはまだありません</span>';
+  const mcShowInfo = () => { const d = mcvDefById($('mcDef').value); const b2 = $('mcInfo'); if(b2 && d) b2.innerHTML = '<div style="background:#f4f9fd;border:1px solid #d7e5f0;border-radius:8px;padding:8px 10px"><b>' + esc(d.name) + '</b>' + (d.why ? '<br><span style="color:#c1272d;font-weight:700">何のため：</span>' + esc(d.why) : '') + (d.how ? '<br><span style="font-weight:700">やり方：</span>' + esc(d.how) : '') + '</div>'; };
+  $('mcDef').addEventListener('change', mcShowInfo); mcShowInfo();
   $('mcAdd').addEventListener('click', () => {
     const defId = $('mcDef').value, date = $('mcDate').value || mcvToday();
     const v = parseFloat($('mcVal').value);
@@ -9635,23 +9638,23 @@ const uid = () => 'tr' + Date.now().toString(36) + Math.random().toString(36).sl
    評価は「直前の記録との差」が、テストごとに決めた意味のある変化
    （%指定 swc、または絶対値 abs）をこえたかどうかで 改善・停滞・改悪 に分ける */
 const BT_DEFS = [
-  {id:'bt15m', name:'15mタイム', unit:'秒', dir:'low', swc:1},
-  {id:'bt50', name:'50mタイム', unit:'秒', dir:'low', swc:0.8},
-  {id:'btV0', name:'負荷-速度 V0（最高速の推定）', unit:'m/秒', dir:'high', swc:2},
-  {id:'btL0', name:'負荷-速度 L0（最大の力の推定）', unit:'kg', dir:'high', swc:3},
-  {id:'btPara', name:'パラシュート25m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btCmj', name:'垂直跳び', unit:'cm', dir:'high', swc:3},
-  {id:'btChin', name:'懸垂', unit:'回', dir:'high', abs:1},
-  {id:'btShFlex', name:'肩屈曲（床までの距離）', unit:'cm', dir:'low', abs:1},
-  {id:'btShEr', name:'肩の分離・外旋（前腕の倒れ）', unit:'度', dir:'high', abs:5},
-  {id:'btComb', name:'コンバインド・エクステンション（手の高さ）', unit:'cm', dir:'high', abs:1},
-  {id:'btThomas', name:'トーマステスト（太ももの浮き）', unit:'cm', dir:'low', abs:1},
-  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2},
-  {id:'btSeg1525', name:'区間 15〜25m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btSeg2535', name:'区間 25〜35m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btSeg3550', name:'区間 35〜50m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btParaDrop', name:'パラシュート8本の落ち幅（8本目−1本目）', unit:'秒', dir:'low', abs:0.3}
-];
+  {id:'btShFlex', name:'肩屈曲テスト', unit:'cm', dir:'low', abs:1, why:'腕が真っすぐ上に立たないと、入水でストリームラインが作れず、スタート直後から速さを捨ててしまう。形の上限はここで決まる', how:'仰向けに寝て膝を立て、腰を床に押しつけたまま両腕を頭の上に伸ばす。手首が床につくか、浮く場合は床からの距離を測る。腰が反ったら無効'},
+  {id:'btShEr', name:'肩の分離テスト', unit:'度', dir:'high', abs:5, why:'「肩が硬い」の正体がどの筋肉か（大胸筋／肩甲下筋・大円筋／広背筋）で直し方がまったく違う。思い込みで選ばないために切り分ける', how:'立って片腕を横に90度上げ、肘を90度に曲げる（ゴールポストの形）。上腕の位置を保ったまま前腕を後ろへ倒し、倒れた角度を測る。左右とも行う'},
+  {id:'btComb', name:'コンバインド・エクステンションテスト', unit:'cm', dir:'high', abs:1, why:'うつ伏せのストリームライン姿勢そのもので測るテスト。肩と背中が「一緒に」伸びるかが見られる', how:'うつ伏せに寝てあごを床につけ、両腕を頭の上に伸ばしてストリームラインの形を作る。あごをつけたまま両手をできるだけ高く上げ、床から手までの高さを測る'},
+  {id:'btThomas', name:'トーマステスト', unit:'cm', dir:'low', abs:1, why:'股関節が後ろに伸びないと、キックとストリームラインで腰が反って抵抗になる。奥の筋肉（腸腰筋）が硬いのか太ももの前（大腿直筋）が硬いのかで直し方が変わる', how:'台の端に座り、片方の膝を胸に抱えたまま仰向けに倒れ、反対の脚を台の端から下ろす。太ももが台の高さまで下がるか、浮く場合は浮きの高さを測る'},
+  {id:'btBridge', name:'ブリッジテスト', unit:'cm', dir:'high', abs:2, why:'肩・背中・股関節はバラバラに柔らかくても意味がない。個別の制限が「動きの中で同時につながる形」にどう出るかを見る統合テスト', how:'仰向けから手と足で床を押して体を持ち上げ、お尻をできるだけ高く上げて胸を開く。お尻の高さを測り、横から写真も撮る。首に体重をかけない'},
+  {id:'bt15m', name:'15mタイムテスト', unit:'秒', dir:'low', swc:1, why:'スタートから15mは「台で作った速さを、入水と水中でどれだけ捨てずに運べたか」がそのまま数字になる区間', how:'いつもの台・いつもの構えでスタートし、レースどおり全力で15mまで進む。頭が15mを越えるまでの時間を動画のコマから読む。3本行い、一番良い値と真ん中の値を記録する'},
+  {id:'btSeg1525', name:'区間スプリットテスト（15〜25m）', unit:'秒', dir:'low', swc:1.5, why:'「遅い」を「どこで遅いか」に変えるため。スタートで落としているのか、中盤が崩れるのか、最後に失速するのかで、直す練習が正反対になる', how:'50mをレースと同じ条件で全力で泳ぎ全体を動画に撮る。頭が15m・25m・35mを通過した時刻とタッチ時刻を読み、各区間の時間を出す'},
+  {id:'btSeg2535', name:'区間スプリットテスト（25〜35m）', unit:'秒', dir:'low', swc:1.5, why:'「遅い」を「どこで遅いか」に変えるため。25〜35mで大きく落ちる場合は、泳ぎの技術的な崩れが出ている', how:'50mをレースと同じ条件で全力で泳ぎ全体を動画に撮る。頭が15m・25m・35mを通過した時刻とタッチ時刻を読み、各区間の時間を出す'},
+  {id:'btSeg3550', name:'区間スプリットテスト（35〜50m）', unit:'秒', dir:'low', swc:1.5, why:'「遅い」を「どこで遅いか」に変えるため。最後の区間の落ち幅が大きい場合は、出力を保つ力の問題', how:'50mをレースと同じ条件で全力で泳ぎ全体を動画に撮る。頭が15m・25m・35mを通過した時刻とタッチ時刻を読み、各区間の時間を出す'},
+  {id:'bt50', name:'50mタイムテスト', unit:'秒', dir:'low', swc:0.8, why:'50m全体の速さの現在地。区間スプリットと並べることで「どこで落としたか」が見える', how:'レースと同じ条件で50mを全力で泳ぎ、タッチまでの時間を記録する'},
+  {id:'btV0', name:'負荷-速度テスト（V0・最高速の推定）', unit:'m/秒', dir:'high', swc:2, why:'どの速さでどれだけ力を出せるかが分かると、ジムで鍛えるべきもの（重さか、速さか）が決まる。「ジムで強くなったのに水中で速くならない」を防ぐ', how:'ベルトとロープで重りを引っ張りながら25mを全力で泳ぐ。重さを変えて3〜5回（男子1・3・5・7・9kg、女子1〜5kg、各回の休憩は5分以上）。速さと重さを直線に引き、その端からV0（最高速の推定）とL0（最大の力の推定）を読む'},
+  {id:'btL0', name:'負荷-速度テスト（L0・最大の力の推定）', unit:'kg', dir:'high', swc:3, why:'どの速さでどれだけ力を出せるかが分かると、ジムで鍛えるべきもの（重さか、速さか）が決まる。「ジムで強くなったのに水中で速くならない」を防ぐ', how:'ベルトとロープで重りを引っ張りながら25mを全力で泳ぐ。重さを変えて3〜5回（男子1・3・5・7・9kg、女子1〜5kg、各回の休憩は5分以上）。速さと重さを直線に引き、その端からV0（最高速の推定）とL0（最大の力の推定）を読む'},
+  {id:'btPara', name:'パラシュートテスト（25m）', unit:'秒', dir:'low', swc:1.5, why:'抵抗をかけた全力スプリントで、水中で「力を速さに変える力」を測る', how:'パラシュートを付けて25mを全力で泳ぎ、タイムを測る。8×25mの評価セットの1本目としても記録できる'},
+  {id:'btParaDrop', name:'パラシュートテスト（8本の落ち幅）', unit:'秒', dir:'low', abs:0.3, why:'1本目と8本目のタイム差（落ち幅）で、抵抗がかかった状態で出力を保つ力と、泳ぎの形が崩れ始める本数が分かる', how:'パラシュートを付けて25m×8本、2分サークル、全力で泳ぐ。各回のタイムを記録し、8本目から1本目を引いた値を入れる'},
+  {id:'btCmj', name:'垂直跳びテスト', unit:'cm', dir:'high', swc:3, why:'スタート台を蹴る力と全身のパワーの状態を30秒で見る。疲労がたまると真っ先に数字が落ちるので、その日の体調の物差しにもなる', how:'両手を腰に当てて立ち、反動でしゃがみ込んでそのまま真上に跳ぶ。跳んだ高さを測り、3回行って一番良い値を記録する。手を振ると数字が変わるので形は毎回同じに'},
+  {id:'btChin', name:'懸垂テスト', unit:'回', dir:'high', abs:1, why:'自由形で水を引く筋肉の力を、自分の体重込みで見る', how:'バーにぶら下がる（手のひらが自分を向く形か、両手が向き合う形）。反動なしであごがバーの上に出るまで引き上げ、腕が伸びきるところまで下ろす。正しい形でできた回数を数える'}
+]
 const tDefsC = () => { if(!Array.isArray(S.testDefs)) S.testDefs = []; return S.testDefs; };
 const tRecs = () => { if(!Array.isArray(S.testRec)) S.testRec = []; return S.testRec; };
 const tDefs = () => BT_DEFS.concat(tDefsC());
@@ -9681,6 +9684,11 @@ function ttChart(def, a){
   a.forEach((r, i) => { s += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(r.v).toFixed(1) + '" r="4" fill="#c1272d"/><text x="' + X(i).toFixed(1) + '" y="' + (Y(r.v) - 9).toFixed(1) + '" font-size="10.5" text-anchor="middle" fill="#123c5e" font-weight="700">' + r.v + '</text><text x="' + X(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9.5" text-anchor="middle" fill="#666">' + md(r.date) + '</text>'; });
   s += '</svg><p class="muted" style="margin-top:2px">' + E(def.name) + '（' + E(def.unit) + '）― ' + (def.dir === 'low' ? '小さい方が良い' : '大きい方が良い') + 'テストです</p>';
   return s;
+}
+function ttShowInfo(){
+  const sel = g('ttDef'), box = g('ttInfo'); if(!sel || !box) return;
+  const d = tDefById(sel.value); if(!d){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div style="background:#f4f9fd;border:1px solid #d7e5f0;border-radius:8px;padding:8px 10px"><b>' + E(d.name) + '</b>' + (d.why ? '<br><span style="color:#c1272d;font-weight:700">何のため：</span>' + E(d.why) : '') + (d.how ? '<br><span style="font-weight:700">やり方：</span>' + E(d.how) : '') + '</div>';
 }
 function renderTtView(){
   const box = g('ttView'); if(!box) return;
@@ -9722,6 +9730,7 @@ function renderTtAll(){
   wSel.innerHTML = names.length ? names.map(n => '<option' + (n === curW ? ' selected' : '') + '>' + E(n) + '</option>').join('') : '<option value="">（六の名簿に選手がいません）</option>';
   const dSel = g('ttDef'), curD = dSel.value;
   dSel.innerHTML = tDefs().map(d => '<option value="' + d.id + '"' + (d.id === curD ? ' selected' : '') + '>' + E(d.name) + '（' + E(d.unit) + '）</option>').join('');
+  ttShowInfo();
   if(!g('ttDate').value) g('ttDate').value = today();
   g('ttDefList').innerHTML = tDefsC().length ? '追加したテスト：' + tDefsC().map(d => '<span style="margin-right:10px">' + E(d.name) + '（' + E(d.unit) + '）<button class="btn ghost" data-ttdeldef="' + d.id + '">消す</button></span>').join('') : '<span class="muted">追加したテストはまだありません</span>';
   const cnt = {}; tRecs().forEach(r => { cnt[r.who] = (cnt[r.who] || 0) + 1; });
@@ -9742,6 +9751,7 @@ function bindTests(){
     say('テストを記録しました');
     renderTtAll();
   });
+  const tds = g('ttDef'); if(tds && !tds.__ttI){ tds.__ttI = true; tds.addEventListener('change', ttShowInfo); }
   g('ttNewAdd').addEventListener('click', () => {
     const name = g('ttNewName').value.trim();
     if(!name){ g('ttMsg').textContent = 'テスト名を入れてください'; return; }
@@ -10235,6 +10245,7 @@ function install(){
         '<label class="fld">メモ<input type="text" id="ttMemo" style="width:160px"></label>' +
         '<button class="btn primary" id="ttAdd">記録する</button>' +
       '</div>' +
+      '<div id="ttInfo" style="margin-top:8px"></div>' +
       '<p class="muted" id="ttMsg" role="status" aria-live="polite"></p>' +
       '<details><summary>テストの種類を増やす（自分のテスト名と結果を入れたいとき）</summary>' +
         '<div class="row" style="margin-top:6px">' +

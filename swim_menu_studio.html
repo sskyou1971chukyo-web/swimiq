@@ -7428,7 +7428,7 @@ const T_MARKS = {
   800:{step:'必須', turn:'約10回', cs:'あると良い', speed:'不要'},
   1500:{step:'必須', turn:'約10回', cs:'あると良い', speed:'不要'}
 };
-const T_TABS = [['choose', 'テストを選ぶ'], ['step', 'ステップテスト'], ['record', 'LTの記録'], ['turn', 'ターン'], ['cs', 'クリティカルスピード'], ['speed', 'スピード']];
+const T_TABS = [['choose', 'テストを選ぶ'], ['step', 'ステップテスト'], ['record', 'LTの記録'], ['turn', 'ターン'], ['cs', 'クリティカルスピード'], ['speed', 'スピード'], ['mcevoy', 'マケボイ']];
 const STROKE_T = ['自由形', '背泳ぎ', '平泳ぎ', 'バタフライ', '個人メドレー'];
 const DEF_OFFSETS = [26, 21, 16, 12, 8, 4, 1];
 
@@ -7456,8 +7456,151 @@ function renderTests(){
   $('tTabs').innerHTML = T_TABS.map(t => '<button type="button" class="tTab' + (t[0] === tab ? ' on' : '') + '" data-ttab="' + t[0] + '" aria-pressed="' + (t[0] === tab) + '">' + t[1] + '</button>').join('');
   const box = $('tBody');
   if(!name){ box.innerHTML = '<div class="card"><p>まず上の「選手を加える」で、選手の名前を入れてください。</p></div>'; return; }
-  box.innerHTML = {choose:tChooseHtml, step:tStepHtml, record:tRecordHtml, turn:tTurnHtml, cs:tCsHtml, speed:tSpeedHtml}[tab](name);
+  box.innerHTML = {choose:tChooseHtml, step:tStepHtml, record:tRecordHtml, turn:tTurnHtml, cs:tCsHtml, speed:tSpeedHtml, mcevoy:tMcevoyHtml}[tab](name);
   if(tab === 'step') stepAfterRender();
+  if(tab === 'mcevoy') mcevoyAfterRender(name);
+}
+
+/* ---------- マケボイ（動画のテスト群） ---------- */
+const MCV_DEFS = [
+  {id:'bt15m', name:'15mタイム', unit:'秒', dir:'low', swc:1},
+  {id:'bt50', name:'50mタイム', unit:'秒', dir:'low', swc:0.8},
+  {id:'btSeg1525', name:'区間 15〜25m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btSeg2535', name:'区間 25〜35m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btSeg3550', name:'区間 35〜50m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btV0', name:'負荷-速度 V0（最高速の推定）', unit:'m/秒', dir:'high', swc:2},
+  {id:'btL0', name:'負荷-速度 L0（最大の力の推定）', unit:'kg', dir:'high', swc:3},
+  {id:'btPara', name:'パラシュート25m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btParaDrop', name:'パラシュート8本の落ち幅（8本目−1本目）', unit:'秒', dir:'low', abs:0.3},
+  {id:'btCmj', name:'垂直跳び', unit:'cm', dir:'high', swc:3},
+  {id:'btChin', name:'懸垂', unit:'回', dir:'high', abs:1},
+  {id:'btShFlex', name:'肩屈曲（床までの距離）', unit:'cm', dir:'low', abs:1},
+  {id:'btShEr', name:'肩の分離・外旋（前腕の倒れ）', unit:'度', dir:'high', abs:5},
+  {id:'btComb', name:'コンバインド・エクステンション（手の高さ）', unit:'cm', dir:'high', abs:1},
+  {id:'btThomas', name:'トーマステスト（太ももの浮き）', unit:'cm', dir:'low', abs:1},
+  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2}
+];
+function mcvDefsC(){ if(!Array.isArray(S.testDefs)) S.testDefs = []; return S.testDefs; }
+function mcvRecs(){ if(!Array.isArray(S.testRec)) S.testRec = []; return S.testRec; }
+function mcvDefs(){ return MCV_DEFS.concat(mcvDefsC()); }
+function mcvDefById(id){ return mcvDefs().find(d => d.id === id); }
+function mcvUid(){ return 'mc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function mcvToday(){ const d = new Date(), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+function mcvMd(s){ return s ? (+s.slice(5, 7)) + '/' + (+s.slice(8)) : ''; }
+let mcvTestSel = '';
+function mcvEval(def, prev, cur){
+  if(prev == null || prev === undefined) return {label:'初回（基準）', cls:'#888', diff:'—'};
+  const d = cur - prev;
+  const thr = def.abs != null ? def.abs : Math.abs(prev) * (def.swc || 2) / 100;
+  const pct = prev !== 0 ? d / Math.abs(prev) * 100 : 0;
+  const diff = (d > 0 ? '+' : '') + (Math.round(d * 100) / 100) + def.unit + '（' + (pct > 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%）';
+  if(Math.abs(d) < thr) return {label:'停滞', cls:'#777', diff};
+  const better = def.dir === 'low' ? d < 0 : d > 0;
+  return better ? {label:'改善', cls:'#2e7d32', diff} : {label:'改悪', cls:'#c1272d', diff};
+}
+function mcvChart(def, a){
+  const W = 640, H = 212, pl = 48, pr = 16, pt = 18, pb = 30;
+  const vs = a.map(r => r.v);
+  let mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs);
+  if(mn === mx){ mn -= 1; mx += 1; }
+  const pv = (mx - mn) * 0.18; mn -= pv; mx += pv;
+  const X = i => a.length === 1 ? pl + (W - pl - pr) / 2 : pl + (W - pl - pr) * i / (a.length - 1);
+  const Y = v => pt + (H - pt - pb) * (1 - (v - mn) / (mx - mn));
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:640px;background:#fbfdfe;border:1px solid #dde6ee;border-radius:6px" role="img" aria-label="' + esc(def.name) + 'のグラフ">';
+  [mn, (mn + mx) / 2, mx].forEach(v => { const y = Y(v); s += '<line x1="' + pl + '" y1="' + y.toFixed(1) + '" x2="' + (W - pr) + '" y2="' + y.toFixed(1) + '" stroke="#e3ebf2"/><text x="' + (pl - 5) + '" y="' + (y + 4).toFixed(1) + '" font-size="10" text-anchor="end" fill="#666">' + (Math.round(v * 100) / 100) + '</text>'; });
+  s += '<polyline fill="none" stroke="#2e7fc2" stroke-width="2.4" points="' + a.map((r, i) => X(i).toFixed(1) + ',' + Y(r.v).toFixed(1)).join(' ') + '"/>';
+  a.forEach((r, i) => { s += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(r.v).toFixed(1) + '" r="4" fill="#c1272d"/><text x="' + X(i).toFixed(1) + '" y="' + (Y(r.v) - 9).toFixed(1) + '" font-size="10.5" text-anchor="middle" fill="#123c5e" font-weight="700">' + r.v + '</text><text x="' + X(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9.5" text-anchor="middle" fill="#666">' + mcvMd(r.date) + '</text>'; });
+  s += '</svg><p class="muted" style="margin-top:2px">' + esc(def.name) + '（' + esc(def.unit) + '）― ' + (def.dir === 'low' ? '小さい方が良い' : '大きい方が良い') + 'テストです</p>';
+  return s;
+}
+function tMcevoyHtml(name){
+  return '<div class="card" id="mcWrap"><h2>マケボイのテスト（' + esc(name) + 'さん）</h2>' +
+    '<p class="muted" style="margin-top:0">50m自由形の世界記録保持者マケボイのチームが使うテスト群です。結果を入れると蓄積され、下にグラフと評価（改善・停滞・改悪）が出ます。評価は直前の記録と比べて、テストごとに決めた「意味のある変化」をこえたかどうかで分けます。記録は「トレーニング分析」の「七、テストの記録」と同じ場所にたまります。</p>' +
+    '<div class="row">' +
+      '<label class="fld">テスト<select id="mcDef">' + mcvDefs().map(d => '<option value="' + d.id + '">' + esc(d.name) + '（' + esc(d.unit) + '）</option>').join('') + '</select></label>' +
+      '<label class="fld">日付<input type="date" id="mcDate" value="' + mcvToday() + '"></label>' +
+      '<label class="fld">結果（数字）<input type="number" id="mcVal" step="any" style="width:110px"></label>' +
+      '<label class="fld">メモ<input type="text" id="mcMemo" style="width:160px"></label>' +
+      '<button class="tbtn" type="button" id="mcAdd">記録する</button>' +
+    '</div>' +
+    '<p class="muted" id="mcMsg" role="status" aria-live="polite"></p>' +
+    '<details><summary>テストの種類を増やす（自分のテスト名と結果を入れたいとき）</summary>' +
+      '<div class="row" style="margin-top:6px">' +
+        '<label class="fld">テスト名<input type="text" id="mcNewName" style="width:190px"></label>' +
+        '<label class="fld">単位<input type="text" id="mcNewUnit" style="width:80px" placeholder="秒・cm・回"></label>' +
+        '<label class="fld">良い方向<select id="mcNewDir"><option value="low">小さい方が良い</option><option value="high">大きい方が良い</option></select></label>' +
+        '<label class="fld">意味のある変化（%）<input type="number" id="mcNewSwc" step="any" value="2" style="width:70px"></label>' +
+        '<button class="tbtn g" type="button" id="mcNewAdd">テストを追加</button>' +
+      '</div>' +
+      '<div id="mcDefList" style="margin-top:6px"></div>' +
+    '</details>' +
+    '<div id="mcView" style="margin-top:10px"></div>' +
+  '</div>';
+}
+function mcRenderView(name){
+  const box = $('mcView'); if(!box) return;
+  const mine = mcvRecs().filter(r => r.who === name);
+  if(!mine.length){ box.innerHTML = '<p class="muted">' + esc(name) + 'さんのマケボイ・テストの記録はまだありません。上の「結果を入れる」から最初の記録を入れてください</p>'; return; }
+  const byDef = {};
+  mine.forEach(r => { (byDef[r.def] = byDef[r.def] || []).push(r); });
+  Object.keys(byDef).forEach(k => byDef[k].sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+  let h = '<h3>テストごとの最新と評価</h3><div class="tWrap"><table class="list tTbl"><thead><tr><th>テスト</th><th>最新の日</th><th>最新</th><th>前回</th><th>初回からの変化</th><th>評価（前回と比べて）</th></tr></thead><tbody>';
+  Object.keys(byDef).forEach(id => {
+    const def = mcvDefById(id); if(!def) return;
+    const a = byDef[id], last = a[a.length - 1], prev = a.length > 1 ? a[a.length - 2] : null;
+    const ev = mcvEval(def, prev ? prev.v : null, last.v);
+    const ev0 = mcvEval(def, a[0].v, last.v);
+    h += '<tr><td>' + esc(def.name) + '</td><td>' + esc(mcvMd(last.date)) + '</td><td>' + last.v + esc(def.unit) + '</td><td>' + (prev ? prev.v + esc(def.unit) : '—') + '</td><td>' + (a.length > 1 ? ev0.diff : '—') + '</td><td><span style="color:' + ev.cls + ';font-weight:700">' + ev.label + '</span>' + (prev ? ' <span class="muted">' + ev.diff + '</span>' : '') + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  const ids = Object.keys(byDef).filter(id => mcvDefById(id));
+  if(!ids.includes(mcvTestSel)) mcvTestSel = ids[ids.length - 1];
+  h += '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">' + ids.map(id => '<button type="button" class="tbtn' + (id === mcvTestSel ? '' : ' g') + '" data-mctest="' + id + '">' + esc(mcvDefById(id).name) + '</button>').join('') + '</div>';
+  const def = mcvDefById(mcvTestSel), a = byDef[mcvTestSel] || [];
+  if(def && a.length){
+    h += mcvChart(def, a);
+    h += '<div class="tWrap"><table class="list tTbl"><thead><tr><th>日付</th><th>結果</th><th>前回との差</th><th>評価</th><th>メモ</th><th></th></tr></thead><tbody>';
+    for(let j = a.length - 1; j >= 0; j--){
+      const r = a[j], prev = j > 0 ? a[j - 1] : null;
+      const ev = mcvEval(def, prev ? prev.v : null, r.v);
+      h += '<tr><td>' + esc(r.date) + '</td><td>' + r.v + esc(def.unit) + '</td><td>' + (prev ? ev.diff : '—') + '</td><td><span style="color:' + ev.cls + ';font-weight:700">' + ev.label + '</span></td><td>' + esc(r.memo || '') + '</td><td><button type="button" class="tbtn g" data-mcdel="' + r.id + '">消す</button></td></tr>';
+    }
+    h += '</tbody></table></div>';
+  }
+  box.innerHTML = h;
+}
+function mcevoyAfterRender(name){
+  const wrap = $('mcWrap'); if(!wrap) return;
+  const dl = $('mcDefList');
+  if(dl) dl.innerHTML = mcvDefsC().length ? '追加したテスト：' + mcvDefsC().map(d => '<span style="margin-right:10px">' + esc(d.name) + '（' + esc(d.unit) + '）<button type="button" class="tbtn g" data-mcdeldef="' + d.id + '">消す</button></span>').join('') : '<span class="muted">追加したテストはまだありません</span>';
+  $('mcAdd').addEventListener('click', () => {
+    const defId = $('mcDef').value, date = $('mcDate').value || mcvToday();
+    const v = parseFloat($('mcVal').value);
+    if(isNaN(v)){ $('mcMsg').textContent = '結果は数字で入れてください'; return; }
+    mcvRecs().push({id: mcvUid(), date: date, who: name, def: defId, v: v, memo: $('mcMemo').value || ''});
+    saveNow(); mcvTestSel = defId;
+    $('mcVal').value = ''; $('mcMemo').value = '';
+    $('mcMsg').textContent = '記録しました';
+    if(typeof toast === 'function') toast('テストを記録しました');
+    mcRenderView(name);
+  });
+  $('mcNewAdd').addEventListener('click', () => {
+    const nm = $('mcNewName').value.trim();
+    if(!nm){ $('mcMsg').textContent = 'テスト名を入れてください'; return; }
+    const d = {id: 'ct' + mcvUid(), name: nm, unit: $('mcNewUnit').value.trim(), dir: $('mcNewDir').value, swc: parseFloat($('mcNewSwc').value) || 2};
+    mcvDefsC().push(d); saveNow();
+    $('mcMsg').textContent = 'テスト「' + nm + '」を追加しました';
+    renderTests();
+  });
+  wrap.addEventListener('click', e => {
+    const t = e.target.closest('[data-mctest]');
+    if(t){ mcvTestSel = t.getAttribute('data-mctest'); mcRenderView(name); return; }
+    const del = e.target.closest('[data-mcdel]');
+    if(del){ if(confirm('この記録を消しますか？')){ S.testRec = mcvRecs().filter(r => r.id !== del.getAttribute('data-mcdel')); saveNow(); mcRenderView(name); } return; }
+    const dd = e.target.closest('[data-mcdeldef]');
+    if(dd){ if(confirm('このテストの種類を消しますか？（残っている記録は表示されなくなります）')){ S.testDefs = mcvDefsC().filter(d => d.id !== dd.getAttribute('data-mcdeldef')); saveNow(); renderTests(); } }
+  });
+  mcRenderView(name);
 }
 
 /* ---------- 1 テストを選ぶ ---------- */
@@ -9503,7 +9646,11 @@ const BT_DEFS = [
   {id:'btShEr', name:'肩の分離・外旋（前腕の倒れ）', unit:'度', dir:'high', abs:5},
   {id:'btComb', name:'コンバインド・エクステンション（手の高さ）', unit:'cm', dir:'high', abs:1},
   {id:'btThomas', name:'トーマステスト（太ももの浮き）', unit:'cm', dir:'low', abs:1},
-  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2}
+  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2},
+  {id:'btSeg1525', name:'区間 15〜25m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btSeg2535', name:'区間 25〜35m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btSeg3550', name:'区間 35〜50m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btParaDrop', name:'パラシュート8本の落ち幅（8本目−1本目）', unit:'秒', dir:'low', abs:0.3}
 ];
 const tDefsC = () => { if(!Array.isArray(S.testDefs)) S.testDefs = []; return S.testDefs; };
 const tRecs = () => { if(!Array.isArray(S.testRec)) S.testRec = []; return S.testRec; };

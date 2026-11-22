@@ -9483,6 +9483,143 @@ const recs = () => { if(!Array.isArray(S.trainRec)) S.trainRec = []; return S.tr
 const full = r => r.sei + (r.mei ? ' ' + r.mei : '');
 const uid = () => 'tr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+/* ---------- 七、テストの記録 ----------
+   S.testRec  [{id, date, who, def, v, memo}]  def はテスト定義の id
+   S.testDefs 自分で追加したテスト定義 [{id, name, unit, dir:'low'|'high', swc}]
+   評価は「直前の記録との差」が、テストごとに決めた意味のある変化
+   （%指定 swc、または絶対値 abs）をこえたかどうかで 改善・停滞・改悪 に分ける */
+const BT_DEFS = [
+  {id:'bt15m', name:'15mタイム', unit:'秒', dir:'low', swc:1},
+  {id:'bt50', name:'50mタイム', unit:'秒', dir:'low', swc:0.8},
+  {id:'btV0', name:'負荷-速度 V0（最高速の推定）', unit:'m/秒', dir:'high', swc:2},
+  {id:'btL0', name:'負荷-速度 L0（最大の力の推定）', unit:'kg', dir:'high', swc:3},
+  {id:'btPara', name:'パラシュート25m', unit:'秒', dir:'low', swc:1.5},
+  {id:'btCmj', name:'垂直跳び', unit:'cm', dir:'high', swc:3},
+  {id:'btChin', name:'懸垂', unit:'回', dir:'high', abs:1},
+  {id:'btShFlex', name:'肩屈曲（床までの距離）', unit:'cm', dir:'low', abs:1},
+  {id:'btShEr', name:'肩の分離・外旋（前腕の倒れ）', unit:'度', dir:'high', abs:5},
+  {id:'btComb', name:'コンバインド・エクステンション（手の高さ）', unit:'cm', dir:'high', abs:1},
+  {id:'btThomas', name:'トーマステスト（太ももの浮き）', unit:'cm', dir:'low', abs:1},
+  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2}
+];
+const tDefsC = () => { if(!Array.isArray(S.testDefs)) S.testDefs = []; return S.testDefs; };
+const tRecs = () => { if(!Array.isArray(S.testRec)) S.testRec = []; return S.testRec; };
+const tDefs = () => BT_DEFS.concat(tDefsC());
+const tDefById = id => tDefs().find(d => d.id === id);
+let ttWhoSel = '', ttTestSel = '';
+function ttEval(def, prev, cur){
+  if(prev == null || prev === undefined) return {label:'初回（基準）', cls:'#888', diff:'—'};
+  const d = cur - prev;
+  const thr = def.abs != null ? def.abs : Math.abs(prev) * (def.swc || 2) / 100;
+  const pct = prev !== 0 ? d / Math.abs(prev) * 100 : 0;
+  const diff = (d > 0 ? '+' : '') + (Math.round(d * 100) / 100) + def.unit + '（' + (pct > 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%）';
+  if(Math.abs(d) < thr) return {label:'停滞', cls:'#777', diff};
+  const better = def.dir === 'low' ? d < 0 : d > 0;
+  return better ? {label:'改善', cls:'#2e7d32', diff} : {label:'改悪', cls:'#c1272d', diff};
+}
+function ttChart(def, a){
+  const W = 640, H = 212, pl = 48, pr = 16, pt = 18, pb = 30;
+  const vs = a.map(r => r.v);
+  let mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs);
+  if(mn === mx){ mn -= 1; mx += 1; }
+  const pv = (mx - mn) * 0.18; mn -= pv; mx += pv;
+  const X = i => a.length === 1 ? pl + (W - pl - pr) / 2 : pl + (W - pl - pr) * i / (a.length - 1);
+  const Y = v => pt + (H - pt - pb) * (1 - (v - mn) / (mx - mn));
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:640px;background:#fbfdfe;border:1px solid #dde6ee;border-radius:6px" role="img" aria-label="' + E(def.name) + 'のグラフ">';
+  [mn, (mn + mx) / 2, mx].forEach(v => { const y = Y(v); s += '<line x1="' + pl + '" y1="' + y.toFixed(1) + '" x2="' + (W - pr) + '" y2="' + y.toFixed(1) + '" stroke="#e3ebf2"/><text x="' + (pl - 5) + '" y="' + (y + 4).toFixed(1) + '" font-size="10" text-anchor="end" fill="#666">' + (Math.round(v * 100) / 100) + '</text>'; });
+  s += '<polyline fill="none" stroke="#2e7fc2" stroke-width="2.4" points="' + a.map((r, i) => X(i).toFixed(1) + ',' + Y(r.v).toFixed(1)).join(' ') + '"/>';
+  a.forEach((r, i) => { s += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(r.v).toFixed(1) + '" r="4" fill="#c1272d"/><text x="' + X(i).toFixed(1) + '" y="' + (Y(r.v) - 9).toFixed(1) + '" font-size="10.5" text-anchor="middle" fill="#123c5e" font-weight="700">' + r.v + '</text><text x="' + X(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9.5" text-anchor="middle" fill="#666">' + md(r.date) + '</text>'; });
+  s += '</svg><p class="muted" style="margin-top:2px">' + E(def.name) + '（' + E(def.unit) + '）― ' + (def.dir === 'low' ? '小さい方が良い' : '大きい方が良い') + 'テストです</p>';
+  return s;
+}
+function renderTtView(){
+  const box = g('ttView'); if(!box) return;
+  if(!ttWhoSel){ box.innerHTML = '<p class="muted">上の名前を押すと、その選手のテストの記録・グラフ・評価が出ます</p>'; return; }
+  const mine = tRecs().filter(r => r.who === ttWhoSel);
+  if(!mine.length){ box.innerHTML = '<p class="muted">' + E(ttWhoSel) + ' のテスト記録はまだありません。上の「結果を入れる」から最初の記録を入れてください</p>'; return; }
+  const byDef = {};
+  mine.forEach(r => { (byDef[r.def] = byDef[r.def] || []).push(r); });
+  Object.keys(byDef).forEach(k => byDef[k].sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+  let h = '<h3>' + E(ttWhoSel) + ' のテスト（テストごとの最新と評価）</h3><div class="tWrap"><table class="tT"><thead><tr><th>テスト</th><th>最新の日</th><th>最新</th><th>前回</th><th>初回からの変化</th><th>評価（前回と比べて）</th></tr></thead><tbody>';
+  Object.keys(byDef).forEach(id => {
+    const def = tDefById(id); if(!def) return;
+    const a = byDef[id], last = a[a.length - 1], prev = a.length > 1 ? a[a.length - 2] : null;
+    const ev = ttEval(def, prev ? prev.v : null, last.v);
+    const ev0 = ttEval(def, a[0].v, last.v);
+    h += '<tr><td>' + E(def.name) + '</td><td>' + E(md(last.date)) + '</td><td>' + last.v + E(def.unit) + '</td><td>' + (prev ? prev.v + E(def.unit) : '—') + '</td><td>' + (a.length > 1 ? ev0.diff : '—') + '</td><td><span style="color:' + ev.cls + ';font-weight:700">' + ev.label + '</span>' + (prev ? ' <span class="muted">' + ev.diff + '</span>' : '') + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  const ids = Object.keys(byDef).filter(id => tDefById(id));
+  if(!ids.includes(ttTestSel)) ttTestSel = ids[ids.length - 1];
+  h += '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">' + ids.map(id => '<button class="btn' + (id === ttTestSel ? ' primary' : '') + '" data-tttest="' + id + '">' + E(tDefById(id).name) + '</button>').join('') + '</div>';
+  const def = tDefById(ttTestSel), a = byDef[ttTestSel] || [];
+  if(def && a.length){
+    h += ttChart(def, a);
+    h += '<div class="tWrap"><table class="tT"><thead><tr><th>日付</th><th>結果</th><th>前回との差</th><th>評価</th><th>メモ</th><th></th></tr></thead><tbody>';
+    for(let j = a.length - 1; j >= 0; j--){
+      const r = a[j], prev = j > 0 ? a[j - 1] : null;
+      const ev = ttEval(def, prev ? prev.v : null, r.v);
+      h += '<tr><td>' + E(r.date) + '</td><td>' + r.v + E(def.unit) + '</td><td>' + (prev ? ev.diff : '—') + '</td><td><span style="color:' + ev.cls + ';font-weight:700">' + ev.label + '</span></td><td>' + E(r.memo || '') + '</td><td><button class="btn ghost" data-ttdel="' + r.id + '">消す</button></td></tr>';
+    }
+    h += '</tbody></table></div>';
+  }
+  box.innerHTML = h;
+}
+function renderTtAll(){
+  const wSel = g('ttWho'); if(!wSel) return;
+  const names = roster().map(full);
+  const curW = ttWhoSel || wSel.value;
+  wSel.innerHTML = names.length ? names.map(n => '<option' + (n === curW ? ' selected' : '') + '>' + E(n) + '</option>').join('') : '<option value="">（六の名簿に選手がいません）</option>';
+  const dSel = g('ttDef'), curD = dSel.value;
+  dSel.innerHTML = tDefs().map(d => '<option value="' + d.id + '"' + (d.id === curD ? ' selected' : '') + '>' + E(d.name) + '（' + E(d.unit) + '）</option>').join('');
+  if(!g('ttDate').value) g('ttDate').value = today();
+  g('ttDefList').innerHTML = tDefsC().length ? '追加したテスト：' + tDefsC().map(d => '<span style="margin-right:10px">' + E(d.name) + '（' + E(d.unit) + '）<button class="btn ghost" data-ttdeldef="' + d.id + '">消す</button></span>').join('') : '<span class="muted">追加したテストはまだありません</span>';
+  const cnt = {}; tRecs().forEach(r => { cnt[r.who] = (cnt[r.who] || 0) + 1; });
+  g('ttChips').innerHTML = names.length ? names.map(n => '<button class="btn' + (n === ttWhoSel ? ' primary' : '') + '" data-ttwho="' + E(n) + '">' + E(n) + (cnt[n] ? '（' + cnt[n] + '件）' : '') + '</button>').join('') : '<span class="muted">六の名簿に選手を入れると、ここに名前が出ます</span>';
+  renderTtView();
+}
+function bindTests(){
+  const add = g('ttAdd'); if(!add || add.__tt) return; add.__tt = true;
+  add.addEventListener('click', () => {
+    const who = g('ttWho').value, defId = g('ttDef').value, date = g('ttDate').value || today();
+    const v = parseFloat(g('ttVal').value);
+    if(!who){ g('ttMsg').textContent = '選手が選ばれていません（六の名簿に選手を入れてください）'; return; }
+    if(isNaN(v)){ g('ttMsg').textContent = '結果は数字で入れてください'; return; }
+    tRecs().push({id: uid(), date: date, who: who, def: defId, v: v, memo: g('ttMemo').value || ''});
+    save(); ttWhoSel = who; ttTestSel = defId;
+    g('ttVal').value = ''; g('ttMemo').value = '';
+    g('ttMsg').textContent = who + ' のテストを記録しました';
+    say('テストを記録しました');
+    renderTtAll();
+  });
+  g('ttNewAdd').addEventListener('click', () => {
+    const name = g('ttNewName').value.trim();
+    if(!name){ g('ttMsg').textContent = 'テスト名を入れてください'; return; }
+    const d = {id: 'ct' + uid(), name: name, unit: g('ttNewUnit').value.trim(), dir: g('ttNewDir').value, swc: parseFloat(g('ttNewSwc').value) || 2};
+    tDefsC().push(d); save();
+    g('ttNewName').value = ''; g('ttNewUnit').value = '';
+    g('ttMsg').textContent = 'テスト「' + name + '」を追加しました';
+    renderTtAll();
+    g('ttDef').value = d.id;
+  });
+  document.addEventListener('click', e => {
+    if(!e.target || typeof e.target.closest !== 'function') return;
+    const w = e.target.closest('[data-ttwho]');
+    if(w){ ttWhoSel = w.getAttribute('data-ttwho'); ttTestSel = ''; renderTtAll(); return; }
+    const t = e.target.closest('[data-tttest]');
+    if(t){ ttTestSel = t.getAttribute('data-tttest'); renderTtView(); return; }
+    const del = e.target.closest('[data-ttdel]');
+    if(del){ if(confirm('この記録を消しますか？')){ S.testRec = tRecs().filter(r => r.id !== del.getAttribute('data-ttdel')); save(); renderTtAll(); } return; }
+    const dd = e.target.closest('[data-ttdeldef]');
+    if(dd){ if(confirm('このテストの種類を消しますか？（残っている記録は表示されなくなります）')){ S.testDefs = tDefsC().filter(d => d.id !== dd.getAttribute('data-ttdeldef')); save(); renderTtAll(); } }
+  });
+  const sec = g('vTrain');
+  if(sec && window.MutationObserver){
+    new MutationObserver(() => { if(g('ttWho')) renderTtAll(); }).observe(sec, {attributes: true, attributeFilter: ['class', 'style', 'hidden']});
+  }
+  renderTtAll();
+}
+
 /* ---------- タイム ---------- */
 function z2h(s){ return String(s).replace(/[０-９．：]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)); }
 function tsec(s){
@@ -10348,143 +10485,6 @@ function hook(){
 if(document.querySelector('.tabs')) install();
 document.addEventListener('DOMContentLoaded', () => { install(); setTimeout(hook, 0); });
 window.trainParse = {parseLine, parseText, parseRoster, matchName, judge, csAt, tsec};
-
-/* ---------- 七、テストの記録 ----------
-   S.testRec  [{id, date, who, def, v, memo}]  def はテスト定義の id
-   S.testDefs 自分で追加したテスト定義 [{id, name, unit, dir:'low'|'high', swc}]
-   評価は「直前の記録との差」が、テストごとに決めた意味のある変化
-   （%指定 swc、または絶対値 abs）をこえたかどうかで 改善・停滞・改悪 に分ける */
-const BT_DEFS = [
-  {id:'bt15m', name:'15mタイム', unit:'秒', dir:'low', swc:1},
-  {id:'bt50', name:'50mタイム', unit:'秒', dir:'low', swc:0.8},
-  {id:'btV0', name:'負荷-速度 V0（最高速の推定）', unit:'m/秒', dir:'high', swc:2},
-  {id:'btL0', name:'負荷-速度 L0（最大の力の推定）', unit:'kg', dir:'high', swc:3},
-  {id:'btPara', name:'パラシュート25m', unit:'秒', dir:'low', swc:1.5},
-  {id:'btCmj', name:'垂直跳び', unit:'cm', dir:'high', swc:3},
-  {id:'btChin', name:'懸垂', unit:'回', dir:'high', abs:1},
-  {id:'btShFlex', name:'肩屈曲（床までの距離）', unit:'cm', dir:'low', abs:1},
-  {id:'btShEr', name:'肩の分離・外旋（前腕の倒れ）', unit:'度', dir:'high', abs:5},
-  {id:'btComb', name:'コンバインド・エクステンション（手の高さ）', unit:'cm', dir:'high', abs:1},
-  {id:'btThomas', name:'トーマステスト（太ももの浮き）', unit:'cm', dir:'low', abs:1},
-  {id:'btBridge', name:'ブリッジ（お尻の高さ）', unit:'cm', dir:'high', abs:2}
-];
-const tDefsC = () => { if(!Array.isArray(S.testDefs)) S.testDefs = []; return S.testDefs; };
-const tRecs = () => { if(!Array.isArray(S.testRec)) S.testRec = []; return S.testRec; };
-const tDefs = () => BT_DEFS.concat(tDefsC());
-const tDefById = id => tDefs().find(d => d.id === id);
-let ttWhoSel = '', ttTestSel = '';
-function ttEval(def, prev, cur){
-  if(prev == null || prev === undefined) return {label:'初回（基準）', cls:'#888', diff:'—'};
-  const d = cur - prev;
-  const thr = def.abs != null ? def.abs : Math.abs(prev) * (def.swc || 2) / 100;
-  const pct = prev !== 0 ? d / Math.abs(prev) * 100 : 0;
-  const diff = (d > 0 ? '+' : '') + (Math.round(d * 100) / 100) + def.unit + '（' + (pct > 0 ? '+' : '') + (Math.round(pct * 10) / 10) + '%）';
-  if(Math.abs(d) < thr) return {label:'停滞', cls:'#777', diff};
-  const better = def.dir === 'low' ? d < 0 : d > 0;
-  return better ? {label:'改善', cls:'#2e7d32', diff} : {label:'改悪', cls:'#c1272d', diff};
-}
-function ttChart(def, a){
-  const W = 640, H = 212, pl = 48, pr = 16, pt = 18, pb = 30;
-  const vs = a.map(r => r.v);
-  let mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs);
-  if(mn === mx){ mn -= 1; mx += 1; }
-  const pv = (mx - mn) * 0.18; mn -= pv; mx += pv;
-  const X = i => a.length === 1 ? pl + (W - pl - pr) / 2 : pl + (W - pl - pr) * i / (a.length - 1);
-  const Y = v => pt + (H - pt - pb) * (1 - (v - mn) / (mx - mn));
-  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:640px;background:#fbfdfe;border:1px solid #dde6ee;border-radius:6px" role="img" aria-label="' + E(def.name) + 'のグラフ">';
-  [mn, (mn + mx) / 2, mx].forEach(v => { const y = Y(v); s += '<line x1="' + pl + '" y1="' + y.toFixed(1) + '" x2="' + (W - pr) + '" y2="' + y.toFixed(1) + '" stroke="#e3ebf2"/><text x="' + (pl - 5) + '" y="' + (y + 4).toFixed(1) + '" font-size="10" text-anchor="end" fill="#666">' + (Math.round(v * 100) / 100) + '</text>'; });
-  s += '<polyline fill="none" stroke="#2e7fc2" stroke-width="2.4" points="' + a.map((r, i) => X(i).toFixed(1) + ',' + Y(r.v).toFixed(1)).join(' ') + '"/>';
-  a.forEach((r, i) => { s += '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(r.v).toFixed(1) + '" r="4" fill="#c1272d"/><text x="' + X(i).toFixed(1) + '" y="' + (Y(r.v) - 9).toFixed(1) + '" font-size="10.5" text-anchor="middle" fill="#123c5e" font-weight="700">' + r.v + '</text><text x="' + X(i).toFixed(1) + '" y="' + (H - 8) + '" font-size="9.5" text-anchor="middle" fill="#666">' + md(r.date) + '</text>'; });
-  s += '</svg><p class="muted" style="margin-top:2px">' + E(def.name) + '（' + E(def.unit) + '）― ' + (def.dir === 'low' ? '小さい方が良い' : '大きい方が良い') + 'テストです</p>';
-  return s;
-}
-function renderTtView(){
-  const box = g('ttView'); if(!box) return;
-  if(!ttWhoSel){ box.innerHTML = '<p class="muted">上の名前を押すと、その選手のテストの記録・グラフ・評価が出ます</p>'; return; }
-  const mine = tRecs().filter(r => r.who === ttWhoSel);
-  if(!mine.length){ box.innerHTML = '<p class="muted">' + E(ttWhoSel) + ' のテスト記録はまだありません。上の「結果を入れる」から最初の記録を入れてください</p>'; return; }
-  const byDef = {};
-  mine.forEach(r => { (byDef[r.def] = byDef[r.def] || []).push(r); });
-  Object.keys(byDef).forEach(k => byDef[k].sort((x, y) => x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
-  let h = '<h3>' + E(ttWhoSel) + ' のテスト（テストごとの最新と評価）</h3><div class="tWrap"><table class="tT"><thead><tr><th>テスト</th><th>最新の日</th><th>最新</th><th>前回</th><th>初回からの変化</th><th>評価（前回と比べて）</th></tr></thead><tbody>';
-  Object.keys(byDef).forEach(id => {
-    const def = tDefById(id); if(!def) return;
-    const a = byDef[id], last = a[a.length - 1], prev = a.length > 1 ? a[a.length - 2] : null;
-    const ev = ttEval(def, prev ? prev.v : null, last.v);
-    const ev0 = ttEval(def, a[0].v, last.v);
-    h += '<tr><td>' + E(def.name) + '</td><td>' + E(md(last.date)) + '</td><td>' + last.v + E(def.unit) + '</td><td>' + (prev ? prev.v + E(def.unit) : '—') + '</td><td>' + (a.length > 1 ? ev0.diff : '—') + '</td><td><span style="color:' + ev.cls + ';font-weight:700">' + ev.label + '</span>' + (prev ? ' <span class="muted">' + ev.diff + '</span>' : '') + '</td></tr>';
-  });
-  h += '</tbody></table></div>';
-  const ids = Object.keys(byDef).filter(id => tDefById(id));
-  if(!ids.includes(ttTestSel)) ttTestSel = ids[ids.length - 1];
-  h += '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:8px">' + ids.map(id => '<button class="btn' + (id === ttTestSel ? ' primary' : '') + '" data-tttest="' + id + '">' + E(tDefById(id).name) + '</button>').join('') + '</div>';
-  const def = tDefById(ttTestSel), a = byDef[ttTestSel] || [];
-  if(def && a.length){
-    h += ttChart(def, a);
-    h += '<div class="tWrap"><table class="tT"><thead><tr><th>日付</th><th>結果</th><th>前回との差</th><th>評価</th><th>メモ</th><th></th></tr></thead><tbody>';
-    for(let j = a.length - 1; j >= 0; j--){
-      const r = a[j], prev = j > 0 ? a[j - 1] : null;
-      const ev = ttEval(def, prev ? prev.v : null, r.v);
-      h += '<tr><td>' + E(r.date) + '</td><td>' + r.v + E(def.unit) + '</td><td>' + (prev ? ev.diff : '—') + '</td><td><span style="color:' + ev.cls + ';font-weight:700">' + ev.label + '</span></td><td>' + E(r.memo || '') + '</td><td><button class="btn ghost" data-ttdel="' + r.id + '">消す</button></td></tr>';
-    }
-    h += '</tbody></table></div>';
-  }
-  box.innerHTML = h;
-}
-function renderTtAll(){
-  const wSel = g('ttWho'); if(!wSel) return;
-  const names = roster().map(full);
-  const curW = ttWhoSel || wSel.value;
-  wSel.innerHTML = names.length ? names.map(n => '<option' + (n === curW ? ' selected' : '') + '>' + E(n) + '</option>').join('') : '<option value="">（六の名簿に選手がいません）</option>';
-  const dSel = g('ttDef'), curD = dSel.value;
-  dSel.innerHTML = tDefs().map(d => '<option value="' + d.id + '"' + (d.id === curD ? ' selected' : '') + '>' + E(d.name) + '（' + E(d.unit) + '）</option>').join('');
-  if(!g('ttDate').value) g('ttDate').value = today();
-  g('ttDefList').innerHTML = tDefsC().length ? '追加したテスト：' + tDefsC().map(d => '<span style="margin-right:10px">' + E(d.name) + '（' + E(d.unit) + '）<button class="btn ghost" data-ttdeldef="' + d.id + '">消す</button></span>').join('') : '<span class="muted">追加したテストはまだありません</span>';
-  const cnt = {}; tRecs().forEach(r => { cnt[r.who] = (cnt[r.who] || 0) + 1; });
-  g('ttChips').innerHTML = names.length ? names.map(n => '<button class="btn' + (n === ttWhoSel ? ' primary' : '') + '" data-ttwho="' + E(n) + '">' + E(n) + (cnt[n] ? '（' + cnt[n] + '件）' : '') + '</button>').join('') : '<span class="muted">六の名簿に選手を入れると、ここに名前が出ます</span>';
-  renderTtView();
-}
-function bindTests(){
-  const add = g('ttAdd'); if(!add || add.__tt) return; add.__tt = true;
-  add.addEventListener('click', () => {
-    const who = g('ttWho').value, defId = g('ttDef').value, date = g('ttDate').value || today();
-    const v = parseFloat(g('ttVal').value);
-    if(!who){ g('ttMsg').textContent = '選手が選ばれていません（六の名簿に選手を入れてください）'; return; }
-    if(isNaN(v)){ g('ttMsg').textContent = '結果は数字で入れてください'; return; }
-    tRecs().push({id: uid(), date: date, who: who, def: defId, v: v, memo: g('ttMemo').value || ''});
-    save(); ttWhoSel = who; ttTestSel = defId;
-    g('ttVal').value = ''; g('ttMemo').value = '';
-    g('ttMsg').textContent = who + ' のテストを記録しました';
-    say('テストを記録しました');
-    renderTtAll();
-  });
-  g('ttNewAdd').addEventListener('click', () => {
-    const name = g('ttNewName').value.trim();
-    if(!name){ g('ttMsg').textContent = 'テスト名を入れてください'; return; }
-    const d = {id: 'ct' + uid(), name: name, unit: g('ttNewUnit').value.trim(), dir: g('ttNewDir').value, swc: parseFloat(g('ttNewSwc').value) || 2};
-    tDefsC().push(d); save();
-    g('ttNewName').value = ''; g('ttNewUnit').value = '';
-    g('ttMsg').textContent = 'テスト「' + name + '」を追加しました';
-    renderTtAll();
-    g('ttDef').value = d.id;
-  });
-  document.addEventListener('click', e => {
-    if(!e.target || typeof e.target.closest !== 'function') return;
-    const w = e.target.closest('[data-ttwho]');
-    if(w){ ttWhoSel = w.getAttribute('data-ttwho'); ttTestSel = ''; renderTtAll(); return; }
-    const t = e.target.closest('[data-tttest]');
-    if(t){ ttTestSel = t.getAttribute('data-tttest'); renderTtView(); return; }
-    const del = e.target.closest('[data-ttdel]');
-    if(del){ if(confirm('この記録を消しますか？')){ S.testRec = tRecs().filter(r => r.id !== del.getAttribute('data-ttdel')); save(); renderTtAll(); } return; }
-    const dd = e.target.closest('[data-ttdeldef]');
-    if(dd){ if(confirm('このテストの種類を消しますか？（残っている記録は表示されなくなります）')){ S.testDefs = tDefsC().filter(d => d.id !== dd.getAttribute('data-ttdeldef')); save(); renderTtAll(); } }
-  });
-  const sec = g('vTrain');
-  if(sec && window.MutationObserver){
-    new MutationObserver(() => { if(g('ttWho')) renderTtAll(); }).observe(sec, {attributes: true, attributeFilter: ['class', 'style', 'hidden']});
-  }
-  renderTtAll();
-}
 })();
 
 /* =====================================================================

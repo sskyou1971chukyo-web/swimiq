@@ -412,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-20 選び方';
+const APP_VER = '2026-11-20 最近の記録';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2037,6 +2037,18 @@ const _coachAna = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachAna(); const 
   return v; };
 const _athleteAna = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteAna(cur); const k = v.html.indexOf('<h2 class="sec" id="detH"'); const h = '<section class="anabox">'+anaHTML(cur.id)+'</section>';
   v.html = k>=0 ? v.html.slice(0,k)+h+v.html.slice(k) : v.html+h; return v; };
+/* 選手の名前を押したら、まず実際の記録が出るようにする（2026-11-20）。
+   これまでは分析が先に来て、記録そのものは「詳しく見る→カレンダー→日を押す」の奥にしかなかった */
+function recentDaysHTML(n){ const days = {}; srcRows(n).forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); });
+  const ks = Object.keys(days).sort().reverse().slice(0, 7);
+  if(!ks.length) return '<section class="recbox"><h2>最近の記録</h2><p class="sub">まだ記録が届いていません。</p></section>';
+  const body = ks.map(k=>{ const L = days[k]; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類'])));
+    return '<h3 class="recday">'+jdate(k)+(s?'　'+kg(s['動かした重さkg']||0)+' kg':'')+'</h3>'+
+      (c?'<p class="sub">睡眠 '+(c['睡眠h']!==''&&c['睡眠h']!=null?c['睡眠h']+'h':'未')+'、疲れ '+(c['疲れ']!==''&&c['疲れ']!=null?(FAT_WORDS[Number(c['疲れ'])-1]||c['疲れ']):'未')+'</p>':'')+
+      (rec.length?'<ul class="rows dsl">'+rec.map(x=>dayRowHTML(x)).join('')+'</ul>':'<p class="sub">種目の記録はありません。</p>'); }).join('');
+  return '<section class="recbox"><h2>最近の記録</h2>'+body+'<p class="sub">もっと前の記録は、下の「詳しく見る」のカレンダーから日を押すと出ます。</p></section>'; }
+const _athleteRec = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteRec(cur); v.html = recentDaysHTML(cur.id) + v.html; return v; };
+(function(){ const st = document.createElement('style'); st.textContent = '.recbox{margin:6px 0 4px}.recbox>h2{margin:6px 0 2px}.recday{margin:16px 0 2px;font-size:1.02rem}'; document.head.appendChild(st); })();
 (function(){ const st = document.createElement('style'); st.textContent =
   '.anabox{border:2px solid #3a3b3d;border-radius:14px;background:var(--soft);padding:14px 14px 6px;margin:14px 0}'+
   '.anabox>h2{margin:0 0 4px;font-size:1.15rem}'+
@@ -2624,6 +2636,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261120b', date:'11月20日', items:[
+    'コーチの選手の画面で、名前を押すと一番上に「最近の記録」（日ごとの実施内容）が出るようになりました。これまでは分析が先で、記録は奥のカレンダーからしか見られませんでした'
+  ] },
   { v:'20261120a', date:'11月20日', items:[
     '種目を選ぶ画面で、「そのほかの選び方（体の絵・泳ぎ別・カード・種目の登録）」が、検索と絞り込みのすぐ下に、目立つ黄色のバーで出るようになりました',
     'コーチの「送ったメニュー一覧」で、取り消したメニューは表示されなくなりました'

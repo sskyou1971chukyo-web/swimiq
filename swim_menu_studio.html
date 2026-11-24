@@ -1527,6 +1527,9 @@ body.desk .dLong{display:none}
       #lrCard .lrChip{display:inline-block;background:#eef3f8;border:1px solid #c9d4e0;border-radius:999px;padding:2px 6px 2px 10px;margin:0 6px 6px 0;font-size:13.5px}
       #lrCard .lrChip button{margin-left:6px}
       #lrCard .lrUnk{background:#fdf3e3;border:1px solid #e8cf9a;border-radius:8px;padding:8px 10px;margin-top:6px}
+      #lrCard .lrGrp{border:1px solid #c9d4e0;border-radius:8px;margin:0 0 6px;background:#fff}
+      #lrCard .lrGrp summary{cursor:pointer;font-weight:700;font-size:15px;padding:7px 10px}
+      #lrCard .lrGrp .lrGrpB{padding:2px 10px 6px}
     </style>
     <script>
     (function(){
@@ -1545,8 +1548,16 @@ body.desk .dLong{display:none}
         if(!ready()) return;
         var labels = fastRules().labels;
         var keys = Object.keys(labels);
-        document.getElementById('lrList').innerHTML = keys.length ? keys.map(function(k){
+        var chip = function(k){
           return '<span class="lrChip">' + k + '（' + (labels[k] === 'fast' ? '速い' : labels[k] === 'none' ? '対象外' : '速くない') + '）<button class="btn small red" type="button" data-lrdel="' + k + '">削除</button></span>';
+        };
+        var headOf = function(k){ var m = String(k).match(/[a-zA-Z]/); return m ? m[0].toUpperCase() : 'その他'; };
+        var groups = {};
+        keys.forEach(function(k){ var h = headOf(k); (groups[h] = groups[h] || []).push(k); });
+        var order = Object.keys(groups).sort(function(a, b){ if(a === 'その他') return 1; if(b === 'その他') return -1; return a < b ? -1 : 1; });
+        document.getElementById('lrList').innerHTML = keys.length ? order.map(function(h){
+          var ks = groups[h].slice().sort(function(a, b){ var x = String(a).toLowerCase(), y = String(b).toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; });
+          return '<details class="lrGrp"><summary>' + h + '（' + ks.length + '）</summary><div class="lrGrpB">' + ks.map(chip).join('') + '</div></details>';
         }).join('') : '<p class="muted">まだ登録はありません。</p>';
         document.querySelectorAll('[data-lrdel]').forEach(function(b){
           b.addEventListener('click', function(){ delete fastRules().labels[b.getAttribute('data-lrdel')]; saveNow(); render(); if(typeof renderPanels === 'function') renderPanels(); });

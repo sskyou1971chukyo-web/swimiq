@@ -1088,7 +1088,7 @@ body.desk .dLong{display:none}
       function panelLines(p){
         if(p.memo) return [];
         var rawLines = p.text.split('\n').map(function(s){ return s.trim(); }).filter(function(s){
-          return s && !/^[※\/＞>]/.test(s) && !/^\*\*/.test(s);
+          return s && !/^[※\/＞>]/.test(s) && !/^\*\*/.test(s) && s.charAt(0) !== '#';
         });
         var entries = [], buf = null;
         rawLines.forEach(function(s){
@@ -3634,6 +3634,13 @@ function analyzeText(text, team, startHm, panelStroke){
         }
       }
       (lastSet._hashLines = lastSet._hashLines || []).push(specLine.slice(specLine.indexOf('#') + 1).trim());
+      out.push(info); return;
+    }
+    if(tr.startsWith('#')){
+      info.type = 'memo';
+      info.memoText = tr;
+      const mgh = multi[i];
+      if(mgh){ info.grp = mgh.g; info.grpPos = i === mgh.g.first ? 'first' : i === mgh.g.last ? 'last' : 'mid'; if(i === mgh.g.last && mgh.g.rest){ elapsed += mgh.g.rest * (mgh.g.n - 1); tot.sec += mgh.g.rest * (mgh.g.n - 1); } }
       out.push(info); return;
     }
     if((m = /^(休憩|休み|休|レスト|rest)\s*:?\s*(\S+)/i.exec(tr)) && parseTime(m[2]) != null && tr.length < 20){

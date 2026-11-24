@@ -412,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-20 最近の記録';
+const APP_VER = '2026-11-24 足りない種目';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -2398,6 +2398,17 @@ function czPlan(n){ const td = today(); const rows = srcRows(n); const C = anaCo
   /* 足りない部位 */
   PARTS.filter(p=>!C.Pt[p.k]).forEach(p=>{ const S = anaSuggest(p.k, n, 3).map(x=>x.e).filter(e=>!has(e.id)); add(S[0], '足りない部位：'+p.name); });
   return out; }
+/* 足りない種目を自動で追加する（2026-11-24）：直近4週間の分析で「やっていない部位」「なかった目的」「押す・引くの偏り」を見て、作っているメニューへ種目を足す（最大6つ）。足したあとは原則どおりに並び替え、理由も選手へ送る */
+function autoAddMissing(n){ const d = draft(); const rows = srcRows(n); const td = today(); const C = anaCount(rows, addDays(td, -(ANA_DAYS-1)), td);
+  const inD = id => d.rows.some(r => r.exId === id);
+  const added = [];
+  const tryAdd = (cand, why, purp) => { if(!cand || added.length >= 6) return; const e = cand.e || cand; if(inD(e.id)) return; if(!addToDraft(e)) return; const r = d.rows.find(x => x.exId === e.id); if(r && purp) applyAuto(r, purp); added.push(shortName(e) + '（' + why + '）'); };
+  PARTS.filter(p => !C.Pt[p.k]).forEach(p => { const s = anaSuggest(p.k, n, 3).find(x => !inD(x.e.id)); tryAdd(s, p.name + 'を4週間やっていない'); });
+  const missP = ANA_P.slice(0, 4).filter(p => !C.P[p[0]]);
+  if(missP.length && added.length < 6){ const top = PARTS.map(p => ({ p, v: C.Pt[p.k] || 0 })).sort((a, b) => b.v - a.v)[0]; if(top && top.v > 0){ const s = anaSuggest(top.p.k, n, 5).find(x => !inD(x.e.id)); tryAdd(s, '目的「' + missP[0][1] + '」が4週間なかった', missP[0][0]); } }
+  if(C.push && C.push.push > C.push.pull && added.length < 6){ const s = anaSuggest('back', n, 5).find(x => !inD(x.e.id)); tryAdd(s, '押す種目が引く種目より多い'); }
+  if(added.length){ d.rows = principleSortRows(d.rows); d.reordered = true; d.orderExplain = buildOrderExplain(d.rows); save(); }
+  return added; }
 function czMake(n){ const d = draft(); czPrev = {rows:JSON.stringify(d.rows), purpose:d.purpose||'', why:d.purposeWhy||''};
   const pp = czPurpose(n); d.purpose = pp.p; d.purposeWhy = pp.why; d.rows = [];
   czPlan(n).forEach(x=>{ const r = newRow(x.e.id, {kg:0, reps:5, sets:3, rest:'', free:null}); r.why = x.why; if(d.purpose) applyAuto(r, d.purpose); d.rows.push(r); });
@@ -2432,6 +2443,7 @@ VIEWS.coach = ()=>{ const d = draft(); const tk = today(); const live = (db.sent
         '<details class="more"><summary>詳しい分析を開く（目的の割合、推定1RM、部位、曜日、カレンダー、根拠）</summary><div class="inner anabox">'+restH+'</div></details>'
         : '<div class="note warn">'+esc(n)+'さんの記録がまだありません。'+(db.coachKey?'記録が届くと、ここに分析が出ます。':'設定でコーチの合言葉を入れると、記録を取り込めます。')+'</div>')+
       (rec ? '<button type="button" class="'+(d.rows.length?'ghost':'cta')+'" id="czMake" style="margin-top:12px">'+(d.rows.length?esc(n)+'に合わせて案を作り直す（今の種目と入れ替わります）':esc(n)+'に合わせてメニューを作る')+'</button>' : '')+
+      (rec ? '<button type="button" class="ghost" id="czAdd" style="margin-top:8px">足りない種目を自動で追加する</button>' : '')+
       (czPrev ? '<button type="button" class="link" id="czUndo">案を作る前の種目に戻す</button>' : '')+
       '<div class="stack two" style="margin-top:8px"><button type="button" class="ghost" data-go="ex" data-pick="1" id="czManual">自分で種目を選ぶ</button>'+(live.length?'<button type="button" class="ghost" id="czCopy">前回を写す</button>':'<span></span>')+'</div>'+
       PZ_BTN(n, n+'の期分けを開く'); }
@@ -2475,6 +2487,7 @@ VIEWS.coach = ()=>{ const d = draft(); const tk = today(); const live = (db.sent
       $('#cNameF').addEventListener('submit',ev=>{ ev.preventDefault(); const v = $('#cName').value.trim(); if(!v) return; db.namesGone = (db.namesGone||[]).filter(x=>x!==v); db.names = db.names||[]; if(!db.names.includes(v)) db.names.push(v); d.to = d.to||[]; if(!d.to.includes(v)) d.to.push(v); re('#cName', v+'を足して選びました'); });
       const w = $('#czWho'); if(w) w.addEventListener('change',()=>{ anaSel = w.value; re('#czWho', w.value+'さんの分析を出しました'); });
       const mk = $('#czMake'); if(mk) mk.addEventListener('click',()=>{ const k = czMake(n); d.czSeen = true; czSwap = null; save(); render(false); const h = $('#pg3'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say(k ? n+'さんに合わせて'+k+'種目の案を作りました' : '案に出せる種目が見つかりませんでした。自分で種目を選んでください'); });
+      const ad = $('#czAdd'); if(ad) ad.addEventListener('click',()=>{ const added = autoAddMissing(n); save(); render(false); const h = $('#pg3'); if(h){ h.scrollIntoView({block:'start'}); h.focus({preventScroll:true}); } say(added.length ? n+'さんの足りない種目を'+added.length+'つ追加しました：'+added.join('、') : '追加できる足りない種目は見つかりませんでした'); });
       const un = $('#czUndo'); if(un) un.addEventListener('click',()=>{ d.rows = JSON.parse(czPrev.rows); d.purpose = czPrev.purpose; d.purposeWhy = czPrev.why; czPrev = null; re('#pg3', '案を作る前に戻しました'); });
       const cp = $('#czCopy'); if(cp) cp.addEventListener('click',()=>{ const m = live.slice().reverse().find(x=>(x.to||[]).includes(n)) || live[live.length-1]; d.czSeen = true; reuseMenu(m.mid); });
       const mn = $('#czManual'); if(mn) mn.addEventListener('click',()=>{ d.czSeen = true; save(); }, true);
@@ -2636,6 +2649,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261124a', date:'11月24日', items:[
+    'コーチのメニュー作り（2 選手の今）に「足りない種目を自動で追加する」ボタンが付きました。直近4週間でやっていない部位、なかった目的、押す・引くの偏りを見て、作っているメニューへ種目を足します（並びは原則どおりに整い、理由も選手に届きます）'
+  ] },
   { v:'20261120b', date:'11月20日', items:[
     'コーチの選手の画面で、名前を押すと一番上に「最近の記録」（日ごとの実施内容）が出るようになりました。これまでは分析が先で、記録は奥のカレンダーからしか見られませんでした'
   ] },

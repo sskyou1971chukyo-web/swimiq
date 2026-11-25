@@ -2649,6 +2649,10 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261125a', date:'11月25日', items:[
+    'コーチの許可の希望に「許可しない」も選べるようになりました（「許可しない人」から元に戻すこともできます）',
+    'コーチの選手一覧で名前を押すと、その選手のデータ一覧（日ごとの記録）へそのまま飛ぶようになりました'
+  ] },
   { v:'20261124a', date:'11月24日', items:[
     'コーチのメニュー作り（2 選手の今）に「足りない種目を自動で追加する」ボタンが付きました。直近4週間でやっていない部位、なかった目的、押す・引くの偏りを見て、作っているメニューへ種目を足します（並びは原則どおりに整い、理由も選手に届きます）'
   ] },
@@ -2828,16 +2832,17 @@ function extractCoachLists(){ const rows = ((db.team || {}).rows) || []; let bes
   rows.forEach(x=>{ const kind = String(x['種類'] || ''); const n = String(x['選手'] || '').trim();
     if(n === '__coaches__' && kind === 'コーチ許可'){ try{ const o = JSON.parse(String(x['セットの内容'] || '')); if(o && Array.isArray(o.names) && (!best || (o.rev || 0) > (best.rev || 0))) best = o; }catch(e){} }
     if(kind === 'コーチ希望' && n && n !== '__coaches__') wants.add(n); });
-  if(best) db.coachesCache = best.names.slice();
+  if(best){ db.coachesCache = best.names.slice(); db.coachDenied = Array.isArray(best.denied) ? best.denied.slice() : []; }
   db.coachWants = [...wants];
   db.names = (db.names || []).filter(n => n !== '__coaches__');
   return !!best; }
 const _fetchAllGate = fetchAll; fetchAll = async function(manual){ await _fetchAllGate(manual); if(db.team && (db.team.rows || []).length){ const had = extractCoachLists();
     if(isOwner() && !had && !db.coachListInit){ db.coachListInit = true; save(); postCoachList(); }
     if(!coachAllowed()){ db.team = { rows: [], at: new Date().toISOString() }; save(); if(manual) say('コーチの許可がないため、選手の記録は取り込めません'); } } };
-async function postCoachList(){ if(!isOwner() || !syncUrl()) return; const names = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const rev = Date.now();
-  try{ await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name: '__coaches__', items: [{ uid: 'C|coaches|' + rev, kind: 'コーチ許可', date: today(), sets: JSON.stringify({ rev, names }) }] }) }); }catch(e){} }
-function setCoachList(names){ db.coachesCache = names.slice(); save(); postCoachList(); render(false); say('コーチの許可を送りました'); }
+async function postCoachList(){ if(!isOwner() || !syncUrl()) return; const names = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const denied = (db.coachDenied || []).filter(n => normName(n) !== normName(COACH_OWNER)); const rev = Date.now();
+  try{ await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name: '__coaches__', items: [{ uid: 'C|coaches|' + rev, kind: 'コーチ許可', date: today(), sets: JSON.stringify({ rev, names, denied }) }] }) }); }catch(e){} }
+function setCoachList(names){ db.coachesCache = names.slice(); db.coachDenied = (db.coachDenied || []).filter(d => !names.some(n => normName(n) === normName(d))); save(); postCoachList(); render(false); say('コーチの許可を送りました'); }
+function denyCoach(n){ const d = (db.coachDenied || []).slice(); if(!d.some(c => normName(c) === normName(n))) d.push(n); db.coachDenied = d; save(); postCoachList(); render(false); say('許可しないことにしました'); }
 let claimBusy = false;
 async function claimPing(){ if(claimBusy) return; if(!db.ready || db.role !== 'coach' || coachAllowed() || !syncUrl()) return; const me = (db.me || '').trim(); if(!me || db.claimName === me) return; claimBusy = true;
   try{ const res = await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name: me, items: [{ uid: 'W|' + me, kind: 'コーチ希望', date: today() }] }) }); const j = await res.json(); if(j && j.ok){ db.claimName = me; save(); } }catch(e){} finally{ claimBusy = false; } }
@@ -2850,16 +2855,27 @@ function coachLockView(){ const hasKey = !!db.coachKey; return { title: 'コー�
 ['coach', 'team', 'athlete', 'names', 'sent', 'cmp', 'acal', 'prop'].forEach(vn => { if(!VIEWS[vn]) return; const orig = VIEWS[vn]; VIEWS[vn] = cur => (db.role === 'coach' && !coachAllowed()) ? coachLockView() : orig(cur); });
 const _sendMenuGate = sendMenu; sendMenu = async function(){ if(!coachAllowed()){ say('コーチの許可がありません'); return; } return _sendMenuGate(); };
 const _namesCallGate = namesCall; namesCall = async function(a, e){ if(!coachAllowed()) throw new Error('コーチの許可がありません'); return _namesCallGate(a, e); };
-function coachAdminHTML(){ const cur = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const wants = (db.coachWants || []).filter(n => normName(n) !== normName(COACH_OWNER) && !cur.some(c => normName(c) === normName(n)));
+function coachAdminHTML(){ const cur = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const denied = (db.coachDenied || []).filter(n => normName(n) !== normName(COACH_OWNER)); const wants = (db.coachWants || []).filter(n => normName(n) !== normName(COACH_OWNER) && !cur.some(c => normName(c) === normName(n)) && !denied.some(d => normName(d) === normName(n)));
   return '<section class="page" style="margin-bottom:12px"><h2>コーチの許可</h2>' +
   '<p class="sub" style="margin-top:0">許可した人だけが、コーチの画面（選手の結果やメニュー作り）を見られます。あなた（佐々木祐一郎）は常に許可されています。</p>' +
-  (wants.length ? '<h3>許可の希望が届いています</h3><ul class="rows">' + wants.map(n => '<li class="row"><span class="rmain"><strong>' + esc(n) + '</strong></span><button type="button" class="cta sm" data-cok-add="' + esc(n) + '">許可する</button></li>').join('') + '</ul>' : '<p class="sub">許可の希望は届いていません（コーチを選んだ人の端末から自動で届きます）。</p>') +
+  (wants.length ? '<h3>許可の希望が届いています</h3><ul class="rows">' + wants.map(n => '<li class="row"><span class="rmain"><strong>' + esc(n) + '</strong></span><button type="button" class="cta sm" data-cok-add="' + esc(n) + '">許可する</button><button type="button" class="ghost sm" data-cok-deny="' + esc(n) + '">許可しない</button></li>').join('') + '</ul>' : '<p class="sub">許可の希望は届いていません（コーチを選んだ人の端末から自動で届きます）。</p>') +
   '<h3>許可中のコーチ</h3>' + (cur.length ? '<ul class="rows">' + cur.map(n => '<li class="row"><span class="rmain"><strong>' + esc(n) + '</strong></span><button type="button" class="ghost sm" data-cok-del="' + esc(n) + '">取り消す</button></li>').join('') + '</ul>' : '<p class="sub">まだ誰も許可していません。</p>') +
+  '<h3>許可しない人</h3>' + (denied.length ? '<ul class="rows">' + denied.map(n => '<li class="row"><span class="rmain"><strong>' + esc(n) + '</strong></span><button type="button" class="ghost sm" data-cok-undeny="' + esc(n) + '">元に戻す</button></li>').join('') + '</ul>' : '<p class="sub">いません。</p>') +
   '<label class="f">名前で許可する<input type="text" class="txt" id="cokName" placeholder="例：山田コーチ"></label><button type="button" class="ghost" id="cokAddBtn" style="width:100%">この名前を許可する</button></section>'; }
 const _teamAdmin = VIEWS.team; VIEWS.team = () => { const v = _teamAdmin(); if(isOwner()){ v.html = coachAdminHTML() + v.html; const a0 = v.after || (() => {}); v.after = () => { a0();
   document.querySelectorAll('[data-cok-add]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.cokAdd; const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }));
   document.querySelectorAll('[data-cok-del]').forEach(b => b.addEventListener('click', () => { setCoachList((db.coachesCache || []).filter(c => normName(c) !== normName(b.dataset.cokDel))); }));
+  document.querySelectorAll('[data-cok-deny]').forEach(b => b.addEventListener('click', () => { denyCoach(b.dataset.cokDeny); }));
+  document.querySelectorAll('[data-cok-undeny]').forEach(b => b.addEventListener('click', () => { db.coachDenied = (db.coachDenied || []).filter(c => normName(c) !== normName(b.dataset.cokUndeny)); save(); postCoachList(); render(false); say('元に戻しました'); }));
   const ab = $('#cokAddBtn'); if(ab) ab.addEventListener('click', () => { const n = ($('#cokName').value || '').trim(); if(!n){ say('名前を入れてください'); return; } const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }); }; } return v; };
+
+/* ============ 選手の一覧で名前を押すと、その選手のデータ一覧（日ごとの記録）へ飛ぶ ============ */
+const _teamJump = VIEWS.team; VIEWS.team = () => { const v = _teamJump(); const a0 = v.after || (() => {}); v.after = () => { a0();
+  document.querySelectorAll('[data-go="athlete"]').forEach(b => b.addEventListener('click', () => { window.__athJump = true; })); }; return v; };
+const _athleteJump = VIEWS.athlete; VIEWS.athlete = cur => { const v = _athleteJump(cur);
+  if(v.html.includes('<h2>日ごとの記録</h2>')){ v.html = v.html.replace('<h2>日ごとの記録</h2>', '<h2 id="athDays">日ごとの記録</h2>');
+    const a0 = v.after || (() => {}); v.after = () => { a0(); if(window.__athJump){ window.__athJump = false; const el = document.getElementById('athDays'); if(el) setTimeout(() => el.scrollIntoView(), 30); } }; }
+  return v; };
 
 /* ============ トレーニングの原則どおりの並び替え ============ */
 function orderTier(e){ if(!e) return 3;

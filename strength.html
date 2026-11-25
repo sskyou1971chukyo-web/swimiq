@@ -2040,12 +2040,12 @@ const _athleteAna = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteAna(
 /* 選手の名前を押したら、まず実際の記録が出るようにする（2026-11-20）。
    これまでは分析が先に来て、記録そのものは「詳しく見る→カレンダー→日を押す」の奥にしかなかった */
 function recentDaysHTML(n){ const days = {}; srcRows(n).forEach(x=>{ const k = rowDate(x); if(k) (days[k] = days[k]||[]).push(x); });
-  const ks = Object.keys(days).sort().reverse().slice(0, 7);
+  const ks = Object.keys(days).sort().reverse().slice(0, 3);
   if(!ks.length) return '<section class="recbox"><h2>最近の記録</h2><p class="sub">まだ記録が届いていません。</p></section>';
   const body = ks.map(k=>{ const L = days[k]; const s = L.find(x=>String(x['種類'])==='練習'); const c = L.find(x=>String(x['種類'])==='調子'); const rec = L.filter(x=>['記録','未実施'].includes(String(x['種類'])));
     return '<h3 class="recday">'+jdate(k)+(s?'　'+kg(s['動かした重さkg']||0)+' kg':'')+'</h3>'+
       (c?'<p class="sub">睡眠 '+(c['睡眠h']!==''&&c['睡眠h']!=null?c['睡眠h']+'h':'未')+'、疲れ '+(c['疲れ']!==''&&c['疲れ']!=null?(FAT_WORDS[Number(c['疲れ'])-1]||c['疲れ']):'未')+'</p>':'')+
-      (rec.length?'<ul class="rows dsl">'+rec.map(x=>dayRowHTML(x)).join('')+'</ul>':'<p class="sub">種目の記録はありません。</p>'); }).join('');
+      (rec.length?'<details class="more"><summary>種目を見る（'+rec.length+'種目）</summary><div class="inner"><ul class="rows dsl">'+rec.map(x=>dayRowHTML(x)).join('')+'</ul></div></details>':'<p class="sub">種目の記録はありません。</p>'); }).join('');
   return '<section class="recbox"><h2>最近の記録</h2>'+body+'<p class="sub">もっと前の記録は、下の「詳しく見る」のカレンダーから日を押すと出ます。</p></section>'; }
 const _athleteRec = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteRec(cur); v.html = recentDaysHTML(cur.id) + v.html; return v; };
 (function(){ const st = document.createElement('style'); st.textContent = '.recbox{margin:6px 0 4px}.recbox>h2{margin:6px 0 2px}.recday{margin:16px 0 2px;font-size:1.02rem}'; document.head.appendChild(st); })();
@@ -2649,6 +2649,9 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261125c', date:'11月25日', items:[
+    '選手の画面の「最近の記録」は、過去3回分だけになりました。種目は「種目を見る」を開くと出ます'
+  ] },
   { v:'20261125b', date:'11月25日', items:[
     'コーチの選手一覧で名前を押しても画面が変わらない問題を直しました。名前を押すと、その選手の記録の画面が開き、最近の記録が最初に出ます'
   ] },

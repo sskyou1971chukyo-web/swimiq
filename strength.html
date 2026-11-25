@@ -2649,9 +2649,11 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState=
 joinPing();
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261125b', date:'11月25日', items:[
+    'コーチの選手一覧で名前を押しても画面が変わらない問題を直しました。名前を押すと、その選手の記録の画面が開き、最近の記録が最初に出ます'
+  ] },
   { v:'20261125a', date:'11月25日', items:[
-    'コーチの許可の希望に「許可しない」も選べるようになりました（「許可しない人」から元に戻すこともできます）',
-    'コーチの選手一覧で名前を押すと、その選手のデータ一覧（日ごとの記録）へそのまま飛ぶようになりました'
+    'コーチの許可の希望に「許可しない」も選べるようになりました（「許可しない人」から元に戻すこともできます）'
   ] },
   { v:'20261124a', date:'11月24日', items:[
     'コーチのメニュー作り（2 選手の今）に「足りない種目を自動で追加する」ボタンが付きました。直近4週間でやっていない部位、なかった目的、押す・引くの偏りを見て、作っているメニューへ種目を足します（並びは原則どおりに整い、理由も選手に届きます）'
@@ -2704,7 +2706,7 @@ const BIG3 = [
 function liftBest(ids){ let best = null; ids.forEach(id=>{ const b = bestOf(id, null); if(b && (!best || b.v > best.v)) best = { v:b.v, k:b.k, exId:id }; }); return best; }
 function liftSeries(ids){ const pts = []; ids.forEach(id=>histRows(id, null).forEach(x=>{ const v = rowBest(x.r, x.k); if(v != null) pts.push({ k:x.k, v }); })); pts.sort((a,b)=>a.k < b.k ? -1 : a.k > b.k ? 1 : 0); let cur = null; const out = []; pts.forEach(p=>{ if(cur == null || p.v > cur) cur = p.v; if(!out.length || out[out.length-1].k !== p.k) out.push({ k:p.k, v:cur }); else out[out.length-1].v = cur; }); return out; }
 function big3Series(){ const per = BIG3.map(l=>liftSeries(l.ids)); const dates = [...new Set(per.flatMap(s=>s.map(p=>p.k)))].sort(); const at = (s,d)=>{ let v = null; for(const p of s){ if(p.k <= d) v = p.v; else break; } return v; }; return dates.map(d=>{ const vs = per.map(s=>at(s,d)); return { k:d, v: vs.every(x=>x != null) ? r1(vs.reduce((a,b)=>a+b,0)) : null }; }).filter(p=>p.v != null); }
-function lineSVG(data, label){ if(data.length < 2) return ''; const W = 340, H = 132; const ys = data.map(p=>p.v); const y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = Math.max(2, (y1-y0)*0.2); const lo = y0-pad, hi = y1+pad; const px = i=>12 + i*(W-24)/(data.length-1); const py = v=>10 + (hi-v)/(hi-lo)*(H-42);
+function lineSVGk(data, label){ if(data.length < 2) return ''; const W = 340, H = 132; const ys = data.map(p=>p.v); const y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = Math.max(2, (y1-y0)*0.2); const lo = y0-pad, hi = y1+pad; const px = i=>12 + i*(W-24)/(data.length-1); const py = v=>10 + (hi-v)/(hi-lo)*(H-42);
   return '<div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+esc(label)+'">'+
   '<polyline fill="none" stroke="#ffc400" stroke-width="3" points="'+data.map((p,i)=>px(i).toFixed(1)+','+py(p.v).toFixed(1)).join(' ')+'"/>'+
   data.map((p,i)=>'<circle cx="'+px(i).toFixed(1)+'" cy="'+py(p.v).toFixed(1)+'" r="3.5" fill="#ffc400"/>').join('')+
@@ -2714,8 +2716,8 @@ function big3CardHTML(){ const bs = BIG3.map(l=>({ l, b:liftBest(l.ids) })); con
   return '<h2>BIG3トータル</h2><ul class="tiles"><li><span class="big">'+(total != null ? kg(total) : '―')+'<small>kg</small></span><span class="sub">ベンチ＋デッド＋スクワットの推定1RM</span></li><li><span class="big">'+bs.filter(x=>x.b).length+'<small>/3</small></span><span class="sub">記録がある種目</span></li></ul>'+
   '<ul class="rows">'+bs.map(x=>'<li class="row"><span class="rmain"><strong>'+x.l.name+'</strong><span class="d">'+(x.b ? esc(shortName(EXMAP[x.b.exId]))+'　'+md(x.b.k)+'の記録' : 'まだ記録がありません')+'</span></span><b>'+(x.b ? kg(x.b.v)+' kg' : '―')+'</b></li>').join('')+'</ul>'; }
 VIEWS.big3 = ()=>{ const ser = big3Series(); return { title:'BIG3とグラフ', html: big3CardHTML()+
-  '<h2>BIG3トータルの伸び</h2>'+(ser.length >= 2 ? lineSVG(ser, 'BIG3トータルの推移') : '<p class="sub">3種目そろって、記録が2回以上たまるとグラフが出ます。</p>')+
-  BIG3.map(l=>{ const s = liftSeries(l.ids); return '<h2>'+l.name+'のベストの伸び</h2>'+(s.length >= 2 ? lineSVG(s, l.name+'の推定1RMの推移') : '<p class="sub">'+(s.length ? 'いまのベストは '+kg(s[s.length-1].v)+' kgです。もう1回記録するとグラフが出ます。' : 'まだ記録がありません。')+'</p>'); }).join(''), after(){} }; };
+  '<h2>BIG3トータルの伸び</h2>'+(ser.length >= 2 ? lineSVGk(ser, 'BIG3トータルの推移') : '<p class="sub">3種目そろって、記録が2回以上たまるとグラフが出ます。</p>')+
+  BIG3.map(l=>{ const s = liftSeries(l.ids); return '<h2>'+l.name+'のベストの伸び</h2>'+(s.length >= 2 ? lineSVGk(s, l.name+'の推定1RMの推移') : '<p class="sub">'+(s.length ? 'いまのベストは '+kg(s[s.length-1].v)+' kgです。もう1回記録するとグラフが出ます。' : 'まだ記録がありません。')+'</p>'); }).join(''), after(){} }; };
 ROOTS.push('big3');
 const _resultB3 = VIEWS.result; VIEWS.result = ()=>{ const v = _resultB3(); v.html = big3CardHTML()+'<button type="button" class="ghost" data-go="big3" style="width:100%;margin:4px 0 14px">BIG3のグラフを大きく見る</button>'+v.html; return v; };
 function nextBarHTML(){ if(isCoach() || !db.ready) return ''; const k = curDay(); const d = day(k); const step = stepOf(k); let label, act;
@@ -2868,14 +2870,6 @@ const _teamAdmin = VIEWS.team; VIEWS.team = () => { const v = _teamAdmin(); if(i
   document.querySelectorAll('[data-cok-deny]').forEach(b => b.addEventListener('click', () => { denyCoach(b.dataset.cokDeny); }));
   document.querySelectorAll('[data-cok-undeny]').forEach(b => b.addEventListener('click', () => { db.coachDenied = (db.coachDenied || []).filter(c => normName(c) !== normName(b.dataset.cokUndeny)); save(); postCoachList(); render(false); say('元に戻しました'); }));
   const ab = $('#cokAddBtn'); if(ab) ab.addEventListener('click', () => { const n = ($('#cokName').value || '').trim(); if(!n){ say('名前を入れてください'); return; } const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }); }; } return v; };
-
-/* ============ 選手の一覧で名前を押すと、その選手のデータ一覧（日ごとの記録）へ飛ぶ ============ */
-const _teamJump = VIEWS.team; VIEWS.team = () => { const v = _teamJump(); const a0 = v.after || (() => {}); v.after = () => { a0();
-  document.querySelectorAll('[data-go="athlete"]').forEach(b => b.addEventListener('click', () => { window.__athJump = true; })); }; return v; };
-const _athleteJump = VIEWS.athlete; VIEWS.athlete = cur => { const v = _athleteJump(cur);
-  if(v.html.includes('<h2>日ごとの記録</h2>')){ v.html = v.html.replace('<h2>日ごとの記録</h2>', '<h2 id="athDays">日ごとの記録</h2>');
-    const a0 = v.after || (() => {}); v.after = () => { a0(); if(window.__athJump){ window.__athJump = false; const el = document.getElementById('athDays'); if(el) setTimeout(() => el.scrollIntoView(), 30); } }; }
-  return v; };
 
 /* ============ トレーニングの原則どおりの並び替え ============ */
 function orderTier(e){ if(!e) return 3;

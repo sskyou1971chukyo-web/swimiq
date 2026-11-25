@@ -531,14 +531,23 @@ VIEWS.today = ()=>{
   const rows = d.rows; const doneN = rows.filter(r=>r.status==='done').length, skipN = rows.filter(r=>r.status==='skip').length;
   const srcTxt = {coach:'コーチから届いたメニュー', self:'自分で作ったメニュー', prev:'前回のメニューを写したもの'}[d.src] || '';
   const inbox = inboxFor(k);
+  const totSets = rows.reduce((t,r)=>t+rowSets(r).length,0);
+  const doneSets = rows.filter(r=>r.status==='done').reduce((t,r)=>t+rowSets(r).length,0);
+  const restSec = sv=>{ if(!sv) return 90; const mm = String(sv).match(/(\d+)\s*分/), ss = String(sv).match(/(\d+)\s*秒/); const v = (mm?Number(mm[1])*60:0)+(ss?Number(ss[1]):0); return v>0?v:90; };
+  const remainMin = Math.max(0, Math.round(rows.filter(r=>r.status!=='done'&&r.status!=='skip').reduce((t,r)=>t+rowSets(r).length*(restSec(r.rest)+45),0)/60));
+  const overview = rows.length && !d.finished ? '<div class="note" style="margin:0 0 10px"><b>済み '+doneN+'/'+rows.length+'種目 ・ '+doneSets+'/'+totSets+'セット</b>'+(remainMin?'　残り目安 約'+remainMin+'分':'')+'<div style="background:var(--line);border-radius:99px;height:8px;margin-top:6px" aria-hidden="true"><div style="background:var(--am);height:8px;border-radius:99px;width:'+(totSets?Math.round(doneSets/totSets*100):0)+'%"></div></div></div>' : '';
   let menu = '';
-  if(rows.length){ menu = (srcTxt?'<p class="sub" style="margin-top:0;white-space:pre-wrap">'+esc(srcTxt)+(d.note?'　コーチのメモ：'+esc(d.note):'')+'</p>':'')+'<ul class="rows">'+rows.map(r=>{ const e = EXMAP[r.exId]; const b = bestOf(r.exId, k); const cur = r.status==='done' ? rowBest(r, k) : null; const pb = cur!=null && b && cur>b.v;
+  if(rows.length){ menu = (srcTxt?'<p class="sub" style="margin-top:0;white-space:pre-wrap">'+esc(srcTxt)+(d.note?'　コーチのメモ：'+esc(d.note):'')+'</p>':'')+overview+'<ul class="rows">'+rows.map(r=>{ const e = EXMAP[r.exId]; const b = bestOf(r.exId, k); const cur = r.status==='done' ? rowBest(r, k) : null; const pb = cur!=null && b && cur>b.v;
       return '<li class="row '+r.status+'"><button type="button" class="rmain" data-edit="'+r.rid+'" aria-label="'+esc(shortName(e))+'、'+esc(rowTxt(r))+'、押すと重さや回数を直す"><strong>'+esc(shortName(e))+(pb?' <span class="tag ok">自己ベスト</span>':'')+'</strong><span class="d">'+esc(rowTxt(r))+(r.rest?'　休憩 '+esc(r.rest):'')+'</span></button>'+
         '<button type="button" class="st '+r.status+'" data-st="'+r.rid+'" aria-label="'+esc(shortName(e))+'は'+(r.status==='done'?'できた。押すと、できなかったに変える':r.status==='skip'?'できなかった、またはやらなかった。押すと、まだに戻す':'まだ。押すと、できたにする')+'">'+(r.status==='done'?'✓ できた':r.status==='skip'?'✕ なし':'まだ')+'</button></li>'; }).join('')+'</ul>'+
-      (d.finished ? (inbox.length ? '<div class="cnotice" style="margin-top:12px"><p class="cnh nl">新しく届いたメニュー</p><p class="sub nl" style="margin:2px 0 8px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p><p class="sub" style="margin:0 0 8px">今日の練習は一度終えています。押すと、終えた分は記録として残したまま、このメニューを続けて行えます。</p><button type="button" class="cta" id="menuCont">このメニューで続ける</button></div>' : '') : '<div class="stack two" style="margin-top:12px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(inbox.length?'<p class="sub nl" style="margin:4px 0 0;grid-column:1/-1">新しく届いたメニュー　'+esc(menuNames(inbox[0]))+'</p><button type="button" class="cta" id="menuGet" style="grid-column:1/-1">新しいメニューに入れ替える</button>':'<button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button>')+'</div>'); }
-  else { menu = '<p class="sub" style="margin-top:0">'+(inbox.length ? 'コーチからメニューが届いています。' : 'まだメニューがありません。コーチから届いていれば受け取れます。自分で作ることもできます。')+'</p>'+
-      '<div class="stack">'+(inbox.length ? (inbox.length>1 ? '<label class="f" for="menuPick">届いたメニュー（'+inbox.length+'件、新しい順）</label><select id="menuPick" class="txt">'+inbox.map((m,i)=>'<option value="'+i+'">'+esc((menuTime(m)||m.date)+'　'+menuNames(m))+'</option>').join('')+'</select>' : '<p class="sub" style="margin:0 0 6px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuNames(inbox[0]))+'</p>')+'<button type="button" class="cta" id="menuGet">コーチのメニューを開く（'+menuCnt(inbox[0])+'）</button>' : '<button type="button" class="'+(d.pre?'cta':'ghost')+'" id="menuFetch">コーチのメニューを受け取る</button>')+
-      '<button type="button" class="ghost" data-go="ex" data-pick="1">自分で種目を選んで作る</button>'+(prevMenuDay(k)?'<button type="button" class="ghost" id="menuPrev">前回（'+md(prevMenuDay(k))+'）のメニューを写す</button>':'')+'</div>'; }
+      (d.finished ? (inbox.length ? '<div class="cnotice" style="margin-top:12px"><p class="cnh nl">新しく届いたメニュー</p><p class="sub nl" style="margin:2px 0 8px">'+esc((menuTime(inbox[0])?menuTime(inbox[0])+'　':'')+menuCnt(inbox[0])+(inbox[0].purpose?'　目的 '+purpName(inbox[0].purpose):''))+'</p><p class="sub" style="margin:0 0 8px">今日の練習は一度終えています。押すと、終えた分は記録として残したまま、このメニューを続けて行えます。</p><button type="button" class="cta" id="menuCont">このメニューで続ける</button></div>' : '') : '<div class="stack two" style="margin-top:12px"><button type="button" class="ghost" data-go="ex" data-pick="1">種目を足す</button>'+(inbox.length?'<p class="sub nl" style="margin:4px 0 0;grid-column:1/-1">新しく届いたメニュー　'+esc(menuCnt(inbox[0])+(inbox[0].purpose?'　目的 '+purpName(inbox[0].purpose):''))+'</p><button type="button" class="cta" id="menuGet" style="grid-column:1/-1">新しいメニューに入れ替える</button>':'<button type="button" class="ghost" id="menuFetch">コーチのメニューを確かめる</button>')+'</div>'); }
+  else { const m0 = inbox[0];
+    menu = (inbox.length ? '<p class="sub" style="margin-top:0">コーチから届いた <b>今日の分（最新1件）</b>'+(m0.purpose?'　目的 '+esc(purpName(m0.purpose)):'')+(m0.by?'　'+esc(m0.by)+'コーチ':'')+'</p>'+
+      '<ul class="rows">'+m0.rows.map(r=>{ const e = EXMAP[r.exId]; return '<li class="row"><span class="rmain"><strong>'+esc(e?shortName(e):'')+'</strong><span class="d">'+esc(rowTxt(r))+(r.rest?'　休憩 '+esc(r.rest):'')+'</span></span></li>'; }).join('')+(m0.cool?'<li class="row"><span class="rmain"><strong>プールのクールダウン</strong><span class="d">プールでクールダウン</span></span></li>':'')+'</ul>'+
+      '<div class="stack"><button type="button" class="cta" id="menuGet">このメニューで始める（'+menuCnt(m0)+'）</button>'+
+      (inbox.length>1 ? '<details class="more"><summary>過去のメニュー（'+(inbox.length-1)+'件）</summary><div class="inner">'+inbox.slice(1).map((m,i)=>'<p style="margin:10px 0 4px"><b>'+esc(wdTxt(m.date)||m.date)+'</b>　'+menuCnt(m)+(m.purpose?'　目的 '+esc(purpName(m.purpose)):'')+'</p><button type="button" class="ghost sm" data-usemenu="'+(i+1)+'">このメニューを使う</button>').join('')+'</div></details>' : '')+'</div>'
+    : '<p class="sub" style="margin-top:0">まだメニューがありません。コーチから届いていれば受け取れます。自分で作ることもできます。</p><div class="stack"><button type="button" class="'+(d.pre?'cta':'ghost')+'" id="menuFetch">コーチのメニューを受け取る</button></div>')+
+      '<div class="stack"><button type="button" class="ghost" data-go="ex" data-pick="1">自分で種目を選んで作る</button>'+(prevMenuDay(k)?'<button type="button" class="ghost" id="menuPrev">前回（'+md(prevMenuDay(k))+'）のメニューを写す</button>':'')+'</div>'; }
   /* 3 終える */
   let fin;
   if(d.finished){ const vol = r1(rows.filter(r=>r.status==='done').reduce((t,r)=>t+rowVol(r,k),0)); const pbs = rows.filter(r=>{ if(r.status!=='done') return false; const b = bestOf(r.exId, k); const c = rowBest(r,k); return c!=null && b && c>b.v; });
@@ -566,6 +575,7 @@ VIEWS.today = ()=>{
       const mc = $('#menuCont'); if(mc) mc.addEventListener('click',()=>{ d.finished = null; applyInbox(k, inbox[0]); say('終えた分は残したまま、新しいメニューを入れました。終わったら、もう一度「今日の練習を終える」を押してください'); });
       const mg = $('#menuGet'); if(mg) mg.addEventListener('click',()=>{ const pk = $('#menuPick'); applyInbox(k, inbox[pk ? Number(pk.value) : 0]); });
       const mpk = $('#menuPick'); if(mpk) mpk.addEventListener('change',()=>{ mg.textContent = 'コーチのメニューを開く（'+menuCnt(inbox[Number(mpk.value)])+'）'; });
+      document.querySelectorAll('[data-usemenu]').forEach(b=>b.addEventListener('click',()=>{ applyInbox(k, inbox[Number(b.dataset.usemenu)]); }));
       const mp = $('#menuPrev'); if(mp) mp.addEventListener('click',()=>{ const pk = prevMenuDay(k); d.rows = db.days[pk].rows.map(r=>newRow(r.exId, {kg:r.kg, reps:r.reps, sets:r.sets, rest:r.rest})); d.src = 'prev'; save(); say(d.rows.length+'種目を写しました'); render(false); $('#pg2').focus(); });
       const fb = $('#finish'); if(fb) fb.addEventListener('click',()=>{ if(fb.disabled) return; d.finished = new Date().toISOString(); save(); say('今日の練習を記録しました'); render(false); $('#pg3').focus(); syncNow(false); });
       const uf = $('#unfinish'); if(uf) uf.addEventListener('click',()=>{ d.finished = null; save(); say('終えるを取り消しました。直したら、もう一度終えてください'); render(false); $('#pg2').focus(); });
@@ -1505,10 +1515,16 @@ document.addEventListener('compositionend', e=>{ imeOn = false; const t = e.targ
  右上に「更新」を置き、押すとコーチのメニューを確かめる。アプリを開いたときと、ほかのアプリから戻ったときも自動で確かめる。
  まだ見ていないメニューがあれば、どの画面でも上に「コーチから届きました」を出す。 */
 function unseenMenus(){ return (db.inbox||[]).filter(m=>!m.used && !m.seen).sort((a,b)=>menuAt(b)-menuAt(a)); }
-function noticeHTML(){ if(!db.ready) return ''; const L = unseenMenus(); if(!L.length) return '';
+function noticeHTML(){ if(!db.ready) return ''; if(onAthleteToday()) return ''; const L = unseenMenus(); if(!L.length) return '';
   const m = L[0]; const md2 = m.date ? (Number(m.date.slice(5,7))+'月'+Number(m.date.slice(8,10))+'日') : '';
-  return '<section class="cnotice" role="alert" aria-labelledby="cnT"><p id="cnT" class="cnh">コーチから届きました'+(L.length>1?'（'+L.length+'件）':'')+'</p>'+
-    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+menuCnt(m)+'（'+esc(menuNames(m))+'）'+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(m.purpose):'')+'</p>'+
+  return '<section class="cnotice" role="alert" aria-labelledby="cnT"><p id="cnT" class="cnh">コーチから新しいメニューが届きました</p>'+
+    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+menuCnt(m)+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(purpName(m.purpose)):'')+'</p>'+
+    '<div class="stack two"><button type="button" class="cta" id="cnOpen">メニューを見る</button><button type="button" class="ghost" id="cnLater">あとで</button></div></section>'; }
+function purpName(p){ return (PURP[p]||{}).name || p; }
+function onAthleteToday(){ try{ return !isCoach() && stack.length>0 && stack[stack.length-1].name==='today'; }catch(e){ return false; } }
+function noticeCardHTML(){ if(!db.ready) return ''; const L = unseenMenus(); if(!L.length) return ''; const m = L[0]; const md2 = m.date ? (Number(m.date.slice(5,7))+'月'+Number(m.date.slice(8,10))+'日') : '';
+  return '<section class="cnotice" aria-labelledby="cnT2"><p id="cnT2" class="cnh">コーチから新しいメニューが届きました</p>'+
+    '<p class="sub" style="margin:2px 0 8px">'+(md2?esc(md2)+'の分　':'')+menuCnt(m)+(m.by?'　'+esc(m.by)+'コーチ':'')+(m.purpose?'　目的 '+esc(purpName(m.purpose)):'')+'</p>'+
     '<div class="stack two"><button type="button" class="cta" id="cnOpen">メニューを見る</button><button type="button" class="ghost" id="cnLater">あとで</button></div></section>'; }
 function paintNotice(){ let n = document.getElementById('cnotice'); if(!n){ n = document.createElement('div'); n.id = 'cnotice'; const v = document.getElementById('view'); v.parentNode.insertBefore(n, v); }
   n.innerHTML = noticeHTML();
@@ -2636,6 +2652,12 @@ VIEWS.ex = ()=>{ const F = exF();
       const on = document.querySelector('.exchip[aria-pressed="true"]:not(.star)'); if(on){ try{ on.parentNode.scrollLeft = on.offsetLeft - 40; }catch(err){} }
     } }; };
 
+/* お知らせは今日の画面では一番下の折りたたみにまとめる（モックで決めた形） */
+const _todayNotice = VIEWS.today; VIEWS.today = ()=>{ const v = _todayNotice(); let extra = '';
+  try{ if(typeof noticeCardHTML==='function') extra += noticeCardHTML(); }catch(e){}
+  try{ if(typeof newsPending==='function' && newsPending()) extra += newsBannerHTML(); }catch(e){}
+  if(extra) v.html += '<details class="more" style="margin-top:14px"><summary>お知らせ</summary><div class="inner">'+extra+'</div></details>';
+  return v; };
 render(false);
 if(db.ready && !isCoach()){ fetchMenu(false); syncNow(false); }
 /* 登録した選手の名前を、その時点でサーバーへ知らせる。コーチの送り先リストに、記録を送る前から名前が並ぶようにする */
@@ -2647,8 +2669,14 @@ async function joinPing(){ if(joinBusy) return; if(!db.ready || isCoach() || !sy
 const joinTimer = setInterval(()=>{ if(isCoach() || (db.joinedName && db.joinedName === (db.me||'').trim())){ clearInterval(joinTimer); return; } joinPing(); }, 4000);
 document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') joinPing(); });
 joinPing();
+
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261125d', date:'11月25日', items:[
+    '選手の「今日のノート」が見やすくなりました。届いたメニューは、今日の分が種目の一覧で出ます（過去の分は「過去のメニュー」にまとめました）',
+    'メニューの上に、済んだ種目とセットの数、残りの目安と進み具合が出ます。目的も日本語で出ます',
+    'お知らせは、今日の画面では一番下の「お知らせ」にまとめました'
+  ] },
   { v:'20261125c', date:'11月25日', items:[
     '選手の画面の「最近の記録」は、過去3回分だけになりました。種目は「種目を見る」を開くと出ます'
   ] },
@@ -2696,7 +2724,7 @@ const APP_NEWS = [
 function newsPending(){ return !!db.ready && db.newsSeen !== APP_NEWS[0].v && !!(db.joinedName || isCoach() || (db.days && Object.keys(db.days).length)); }
 function newsBannerHTML(){ return '<div class="note good" style="margin:0 0 10px"><b>新しくなりました（'+APP_NEWS[0].date+'）</b><ul style="margin:6px 0 8px;padding-left:20px">'+APP_NEWS[0].items.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul><button type="button" class="cta" data-newsok="1">わかった</button></div>'; }
 const _renderNews = render;
-render = function(focus){ _renderNews(focus); if(newsPending()){ const v = $('#view'); if(v && !v.querySelector('[data-newsok]')) v.insertAdjacentHTML('afterbegin', newsBannerHTML()); } };
+render = function(focus){ _renderNews(focus); if(newsPending() && !(typeof onAthleteToday==='function' && onAthleteToday())){ const v = $('#view'); if(v && !v.querySelector('[data-newsok]')) v.insertAdjacentHTML('afterbegin', newsBannerHTML()); } };
 document.addEventListener('click', e=>{ const b = e.target.closest && e.target.closest('[data-newsok]'); if(!b) return; db.newsSeen = APP_NEWS[0].v; save(); render(false); });
 const _settingsNews = VIEWS.settings; VIEWS.settings = ()=>{ const v = _settingsNews(); v.html += '<details class="more"><summary>更新のお知らせ</summary><div class="inner">'+APP_NEWS.map(n=>'<p class="sub" style="margin:8px 0 4px"><b>'+n.date+'の更新</b></p><ul style="margin:0;padding-left:20px">'+n.items.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>').join('')+'</div></details>'; return v; };
 

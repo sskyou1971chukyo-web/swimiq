@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>北京遠征 出発チェックリスト</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: -apple-system, "Hiragino Sans", "Noto Sans CJK JP", sans-serif; background: #f4f6f9; color: #1f2430; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px 14px 40px; }
+  h1 { font-size: 20px; color: #a4123f; margin: 6px 0 2px; }
+  .sub { font-size: 12.5px; color: #5b6472; margin-bottom: 12px; }
+  .info { background: #fff; border: 1px solid #d8dfe9; border-left: 4px solid #a4123f; border-radius: 8px; padding: 10px 13px; font-size: 14px; line-height: 1.65; margin-bottom: 14px; }
+  .info b { color: #1f3a5f; }
+  .prog-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: #5b6472; margin-bottom: 5px; }
+  .bar { height: 7px; border-radius: 4px; background: #e2e8f0; overflow: hidden; margin-bottom: 6px; }
+  .bar > div { height: 100%; background: #a4123f; transition: width .25s; }
+  h2 { font-size: 14.5px; color: #fff; background: #1f3a5f; border-radius: 6px; padding: 6px 11px; margin: 18px 0 4px; }
+  .row { display: flex; gap: 11px; align-items: flex-start; width: 100%; text-align: left; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 11px 12px; margin-top: 7px; cursor: pointer; font-size: 14.5px; line-height: 1.55; color: #1f2430; }
+  .box { flex: 0 0 auto; width: 23px; height: 23px; margin-top: 1px; border-radius: 6px; border: 2px solid #9aa5b5; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; background: #fff; }
+  .row.on .box { background: #a4123f; border-color: #a4123f; }
+  .row.on .txt { color: #8a93a3; text-decoration: line-through; }
+  .note { font-size: 12px; color: #5b6472; margin: 6px 2px 0; line-height: 1.55; }
+  .reset { margin-top: 22px; font-size: 13px; color: #5b6472; background: #fff; border: 1px solid #c9d2de; border-radius: 7px; padding: 7px 14px; cursor: pointer; }
+  .foot { font-size: 11.5px; color: #8a93a3; margin-top: 18px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>北京遠征　出発チェックリスト</h1>
+  <div class="sub">2026年11月27日（金）出発　世界選手権（25m）・北京</div>
+
+  <div class="info">
+    <b>集合</b>　11月27日（金）14:30　羽田空港 第3ターミナル 3階出発フロア、Eカウンター付近<br>
+    <b>出発便</b>　NH963便　羽田 17:25 発 → 北京首都 20:45 着<br>
+    <b>帰国便</b>　12月7日（月）NH964便　北京首都 8:25 発 → 羽田 12:40 着（第2ターミナル到着）<br>
+    <b>当日の緊急連絡先</b>　名鉄観光サービス　担当・矢内（やない）　080-1552-1281（当日に限る）
+  </div>
+
+  <div class="prog-row"><span>進み具合</span><span id="prog"></span></div>
+  <div class="bar"><div id="barfill" style="width:0%"></div></div>
+
+  <div id="list"></div>
+
+  <button class="reset" id="reset">チェックを全部外す</button>
+  <p class="foot">チェックはこの端末に保存されます。別の端末では引き継がれません。<br>出典：LINE連絡（全体・スタッフ・コーチ）、名鉄観光サービスの集合案内、大会資料。</p>
+</div>
+
+<script>
+(function(){
+  var SECTIONS = [
+    {name:"集合", items:[
+      ["meet","14:30　羽田空港 第3ターミナル 3階出発フロア、Eカウンター付近に集合"],
+      ["yanai","担当の矢内に声をかけて名前を告げ、渡航書類一式を受け取る"],
+      ["checkin","Eチケットのお控えとパスポートを用意して、各自でチェックインと手荷物のお預けをする"],
+      ["eticket","Eチケットを確認した（各自に個別で共有されている）"]
+    ]},
+    {name:"服装", items:[
+      ["uniform","集合時は、指定の支給品を着用する"],
+      ["received","支給品を受け取った（11月24日〜26日に希望した場所へ発送済み）"],
+      ["official","会場内は、オフィシャルサプライヤーのウェアを着用する"],
+      ["down","ホテルとプールの間の移動時だけ、ダウンコートなど他メーカーのウェアも着用できる"]
+    ], note:"支給品の品目の具体的な指定は、髙木琉唯さんのアルバム投稿（全体LINE、11月24日 18:22）の写真で確認してください。"},
+    {name:"持ち物", items:[
+      ["passport","パスポート（必需品。現地でアクレディテーションを受け取るときも原本が要ります。中国では16歳以上は携帯が義務です）"],
+      ["passportcopy","パスポートの写しや写真（顔写真のページ）を撮り、本体と別に保管した"],
+      ["inkan","印鑑（必需品）"],
+      ["suitcase","スーツケースは1人1つまで（チームのお願い）。航空会社の無料枠は2個までで、1個あたり23kg以内・3辺の合計158cm以内"],
+      ["carryon","機内持込は、手荷物と身の回り品の合計10kg以内"],
+      ["blades","ハサミなどの刃物は、預ける荷物に入れた"],
+      ["receipt","交通費の領収書（遠方組。往路分は空港で受け取ります）"],
+      ["medicine","常備薬の確認：アンフェタミン系の薬とCBD製品は持込禁止。向精神薬・麻薬は診断書と処方箋のコピー（中国語か英語）を用意し、到着時に申告する"]
+    ]},
+    {name:"出発前の手続き", items:[
+      ["entrycard","入国カードのオンライン申告を済ませた（事前に済ませる案内です）"],
+      ["app","大会公式アプリ「Events Insider」を入れて、大会チャンネル（合言葉 WSCH2026PEK）に参加した。送迎時刻表と最新情報が見られます"],
+      ["net","中国でのネットの準備をした。申込が必要なキャリア（ドコモ・au・ソフトバンクなど）は前日までに申込・予約、eSIMは出発前に購入してスマホに追加する。到着したらWi-Fiを切って、データローミングをONにする"],
+      ["health","健康事前調査（医事委員会）を提出したか確認する"],
+      ["adel","ADELのコーチプログラム修了（10月28日にWADAから修了メールが届いています）"]
+    ]},
+    {name:"スタッフとして（自分の役割と現地の注意）", items:[
+      ["role","自分の役割：広報・チーム運営・モチベート・風紀（SNS用の素材収集とTRへの送付、雰囲気づくり、チーム内ルールの声かけ、場所取り、チーム共用荷物の管理）"],
+      ["fee","選手の参加負担金（5,000円×10泊＝50,000円）は、空港集合時に回収される。選手への声かけに備える"],
+      ["meat","食肉汚染の対策：ホテル以外では肉を食べない。外食したときはレシートを保管し、店名・日時・品目・量を記録する（選手にも徹底）"],
+      ["report","体調不良や怪我は、事前にTRか代表スタッフへ連絡するよう選手に伝える"],
+      ["nosmoke","公共の場での喫煙と飲酒は禁止"]
+    ]}
+  ];
+  var KEY = "beijing_checklist_2026_v1";
+  var checks = {};
+  try { checks = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { checks = {}; }
+  if (checks.adel === undefined) checks.adel = true;
+  var TOTAL = 0; SECTIONS.forEach(function(s){ TOTAL += s.items.length; });
+
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(checks)); } catch(e){} }
+
+  function render(){
+    var list = document.getElementById('list');
+    list.innerHTML = '';
+    var done = 0;
+    SECTIONS.forEach(function(sec){
+      var h = document.createElement('h2'); h.textContent = sec.name; list.appendChild(h);
+      sec.items.forEach(function(it){
+        var id = it[0], label = it[1];
+        var on = !!checks[id];
+        if (on) done++;
+        var b = document.createElement('button');
+        b.className = 'row' + (on ? ' on' : '');
+        var box = document.createElement('span'); box.className = 'box'; box.textContent = on ? '✓' : '';
+        var txt = document.createElement('span'); txt.className = 'txt'; txt.textContent = label;
+        b.appendChild(box); b.appendChild(txt);
+        b.addEventListener('click', function(){ checks[id] = !checks[id]; save(); render(); });
+        list.appendChild(b);
+      });
+      if (sec.note){
+        var n = document.createElement('p'); n.className = 'note'; n.textContent = '※ ' + sec.note; list.appendChild(n);
+      }
+    });
+    document.getElementById('prog').textContent = done + ' / ' + TOTAL + ' 済み';
+    document.getElementById('barfill').style.width = (TOTAL ? Math.round(done / TOTAL * 100) : 0) + '%';
+  }
+  document.getElementById('reset').addEventListener('click', function(){
+    if (confirm('チェックを全部外しますか？')) { checks = {}; save(); render(); }
+  });
+  render();
+})();
+</script>
+</body>
+</html>

@@ -933,12 +933,12 @@ function rowDate(x){ const v = String(x['日付']||'').trim(); if(/^\d{4}-\d{2}-
 function athleteSummary(n, rows){ const td = today(); const w0 = weekStart(td); const vol = k=>r1(rows.filter(x=>String(x['種類'])==='練習' && weekStart(rowDate(x))===k).reduce((t,x)=>t+(Number(x['動かした重さkg'])||0),0));
   const last = rows.filter(x=>String(x['種類'])==='練習').map(rowDate).sort().pop(); const c = rows.filter(x=>String(x['種類'])==='調子').sort((a,b)=>rowDate(a)<rowDate(b)?1:-1)[0];
   return {last, wk:vol(w0), prev:vol(addDays(w0,-7)), sleep:c?c['睡眠h']:'', fat:c?c['疲れ']:'', cdate:c?rowDate(c):''}; }
-VIEWS.team = ()=>{ const by = teamByName(); const names = Object.keys(by).sort((a,b)=>{ const x = athleteSummary(a,by[a]).last||'', y = athleteSummary(b,by[b]).last||''; return x<y?1:x>y?-1:a.localeCompare(b,'ja'); }); const T = db.team||{};
+VIEWS.team = ()=>{ const by = teamByName(); const names = Object.keys(by).sort((a,b)=>{ const x = athleteSummary(a,by[a]).last||'', y = athleteSummary(b,by[b]).last||''; if(db.tmSort==='stale') return x<y?-1:x>y?1:a.localeCompare(b,'ja'); return x<y?1:x>y?-1:a.localeCompare(b,'ja'); }); const T = db.team||{};
   return {title:'選手の結果', html:
-    '<div class="stack two"><button type="button" class="cta" id="tmFetch">最新の記録を取り込む</button>'+(T.at?'<p class="sub" style="align-self:center">取り込み '+new Date(T.at).toLocaleString('ja-JP')+'</p>':'')+'</div>'+
+    '<div class="stack two"><button type="button" class="cta" id="tmFetch">最新の記録を取り込む</button>'+(T.at?'<p class="sub" style="align-self:center">取り込み '+new Date(T.at).toLocaleString('ja-JP')+'（記録 '+((T.rows||[]).length)+'行）</p>':'')+'</div>'+(names.length?'<div class="chips" role="group" aria-label="選手の並び順" style="margin:0 0 10px"><button type="button" class="chip" data-tmsort="recent" aria-pressed="'+(db.tmSort!=='stale')+'">最近練習した順</button><button type="button" class="chip" data-tmsort="stale" aria-pressed="'+(db.tmSort==='stale')+'">お休みが長い順</button></div>':'')+
     (!db.coachKey?'<div class="note warn">取り込みには、GASに書いたコーチの合言葉が要ります。設定で入れてください。</div>':'')+
     (names.length ? '<ul class="exl">'+names.map(n=>{ const s = athleteSummary(n, by[n]); const stale = s.last && s.last<addDays(today(),-7);
-      return '<li><button type="button" class="rmain" data-go="athlete" data-id="'+esc(n)+'"><strong>'+esc(n)+(stale?' <span class="tag warn">1週間以上なし</span>':'')+'</strong><span class="d">最後の練習 '+(s.last?md(s.last):'なし')+'　今週 <b>'+kg(s.wk)+' kg</b>（先週 '+kg(s.prev)+'）'+(s.cdate?'　'+md(s.cdate)+' 睡眠'+(s.sleep!==''?s.sleep+'h':'未')+' 疲れ'+(s.fat!==''?FAT_WORDS[Number(s.fat)-1]||s.fat:'未'):'')+'</span></button></li>'; }).join('')+'</ul>' : '<p class="sub">まだ記録がありません。「最新の記録を取り込む」を押してください。</p>'),
+      return '<li><button type="button" class="rmain" data-go="athlete" data-id="'+esc(n)+'"><strong>'+esc(n)+(stale?' <span class="tag warn">1週間以上なし</span>':'')+'</strong><span class="d">最後の練習 '+(s.last?md(s.last):'なし')+'</span><span class="d">今週 <b>'+kg(s.wk)+' kg</b>　'+tmDiffHTML(s)+'（先週 '+kg(s.prev)+' kg）</span>'+(s.cdate?'<span class="d">'+md(s.cdate)+' の調子　睡眠 '+(s.sleep!==''?s.sleep+'h':'未')+'、疲れ '+(s.fat!==''?FAT_WORDS[Number(s.fat)-1]||s.fat:'未')+'</span>':'')+'</button></li>'; }).join('')+'</ul>' : '<p class="sub">まだ記録がありません。「最新の記録を取り込む」を押してください。</p>'),
     after(){ $('#tmFetch').addEventListener('click',()=>fetchAll(true)); } }; };
 VIEWS.athlete = cur=>{ const n = cur.id; const rows = srcRows(n); const days = {}; rows.forEach(x=>{ const k = rowDate(x); (days[k] = days[k]||[]).push(x); }); const ks = Object.keys(days).sort().reverse().slice(0,30);
   const ex = {}; rows.forEach(x=>{ if(String(x['種類'])==='記録' && Number(x['推定1RM'])>0){ const k = String(x['種目']); (ex[k] = ex[k]||[]).push([rowDate(x), Number(x['推定1RM'])]); } });
@@ -948,7 +948,7 @@ VIEWS.athlete = cur=>{ const n = cur.id; const rows = srcRows(n); const days = {
       return '<section class="page"><h2>'+jdate(k)+(s?'　'+kg(s['動かした重さkg']||0)+' kg':'')+'</h2>'+(c?'<p class="sub">睡眠 '+(c['睡眠h']!==''?c['睡眠h']+'h':'未')+'、疲れ '+(c['疲れ']!==''?FAT_WORDS[Number(c['疲れ'])-1]||c['疲れ']:'未')+(c['メモ']?'、'+esc(c['メモ']):'')+'</p>':'')+(rec.length?'<ul class="rows">'+rec.map(x=>'<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+(String(x['種類'])==='未実施'?'✕ ':'✓ ')+esc(x['種目'])+'</strong><span class="d">'+esc(x['セットの内容']||'')+(Number(x['推定1RM'])>0?'　推定1RM '+kg(x['推定1RM'])+' kg':'')+(x['メモ']?'　'+esc(x['メモ']):'')+'</span></span></li>').join('')+'</ul>':'')+'</section>'; }).join('') : '<p class="sub">記録がありません。</p>') }; };
 
 /* ---- コーチのときのタブと、種目を足す先の切り替え ---- */
-function tabsFor(){ const t = document.querySelectorAll('#tabs button'); if(isCoach()){ t[0].dataset.tab = 'coach'; t[0].lastChild.textContent = 'メニュー'; t[2].dataset.tab = 'team'; t[2].lastChild.textContent = '選手'; } else { t[0].dataset.tab = 'today'; t[0].lastChild.textContent = '今日'; t[2].dataset.tab = 'result'; t[2].lastChild.textContent = '結果'; } }
+function tabsFor(){ const t = document.querySelectorAll('#tabs button'); if(isCoach()){ t[0].dataset.tab = 'coach'; t[0].lastChild.textContent = 'メニュー作り'; t[2].dataset.tab = 'team'; t[2].lastChild.textContent = '選手'; } else { t[0].dataset.tab = 'today'; t[0].lastChild.textContent = '今日'; t[2].dataset.tab = 'result'; t[2].lastChild.textContent = '結果'; } }
 ROOTS.push('coach','team');
 const _render = render; render = function(focus){ tabsFor(); if(isCoach() && stack[0].name==='today') stack[0].name = 'coach'; if(!isCoach() && stack[0].name==='coach') stack[0].name = 'today'; if(isCoach() && stack[0].name==='result') stack[0].name = 'team'; if(!isCoach() && stack[0].name==='team') stack[0].name = 'result'; _render(focus); };
 const _exRow = exRow; exRow = function(e, k){ if(!isCoach() || !pick) return _exRow(e, k); const inD = draft().rows.some(r=>r.exId===e.id);
@@ -2672,6 +2672,12 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261126a', date:'11月26日', items:[
+    'コーチの画面が見やすくなりました。「コーチの許可」は設定に移り、選手の結果では、許可の希望が届いたときだけお知らせが出ます',
+    '選手の一覧は、名前と最後の練習、今週の重さの増え方と調子が分かれて出ます。お休みが長い順にも並べ替えられます',
+    'メニュー作りは、今のステップだけが開く形になりました。済んだステップは見出しを押すと開けます',
+    '選手の画面ではBIG3トータルが先に出て、推定1RMのグラフは種目を選んで見られます。送ったメニューは名前で探せます'
+  ] },
   { v:'20261125d', date:'11月25日', items:[
     '選手の「今日のノート」が見やすくなりました。届いたメニューは、今日の分が種目の一覧で出ます（過去の分は「過去のメニュー」にまとめました）',
     'メニューの上に、済んだ種目とセットの数、残りの目安と進み具合が出ます。目的も日本語で出ます',
@@ -2781,7 +2787,7 @@ function lineSVG2(d1, d2, n1, n2){ const dates = [...new Set([...d1, ...d2].map(
   return '<div class="svgbox"><svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="1RMの比較グラフ"><text x="4" y="14" fill="#ffc400" font-size="12" font-weight="700">― '+esc(n1)+'（ベスト '+kg(Math.max(...s1.map(p=>p.v)))+' kg）</text><text x="4" y="30" fill="#4da3ff" font-size="12" font-weight="700">― '+esc(n2)+'（ベスト '+kg(Math.max(...s2.map(p=>p.v)))+' kg）</text>'+line(s1, '#ffc400')+line(s2, '#4da3ff')+'<text x="4" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+dates[0].slice(5).replace('-', '/')+'</text><text x="'+(W-46)+'" y="'+(H-4)+'" fill="#c4c7cc" font-size="11">'+dates[dates.length-1].slice(5).replace('-', '/')+'</text></svg></div>'; }
 
 VIEWS.sent = ()=>{ const list = (db.sentMenus || []).filter(m => !m.cancel).slice().reverse(); return { title:'送ったメニュー一覧', html:
-  (list.length ? '<ul class="rows">'+list.map(m=>'<li class="row"><span class="rmain"><strong>'+wdTxt(m.date)+'</strong><span class="d">'+esc((m.to || []).join('、'))+'<br>'+(m.rows || []).map(r=>esc(r.name || shortName(EXMAP[r.exId] || { name:'' }))).join('、')+(m.note ? '<br>メモ：'+esc(m.note) : '')+'</span></span><span style="display:flex;flex-direction:column;gap:6px"><button type="button" class="ghost sm" data-sreuse="'+esc(m.mid)+'">もう一度使う</button><button type="button" class="ghost sm" data-sedit="'+esc(m.mid)+'">直す</button><button type="button" class="ghost sm" data-sdel="'+esc(m.mid)+'">取り消す</button></span></li>').join('')+'</ul>'
+  (list.length ? '<ul class="rows">'+list.map(m=>'<li class="row"><span class="rmain"><strong>'+wdTxt(m.date)+'</strong>'+(m.date>today()?'<span class="tag warn">予約</span>':'<span class="tag">送信済み</span>')+'<span class="d">'+esc((m.to || []).join('、'))+'<br>'+(m.rows || []).map(r=>esc(r.name || shortName(EXMAP[r.exId] || { name:'' }))).join('、')+(m.note ? '<br>メモ：'+esc(m.note) : '')+'</span></span><span style="display:flex;flex-direction:column;gap:6px"><button type="button" class="ghost sm" data-sreuse="'+esc(m.mid)+'">もう一度使う</button><button type="button" class="ghost sm" data-sedit="'+esc(m.mid)+'">直す</button><button type="button" class="ghost sm" data-sdel="'+esc(m.mid)+'">取り消す</button></span></li>').join('')+'</ul>'
   : '<p class="sub">まだ送ったメニューがありません。メニュー作りの画面から送ると、ここに残ります。</p>'),
   after(){ document.querySelectorAll('[data-sreuse]').forEach(b=>b.addEventListener('click', ()=>{ reuseMenu(b.dataset.sreuse); go('coach'); }));
     document.querySelectorAll('[data-sedit]').forEach(b=>b.addEventListener('click', ()=>{ editReserved(b.dataset.sedit); go('coach'); }));
@@ -2805,8 +2811,7 @@ VIEWS.acal = ()=>{ const names = teamNames(); const a = db.acal = db.acal || { n
   const rows = (teamByName()[a.name]) || []; const byDay = {}; rows.forEach(x=>{ const d = rowDate(x); (byDay[d] = byDay[d] || []).push(x); });
   const [yy, mm] = a.ym.split('-').map(Number); const nd = new Date(yy, mm, 0).getDate(); const first = new Date(yy, mm-1, 1).getDay();
   let cells = ''; for(let i = 0; i < first; i++) cells += '<span></span>';
-  for(let d = 1; d <= nd; d++){ const key = a.ym+'-'+String(d).padStart(2, '0'); const n = (byDay[key] || []).filter(x=>String(x['種類']) === '記録').length; const has = (byDay[key] || []).length > 0;
-    cells += '<button type="button" data-acday="'+key+'" aria-pressed="'+(a.day === key)+'" style="min-height:44px;border-radius:8px;border:1px solid '+(a.day === key ? '#ffc400' : '#3a3b3d')+';background:'+(has ? '#26314d' : 'transparent')+';color:#fff">'+d+(n ? '<br><small>'+n+'種目</small>' : '')+'</button>'; }
+  for(let d = 1; d <= nd; d++){ const key = a.ym+'-'+String(d).padStart(2, '0'); const dr = byDay[key] || []; const n = dr.filter(x=>String(x['種類']) === '記録').length; const has = dr.length > 0; const pr2 = dr.find(x=>String(x['種類']) === '練習'); const pkk = pr2 ? (Number(pr2['動かした重さkg']) || 0) : 0; const cd2 = dr.find(x=>String(x['種類']) === '調子'); const fatN = cd2 ? Number(cd2['疲れ']) : 0; const dot = cd2 ? '<span style="color:'+(fatN>=4 ? '#ff9a9a' : fatN===3 ? '#ffd24d' : '#7ad67a')+'">●</span>' : ''; cells += '<button type="button" data-acday="'+key+'" aria-pressed="'+(a.day === key)+'" style="min-height:44px;border-radius:8px;border:1px solid '+(a.day === key ? '#ffc400' : '#3a3b3d')+';background:'+(has ? '#26314d' : 'transparent')+';color:#fff">'+d+(n ? '<br><small>'+n+'種目</small>' : '')+(pkk ? '<br><small>'+kg(pkk)+' kg</small>' : '')+(dot ? '<br>'+dot : '')+'</button>'; }
   const dayRows = a.day ? (byDay[a.day] || []) : [];
   const recs = dayRows.filter(x=>String(x['種類']) === '記録'); const cond = dayRows.find(x=>String(x['種類']) === '調子'); const prac = dayRows.find(x=>String(x['種類']) === '練習');
   return { title:'選手カレンダー', html:
@@ -2935,6 +2940,78 @@ const _sendMenuOrd = sendMenu; sendMenu = async function(){ const d = draft();
   if(d.reordered && d.orderExplain){ const orig = d.note || ''; d.note = (orig ? orig + '\n' : '') + d.orderExplain; save();
     try{ return await _sendMenuOrd(); } finally { d.note = orig; save(); } }
   return _sendMenuOrd(); };
+
+/* ============ コーチ画面の見やすさ改修（2026-11-26） ============ */
+(function(){ var st = document.createElement('style'); st.textContent = [
+  '.exl .d,.rows .d{font-size:14px;line-height:1.55}',
+  '.rmain strong{font-size:17px}',
+  'section.page.cz-closed>*:not(h2){display:none!important}',
+  'section.page.cz-closed{padding-bottom:12px}',
+  'section.page>h2.cz-h{cursor:pointer}',
+  'section.page.cz-closed>h2.cz-h::after{content:"▸";float:right;color:#9aa9b8;font-size:15px}',
+  'section.page:not(.cz-closed)>h2.cz-h::after{content:"▾";float:right;color:#9aa9b8;font-size:15px}',
+  '.cz-hub{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}',
+  '.cz-hub button{min-height:44px;font-size:13px;padding:6px 2px}',
+  ''].join('\n'); document.head.appendChild(st); })();
+function tmDiffHTML(s){ const diff = r1(s.wk - s.prev); if(diff > 0) return '<span style="color:#7ad67a">▲ +'+kg(diff)+' kg</span>'; if(diff < 0) return '<span style="color:#ff9a9a">▼ '+kg(diff)+' kg</span>'; return '<span style="color:#9aa9b8">― ±0 kg</span>'; }
+function teamBig3(name){ const rows = (teamByName()[name] || []); const recNames = [...new Set(rows.filter(x=>String(x['種類']) === '記録').map(x=>String(x['種目'])))];
+  const parts = BIG3.map(l=>{ let best = null; recNames.forEach(rn=>{ const e = exByName(rn); if(e && (l.ids || []).includes(e.id)) rmHist(name, rn).forEach(p=>{ if(best == null || p.v > best) best = p.v; }); }); return { name:l.name, best:best }; });
+  const ok = parts.every(p=>p.best != null); return { parts:parts, total: ok ? r1(parts.reduce((t,p)=>t + p.best, 0)) : null }; }
+function athBig3CardHTML(n){ const b3 = teamBig3(n); if(!b3.parts.some(p=>p.best != null)) return ''; return '<h2>BIG3トータル</h2><ul class="tiles"><li><span class="big">'+(b3.total != null ? kg(b3.total) : '―')+'<small>kg</small></span><span class="sub">'+b3.parts.map(p=>esc(p.name)+' '+(p.best != null ? kg(p.best)+' kg' : 'なし')).join(' ＋ ')+'</span></li></ul>'; }
+function bindCoachAdmin(){
+  document.querySelectorAll('[data-cok-add]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.cokAdd; const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }));
+  document.querySelectorAll('[data-cok-del]').forEach(b => b.addEventListener('click', () => { setCoachList((db.coachesCache || []).filter(c => normName(c) !== normName(b.dataset.cokDel))); }));
+  document.querySelectorAll('[data-cok-deny]').forEach(b => b.addEventListener('click', () => { denyCoach(b.dataset.cokDeny); }));
+  document.querySelectorAll('[data-cok-undeny]').forEach(b => b.addEventListener('click', () => { db.coachDenied = (db.coachDenied || []).filter(c => normName(c) !== normName(b.dataset.cokUndeny)); save(); postCoachList(); render(false); say('元に戻しました'); }));
+  const ab = $('#cokAddBtn'); if(ab) ab.addEventListener('click', () => { const n = ($('#cokName').value || '').trim(); if(!n){ say('名前を入れてください'); return; } const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); });
+}
+/* 選手の結果：許可カードを外し、希望があるときだけバナー。似た名前の注意もここに出す */
+const _teamUX = VIEWS.team; VIEWS.team = ()=>{ const v = _teamUX();
+  if(isOwner()){ const admin = coachAdminHTML(); if(v.html.indexOf(admin) === 0) v.html = v.html.slice(admin.length);
+    const wants = (db.coachWants || []).filter(n => normName(n) !== normName(COACH_OWNER) && !(db.coachesCache || []).some(c => normName(c) === normName(n)) && !(db.coachDenied || []).some(d => normName(d) === normName(n)));
+    if(wants.length) v.html = '<div class="note warn" style="margin-bottom:12px">コーチ許可の希望が '+wants.length+' 件届いています（'+wants.map(esc).join('、')+'）。<br><button type="button" class="link" data-go="settings">設定で確認する</button></div>' + v.html; }
+  const nmAll = db.names || []; const simN = nmAll.length ? nmAll.filter(x => similarOf(x, nmAll).length).length : 0;
+  if(simN) v.html = '<div class="note warn" style="margin-bottom:12px">似た名前があります（'+simN+'件）。同じ人の二重登録かもしれません。<br><button type="button" class="link" data-go="names">名前の整理を開く</button></div>' + v.html;
+  const a0 = v.after || (() => {}); v.after = () => { a0(); document.querySelectorAll('[data-tmsort]').forEach(b => b.addEventListener('click', () => { db.tmSort = b.dataset.tmsort; save(); render(false); })); };
+  return v; };
+/* 設定：オーナーにはコーチの許可をここに出す */
+const _setUX = VIEWS.settings; VIEWS.settings = ()=>{ const v = _setUX(); if(isOwner()){ v.html += coachAdminHTML(); const a0 = v.after || (() => {}); v.after = () => { a0(); bindCoachAdmin(); }; } return v; };
+/* 選手詳細：BIG3トータルを先頭に足す（推定1RMの種目選択とカレンダーは既存の仕組みを使う） */
+const _athUX = VIEWS.athlete; VIEWS.athlete = cur => { const v = _athUX(cur); const card = athBig3CardHTML(cur.id); if(card) v.html = card + v.html; return v; };
+/* メニュー作り：ボタンを細い1段に、並び替えを見出し直下へ、履歴は一覧へ、今のステップだけ開く */
+let czOpenSteps = {};
+const _coachUX = VIEWS.coach; VIEWS.coach = ()=>{ const v = _coachUX();
+  v.html = v.html.replace('<div class="stack two" style="margin-bottom:12px"><button type="button" class="ghost" data-go="sent">送ったメニュー一覧</button><button type="button" class="ghost" data-go="cmp">選手の比較（1RM）</button><button type="button" class="ghost" data-go="acal">選手カレンダー</button><button type="button" class="ghost" data-go="prop">次の種目の提案</button></div>',
+    '<div class="cz-hub"><button type="button" class="ghost" data-go="sent">送ったメニュー</button><button type="button" class="ghost" data-go="cmp">選手の比較</button><button type="button" class="ghost" data-go="acal">カレンダー</button><button type="button" class="ghost" data-go="prop">次の種目の提案</button></div>');
+  const uiStart = v.html.indexOf('<div class="stack two" style="margin-top:10px"><button type="button" class="cta" id="ordSort">');
+  if(uiStart >= 0){ const anchor = '<details class="more"><summary>案の決め方と、重さや回数の決め方</summary>'; const uiEnd = v.html.indexOf(anchor, uiStart); const rowsPos = v.html.indexOf('cz-rows'); const olEnd = rowsPos >= 0 ? v.html.indexOf('</ol>', rowsPos) : -1;
+    if(uiEnd > uiStart && olEnd > 0 && olEnd < uiStart){ const ui = v.html.slice(uiStart, uiEnd); v.html = v.html.slice(0, uiStart) + v.html.slice(uiEnd); const oe2 = v.html.indexOf('</ol>', v.html.indexOf('cz-rows')); v.html = v.html.slice(0, oe2 + 5) + ui + v.html.slice(oe2 + 5); } }
+  const cuts = ['<h2 id="czRsvH"', '<h2>保存したメニュー', '<h2>送ったメニュー</h2>'].map(m => v.html.indexOf(m)).filter(i => i > 0);
+  if(cuts.length) v.html = v.html.slice(0, Math.min(...cuts));
+  const a0 = v.after || (() => {}); v.after = () => { a0();
+    document.querySelectorAll('#view section.page').forEach(sec => { const h = sec.querySelector('h2'); if(!h || !h.id || h.id.indexOf('pg') !== 0) return; const k = h.id.slice(2); const isNow = sec.classList.contains('now');
+      if(!isNow && !czOpenSteps[k]) sec.classList.add('cz-closed'); h.classList.add('cz-h');
+      h.addEventListener('click', () => { if(sec.classList.contains('cz-closed')){ sec.classList.remove('cz-closed'); czOpenSteps[k] = 1; } else if(!sec.classList.contains('now')){ sec.classList.add('cz-closed'); delete czOpenSteps[k]; } }); });
+    document.querySelectorAll('[data-czjump]').forEach(b => b.addEventListener('click', () => { const h = document.querySelector('#pg' + b.dataset.czjump); if(h) h.closest('section').classList.remove('cz-closed'); }));
+  };
+  return v; };
+/* 送ったメニュー：名前で探す＋保存したメニューの管理をここに集める */
+const _sentUX = VIEWS.sent; VIEWS.sent = ()=>{ const v = _sentUX(); const q = (db.sentQ || '').trim(); const svd = (db.savedMenus || []).slice().reverse();
+  const svSec = '<h2>保存したメニュー　'+svd.length+'件</h2>' + (svd.length ? '<ul class="rows">' + svd.map(m => '<li class="row" style="grid-template-columns:1fr"><span class="rmain"><strong>'+esc(savedLabel(m))+'</strong><span class="d">'+esc(m.rows.map(r => shortName(EXMAP[r.exId])).join('、'))+'</span></span><div class="stack two"><button type="button" class="ghost sm" data-csvload="'+m.id+'">呼び出す</button><button type="button" class="ghost sm cz-danger" data-csvdel="'+m.id+'">消す</button></div></li>').join('') + '</ul>' : '<p class="sub">保存したメニューはありません。メニュー作りで「送らずに保存する」と、ここに出ます。</p>') + (db.savedUndo ? '<button type="button" class="link" id="czSvUndo">消した保存メニューを元に戻す</button>' : '');
+  v.html = '<label class="f" for="sentQ">選手の名前で探す</label><input type="search" class="txt" id="sentQ" value="'+esc(db.sentQ || '')+'" autocomplete="off">' + v.html + svSec;
+  const a0 = v.after || (() => {}); v.after = () => { a0();
+    const i = $('#sentQ'); if(i){ let tm; i.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { if(imeOn) return; db.sentQ = i.value; const pos = i.selectionStart; render(false); const j = $('#sentQ'); if(j){ j.focus(); try{ j.setSelectionRange(pos, pos); }catch(x){} } }, 250); });
+      if(q) document.querySelectorAll('#view ul.rows > li').forEach(li => { if(!li.textContent.includes(q)) li.hidden = true; }); }
+    document.querySelectorAll('[data-csvload]').forEach(b => b.addEventListener('click', () => { loadSaved(b.dataset.csvload); go('coach'); }));
+    document.querySelectorAll('[data-csvdel]').forEach(b => b.addEventListener('click', () => { const m = (db.savedMenus || []).find(x => x.id === b.dataset.csvdel); db.savedMenus = (db.savedMenus || []).filter(x => x !== m); db.savedUndo = m; save(); say(savedLabel(m) + 'を消しました'); render(false); }));
+    const su = $('#czSvUndo'); if(su) su.addEventListener('click', () => { if(db.savedUndo){ db.savedMenus = (db.savedMenus || []).concat([db.savedUndo]); db.savedUndo = null; save(); say('保存したメニューを元に戻しました'); render(false); } });
+  };
+  return v; };
+/* 選手の比較：BIG3トータルの順位を足す */
+const _cmpUX = VIEWS.cmp; VIEWS.cmp = ()=>{ const v = _cmpUX(); const names = teamNames();
+  if(names.length){ const rk = names.map(n => ({ n:n, t:teamBig3(n).total })).filter(x => x.t != null).sort((a,b) => b.t - a.t);
+    if(rk.length >= 2) v.html += '<h2>BIG3トータルの順位</h2><ul class="rows">' + rk.map((x,i) => '<li class="row"><span class="rmain"><strong>'+(i + 1)+'位　'+esc(x.n)+'</strong></span><b>'+kg(x.t)+' kg</b></li>').join('') + '</ul>'; }
+  return v; };
 </script>
 <script>
 /* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */
@@ -2942,7 +3019,7 @@ const _sendMenuOrd = sendMenu; sendMenu = async function(){ const d = draft();
   var isNet = location.protocol === 'https:';
   var b = document.createElement('span');
   b.textContent = isNet ? 'ネット版' : 'ファイル版';
-  b.style.cssText = 'margin-left:auto;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#fff;background:' + (isNet ? '#2e9e6a' : '#9aa9b8');
+  b.style.cssText = 'margin-left:auto;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;background:' + (isNet ? '#2e9e6a' : '#9aa9b8');
   var hd = document.getElementById('top');
   if(hd) hd.appendChild(b);
   else { b.style.cssText += ';position:fixed;top:8px;right:8px;z-index:99999'; document.body.appendChild(b); }

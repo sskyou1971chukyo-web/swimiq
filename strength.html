@@ -2355,6 +2355,115 @@ const _exViewKC2 = VIEWS.ex; VIEWS.ex = ()=>{ const v = _exViewKC2(); v.html = v
 const _drawSheetKC2 = drawSheet; drawSheet = function(){ _drawSheetKC2(); const g = document.querySelector('#sheet .chips[aria-label="結果"]'); if(g){ g.classList.add('kc-res'); const sk = g.querySelector('[data-shst="skip"]'); if(sk) sk.innerHTML = '✕ できなかった<br>やらなかった'; }
   const p = $('#shPer'); if(p){ p.innerHTML = '<span class="kc-perI" aria-hidden="true">＋</span><span>セットごとに重さを変える<small>回数も1セットずつ変えられます</small></span>'; const u = p.previousElementSibling; if(u && u.classList.contains('unit')) u.style.display = 'block'; } };
 
+/* ============ 重さを上げるタイミングのアドバイス（2026-11-28） ============
+   記録から「10回できる」状態を自動で見つけ、フォームとリズムは本人が確認する。
+   全部そろうと、推定1RMから逆算した次の重さの目安を、選手の入力画面（シート）に出す。
+   腕立て伏せなど体重の一部しかかからない種目（partEx）は対象外。 */
+function advSets(r, k){ const add = rowLoad(r, k); return rowSets(r).map(s=>({load:Number(s.w)+add, w:Number(s.w), reps:Number(s.r)})); }
+function advAnalyze(exId){
+  const e = EXMAP[exId]; if(!e || partEx(e)) return null;
+  const ks = Object.keys(db.days||{}).sort(); let trig = null; const days10 = {};
+  ks.forEach(k=>{
+    const d = db.days[k]; if(!d || !d.rows) return;
+    d.rows.forEach(r=>{
+      if(r.exId !== exId) return;
+      const sets = advSets(r, k); if(!sets.length) return;
+      const top = sets.reduce((a,b)=> b.reps > a.reps ? b : a, sets[0]);
+      if(!(top.reps >= 10) || !(top.load > 0)) return;
+      let est = null;
+      sets.forEach(s=>{ if(s.reps >= 2){ const v = s.load * (1 + Math.min(s.reps, 10)/30); if(est == null || v > est) est = v; } });
+      if(est == null) return;
+      days10[k] = true;
+      trig = { k, load: top.load, w: top.w, add: rowLoad(r, k), reps: top.reps, est: Math.round(est*2)/2, n10: Object.keys(days10).length };
+    });
+  });
+  if(!trig) return null;
+  const target = trig.est * 30/35;
+  let step = Math.round((target - trig.load)/2.5)*2.5; if(step < 2.5) step = 2.5;
+  let first = step; if(step >= 7.5) first = Math.max(2.5, Math.round(step/2/2.5)*2.5);
+  return { e, bw: bwEx(e), trig, target: Math.round(target*2)/2, step, first };
+}
+function advFulfilled(exId, st){
+  const ks = Object.keys(db.days||{}).sort();
+  return ks.some(k=>{
+    if(k < st.date) return false;
+    const d = db.days[k]; if(!d || !d.rows) return false;
+    return d.rows.some(r=> r.exId === exId && advSets(r, k).some(s=> s.load >= st.load + st.first - 0.01));
+  });
+}
+function advLoadTxt(A){ const t = A.trig; if(A.bw) return t.w > 0 ? '体重＋'+kg(t.w)+'kg' : '自重（'+kg(t.add)+'kg）'; return kg(t.load)+'kg'; }
+function advAdviceTxt(A){ const t = A.trig; return A.bw ? '+'+kg(A.first)+'kg荷重' : kg(t.load + A.first)+'kgに増やす'; }
+function advGoalTxt(A){ const t = A.trig; return A.bw ? '+'+kg(A.step)+'kg荷重' : kg(t.load + A.step)+'kg'; }
+const ADV_CSS = '<style>'
+  +'.adv{border:1px solid var(--am);background:var(--ambg);border-radius:12px;padding:12px;margin:10px 0}'
+  +'.adv-t{margin:0;font-weight:700;color:var(--am)}'
+  +'.adv-q{margin:6px 0 10px;font-size:.92rem;line-height:1.55}'
+  +'.adv-chk{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;margin:0 0 8px;font:inherit;cursor:pointer}'
+  +'.adv-chk.auto{cursor:default}'
+  +'.adv-box{flex:none;width:22px;height:22px;border-radius:6px;border:2px solid var(--line);color:#000;font-size:14px;text-align:center;line-height:19px;margin-top:1px}'
+  +'.adv-box.on{background:var(--am);border-color:var(--am);font-weight:700}'
+  +'.adv-ctx{flex:1}.adv-ctx b{display:block;font-size:.95rem}.adv-ctx small{display:block;color:var(--sub);margin-top:2px;line-height:1.45}'
+  +'.adv-badge{flex:none;font-size:.68rem;color:#000;background:var(--green);border-radius:999px;padding:2px 8px;font-weight:700;margin-top:2px}'
+  +'.adv-left{margin:2px 0 0;color:var(--sub);font-size:.85rem}'
+  +'.adv-res{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}'
+  +'.adv-res-t{margin:0;font-weight:700}.adv-res ul{margin:8px 0 0;padding-left:18px;line-height:1.6;font-size:.92rem}'
+  +'.adv-mini{border:1px solid var(--green);background:var(--greenbg);border-radius:12px;padding:10px 12px;margin:10px 0;font-size:.92rem}'
+  +'.adv-mini-t{font-weight:700;color:var(--green)}'
+  +'</style>';
+const _drawSheetADV = drawSheet;
+drawSheet = function(){
+  _drawSheetADV();
+  if(!sh) return;
+  const d = day(sh.k); const r = d.rows.find(x=>x.rid===sh.rid); const e = r && EXMAP[r.exId];
+  if(!e) return;
+  const A = advAnalyze(e.id); if(!A) return;
+  db.advice = db.advice || {};
+  let st = db.advice[e.id];
+  if(st && st.done && !st.cleared && st.load === A.trig.load && advFulfilled(e.id, st)){ st.cleared = true; save(); }
+  const anchor = document.querySelector('#sheet .kc-sheetbox') || document.querySelector('#sheet .sheetin > p.sub');
+  if(!anchor) return;
+  if(st && st.load === A.trig.load){
+    if(st.cleared) return;
+    if(st.done && !st.justDone){
+      anchor.insertAdjacentHTML('afterend', ADV_CSS + '<div class="adv adv-mini"><span class="adv-mini-t">次回の目安</span> '+esc(advAdviceTxt(A))+(A.step > A.first ? '（目標は'+esc(advGoalTxt(A))+'）' : '')+'</div>');
+      return;
+    }
+  } else {
+    st = { load: A.trig.load, first: A.first, step: A.step, c2:false, c3:false, done:false, justDone:false, cleared:false, date: sh.k };
+    db.advice[e.id] = st;
+  }
+  const n = (st.c2?1:0) + (st.c3?1:0);
+  const box = on => '<span class="adv-box'+(on?' on':'')+'">'+(on?'✓':'')+'</span>';
+  let h = '<div class="adv"><p class="adv-t">重さを上げるタイミングかもしれません</p>'
+    + '<p class="adv-q">'+md(A.trig.k)+'の記録で '+esc(advLoadTxt(A))+' × '+A.trig.reps+'回ができています。'+(A.trig.n10 >= 2 ? '10回できた日が'+A.trig.n10+'日あります。' : '')+'10回連続して、リズムとフォームを崩さずにできるようになりましたか？</p>'
+    + '<div class="adv-chk auto">'+box(true)+'<span class="adv-ctx"><b>回数：10回できる</b><small>記録から自動で判定しました</small></span><span class="adv-badge">自動判定</span></div>'
+    + '<button type="button" class="adv-chk" data-adv="c2" aria-pressed="'+!!st.c2+'">'+box(st.c2)+'<span class="adv-ctx"><b>フォームは崩れていない</b><small>'+esc(e.cue || '最後の1回まで正しい形でできた')+'</small></span></button>'
+    + '<button type="button" class="adv-chk" data-adv="c3" aria-pressed="'+!!st.c3+'">'+box(st.c3)+'<span class="adv-ctx"><b>リズムは崩れていない</b><small>最後の1回まで、同じ速さでできた</small></span></button>';
+  if(n >= 2){
+    h += '<div class="adv-res"><p class="adv-res-t">次回は '+esc(advAdviceTxt(A))+'しましょう</p><ul>'
+      + '<li>この記録から推定した1RMは '+kg(A.trig.est)+'kg</li>'
+      + '<li>5回が限界になる重さは約'+kg(A.target)+'kg ＝ '+(A.bw ? esc(advGoalTxt(A)) : '今より+'+kg(A.step)+'kg')+' が目標</li>'
+      + (A.step > A.first ? '<li>急に増やさず、まず'+(A.bw ? '+'+kg(A.first)+'kg' : kg(A.trig.load + A.first)+'kg')+'から。そこで5回できたら、次は目標の重さへ</li>' : '<li>この重さで5回を目標にします</li>')
+      + '</ul></div>';
+  } else {
+    h += '<p class="adv-left">あと'+(2-n)+'つ確認すると、アドバイスが出ます</p>';
+  }
+  h += '</div>';
+  anchor.insertAdjacentHTML('afterend', ADV_CSS + h);
+  document.querySelectorAll('#sheet [data-adv]').forEach(b=>b.addEventListener('click', ()=>{
+    const key = b.dataset.adv; st[key] = !st[key];
+    if(st.c2 && st.c3){ st.done = true; st.justDone = true; st.date = sh.k; }
+    else { st.done = false; st.justDone = false; }
+    save(); drawSheet();
+    const nb = document.querySelector('#sheet [data-adv="'+key+'"]'); if(nb) nb.focus();
+  }));
+};
+/* アドバイスを出した直後は全文を見せ、シートを閉じて開き直したら目安だけにする */
+const _closeSheetADV = closeSheet;
+closeSheet = function(){
+  if(db.advice) Object.keys(db.advice).forEach(k=>{ if(db.advice[k]) db.advice[k].justDone = false; });
+  _closeSheetADV();
+};
 /* ============ クールダウンのサークルを、選手の前回のタイムから決める（2026-11-07） ============
    選手は泳いだあと「1本のだいたいのタイム」を記録する。コーチが「選手の前回から決める」を選ぶと、
    選手の携帯で「前回の同じ距離の1本のタイム＋コーチが決めた休みの秒数」をサークルにする。5秒単位に切り上げる。
@@ -2685,6 +2794,8 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+   { v:'20261128b', date:'11月28日', items:[     '記録を入れる画面で、重さを上げるタイミングになるとアドバイスが出るようになりました。たとえば懸垂を自重で10回できるようになると、フォームとリズムの確認が出て、全部そろうと「次回は+○kg荷重しましょう」の目安が出ます'   ] },
+
   { v:'20261128a', date:'11月28日', items:[
     'コーチのメニュー作り（2 選手の今）に「足りない種目の候補」が出るようになりました。4週間やっていない部位、なかった目的、押す・引くの偏りから候補を並べ、押すとその種目がメニューに入ります（並びは原則どおりに整い、理由も選手に届きます）。全部まとめて入れるときは、これまでどおり「自動で追加する」です'
   ] },

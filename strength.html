@@ -412,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-28 足りない種目の候補';
+const APP_VER = '2026-11-28 おかしい記録の点検';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -633,6 +633,17 @@ function drawSheet(){ const d = day(sh.k); const r = d.rows.find(x=>x.rid===sh.r
 }
 function closeSheet(){ $('#sheet').hidden = true; $('#sheet').innerHTML = ''; document.body.classList.remove('lock'); render(false); const b = document.querySelector('[data-edit="'+(sh&&sh.rid)+'"]'); if(b) b.focus(); else $('#pg2').focus(); sh = null; }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('#sheet').hidden) closeSheet(); });
+/* 入力時の確認（2026-11-28）：推定1RMが自己ベストを大きく超えたら、「できた」の前に確認する */
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-shst="done"]'); if(!b) return; const shEl = document.querySelector('#sheet'); if(!shEl || shEl.hidden) return; if(typeof sh === 'undefined' || !sh) return; const d = day(sh.k); const r = d.rows.find(x => x.rid === sh.rid); if(!r) return; const nb = rowBest(r, sh.k); if(nb == null) return; const prev = bestOf(r.exId, sh.k); if(!prev || nb < prev.v * 1.3 || nb - prev.v < 10) return; if(r.jumpOk === nb) return;
+  e.stopPropagation(); e.preventDefault();
+  const old = document.querySelector('#jumpBox'); if(old) old.remove();
+  const box = document.createElement('div'); box.id = 'jumpBox'; box.className = 'note warn'; box.style.marginTop = '10px';
+  box.innerHTML = '<strong>確認です。</strong>この内容だと推定1RMは ' + kg(nb) + ' kg で、これまでの自己ベスト（' + kg(prev.v) + ' kg）の ' + (Math.round(nb / prev.v * 10) / 10) + ' 倍です。入力した重さで合っていますか？' +
+    '<div class="stack two" style="margin-top:8px"><button type="button" class="cta" id="jumpYes">合っている</button><button type="button" class="ghost" id="jumpNo">直す</button></div>';
+  const anchorEl = b.closest('.chips') || b; anchorEl.after(box); box.scrollIntoView({ block: 'center' });
+  document.querySelector('#jumpYes').addEventListener('click', () => { r.jumpOk = nb; save(); box.remove(); b.click(); });
+  document.querySelector('#jumpNo').addEventListener('click', () => { box.remove(); const i = document.querySelector('#shKg') || document.querySelector('#sw0'); if(i) i.focus(); });
+}, true);
 
 /* ============ コーチからのメニューを受け取る ============ */
 function syncUrl(){ return (db.syncUrl||SYNC_URL||'').trim(); }
@@ -920,7 +931,7 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   try{ const r = await fetch(syncUrl()+'?action=all&key='+encodeURIComponent(db.coachKey)); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
     db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); if(manual || !busyTyping()){ const y = ($('#pkList')||{}).scrollTop||0; render(false); const l = $('#pkList'); if(l) l.scrollTop = y; } }
   catch(e){ const m = String(e.message||e); say(/合言葉/.test(m) ? 'コーチの合言葉が違います。設定のコーチの合言葉を、Code.gs の COACH_KEY と同じにしてください' : /Failed to fetch|NetworkError|Load failed/.test(m) ? '取り込めませんでした。通信できません' : '取り込めませんでした。'+m); } }
-function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録' && String(x['種類'])!=='コーチ許可' && String(x['種類'])!=='コーチ希望' && String(x['選手']||'').trim()!=='__coaches__').map(fixRow); }
+function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録' && String(x['種類'])!=='コーチ許可' && String(x['種類'])!=='コーチ希望' && String(x['種類'])!=='無効' && String(x['選手']||'').trim()!=='__coaches__').map(fixRow); }
 /* スプレッドシートが日付に変えてしまった「セットの内容」を元に戻す。まず一緒に送った元の記録（JSON）から、無ければ日付の数字から */
 function fixRow(x){ if(PART_RE.test(String(x['種目']||'')) && x['推定1RM']!=='' && x['推定1RM']!=null) x = Object.assign({}, x, {'推定1RM':''}); const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
   try{ const raw = JSON.parse(x['JSON']||'null'); if(raw && (raw.setList || raw.reps!=null)) t = setsStr(raw); }catch(e){}
@@ -1321,7 +1332,7 @@ const _todayPurp = VIEWS.today; VIEWS.today = ()=>{ const v = _todayPurp(); cons
 
 /* ============ 選手の結果：推定1RMはプルダウンで1種目を選んで、数字とグラフで見る（2026-10-23） ============ */
 let athEx = {};
-function rmSeries(n){ const m = {}; srcRows(n).forEach(x=>{ if(String(x['種類'])!=='記録') return; const v = Number(x['推定1RM']); if(!(v>0)) return; const name = shortName({name:String(x['種目']||'')}); const k = rowDate(x); m[name] = m[name]||{}; const cur = m[name][k]; if(!cur || v>cur.v) m[name][k] = {k, v, sets:String(x['セットの内容']||'')}; });
+function rmSeries(n){ const m = {}; srcRows(n).forEach(x=>{ if(String(x['種類'])!=='記録') return; if(typeof isExcluded === 'function' && isExcluded(x)) return; const v = Number(x['推定1RM']); if(!(v>0)) return; const name = shortName({name:String(x['種目']||'')}); const k = rowDate(x); m[name] = m[name]||{}; const cur = m[name][k]; if(!cur || v>cur.v) m[name][k] = {k, v, sets:String(x['セットの内容']||'')}; });
   const out = {}; Object.keys(m).forEach(name=>{ out[name] = Object.values(m[name]).sort((a,b)=>a.k<b.k?-1:1); }); return out; }
 function rmHTML(n){ const S = rmSeries(n); const names = Object.keys(S).sort((a,b)=>{ const x = S[a][S[a].length-1].k, y = S[b][S[b].length-1].k; return x<y?1:x>y?-1:a.localeCompare(b,'ja'); });
   if(!names.length) return '<h2 id="rmH" tabindex="-1">推定1RM</h2><p class="sub">10回以内の重さの記録があると出ます。</p>';
@@ -2064,6 +2075,28 @@ function recentDaysHTML(n){ const days = {}; srcRows(n).forEach(x=>{ const k = r
       (rec.length?'<details class="more"><summary>種目を見る（'+rec.length+'種目）</summary><div class="inner"><ul class="rows dsl">'+rec.map(x=>dayRowHTML(x)).join('')+'</ul></div></details>':'<p class="sub">種目の記録はありません。</p>'); }).join('');
   return '<section class="recbox"><h2>最近の記録</h2>'+body+'<p class="sub">もっと前の記録は、下の「詳しく見る」のカレンダーから日を押すと出ます。</p></section>'; }
 const _athleteRec = VIEWS.athlete; VIEWS.athlete = cur=>{ const v = _athleteRec(cur); v.html = recentDaysHTML(cur.id) + v.html; return v; };
+/* ============ おかしい記録の点検と、集計からの除外（2026-11-28） ============
+   検出：その選手のその種目の他の日と比べて、推定1RMが2倍以上かつ20kg以上大きい記録。
+   除外：コーチが「集計から外す」と、種類「無効」の記録として共有され、全コーチ端末の推定1RM・グラフ・分析から外れる。元の記録は消えない */
+function exclKey(x){ const u = String(x['uid'] || '').trim(); if(u) return 'u:' + u; return 'c:' + [String(x['選手'] || '').trim(), rowDate(x) || '', String(x['種目ID'] || ''), String(x['種目'] || ''), String(x['推定1RM'] || '')].join('|'); }
+function isExcluded(x){ return !!(db.exclMap && db.exclMap[exclKey(x)]); }
+function extractExclusions(){ const rows = ((db.team || {}).rows) || []; const map = {}; rows.forEach(x=>{ if(String(x['種類'] || '') !== '無効') return; try{ const o = JSON.parse(String(x['セットの内容'] || '')); if(o && o.key) map[o.key] = !o.off; }catch(e){} }); db.exclMap = map; }
+async function postExclusion(name, key, off){ if(!syncUrl()) return; try{ await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name, items: [{ uid: 'X|' + key, kind: '無効', date: today(), sets: JSON.stringify({ key, off: !!off }) }] }) }); }catch(e){} }
+function setExclusion(name, key, off){ db.exclMap = db.exclMap || {}; db.exclMap[key] = !off; save(); postExclusion(name, key, off); render(false); say(off ? '集計に戻しました' : 'その記録を集計から外しました'); }
+function flagScan(n){ const byName = {}; srcRows(n).forEach(x=>{ if(String(x['種類']) !== '記録') return; const v = Number(x['推定1RM']); if(!(v > 0)) return; const nm = shortName({ name: String(x['種目'] || '') }); const k = rowDate(x); if(!k) return; const g = byName[nm] = byName[nm] || {}; if(!g[k] || v > g[k].v) g[k] = { k, v, x }; });
+  const flags = [], excl = [];
+  Object.keys(byName).forEach(nm=>{ const pts = Object.values(byName[nm]).sort((a, b) => a.k < b.k ? -1 : 1);
+    pts.forEach(p=>{ if(isExcluded(p.x)){ excl.push({ nm, k: p.k, v: p.v, key: exclKey(p.x) }); return; }
+      const others = pts.filter(q => q.k !== p.k).map(q => q.v); if(!others.length) return; const med = others.slice().sort((a, b) => a - b)[Math.floor(others.length / 2)];
+      if(p.v >= med * 2 && p.v - med >= 20) flags.push({ nm, k: p.k, v: p.v, med, key: exclKey(p.x), sets: String(p.x['セットの内容'] || '') }); }); });
+  return { flags, excl }; }
+function exclHTML(n){ if(!isCoach()) return ''; const F = flagScan(n); if(!F.flags.length && !F.excl.length) return '';
+  const li = (f, btn) => '<li class="row"><span class="rmain"><strong>' + esc(f.nm) + '</strong><span class="d">' + md(f.k) + '　推定1RM ' + kg(f.v) + ' kg' + (f.med ? '（他の日は ' + kg(f.med) + ' kg 前後）' : '') + (f.sets ? '<br>' + esc(f.sets) : '') + '</span></span>' + btn + '</li>';
+  return '<section class="exclbox"><h2>おかしい記録の点検</h2>' +
+    (F.flags.length ? '<p class="sub" style="margin-top:0">他の日と比べて飛び抜けた推定1RMです。入力間違いの可能性があります。</p><ul class="rows">' + F.flags.map(f => li(f, '<button type="button" class="ghost sm" data-excl="' + esc(f.key) + '">集計から外す</button>')).join('') + '</ul>' : '') +
+    (F.excl.length ? '<h3 style="margin:12px 0 4px">集計から外している記録</h3><ul class="rows">' + F.excl.map(f => li(f, '<button type="button" class="ghost sm" data-unexcl="' + esc(f.key) + '">戻す</button>')).join('') + '</ul>' : '') + '</section>'; }
+const _athleteExcl = VIEWS.athlete; VIEWS.athlete = cur => { const v = _athleteExcl(cur); if(isCoach()){ v.html = exclHTML(cur.id) + v.html; const a0 = v.after || (() => {}); v.after = () => { a0(); document.querySelectorAll('[data-excl]').forEach(b => b.addEventListener('click', () => setExclusion(cur.id, b.getAttribute('data-excl'), false))); document.querySelectorAll('[data-unexcl]').forEach(b => b.addEventListener('click', () => setExclusion(cur.id, b.getAttribute('data-unexcl'), true))); }; } return v; };
+(function(){ const st = document.createElement('style'); st.textContent = '.exclbox{margin:6px 0 4px;border:2px solid #e5484d;border-radius:14px;padding:12px 14px}.exclbox>h2{margin:0 0 4px}'; document.head.appendChild(st); })();
 (function(){ const st = document.createElement('style'); st.textContent = '.recbox{margin:6px 0 4px}.recbox>h2{margin:6px 0 2px}.recday{margin:16px 0 2px;font-size:1.02rem}'; document.head.appendChild(st); })();
 (function(){ const st = document.createElement('style'); st.textContent =
   '.anabox{border:2px solid #3a3b3d;border-radius:14px;background:var(--soft);padding:14px 14px 6px;margin:14px 0}'+
@@ -2794,6 +2827,10 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261128c', date:'11月28日', items:[
+    'コーチの選手画面に「おかしい記録の点検」が出るようになりました。他の日と比べて飛び抜けた推定1RM（入力間違いの可能性）を知らせ、「集計から外す」でグラフや分析から外せます（元の記録は消えません）',
+    '選手が記録を入れるとき、推定1RMが自己ベストを大きく超えたら「この重さで合っていますか？」と確認するようになりました'
+  ] },
    { v:'20261128b', date:'11月28日', items:[     '記録を入れる画面で、重さを上げるタイミングになるとアドバイスが出るようになりました。たとえば懸垂を自重で10回できるようになると、フォームとリズムの確認が出て、全部そろうと「次回は+○kg荷重しましょう」の目安が出ます'   ] },
 
   { v:'20261128a', date:'11月28日', items:[
@@ -3001,7 +3038,7 @@ function extractCoachLists(){ const rows = ((db.team || {}).rows) || []; let bes
   db.coachWants = [...wants];
   db.names = (db.names || []).filter(n => n !== '__coaches__');
   return !!best; }
-const _fetchAllGate = fetchAll; fetchAll = async function(manual){ await _fetchAllGate(manual); if(db.team && (db.team.rows || []).length){ const had = extractCoachLists();
+const _fetchAllGate = fetchAll; fetchAll = async function(manual){ await _fetchAllGate(manual); if(db.team && (db.team.rows || []).length){ const had = extractCoachLists(); extractExclusions();
     if(isOwner() && !had && !db.coachListInit){ db.coachListInit = true; save(); postCoachList(); }
     if(!coachAllowed()){ db.team = { rows: [], at: new Date().toISOString() }; save(); if(manual) say('コーチの許可がないため、選手の記録は取り込めません'); } } };
 async function postCoachList(){ if(!isOwner() || !syncUrl()) return; const names = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const denied = (db.coachDenied || []).filter(n => normName(n) !== normName(COACH_OWNER)); const rev = Date.now();

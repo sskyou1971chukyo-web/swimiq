@@ -2858,6 +2858,8 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+   { v:'20261128j', date:'11月28日', items:[     'カレンダーは、選手ごとに登録できるようになりました。「だれの予定」で選手を選ぶと、その選手だけのカテゴリーを登録できます',     '個人の予定がある日はそちらが優先され、ない日は全員（チーム共通）の予定が効きます。メニュー作りの目的の初期値にも、個人の予定から反映されます'   ] },
+
    { v:'20261128i', date:'11月28日', items:[     '選手の比較（1RM）で、自重種目は選べなくなりました',     '比較を開いたときは、BIG3（ベンチプレス・デッドリフト・スクワット）が最初に出るようになりました'   ] },
 
    { v:'20261128h', date:'11月28日', items:[     '「カレンダー」を追加しました（選手・メニュー作りの画面から開けます）。日を押してカテゴリー（最大筋力・筋肥大・パワー・回復・試合・合宿・休み）を登録でき、期間をまとめて登録もできます',     'カレンダーに登録したカテゴリーは、メニュー作りでその日付の目的の初期値になります。その日に練習した選手の人数と、週ごとのカテゴリーの内訳もカレンダーに出ます'   ] },
@@ -3231,52 +3233,63 @@ const CAL_CATS = [
   { k:'endurance', n:'筋持久力' }, { k:'recovery', n:'回復' },
   { k:'race', n:'試合', c:'#e2574c' }, { k:'camp', n:'合宿', c:'#4dd0e1' }, { k:'off', n:'休み', c:'#8a8a8e' } ];
 function calCat(k){ const c = CAL_CATS.find(x => x.k === k); if(!c) return null; return { k:c.k, n:c.n, c: c.c || (PURP[k] ? PURP[k].color : '#999999') }; }
-function calPlanMap(){ db.calPlan = db.calPlan || {}; return db.calPlan; }
-const calState = { ym:'', sel:'', mode:'single', from:'' };
+function calPlanAll(){ db.calPlan = db.calPlan || {}; const cp = db.calPlan;
+  const dk = Object.keys(cp).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
+  if(dk.length){ cp['全員'] = cp['全員'] || {}; dk.forEach(k => { cp['全員'][k] = cp[k]; delete cp[k]; }); }
+  return cp; }
+function calPlanMap(who){ const all = calPlanAll(); const w = who || '全員'; all[w] = all[w] || {}; return all[w]; }
+function calEff(who, date){ const all = calPlanAll(); if(who && who !== '全員' && all[who] && all[who][date]) return all[who][date]; return (all['全員'] || {})[date] || ''; }
+function calNames(){ const s = sortedNames().slice(); if(db.me && !s.some(n => normName(n) === normName(db.me))) s.push(db.me); return s; }
+const calState = { ym:'', sel:'', mode:'single', from:'', who:'' };
 function calTrainedMap(){ const map = {}; try { sortedNames().forEach(n => { const seen = {}; srcRows(n).forEach(x => { if(String(x['種類']) === '記録'){ const d = rowDate(x); if(d && !seen[d]){ seen[d] = 1; map[d] = (map[d] || 0) + 1; } } }); }); } catch(e){} return map; }
 function calRange(){ if(!calState.from || !calState.sel) return null; return calState.from < calState.sel ? [calState.from, calState.sel] : [calState.sel, calState.from]; }
 VIEWS.calplan = () => {
-  const CP = calPlanMap();
+  const who = calState.who || '全員';
+  const CP = calPlanMap(who), teamCP = calPlanMap('全員');
   if(!calState.ym) calState.ym = today().slice(0, 7);
   const ym = calState.ym, yy = +ym.slice(0, 4), mm = +ym.slice(5, 7);
   const nd = new Date(yy, mm, 0).getDate(), first = new Date(yy, mm - 1, 1).getDay();
   const trained = calTrainedMap(), td = today(), rg = calRange();
+  const trainedP = {}; if(who !== '全員'){ try { srcRows(who).forEach(x => { if(String(x['種類']) === '記録'){ const d = rowDate(x); if(d) trainedP[d] = 1; } }); } catch(e){} }
   let cells = ['日','月','火','水','木','金','土'].map(d => '<span class="calwk">' + d + '</span>').join('');
   for(let i = 0; i < first; i++) cells += '<span></span>';
   const weekRows = []; let wk = [];
   for(let i = 0; i < first; i++) wk.push('');
   for(let d = 1; d <= nd; d++){
     const k = ym + '-' + String(d).padStart(2, '0'); wk.push(k);
-    const c = CP[k] ? calCat(CP[k]) : null, tn = trained[k] || 0;
+    const own = CP[k] || '', eff = own || (who !== '全員' ? (teamCP[k] || '') : '');
+    const c = eff ? calCat(eff) : null, tn = who === '全員' ? (trained[k] || 0) : (trainedP[k] ? 1 : 0);
     cells += '<button type="button" class="calday' + (k === calState.sel ? ' sel' : '') + (calState.mode === 'range' && rg && k >= rg[0] && k <= rg[1] ? ' rng' : '') + '" data-calday="' + k + '">' +
       '<span class="cdn' + (k === td ? ' tdy' : '') + '">' + d + '</span>' +
-      (c ? '<span class="cdc" style="color:' + c.c + '">' + c.n + '</span>' : '') +
-      (tn ? '<span class="cdt">実施' + tn + '人</span>' : '') + '</button>';
+      (c ? '<span class="cdc" style="color:' + c.c + (own || who === '全員' ? '' : ';opacity:.55') + '">' + c.n + '</span>' : '') +
+      (tn ? '<span class="cdt">' + (who === '全員' ? '実施' + tn + '人' : '実施') + '</span>' : '') + '</button>';
     if(wk.length === 7){ weekRows.push(wk); wk = []; }
   }
   if(wk.length) weekRows.push(wk);
-  const wkSum = weekRows.map(w => { const cnt = {}; w.forEach(k => { if(k && CP[k]) cnt[CP[k]] = (cnt[CP[k]] || 0) + 1; });
+  const wkSum = weekRows.map(w => { const cnt = {}; w.forEach(k => { if(!k) return; const e2 = CP[k] || (who !== '全員' ? teamCP[k] : ''); if(e2) cnt[e2] = (cnt[e2] || 0) + 1; });
     const ks = Object.keys(cnt); if(!ks.length) return '';
     return '<p class="sub" style="margin:2px 0">' + md(w.find(x => x)) + 'の週： ' + ks.map(k => calCat(k).n + '×' + cnt[k]).join('、') + '</p>'; }).join('');
-  const selK = calState.sel, selC = selK && CP[selK] ? calCat(CP[selK]) : null;
+  const selK = calState.sel, selEff = selK ? (CP[selK] || (who !== '全員' ? teamCP[selK] : '') || '') : '';
+  const selC = selEff ? calCat(selEff) : null;
   const panel = !selK ? '<p class="sub">日を押すと、カテゴリーを選べます。</p>' :
-    '<h3 style="margin:0 0 8px">' + jdate(selK) + (selC ? '（いま：' + selC.n + '）' : '') + '</h3>' +
+    '<h3 style="margin:0 0 8px">' + (who !== '全員' ? esc(who) + '・' : '') + jdate(selK) + (selC ? '（いま：' + selC.n + (!CP[selK] && who !== '全員' ? '＝全員の予定' : '') + '）' : '') + '</h3>' +
     (calState.mode === 'range' ? '<p class="sub" style="margin-top:0">' + (rg ? jdate(rg[0]) + ' から ' + jdate(rg[1]) + ' まで。カテゴリーを押すと、この期間にまとめて登録します。' : '始める日を押してください。') + '</p>' : '') +
     '<div class="exrow">' + CAL_CATS.map(c => { const cc = calCat(c.k); return '<button type="button" class="chip" data-calcat="' + c.k + '" style="border-color:' + cc.c + '">' + c.n + '</button>'; }).join('') +
     '<button type="button" class="chip" data-calcat="">消す</button></div>';
   return { title:'カレンダー', html:
     '<style>.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.calwk{text-align:center;font-size:11px;color:#9a9aa0}.calday{min-height:54px;border:1px solid #2c2c30;border-radius:9px;background:#17181a;color:#fff;padding:4px 3px;text-align:left;cursor:pointer;font:inherit}.calday.sel{border-color:#ffc400;border-width:2px}.calday.rng{background:#33302a}.cdn{font-weight:700;font-size:12px}.cdn.tdy{color:#ffc400}.cdc{display:block;font-size:9px;font-weight:700;margin-top:2px;line-height:1.3}.cdt{display:block;font-size:9px;color:#9a9aa0;margin-top:1px}</style>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px"><button type="button" class="ghost sm" data-calnav="-1">‹ 前の月</button><strong>' + yy + '年' + mm + '月</strong><span><button type="button" class="ghost sm" data-calnav="0">今月</button> <button type="button" class="ghost sm" data-calnav="1">次の月 ›</button></span></div>' +
+    '<label class="f">だれの予定<select class="txt" id="calWho">' + ['全員'].concat(calNames()).map(n => '<option value="' + esc(n) + '"' + (n === who ? ' selected' : '') + '>' + (n === '全員' ? '全員（チーム共通）' : esc(n)) + '</option>').join('') + '</select></label>' +
     '<div class="calgrid">' + cells + '</div>' +
     '<section class="card" style="margin-top:12px">' + panel +
     '<div style="margin-top:10px"><button type="button" class="ghost sm" data-calmode>' + (calState.mode === 'range' ? '1日ずつの登録に戻す' : '期間でまとめて登録する') + '</button></div></section>' +
     (wkSum ? '<section class="card"><h2 style="margin-top:0">週ごとの内訳</h2>' + wkSum + '</section>' : '') +
-    '<p class="sub">登録したカテゴリーは、メニュー作りでその日付のメニューを作るとき、目的の初期値になります。期分け（選手ごと）とは別の、チーム共通の計画です。</p>',
+    '<p class="sub">登録したカテゴリーは、メニュー作りでその日付のメニューを作るとき、目的の初期値になります。個人の予定がある日はそちらが優先され、ない日は全員の予定が効きます。期分け（選手ごと）とは別の計画です。</p>',
   after: () => {
     document.querySelectorAll('[data-calday]').forEach(b => b.addEventListener('click', () => { const k = b.getAttribute('data-calday');
       if(calState.mode === 'range' && !calState.from){ calState.from = k; calState.sel = k; } else calState.sel = k;
       render(false); }));
-    document.querySelectorAll('[data-calcat]').forEach(b => b.addEventListener('click', () => { const cat = b.getAttribute('data-calcat'); const CP2 = calPlanMap(); const rg2 = calRange();
+    document.querySelectorAll('[data-calcat]').forEach(b => b.addEventListener('click', () => { const cat = b.getAttribute('data-calcat'); const CP2 = calPlanMap(calState.who || '全員'); const rg2 = calRange();
       if(calState.mode === 'range' && rg2){ let d = rg2[0], guard = 0; while(d <= rg2[1] && guard++ < 400){ if(cat) CP2[d] = cat; else delete CP2[d]; d = addDays(d, 1); } calState.mode = 'single'; calState.from = ''; }
       else if(calState.sel){ if(cat) CP2[calState.sel] = cat; else delete CP2[calState.sel]; }
       save(); render(false); }));
@@ -3284,18 +3297,19 @@ VIEWS.calplan = () => {
       if(dv === 0) calState.ym = today().slice(0, 7);
       else { const dt = new Date(+calState.ym.slice(0, 4), +calState.ym.slice(5, 7) - 1 + dv, 1); calState.ym = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); }
       render(false); }));
+    const ws = document.querySelector('#calWho'); if(ws) ws.addEventListener('change', () => { calState.who = ws.value === '全員' ? '' : ws.value; render(false); });
     const mb = document.querySelector('[data-calmode]'); if(mb) mb.addEventListener('click', () => { calState.mode = calState.mode === 'range' ? 'single' : 'range'; calState.from = ''; render(false); });
   } };
 }
 /* メニュー作りの目的の初期値：期分け（選手ごと）の次に、カレンダー（チーム共通）を見る */
 const _czPurposeCal = czPurpose;
 czPurpose = function(n){ const r = _czPurposeCal(n); if(r && r.why && r.why.indexOf('期分け') === 0) return r;
-  const c = (db.calPlan || {})[draft().date || today()];
+  const c = calEff(n, draft().date || today());
   if(c && PURP[c]) return { p:c, why:'カレンダーの予定' };
   return r; };
 /* 選手の今日のノート：その日のカレンダーの予定があれば先頭に出す */
 const _todayCal = VIEWS.today;
-VIEWS.today = () => { const v = _todayCal(); const c = (db.calPlan || {})[today()] ? calCat(db.calPlan[today()]) : null;
+VIEWS.today = () => { const v = _todayCal(); const ek = calEff(db.me, today()); const c = ek ? calCat(ek) : null;
   if(c) v.html = '<p class="note" style="margin-top:12px">今日のカレンダーの予定：' + c.n + '</p>' + v.html;
   return v; };
 /* 入口：選手一覧とメニュー作りの画面 */

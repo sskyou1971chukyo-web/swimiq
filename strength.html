@@ -2858,6 +2858,8 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+   { v:'20261128i', date:'11月28日', items:[     '選手の比較（1RM）で、自重種目は選べなくなりました',     '比較を開いたときは、BIG3（ベンチプレス・デッドリフト・スクワット）が最初に出るようになりました'   ] },
+
    { v:'20261128h', date:'11月28日', items:[     '「カレンダー」を追加しました（選手・メニュー作りの画面から開けます）。日を押してカテゴリー（最大筋力・筋肥大・パワー・回復・試合・合宿・休み）を登録でき、期間をまとめて登録もできます',     'カレンダーに登録したカテゴリーは、メニュー作りでその日付の目的の初期値になります。その日に練習した選手の人数と、週ごとのカテゴリーの内訳もカレンダーに出ます'   ] },
 
    { v:'20261128g', date:'11月28日', items:[     '「おかしい記録の点検」で、修正や集計から外す対応が済んだ記録は、普段は閉じている折りたたみに移しました。未対応の記録がない選手では、点検の枠自体が出なくなります'   ] },
@@ -3001,9 +3003,10 @@ VIEWS.sent = ()=>{ const list = (db.sentMenus || []).filter(m => !m.cancel).slic
     document.querySelectorAll('[data-sedit]').forEach(b=>b.addEventListener('click', ()=>{ editReserved(b.dataset.sedit); go('coach'); }));
     document.querySelectorAll('[data-sdel]').forEach(b=>b.addEventListener('click', ()=>cancelMenu(b.dataset.sdel))); } }; };
 
+function cmpExRank(nm){ const e = exByName(nm); if(!e) return 9; const i = BIG3.findIndex(l=>(l.ids || []).includes(e.id)); return i >= 0 ? i : 9; }
 VIEWS.cmp = ()=>{ const names = teamNames(); const c = db.cmp = db.cmp || { a:'', b:'', ex:'' }; if(!c.a && names[0]) c.a = names[0]; if(!c.b && names[1]) c.b = names[1];
   const exSet = new Set(); [c.a, c.b].forEach(n=>((teamByName()[n]) || []).forEach(x=>{ if(String(x['種類']) === '記録' && x['種目']) exSet.add(String(x['種目'])); }));
-  const exList = [...exSet].sort(); if(!exList.includes(c.ex)) c.ex = exList[0] || '';
+  const exList = [...exSet].filter(nm=>{ const e = exByName(nm); return !e || (!bwEx(e) && !partEx(e)); }).sort((a, b)=>cmpExRank(a) - cmpExRank(b) || (a < b ? -1 : 1)); if(!exList.includes(c.ex)) c.ex = exList[0] || '';
   const h1 = c.ex ? rmHist(c.a, c.ex) : [], h2 = c.ex ? rmHist(c.b, c.ex) : [];
   const best = h=>h.length ? Math.max(...h.map(p=>p.v)) : null; const last = h=>h.length ? h[h.length-1] : null;
   const sel = (id, val, opts)=>'<select class="txt" id="'+id+'">'+opts.map(o=>'<option value="'+esc(o)+'"'+(o === val ? ' selected' : '')+'>'+esc(o)+'</option>').join('')+'</select>';
@@ -3220,20 +3223,6 @@ const _cmpUX = VIEWS.cmp; VIEWS.cmp = ()=>{ const v = _cmpUX(); const names = te
   if(names.length){ const rk = names.map(n => ({ n:n, t:teamBig3(n).total })).filter(x => x.t != null).sort((a,b) => b.t - a.t);
     if(rk.length >= 2) v.html += '<h2>BIG3トータルの順位</h2><ul class="rows">' + rk.map((x,i) => '<li class="row"><span class="rmain"><strong>'+(i + 1)+'位　'+esc(x.n)+'</strong></span><b>'+kg(x.t)+' kg</b></li>').join('') + '</ul>'; }
   return v; };
-</script>
-<script>
-/* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */
-(function(){ try{
-  var isNet = location.protocol === 'https:';
-  var b = document.createElement('span');
-  b.textContent = isNet ? 'ネット版' : 'ファイル版';
-  b.style.cssText = 'margin-left:auto;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;background:' + (isNet ? '#2e9e6a' : '#9aa9b8');
-  var hd = document.getElementById('top');
-  if(hd) hd.appendChild(b);
-  else { b.style.cssText += ';position:fixed;top:8px;right:8px;z-index:99999'; document.body.appendChild(b); }
-  document.title += isNet ? '（ネット版）' : '（ファイル版）';
-}catch(e){} })();
-
 /* ============ カレンダー（2026-11-28） ============
    日を押してカテゴリーを登録する、チーム共通の計画カレンダー。期分け（選手ごと・フォーム登録）とは別の軽い計画用。
    カテゴリーは目的（PURP）とそろえ、メニュー作りの目的の初期値に使う（下の czPurpose 差し替え）。 */
@@ -3313,6 +3302,20 @@ VIEWS.today = () => { const v = _todayCal(); const c = (db.calPlan || {})[today(
 const CAL_BTN = '<button type="button" class="ghost" data-go="calplan" style="margin-top:10px">カレンダー（計画）を開く</button>';
 const _teamCal = VIEWS.team; VIEWS.team = () => { const v = _teamCal(); v.html = CAL_BTN + v.html; return v; };
 const _coachCal = VIEWS.coach; VIEWS.coach = () => { const v = _coachCal(); v.html = v.html.replace('</div>', '</div>' + CAL_BTN); return v; };
+</script>
+<script>
+/* ネット版／ファイル版の目印（GitHub Pagesで開いたら「ネット版」） */
+(function(){ try{
+  var isNet = location.protocol === 'https:';
+  var b = document.createElement('span');
+  b.textContent = isNet ? 'ネット版' : 'ファイル版';
+  b.style.cssText = 'margin-left:auto;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;background:' + (isNet ? '#2e9e6a' : '#9aa9b8');
+  var hd = document.getElementById('top');
+  if(hd) hd.appendChild(b);
+  else { b.style.cssText += ';position:fixed;top:8px;right:8px;z-index:99999'; document.body.appendChild(b); }
+  document.title += isNet ? '（ネット版）' : '（ファイル版）';
+}catch(e){} })();
+
 </script>
 </body>
 </html>

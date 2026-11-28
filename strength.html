@@ -2858,6 +2858,8 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+   { v:'20261128m', date:'11月28日', items:[     'BIG3トータルのカードを、横幅いっぱいに広げました'   ] },
+
    { v:'20261128l', date:'11月28日', items:[     'カードの色を、クールグレー（明るい青みグレー）に変えました。黒い文字で、数字や記録が見やすくなっています',     '増減の色やカテゴリーの色も、明るい地の上で読める濃さに合わせました'   ] },
 
    { v:'20261128k', date:'11月28日', items:[     'カレンダーで、選手を複数選べるようになりました。選んだ全員に、同じカテゴリーをまとめて登録できます',     '選んだ人たちで予定が違う日は「混在」と出ます。その日に練習した人数も「実施○/○人」で出ます'   ] },
@@ -2966,7 +2968,7 @@ function lineSVGk(data, label){ if(data.length < 2) return ''; const W = 340, H 
   '<text x="4" y="14" fill="#fff" font-size="12" font-weight="700">'+kg(data[data.length-1].v)+' kg</text>'+
   '<text x="4" y="'+(H-4)+'" fill="#7A8494" font-size="11">'+data[0].k.slice(5).replace('-','/')+'</text><text x="'+(W-46)+'" y="'+(H-4)+'" fill="#7A8494" font-size="11">'+data[data.length-1].k.slice(5).replace('-','/')+'</text></svg></div>'; }
 function big3CardHTML(){ const bs = BIG3.map(l=>({ l, b:liftBest(l.ids) })); const total = bs.every(x=>x.b) ? r1(bs.reduce((t,x)=>t+x.b.v,0)) : null;
-  return '<h2>BIG3トータル</h2><ul class="tiles"><li><span class="big">'+(total != null ? kg(total) : '―')+'<small>kg</small></span><span class="sub">ベンチ＋デッド＋スクワットの推定1RM</span></li><li><span class="big">'+bs.filter(x=>x.b).length+'<small>/3</small></span><span class="sub">記録がある種目</span></li></ul>'+
+  return '<h2>BIG3トータル</h2><ul class="tiles"><li style="grid-column:1/-1"><span class="big">'+(total != null ? kg(total) : '―')+'<small>kg</small></span><span class="sub">ベンチ＋デッド＋スクワットの推定1RM</span></li><li><span class="big">'+bs.filter(x=>x.b).length+'<small>/3</small></span><span class="sub">記録がある種目</span></li></ul>'+
   '<ul class="rows">'+bs.map(x=>'<li class="row"><span class="rmain"><strong>'+x.l.name+'</strong><span class="d">'+(x.b ? esc(shortName(EXMAP[x.b.exId]))+'　'+md(x.b.k)+'の記録' : 'まだ記録がありません')+'</span></span><b>'+(x.b ? kg(x.b.v)+' kg' : '―')+'</b></li>').join('')+'</ul>'; }
 VIEWS.big3 = ()=>{ const ser = big3Series(); return { title:'BIG3とグラフ', html: big3CardHTML()+
   '<h2>BIG3トータルの伸び</h2>'+(ser.length >= 2 ? lineSVGk(ser, 'BIG3トータルの推移') : '<p class="sub">3種目そろって、記録が2回以上たまるとグラフが出ます。</p>')+
@@ -3174,7 +3176,7 @@ function tmDiffHTML(s){ const diff = r1(s.wk - s.prev); if(diff > 0) return '<sp
 function teamBig3(name){ const rows = (teamByName()[name] || []); const recNames = [...new Set(rows.filter(x=>String(x['種類']) === '記録').map(x=>String(x['種目'])))];
   const parts = BIG3.map(l=>{ let best = null; recNames.forEach(rn=>{ const e = exByName(rn); if(e && (l.ids || []).includes(e.id)) rmHist(name, rn).forEach(p=>{ if(best == null || p.v > best) best = p.v; }); }); return { name:l.name, best:best }; });
   const ok = parts.every(p=>p.best != null); return { parts:parts, total: ok ? r1(parts.reduce((t,p)=>t + p.best, 0)) : null }; }
-function athBig3CardHTML(n){ const b3 = teamBig3(n); if(!b3.parts.some(p=>p.best != null)) return ''; return '<h2>BIG3トータル</h2><ul class="tiles"><li><span class="big">'+(b3.total != null ? kg(b3.total) : '―')+'<small>kg</small></span><span class="sub">'+b3.parts.map(p=>esc(p.name)+' '+(p.best != null ? kg(p.best)+' kg' : 'なし')).join(' ＋ ')+'</span></li></ul>'; }
+function athBig3CardHTML(n){ const b3 = teamBig3(n); if(!b3.parts.some(p=>p.best != null)) return ''; return '<h2>BIG3トータル</h2><ul class="tiles"><li style="grid-column:1/-1"><span class="big">'+(b3.total != null ? kg(b3.total) : '―')+'<small>kg</small></span><span class="sub">'+b3.parts.map(p=>esc(p.name)+' '+(p.best != null ? kg(p.best)+' kg' : 'なし')).join(' ＋ ')+'</span></li></ul>'; }
 function bindCoachAdmin(){
   document.querySelectorAll('[data-cok-add]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.cokAdd; const cur = (db.coachesCache || []).slice(); if(!cur.some(c => normName(c) === normName(n))) cur.push(n); setCoachList(cur); }));
   document.querySelectorAll('[data-cok-del]').forEach(b => b.addEventListener('click', () => { setCoachList((db.coachesCache || []).filter(c => normName(c) !== normName(b.dataset.cokDel))); }));

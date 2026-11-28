@@ -412,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-28 記録の修正';
+const APP_VER = '2026-11-28 前回の重さ表示';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -1478,6 +1478,13 @@ const _drawCoachSheetA = drawCoachSheet; drawCoachSheet = function(){ _drawCoach
     if(m==='pct'){ r.free.kg = false; if(r.pct==null) r.pct = r.pctMemo!=null ? r.pctMemo : ((AUTO_PICK[r.auto||d.purpose]||{}).pct || 75); }
     if(m==='kg'){ r.free.kg = false; if(r.pct!=null) r.pctMemo = r.pct; r.pct = null; } if(m==='free'){ r.free.kg = true; }
     const f = r.free; if(!f.kg && !f.reps && !f.sets) r.free = null; save(); drawCoachSheet(); document.querySelector('[data-cw="'+m+'"]').focus(); })); };
+/* ============ 前回の重さの表示（2026-11-28） ============
+   コーチの直すシート：対象の選手の前回の重さ（と推定1RM）を出す。
+   選手の記録シート：「選手に決めさせる」のとき、前回の記録と「重さを決めてください」を出す */
+function teamLastWeight(n, exId){ if(!n) return null; let best = null; srcRows(n).forEach(x=>{ if(String(x['種類']) !== '記録' || String(x['種目ID'] || '') !== exId) return; const k = rowDate(x); if(!k) return; if(best && k < best.k) return; const ws = []; String(x['セットの内容'] || '').replace(/([\d.]+)kg×(\d+)/g, (m, w) => { ws.push(Number(w)); return m; }); if(!ws.length) return; best = { k, w: Math.max.apply(null, ws), e1rm: Number(x['推定1RM']) || null }; }); return best; }
+const _drawCoachSheetRef = drawCoachSheet; drawCoachSheet = function(){ _drawCoachSheetRef(); const d = draft(); const r = (d.rows || []).find(x => csh && x.rid === csh.rid); if(!r) return; const n = (typeof czWho === 'function') ? czWho(d) : ((d.to || [])[0] || ''); const ref = teamLastWeight(n, r.exId); if(!ref) return; const first = $('#sheet').querySelector('.sheetin > div'); if(first) first.insertAdjacentHTML('afterend', '<p class="sub" style="margin-top:6px">' + esc(n) + 'の前回（' + md(ref.k) + '）：' + kg(ref.w) + ' kg' + (ref.e1rm ? '　推定1RM ' + kg(ref.e1rm) + ' kg' : '') + '</p>'); };
+const _drawSheetFree = drawSheet; drawSheet = function(){ _drawSheetFree(); if(typeof sh === 'undefined' || !sh) return; const d = day(sh.k); const r = d.rows.find(x => x.rid === sh.rid); if(!r || !r.free || !r.free.kg || r.touched) return; const notes = document.querySelectorAll('#sheet .note'); for(const el of notes){ if(el.textContent.includes('自分で決める')){ const last = lastOf(r.exId, sh.k); el.innerHTML = '<strong>重さを決めてください。</strong>' + (last ? '前回（' + md(last.k) + '）は ' + esc(rowTxt(last.r)) + ' でした。' : 'この種目は初めてです。') + 'やった数字を入れてください。'; break; } } };
+
 /* コーチの画面：目的のプルダウンを「1 種目を選ぶ」に置き、選ぶと全部の種目に自動で入れる */
 function autoRulesHTML(){ const G = D.GOALS; const line = (k, name)=>{ const g = G[k], a = AUTO_PICK[k]; return '<li><strong>'+name+'</strong>　目安 '+esc(g.sets)+'セット、'+esc(g.reps)+'回、'+esc(g.load)+'、休憩 '+esc(g.rest)+'。このアプリの値：'+a.sets+'セット、'+a.reps+'回、1RMの'+a.pct+'%、休憩 '+a.rest+'（範囲の中のどの値にするかは仮の設定）'+(g.alt?'<br>'+esc(g.alt):'')+'</li>'; };
   const keys = [...new Set(['strength','hypertrophy','endurance','power','powerheavy'].flatMap(k=>G[k].refs))].filter(k=>REFS[k]);
@@ -2836,6 +2843,10 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261128e', date:'11月28日', items:[
+    'コーチがメニューの重さを決める画面で、選手の前回の重さと推定1RMが出るようになりました',
+    '「選手に決めさせる」にした種目は、選手の画面で前回の記録と「重さを決めてください」が出ます'
+  ] },
   { v:'20261128d', date:'11月28日', items:[
     'コーチの選手画面の「おかしい記録の点検」で、記録の修正もできるようになりました。正しい重さ・回数・セット数を入れると、集計には直した数値で出ます（元の記録は残り、取り消しもできます）'
   ] },

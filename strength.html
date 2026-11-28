@@ -412,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-28 おかしい記録の点検';
+const APP_VER = '2026-11-28 おかしい記録の点検2';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -949,7 +949,7 @@ VIEWS.team = ()=>{ const by = teamByName(); const names = Object.keys(by).sort((
     '<div class="stack two"><button type="button" class="cta" id="tmFetch">最新の記録を取り込む</button>'+(T.at?'<p class="sub" style="align-self:center">取り込み '+new Date(T.at).toLocaleString('ja-JP')+'（記録 '+((T.rows||[]).length)+'行）</p>':'')+'</div>'+(names.length?'<div class="chips" role="group" aria-label="選手の並び順" style="margin:0 0 10px"><button type="button" class="chip" data-tmsort="recent" aria-pressed="'+(db.tmSort!=='stale')+'">最近練習した順</button><button type="button" class="chip" data-tmsort="stale" aria-pressed="'+(db.tmSort==='stale')+'">お休みが長い順</button></div>':'')+
     (!db.coachKey?'<div class="note warn">取り込みには、GASに書いたコーチの合言葉が要ります。設定で入れてください。</div>':'')+
     (names.length ? '<ul class="exl">'+names.map(n=>{ const s = athleteSummary(n, by[n]); const stale = s.last && s.last<addDays(today(),-7);
-      return '<li><button type="button" class="rmain" data-go="athlete" data-id="'+esc(n)+'"><strong>'+esc(n)+(stale?' <span class="tag warn">1週間以上なし</span>':'')+'</strong><span class="d">最後の練習 '+(s.last?md(s.last):'なし')+'</span><span class="d">今週 <b>'+kg(s.wk)+' kg</b>　'+tmDiffHTML(s)+'（先週 '+kg(s.prev)+' kg）</span>'+(s.cdate?'<span class="d">'+md(s.cdate)+' の調子　睡眠 '+(s.sleep!==''?s.sleep+'h':'未')+'、疲れ '+(s.fat!==''?FAT_WORDS[Number(s.fat)-1]||s.fat:'未')+'</span>':'')+'</button></li>'; }).join('')+'</ul>' : '<p class="sub">まだ記録がありません。「最新の記録を取り込む」を押してください。</p>'),
+      return '<li><button type="button" class="rmain" data-go="athlete" data-id="'+esc(n)+'"><strong>'+esc(n)+(stale?' <span class="tag warn">1週間以上なし</span>':'')+(typeof flagScan === 'function' && flagScan(n).flags.length ? ' <span class="tag warn">おかしい記録あり</span>' : '')+'</strong><span class="d">最後の練習 '+(s.last?md(s.last):'なし')+'</span><span class="d">今週 <b>'+kg(s.wk)+' kg</b>　'+tmDiffHTML(s)+'（先週 '+kg(s.prev)+' kg）</span>'+(s.cdate?'<span class="d">'+md(s.cdate)+' の調子　睡眠 '+(s.sleep!==''?s.sleep+'h':'未')+'、疲れ '+(s.fat!==''?FAT_WORDS[Number(s.fat)-1]||s.fat:'未')+'</span>':'')+'</button></li>'; }).join('')+'</ul>' : '<p class="sub">まだ記録がありません。「最新の記録を取り込む」を押してください。</p>'),
     after(){ $('#tmFetch').addEventListener('click',()=>fetchAll(true)); } }; };
 VIEWS.athlete = cur=>{ const n = cur.id; const rows = srcRows(n); const days = {}; rows.forEach(x=>{ const k = rowDate(x); (days[k] = days[k]||[]).push(x); }); const ks = Object.keys(days).sort().reverse().slice(0,30);
   const ex = {}; rows.forEach(x=>{ if(String(x['種類'])==='記録' && Number(x['推定1RM'])>0){ const k = String(x['種目']); (ex[k] = ex[k]||[]).push([rowDate(x), Number(x['推定1RM'])]); } });

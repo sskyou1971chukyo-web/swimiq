@@ -412,7 +412,7 @@ const D = {"REFS":{"hpsc2026":"日本スポーツ振興センター ハイパフ
 const EX = D.EX, EXMAP = Object.fromEntries(EX.map(e=>[e.id,e]));
 const REFS = D.REFS, REF_KIND = D.REF_KIND, REF_URL = D.REF_URL, REF_NOTE = D.REF_NOTE, REF_WARN = D.REF_WARN, EVID = D.EVID, REF_ORDER = D.REF_ORDER;
 const CATS = D.CATS, PARTS = D.PARTS, PLACES = D.PLACES, STROKE_LABEL = D.STROKE_LABEL, BODY_VIEWS = D.BODY_VIEWS, BODY_MAP = D.BODY_MAP;
-const APP_VER = '2026-11-28 おかしい記録の点検2';
+const APP_VER = '2026-11-28 記録の修正';
 const SYNC_URL = D.SYNC_URL;
 const LV_STAR = {direct:'⭐⭐⭐', related:'⭐⭐', none:'⭐'}, LV_N = {direct:3, related:2, none:1};
 const LV_LABEL = {direct:'この種目を調べた論文あり', related:'関連する研究または書籍', none:'伝統的な練習（論文は未確認）'};
@@ -931,7 +931,7 @@ async function fetchAll(manual){ if(!syncUrl()){ say('送り先のURLが設定�
   try{ const r = await fetch(syncUrl()+'?action=all&key='+encodeURIComponent(db.coachKey)); const j = await r.json(); if(!j.ok) throw new Error(j.error||'失敗');
     db.team = {rows:j.rows||[], at:new Date().toISOString()}; db.names = db.names||[]; db.team.rows.forEach(x=>{ const n = String(x['選手']||'').trim(); if(n && String(x['種類'])!=='メニュー' && !db.names.includes(n)) db.names.push(n); }); save(); if(manual) say(db.team.rows.length+'行を取り込みました'); if(manual || !busyTyping()){ const y = ($('#pkList')||{}).scrollTop||0; render(false); const l = $('#pkList'); if(l) l.scrollTop = y; } }
   catch(e){ const m = String(e.message||e); say(/合言葉/.test(m) ? 'コーチの合言葉が違います。設定のコーチの合言葉を、Code.gs の COACH_KEY と同じにしてください' : /Failed to fetch|NetworkError|Load failed/.test(m) ? '取り込めませんでした。通信できません' : '取り込めませんでした。'+m); } }
-function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録' && String(x['種類'])!=='コーチ許可' && String(x['種類'])!=='コーチ希望' && String(x['種類'])!=='無効' && String(x['選手']||'').trim()!=='__coaches__').map(fixRow); }
+function teamRows(){ return ((db.team||{}).rows||[]).filter(x=>String(x['種類'])!=='メニュー' && String(x['種類'])!=='登録' && String(x['種類'])!=='コーチ許可' && String(x['種類'])!=='コーチ希望' && String(x['種類'])!=='無効' && String(x['種類'])!=='訂正' && String(x['選手']||'').trim()!=='__coaches__').map(x => applyCorr(fixRow(x))); }
 /* スプレッドシートが日付に変えてしまった「セットの内容」を元に戻す。まず一緒に送った元の記録（JSON）から、無ければ日付の数字から */
 function fixRow(x){ if(PART_RE.test(String(x['種目']||'')) && x['推定1RM']!=='' && x['推定1RM']!=null) x = Object.assign({}, x, {'推定1RM':''}); const v = String(x['セットの内容']||''); if(!/^\d{4}-\d{2}-\d{2}T/.test(v)) return x; let t = '';
   try{ const raw = JSON.parse(x['JSON']||'null'); if(raw && (raw.setList || raw.reps!=null)) t = setsStr(raw); }catch(e){}
@@ -2083,6 +2083,11 @@ function isExcluded(x){ return !!(db.exclMap && db.exclMap[exclKey(x)]); }
 function extractExclusions(){ const rows = ((db.team || {}).rows) || []; const map = {}; rows.forEach(x=>{ if(String(x['種類'] || '') !== '無効') return; try{ const o = JSON.parse(String(x['セットの内容'] || '')); if(o && o.key) map[o.key] = !o.off; }catch(e){} }); db.exclMap = map; }
 async function postExclusion(name, key, off){ if(!syncUrl()) return; try{ await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name, items: [{ uid: 'X|' + key, kind: '無効', date: today(), sets: JSON.stringify({ key, off: !!off }) }] }) }); }catch(e){} }
 function setExclusion(name, key, off){ db.exclMap = db.exclMap || {}; db.exclMap[key] = !off; save(); postExclusion(name, key, off); render(false); say(off ? '集計に戻しました' : 'その記録を集計から外しました'); }
+function extractCorrections(){ const rows = ((db.team || {}).rows) || []; const map = {}; rows.forEach(x=>{ if(String(x['種類'] || '') !== '訂正') return; try{ const o = JSON.parse(String(x['セットの内容'] || '')); if(o && o.key) map[o.key] = o.off ? null : { sets: o.sets, vol: o.vol, e1rm: o.e1rm }; }catch(e){} }); db.corrMap = map; }
+function applyCorr(x){ const c = (db.corrMap || {})[exclKey(x)]; if(!c || String(x['種類']) !== '記録') return x; return Object.assign({}, x, { 'セットの内容': c.sets, '動かした重さkg': c.vol, '推定1RM': c.e1rm }); }
+async function postCorrection(name, key, corr){ if(!syncUrl()) return; try{ await fetch(syncUrl(), { method: 'POST', body: JSON.stringify({ name, items: [{ uid: 'K|' + key, kind: '訂正', date: today(), sets: JSON.stringify(corr ? { key, sets: corr.sets, vol: corr.vol, e1rm: corr.e1rm } : { key, off: true }) }] }) }); }catch(e){} }
+function setCorrection(name, key, corr){ db.corrMap = db.corrMap || {}; db.corrMap[key] = corr; save(); postCorrection(name, key, corr); render(false); say(corr ? '記録を修正しました' : '修正を取り消しました'); }
+function corrListFor(n){ const out = []; ((db.team || {}).rows || []).forEach(x=>{ if(String(x['選手'] || '').trim() !== n || String(x['種類']) !== '記録') return; const key = exclKey(x); const c = (db.corrMap || {})[key]; if(c) out.push({ key, nm: shortName({ name: String(x['種目'] || '') }), k: rowDate(x), orig: x['推定1RM'], corr: c }); }); return out; }
 function flagScan(n){ const byName = {}; srcRows(n).forEach(x=>{ if(String(x['種類']) !== '記録') return; const v = Number(x['推定1RM']); if(!(v > 0)) return; const nm = shortName({ name: String(x['種目'] || '') }); const k = rowDate(x); if(!k) return; const g = byName[nm] = byName[nm] || {}; if(!g[k] || v > g[k].v) g[k] = { k, v, x }; });
   const flags = [], excl = [];
   Object.keys(byName).forEach(nm=>{ const pts = Object.values(byName[nm]).sort((a, b) => a.k < b.k ? -1 : 1);
@@ -2090,12 +2095,16 @@ function flagScan(n){ const byName = {}; srcRows(n).forEach(x=>{ if(String(x['�
       const others = pts.filter(q => q.k !== p.k).map(q => q.v); if(!others.length) return; const med = others.slice().sort((a, b) => a - b)[Math.floor(others.length / 2)];
       if(p.v >= med * 2 && p.v - med >= 20) flags.push({ nm, k: p.k, v: p.v, med, key: exclKey(p.x), sets: String(p.x['セットの内容'] || '') }); }); });
   return { flags, excl }; }
-function exclHTML(n){ if(!isCoach()) return ''; const F = flagScan(n); if(!F.flags.length && !F.excl.length) return '';
+function exclHTML(n){ if(!isCoach()) return ''; const F = flagScan(n); const CL = corrListFor(n); if(!F.flags.length && !F.excl.length && !CL.length) return '';
   const li = (f, btn) => '<li class="row"><span class="rmain"><strong>' + esc(f.nm) + '</strong><span class="d">' + md(f.k) + '　推定1RM ' + kg(f.v) + ' kg' + (f.med ? '（他の日は ' + kg(f.med) + ' kg 前後）' : '') + (f.sets ? '<br>' + esc(f.sets) : '') + '</span></span>' + btn + '</li>';
+  const flagLi = f => { const m = String(f.sets || '').match(/([\d.]+)kg×(\d+)/); const cnt = String(f.sets || '').split(',').filter(s => s.trim()).length || 1;
+    return '<li class="row" style="display:block"><div style="display:flex;gap:8px;align-items:flex-start"><span class="rmain" style="flex:1"><strong>' + esc(f.nm) + '</strong><span class="d">' + md(f.k) + '　推定1RM ' + kg(f.v) + ' kg' + (f.med ? '（他の日は ' + kg(f.med) + ' kg 前後）' : '') + (f.sets ? '<br>' + esc(f.sets) : '') + '</span></span><span style="display:grid;gap:6px"><button type="button" class="ghost sm" data-fix="' + esc(f.key) + '">修正する</button><button type="button" class="ghost sm" data-excl="' + esc(f.key) + '">集計から外す</button></span></div>' +
+    '<div data-fixform="' + esc(f.key) + '" hidden style="margin-top:8px"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px"><label class="f" style="margin:0">重さ kg<input type="number" class="txt" data-fw value="' + (m ? m[1] : '') + '"></label><label class="f" style="margin:0">回数<input type="number" class="txt" data-fr value="' + (m ? m[2] : '') + '"></label><label class="f" style="margin:0">セット数<input type="number" class="txt" data-fs value="' + cnt + '"></label></div><div class="stack two" style="margin-top:6px"><button type="button" class="cta sm" data-fixsave="' + esc(f.key) + '">この内容で修正</button><button type="button" class="ghost sm" data-fixcancel>やめる</button></div></div></li>'; };
   return '<section class="exclbox"><h2>おかしい記録の点検</h2>' +
-    (F.flags.length ? '<p class="sub" style="margin-top:0">他の日と比べて飛び抜けた推定1RMです。入力間違いの可能性があります。</p><ul class="rows">' + F.flags.map(f => li(f, '<button type="button" class="ghost sm" data-excl="' + esc(f.key) + '">集計から外す</button>')).join('') + '</ul>' : '') +
+    (F.flags.length ? '<p class="sub" style="margin-top:0">他の日と比べて飛び抜けた推定1RMです。入力間違いの可能性があります。</p><ul class="rows">' + F.flags.map(flagLi).join('') + '</ul>' : '') +
+    (CL.length ? '<h3 style="margin:12px 0 4px">修正した記録</h3><ul class="rows">' + CL.map(c => '<li class="row"><span class="rmain"><strong>' + esc(c.nm) + '</strong><span class="d">' + md(c.k) + '　推定1RM ' + kg(c.orig) + ' kg → ' + kg(c.corr.e1rm) + ' kg<br>' + esc(c.corr.sets) + '</span></span><button type="button" class="ghost sm" data-uncorr="' + esc(c.key) + '">取り消し</button></li>').join('') + '</ul>' : '') +
     (F.excl.length ? '<h3 style="margin:12px 0 4px">集計から外している記録</h3><ul class="rows">' + F.excl.map(f => li(f, '<button type="button" class="ghost sm" data-unexcl="' + esc(f.key) + '">戻す</button>')).join('') + '</ul>' : '') + '</section>'; }
-const _athleteExcl = VIEWS.athlete; VIEWS.athlete = cur => { const v = _athleteExcl(cur); if(isCoach()){ v.html = exclHTML(cur.id) + v.html; const a0 = v.after || (() => {}); v.after = () => { a0(); document.querySelectorAll('[data-excl]').forEach(b => b.addEventListener('click', () => setExclusion(cur.id, b.getAttribute('data-excl'), false))); document.querySelectorAll('[data-unexcl]').forEach(b => b.addEventListener('click', () => setExclusion(cur.id, b.getAttribute('data-unexcl'), true))); }; } return v; };
+const _athleteExcl = VIEWS.athlete; VIEWS.athlete = cur => { const v = _athleteExcl(cur); if(isCoach()){ v.html = exclHTML(cur.id) + v.html; const a0 = v.after || (() => {}); v.after = () => { a0(); document.querySelectorAll('[data-excl]').forEach(b => b.addEventListener('click', () => setExclusion(cur.id, b.getAttribute('data-excl'), false))); document.querySelectorAll('[data-unexcl]').forEach(b => b.addEventListener('click', () => setExclusion(cur.id, b.getAttribute('data-unexcl'), true))); document.querySelectorAll('[data-uncorr]').forEach(b => b.addEventListener('click', () => setCorrection(cur.id, b.getAttribute('data-uncorr'), null))); document.querySelectorAll('[data-fix]').forEach(b => b.addEventListener('click', () => { const f = document.querySelector('[data-fixform="' + CSS.escape(b.getAttribute('data-fix')) + '"]'); if(f) f.hidden = !f.hidden; })); document.querySelectorAll('[data-fixcancel]').forEach(b => b.addEventListener('click', () => { const f = b.closest('[data-fixform]'); if(f) f.hidden = true; })); document.querySelectorAll('[data-fixsave]').forEach(b => b.addEventListener('click', () => { const f = b.closest('[data-fixform]'); const w = Number(f.querySelector('[data-fw]').value) || 0, r = Number(f.querySelector('[data-fr]').value) || 0, s = Math.max(1, Number(f.querySelector('[data-fs]').value) || 1); if(!(w > 0) || !(r > 0)){ say('重さと回数を入れてください'); return; } const sets = Array.from({ length: s }, () => w + 'kg×' + r).join(', '); const e1 = e1rm(w, r); setCorrection(cur.id, b.getAttribute('data-fixsave'), { sets, vol: r1(w * r * s), e1rm: e1 == null ? '' : e1 }); })); }; } return v; };
 (function(){ const st = document.createElement('style'); st.textContent = '.exclbox{margin:6px 0 4px;border:2px solid #e5484d;border-radius:14px;padding:12px 14px}.exclbox>h2{margin:0 0 4px}'; document.head.appendChild(st); })();
 (function(){ const st = document.createElement('style'); st.textContent = '.recbox{margin:6px 0 4px}.recbox>h2{margin:6px 0 2px}.recday{margin:16px 0 2px;font-size:1.02rem}'; document.head.appendChild(st); })();
 (function(){ const st = document.createElement('style'); st.textContent =
@@ -2827,6 +2836,9 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+  { v:'20261128d', date:'11月28日', items:[
+    'コーチの選手画面の「おかしい記録の点検」で、記録の修正もできるようになりました。正しい重さ・回数・セット数を入れると、集計には直した数値で出ます（元の記録は残り、取り消しもできます）'
+  ] },
   { v:'20261128c', date:'11月28日', items:[
     'コーチの選手画面に「おかしい記録の点検」が出るようになりました。他の日と比べて飛び抜けた推定1RM（入力間違いの可能性）を知らせ、「集計から外す」でグラフや分析から外せます（元の記録は消えません）',
     '選手が記録を入れるとき、推定1RMが自己ベストを大きく超えたら「この重さで合っていますか？」と確認するようになりました'
@@ -3038,7 +3050,7 @@ function extractCoachLists(){ const rows = ((db.team || {}).rows) || []; let bes
   db.coachWants = [...wants];
   db.names = (db.names || []).filter(n => n !== '__coaches__');
   return !!best; }
-const _fetchAllGate = fetchAll; fetchAll = async function(manual){ await _fetchAllGate(manual); if(db.team && (db.team.rows || []).length){ const had = extractCoachLists(); extractExclusions();
+const _fetchAllGate = fetchAll; fetchAll = async function(manual){ await _fetchAllGate(manual); if(db.team && (db.team.rows || []).length){ const had = extractCoachLists(); extractExclusions(); extractCorrections();
     if(isOwner() && !had && !db.coachListInit){ db.coachListInit = true; save(); postCoachList(); }
     if(!coachAllowed()){ db.team = { rows: [], at: new Date().toISOString() }; save(); if(manual) say('コーチの許可がないため、選手の記録は取り込めません'); } } };
 async function postCoachList(){ if(!isOwner() || !syncUrl()) return; const names = (db.coachesCache || []).filter(n => normName(n) !== normName(COACH_OWNER)); const denied = (db.coachDenied || []).filter(n => normName(n) !== normName(COACH_OWNER)); const rev = Date.now();

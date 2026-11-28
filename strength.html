@@ -2858,6 +2858,8 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+   { v:'20261128o', date:'11月28日', items:[     'カレンダー（計画）の「だれの予定」と「カテゴリー」は、プルダウンで選ぶ形に変えました（複数人の選択はそのままできます）'   ] },
+
    { v:'20261128n', date:'11月28日', items:[     '分析の「できている」「足りない、注意」の見出しを濃い色にして、読みやすくしました'   ] },
 
    { v:'20261128m', date:'11月28日', items:[     'BIG3トータルのカードを、横幅いっぱいに広げました'   ] },
@@ -3287,13 +3289,15 @@ VIEWS.calplan = () => {
   const selEff = selDsp.c, selC = selEff ? calCat(selEff) : null;
   const panel = !selK ? '<p class="sub">日を押すと、カテゴリーを選べます。</p>' :
     '<h3 style="margin:0 0 8px">' + (who === 'many' ? esc(whos.slice(0, 2).join('・') + (whos.length > 2 ? '・他' + (whos.length - 2) + '名' : '')) + '・' : (who !== '全員' ? esc(who) + '・' : '')) + jdate(selK) + (selC ? '（いま：' + selC.n + (selDsp.kind === 'team' ? '＝全員の予定' : '') + '）' : (selDsp.kind === 'mixed' ? '（人によって違います）' : '')) + '</h3>' +
-    (calState.mode === 'range' ? '<p class="sub" style="margin-top:0">' + (rg ? jdate(rg[0]) + ' から ' + jdate(rg[1]) + ' まで。カテゴリーを押すと、この期間にまとめて登録します。' : '始める日を押してください。') + '</p>' : '') +
-    '<div class="exrow">' + CAL_CATS.map(c => { const cc = calCat(c.k); return '<button type="button" class="chip" data-calcat="' + c.k + '" style="border-color:' + cc.c + '">' + c.n + '</button>'; }).join('') +
-    '<button type="button" class="chip" data-calcat="">消す</button></div>';
+    (calState.mode === 'range' ? '<p class="sub" style="margin-top:0">' + (rg ? jdate(rg[0]) + ' から ' + jdate(rg[1]) + ' まで。カテゴリーを選ぶと、この期間にまとめて登録します。' : '始める日を押してください。') + '</p>' : '') +
+    '<label class="f">カテゴリー<select id="calCatSel" class="txt"><option value="__none" selected>選んでください</option>' + CAL_CATS.map(c => '<option value="' + c.k + '">' + c.n + '</option>').join('') + '<option value="__del">消す</option></select></label>';
   return { title:'カレンダー', html:
     '<style>.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.calwk{text-align:center;font-size:11px;color:#9a9aa0}.calday{min-height:54px;border:1px solid #B9C7D6;border-radius:9px;background:#EDF1F5;color:#10151B;padding:4px 3px;text-align:left;cursor:pointer;font:inherit}.calday.sel{border-color:#ffc400;border-width:2px}.calday.rng{background:#DCE4EC}.cdn{font-weight:700;font-size:12px}.cdn.tdy{color:#B58900}.cdc{display:block;font-size:9px;font-weight:700;margin-top:2px;line-height:1.3}.cdt{display:block;font-size:9px;color:#5D6874;margin-top:1px}</style>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px"><button type="button" class="ghost sm" data-calnav="-1">‹ 前の月</button><strong>' + yy + '年' + mm + '月</strong><span><button type="button" class="ghost sm" data-calnav="0">今月</button> <button type="button" class="ghost sm" data-calnav="1">次の月 ›</button></span></div>' +
-    '<div class="f">だれの予定（複数選べます）<div class="exrow" style="margin-top:6px"><button type="button" class="chip" data-calwho=""' + (!whos.length ? ' style="background:#ffc400;color:#000;border-color:#ffc400;font-weight:700"' : '') + '>全員（チーム共通）</button>' + calNames().map(n => '<button type="button" class="chip" data-calwho="' + esc(n) + '"' + (whos.includes(n) ? ' style="background:#ffc400;color:#000;border-color:#ffc400;font-weight:700"' : '') + '>' + esc(n) + '</button>').join('') + '</div></div>' +
+    '<details class="more" id="calWhoDD"><summary>だれの予定：' + (!whos.length ? '全員（チーム共通）' : (whos.length === 1 ? esc(whos[0]) : esc(whos.slice(0, 2).join('・')) + (whos.length > 2 ? '・他' + (whos.length - 2) + '名' : ''))) + '</summary><div class="inner">' +
+    '<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2c2c30"><input type="checkbox" data-calwho=""' + (!whos.length ? ' checked' : '') + '> 全員（チーム共通）</label>' +
+    calNames().map(n => '<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2c2c30"><input type="checkbox" data-calwho="' + esc(n) + '"' + (whos.includes(n) ? ' checked' : '') + '> ' + esc(n) + '</label>').join('') +
+    '<p class="sub" style="margin:8px 0 0">複数選べます。閉じると、カレンダーに反映されます。</p></div></details>' +
     '<div class="calgrid">' + cells + '</div>' +
     '<section class="card" style="margin-top:12px">' + panel +
     '<div style="margin-top:10px"><button type="button" class="ghost sm" data-calmode>' + (calState.mode === 'range' ? '1日ずつの登録に戻す' : '期間でまとめて登録する') + '</button></div></section>' +
@@ -3303,19 +3307,24 @@ VIEWS.calplan = () => {
     document.querySelectorAll('[data-calday]').forEach(b => b.addEventListener('click', () => { const k = b.getAttribute('data-calday');
       if(calState.mode === 'range' && !calState.from){ calState.from = k; calState.sel = k; } else calState.sel = k;
       render(false); }));
-    document.querySelectorAll('[data-calcat]').forEach(b => b.addEventListener('click', () => { const cat = b.getAttribute('data-calcat'); const rg2 = calRange();
+    const catSel = document.querySelector('#calCatSel');
+    if(catSel) catSel.addEventListener('change', () => { const v = catSel.value; if(v === '__none') return; const cat = v === '__del' ? '' : v; const rg2 = calRange();
       const targets = (calState.whos && calState.whos.length ? calState.whos : ['全員']).map(w => calPlanMap(w));
       const apply = (m, d) => { if(cat) m[d] = cat; else delete m[d]; };
       if(calState.mode === 'range' && rg2){ let d = rg2[0], guard = 0; while(d <= rg2[1] && guard++ < 400){ targets.forEach(m => apply(m, d)); d = addDays(d, 1); } calState.mode = 'single'; calState.from = ''; }
       else if(calState.sel){ targets.forEach(m => apply(m, calState.sel)); }
-      save(); render(false); }));
+      save(); render(false); });
     document.querySelectorAll('[data-calnav]').forEach(b => b.addEventListener('click', () => { const dv = +b.getAttribute('data-calnav');
       if(dv === 0) calState.ym = today().slice(0, 7);
       else { const dt = new Date(+calState.ym.slice(0, 4), +calState.ym.slice(5, 7) - 1 + dv, 1); calState.ym = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0'); }
       render(false); }));
-    document.querySelectorAll('[data-calwho]').forEach(b => b.addEventListener('click', () => { const n = b.getAttribute('data-calwho');
-      if(!n) calState.whos = []; else { const i = calState.whos.indexOf(n); if(i >= 0) calState.whos.splice(i, 1); else calState.whos.push(n); }
-      render(false); }));
+    const whoDD = document.querySelector('#calWhoDD');
+    document.querySelectorAll('[data-calwho]').forEach(b => b.addEventListener('change', () => { const n = b.getAttribute('data-calwho');
+      if(!n){ if(b.checked){ calState.whos = []; document.querySelectorAll('[data-calwho]').forEach(x => { if(x !== b) x.checked = false; }); } else if(!calState.whos.length) b.checked = true; }
+      else { const i = calState.whos.indexOf(n); if(b.checked && i < 0) calState.whos.push(n); if(!b.checked && i >= 0) calState.whos.splice(i, 1);
+        const allB = document.querySelector('[data-calwho=""]'); if(allB) allB.checked = !calState.whos.length; }
+    }));
+    if(whoDD) whoDD.addEventListener('toggle', () => { if(!whoDD.open) render(false); });
     const mb = document.querySelector('[data-calmode]'); if(mb) mb.addEventListener('click', () => { calState.mode = calState.mode === 'range' ? 'single' : 'range'; calState.from = ''; render(false); });
   } };
 }

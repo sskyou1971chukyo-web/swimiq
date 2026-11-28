@@ -2858,6 +2858,8 @@ joinPing();
 
 /* 更新のお知らせ：新しい版になったら最初の画面に説明を出す。更新のたびに APP_NEWS の先頭へ1件足す */
 const APP_NEWS = [
+   { v:'20261128q', date:'11月28日', items:[     'カレンダー（計画）の色の付き方を直しました。日の文字が見えなくなっていた問題を解決しています'   ] },
+
    { v:'20261128p', date:'11月28日', items:[     'カレンダー（計画）の日に、カテゴリーの色が付くようになりました。試合は赤、合宿は青緑、最大筋力は青など、ひと目で分かります（試合や合宿も、カテゴリーのプルダウンから登録できます）'   ] },
 
    { v:'20261128o', date:'11月28日', items:[     'カレンダー（計画）の「だれの予定」と「カテゴリー」は、プルダウンで選ぶ形に変えました（複数人の選択はそのままできます）'   ] },
@@ -3245,6 +3247,7 @@ const CAL_CATS = [
   { k:'endurance', n:'筋持久力' }, { k:'recovery', n:'回復' },
   { k:'race', n:'試合', c:'#D43A2F' }, { k:'camp', n:'合宿', c:'#0E7C93' }, { k:'off', n:'休み', c:'#6B7280' } ];
 function calCat(k){ const c = CAL_CATS.find(x => x.k === k); if(!c) return null; return { k:c.k, n:c.n, c: c.c || (PURP[k] ? PURP[k].color : '#999999') }; }
+function calTint(hex, r){ const n = parseInt(hex.slice(1), 16); const R = n >> 16 & 255, G = n >> 8 & 255, B = n & 255; const mix = (v, b) => Math.round(v * r + b * (1 - r)); return 'rgb(' + mix(R, 237) + ',' + mix(G, 241) + ',' + mix(B, 245) + ')'; }
 function calPlanAll(){ db.calPlan = db.calPlan || {}; const cp = db.calPlan;
   const dk = Object.keys(cp).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
   if(dk.length){ cp['全員'] = cp['全員'] || {}; dk.forEach(k => { cp['全員'][k] = cp[k]; delete cp[k]; }); }
@@ -3277,7 +3280,7 @@ VIEWS.calplan = () => {
     const k = ym + '-' + String(d).padStart(2, '0'); wk.push(k);
     const dsp = dispOf(k);
     const c = dsp.c ? calCat(dsp.c) : null, tn = who === '全員' ? (trained[k] || 0) : trainedCnt(k);
-    cells += '<button type="button" class="calday' + (k === calState.sel ? ' sel' : '') + (calState.mode === 'range' && rg && k >= rg[0] && k <= rg[1] ? ' rng' : '') + '" data-calday="' + k + '"' + (c ? ' style="background:' + c.c + (dsp.kind === 'team' ? '24' : '3A') + '"' : '') + '>' +
+    cells += '<button type="button" class="calday' + (k === calState.sel ? ' sel' : '') + (calState.mode === 'range' && rg && k >= rg[0] && k <= rg[1] ? ' rng' : '') + '" data-calday="' + k + '"' + (c ? ' style="background:' + calTint(c.c, dsp.kind === 'team' ? 0.16 : 0.3) + '"' : '') + '>' +
       '<span class="cdn' + (k === td ? ' tdy' : '') + '">' + d + '</span>' +
       (c ? '<span class="cdc" style="color:' + c.c + (dsp.kind === 'team' ? ';opacity:.55' : '') + '">' + c.n + '</span>' : (dsp.kind === 'mixed' ? '<span class="cdc" style="color:#9a9aa0">混在</span>' : '')) +
       (tn ? '<span class="cdt">' + (who === '全員' ? '実施' + tn + '人' : (who === 'many' ? '実施' + tn + '/' + whos.length + '人' : '実施')) + '</span>' : '') + '</button>';
@@ -3301,7 +3304,7 @@ VIEWS.calplan = () => {
     calNames().map(n => '<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2c2c30"><input type="checkbox" data-calwho="' + esc(n) + '"' + (whos.includes(n) ? ' checked' : '') + '> ' + esc(n) + '</label>').join('') +
     '<p class="sub" style="margin:8px 0 0">複数選べます。閉じると、カレンダーに反映されます。</p></div></details>' +
     '<div class="calgrid">' + cells + '</div>' +
-    '<p class="sub" style="margin:8px 0 0">' + CAL_CATS.map(c => '<span style="color:' + c.c + '">●</span>' + c.n).join('　') + '</p>' +
+    '<p class="sub" style="margin:8px 0 0">' + CAL_CATS.map(c => '<span style="color:' + calCat(c.k).c + '">●</span>' + c.n).join('　') + '</p>' +
     '<section class="card" style="margin-top:12px">' + panel +
     '<div style="margin-top:10px"><button type="button" class="ghost sm" data-calmode>' + (calState.mode === 'range' ? '1日ずつの登録に戻す' : '期間でまとめて登録する') + '</button></div></section>' +
     (wkSum ? '<section class="card"><h2 style="margin-top:0">週ごとの内訳</h2>' + wkSum + '</section>' : '') +
